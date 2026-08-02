@@ -17,10 +17,10 @@ export function Nav({ route, navigate, onAdmin }) {
           <button className={`nav-link ${route === "home" ? "active" : ""}`} onClick={() => navigate("home")}>Home</button>
           <button className={`nav-link ${route === "products" ? "active" : ""}`} onClick={() => navigate("products")}>Products</button>
           <button className={`nav-link ${route === "measure" ? "active" : ""}`} onClick={() => navigate("measure")}>Measure Guide</button>
-          <button className={`nav-link ${route === "quote" ? "active" : ""}`} onClick={() => navigate("quote")}>Get a Quote</button>
+          <button className={`nav-link ${route === "quote" ? "active" : ""}`} onClick={() => navigate("quote")}>Your Order</button>
           <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
         </div>
-        <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Quote</button>
+        <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
         <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
     </nav>
@@ -33,7 +33,7 @@ export function Footer({ navigate }) {
       <div className="footer-cta">
         <div className="footer-cta-inner">
           <h2 className="serif">Ready to dress your windows?</h2>
-          <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Get an Estimate <ArrowRight /></button>
+          <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
         </div>
       </div>
       <div className="footer">
@@ -62,7 +62,7 @@ export function Footer({ navigate }) {
             <ul>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("products")}>All Products</button></li>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("measure")}>Measurement Guide</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Estimator</button></li>
+              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Your Order</button></li>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("contact")}>Contact</button></li>
             </ul>
           </div>
@@ -95,7 +95,7 @@ export function HomePage({ navigate, goToProduct }) {
             <p className="hero-tag">Made-to-measure blinds, shades, shutters, and drapes — measured your way: in-home consult with us, or DIY with our step-by-step guide.</p>
             <div className="hero-ctas">
               <button className="btn btn-sand" onClick={() => navigate("products")} style={{ background: "var(--sand)", color: "var(--charcoal)" }}>Browse Products</button>
-              <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Get an Estimate <ArrowRight /></button>
+              <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
             </div>
           </div>
           <div className="hero-aside" style={{ padding: "10px 0px 20px 40px" }}>
@@ -123,8 +123,8 @@ export function HomePage({ navigate, goToProduct }) {
         <div className="steps">
           <div className="step">
             <div className="step-num">01</div>
-            <h4 className="serif">Get an estimate</h4>
-            <p>Tell us your windows. We send a written ballpark within 48 hours — no email harvesting, no upsell.</p>
+            <h4 className="serif">Start your order</h4>
+            <p>Tell us your windows. We send a written quote within 48 hours — no email harvesting, no upsell.</p>
           </div>
           <div className="step">
             <div className="step-num">02</div>
@@ -243,10 +243,6 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
   const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
   const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
 
-  const showPrice = product.baseCost > 0;
-  const sqftPrice = product.baseCost / (1 - product.margin);
-  const samplePrice = Math.round(sqftPrice * 18 + (mechObj?.upcharge || 0));
-
   return (
     <div className={`slat ${open ? "open" : ""}`} data-product-id={product.id}>
       <button className="slat-row" onClick={onToggle}>
@@ -281,7 +277,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                 <div className="config-options">
                   {product.mechanisms.map(m => (
                     <button key={m.id} className={`opt-btn ${mech === m.id ? "selected" : ""}`} onClick={() => setMech(m.id)}>
-                      {m.name}{m.upcharge > 0 && <span style={{ opacity: 0.55, marginLeft: 6 }}>+${m.upcharge}</span>}
+                      {m.name}
                     </button>
                   ))}
                 </div>
@@ -319,14 +315,9 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
               <div className="config-meta">
                 <div>
                   <div className="lead">Lead time · {product.lead}</div>
-                  {showPrice
-                    ? <div className="price">${samplePrice}<small> / 3×6ft window</small></div>
-                    : <div className="nopricing">Contact us for pricing</div>
-                  }
                 </div>
                 <div className="config-actions">
-                  <button className="btn btn-outline btn-sm" onClick={onEstimate}>Get Estimate</button>
-                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: showPrice ? samplePrice : null })}>Add to Quote</button>
+                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: null })}>Add to Order</button>
                 </div>
               </div>
             </div>
@@ -343,9 +334,9 @@ export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, u
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
-        <div className="section-eyebrow">Estimator</div>
-        <h1 className="serif section-title">Build your quote.</h1>
-        <p className="section-sub">Estimate any single window, then add it to your quote. Submit the list and we'll send a written proposal within 48 hours.</p>
+        <div className="section-eyebrow">Configure</div>
+        <h1 className="serif section-title">Configure your windows.</h1>
+        <p className="section-sub">Choose your product, options, and dimensions for each window. When you're ready, submit and we'll send a written quote within 48 hours.</p>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 18, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
           <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
@@ -355,9 +346,9 @@ export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, u
         </div>
 
         <div className="tabs" style={{ marginTop: 30 }}>
-          <button className={`tab ${tab === "estimator" ? "active" : ""}`} onClick={() => setTab("estimator")}>Estimator</button>
+          <button className={`tab ${tab === "estimator" ? "active" : ""}`} onClick={() => setTab("estimator")}>Configure</button>
           <button className={`tab ${tab === "quote" ? "active" : ""}`} onClick={() => setTab("quote")}>
-            Your Quote{quoteItems.length > 0 && <span className="count">{quoteItems.length}</span>}
+            Your Order{quoteItems.length > 0 && <span className="count">{quoteItems.length}</span>}
           </button>
         </div>
 
@@ -403,16 +394,9 @@ function Estimator({ addToQuote, switchToQuote }) {
 
   const w = parseFloat(width), h = parseFloat(height), n = parseInt(windows || "0", 10);
   const allFilled = w > 0 && h > 0 && n > 0;
-  const sqftPerWindow = allFilled ? w * h / 144 : 0;
-  const sellPerSqft = product.baseCost / (1 - product.margin);
-  const baseTotal = sqftPerWindow * sellPerSqft;
-  const upcharges = (mechObj?.upcharge || 0) + (addons.blackout ? ADDON_UPCHARGES.blackout_lining : 0) + (addons.install ? ADDON_UPCHARGES.installation : 0);
-  const perWindow = baseTotal + upcharges;
-  const grand = perWindow * n;
-  const showPrice = product.baseCost > 0 && allFilled;
 
   const handleAdd = () => {
-    addToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, width: w, length: h, qty: n, price: showPrice ? Math.round(perWindow) : null, addons });
+    addToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, width: w || null, length: h || null, qty: n || 1, price: null, addons });
     switchToQuote();
   };
 
@@ -436,7 +420,7 @@ function Estimator({ addToQuote, switchToQuote }) {
           <div className="config-options">
             {product.mechanisms.map(m => (
               <button key={m.id} className={`opt-btn ${mech === m.id ? "selected" : ""}`} onClick={() => setMech(m.id)}>
-                {m.name}{m.upcharge > 0 && <span style={{ opacity: 0.55, marginLeft: 6 }}>+${m.upcharge}</span>}
+                {m.name}
               </button>
             ))}
           </div>
@@ -485,12 +469,10 @@ function Estimator({ addToQuote, switchToQuote }) {
             <div className="checkbox-row">
               <input type="checkbox" id="ck-bl" checked={addons.blackout} onChange={e => setAddons({ ...addons, blackout: e.target.checked })} />
               <label htmlFor="ck-bl">Blackout lining</label>
-              <span className="upcharge">+${ADDON_UPCHARGES.blackout_lining}/window</span>
             </div>
             <div className="checkbox-row">
               <input type="checkbox" id="ck-in" checked={addons.install} onChange={e => setAddons({ ...addons, install: e.target.checked })} />
               <label htmlFor="ck-in">Professional installation</label>
-              <span className="upcharge">+${ADDON_UPCHARGES.installation}/window</span>
             </div>
           </div>
         </div>
@@ -501,24 +483,9 @@ function Estimator({ addToQuote, switchToQuote }) {
           : <PhotoPH label={photoLabel} sub="no photo for this combination yet" className="empty" aspect="4 / 5" />
         }
         <div className="est-summary">
-          <div className="label">Estimated total</div>
-          {showPrice
-            ? <>
-                <div className="est-price">${Math.round(grand).toLocaleString()}</div>
-                <div style={{ fontSize: 13, color: "var(--ink-60)", marginTop: 6 }}>
-                  {n} window{n > 1 ? "s" : ""} · ${Math.round(perWindow).toLocaleString()} each
-                </div>
-              </>
-            : <div className="est-price-empty">
-                {product.baseCost > 0
-                  ? "Enter size and quantity to see your estimate."
-                  : "Contact us for pricing on this product."}
-              </div>
-          }
-          <button className="btn btn-sage" style={{ marginTop: 18, width: "100%" }}
-            disabled={!allFilled}
+          <button className="btn btn-sage" style={{ marginTop: 0, width: "100%" }}
             onClick={handleAdd}>
-            Add to Quote
+            Add to Order
           </button>
         </div>
       </div>
@@ -540,14 +507,11 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  const total = items.reduce((s, it) => s + (it.price ? it.price * it.qty : 0), 0);
-  const hasPricing = items.some(it => it.price);
-
   if (submitted) {
     return (
       <div className="success-banner">
-        <h3 className="serif">Quote sent — you're all set.</h3>
-        <p>We'll send a written proposal to <strong>{review.email}</strong> within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
+        <h3 className="serif">Order request sent.</h3>
+        <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
       </div>
     );
   }
@@ -638,16 +602,9 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
                 <div className="qty-stepper" style={{ pointerEvents: "none" }}>
                   <button>−</button><span>{it.qty}</span><button>+</button>
                 </div>
-                <div className="quote-line-total">
-                  {it.price ? `$${(it.price * it.qty).toLocaleString()}` : <span style={{ fontStyle: "italic", fontSize: 14, color: "var(--ink-60)" }}>Quote on request</span>}
-                </div>
               </div>
             );
           })}
-        </div>
-        <div className="grand-total">
-          <div><div className="lbl">Estimated total</div>{!hasPricing && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Final pricing sent within 48 hours</div>}</div>
-          <div className="amt">{hasPricing ? `$${total.toLocaleString()}` : "—"}</div>
         </div>
 
         {submitError && (
@@ -661,7 +618,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
             ← Edit
           </button>
           <button className="btn btn-sage" onClick={handleConfirmSend} disabled={submitting} style={{ padding: "14px 28px" }}>
-            {submitting ? "Sending…" : "Confirm & Send Quote"} {!submitting && <ArrowRight />}
+            {submitting ? "Sending…" : "Send Order"} {!submitting && <ArrowRight />}
           </button>
         </div>
       </div>
@@ -671,9 +628,9 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
   if (items.length === 0) {
     return (
       <div className="empty-state">
-        <h3 className="serif">No items in your quote yet.</h3>
-        <p>Use the Estimator tab to configure a window and add it here.</p>
-        <button className="btn btn-outline" onClick={goEstimator} style={{ marginTop: 20 }}>Open Estimator <ArrowRight /></button>
+        <h3 className="serif">Nothing in your order yet.</h3>
+        <p>Use the Configure tab to pick a product and add it here.</p>
+        <button className="btn btn-outline" onClick={goEstimator} style={{ marginTop: 20 }}>Configure a window <ArrowRight /></button>
       </div>
     );
   }
@@ -713,26 +670,13 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
                 <button onClick={() => updateQty(idx, it.qty + 1)}>+</button>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div className="quote-line-total">
-                  {it.price
-                    ? `$${(it.price * it.qty).toLocaleString()}`
-                    : <span style={{ fontStyle: "italic", fontSize: 14, color: "var(--ink-60)" }}>Quote on request</span>}
-                </div>
                 <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove"><XIcon /></button>
               </div>
             </div>
           );
         })}
       </div>
-      <div className="grand-total">
-        <div>
-          <div className="lbl">Estimated total</div>
-          {!hasPricing && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Final pricing sent within 48 hours</div>}
-        </div>
-        <div className="amt">{hasPricing ? `$${total.toLocaleString()}` : "—"}</div>
-      </div>
-
-      <h3 className="serif" style={{ fontSize: 28, marginTop: 48, marginBottom: 8 }}>Where should we send your proposal?</h3>
+      <h3 className="serif" style={{ fontSize: 28, marginTop: 48, marginBottom: 8 }}>Where should we send your quote?</h3>
       <p style={{ color: "var(--ink-60)", margin: 0 }}>We'll never share your contact information.</p>
 
       <div className="quote-form">
@@ -772,7 +716,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
         </div>
         <div className="full">
           {errors._items && <div style={{ marginBottom: 10, color: "#a8513f", fontSize: 13 }}>{errors._items}</div>}
-          <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Quote Request <ArrowRight /></button>
+          <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Your Order <ArrowRight /></button>
         </div>
       </div>
     </div>
@@ -790,7 +734,7 @@ export function MeasureGuidePage({ navigate }) {
           <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical — older houses rarely come square.</p>
 
           <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
-            <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Get a quote <ArrowRight size={14} /></button>
+            <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
             <button className="btn btn-outline btn-sm">Download printable worksheet</button>
             <button className="btn btn-ghost btn-sm" onClick={() => navigate("contact")}>Or book an in-home consult →</button>
           </div>
@@ -893,7 +837,7 @@ export function MeasureGuidePage({ navigate }) {
                 <h2 className="serif" style={{ fontSize: 32 }}>Got your numbers?</h2>
                 <p style={{ color: "var(--ink-60)", fontSize: 15, margin: "8px 0 0" }}>Send them along with your product picks and we'll have a written quote back to you within 48 hours.</p>
               </div>
-              <button className="btn btn-sage" onClick={() => navigate("quote")}>Build Your Quote <ArrowRight /></button>
+              <button className="btn btn-sage" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
             </div>
           </div>
         </div>
