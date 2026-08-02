@@ -6,7 +6,7 @@ import {
 import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/photos.js';
 import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
 
-export function Nav({ route, navigate, onAdmin, quoteCount }) {
+export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, orders, authLoading }) {
   return (
     <nav className="nav">
       <div className="nav-inner">
@@ -22,6 +22,19 @@ export function Nav({ route, navigate, onAdmin, quoteCount }) {
           </button>
           <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
         </div>
+        {supabaseEnabled && !authLoading && (
+          user ? (
+            <button className="nav-avatar-btn" onClick={() => navigate("orders")} title="My Orders">
+              {user.user_metadata?.avatar_url
+                ? <img src={user.user_metadata.avatar_url} alt="" className="nav-avatar" />
+                : <div className="nav-avatar nav-avatar-fallback">{user.email?.[0]?.toUpperCase()}</div>
+              }
+              {orders.length > 0 && <span className="nav-orders-count">{orders.length}</span>}
+            </button>
+          ) : (
+            <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
+          )
+        )}
         <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
         <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
@@ -375,11 +388,23 @@ function SlatRow({ product, open, onToggle, onAddToQuote }) {
   );
 }
 
-export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel }) {
+export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, user }) {
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
-        <div className="section-eyebrow">Your Order</div>
+        {user && activeOrder ? (
+          <div className="order-breadcrumb">
+            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
+            <span className="order-breadcrumb-sep">·</span>
+            <span className="order-breadcrumb-name">{activeOrder.name}</span>
+          </div>
+        ) : user ? (
+          <div className="order-breadcrumb">
+            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
+          </div>
+        ) : null}
+
+        <div className="section-eyebrow" style={{ marginTop: user ? 12 : 0 }}>Your Order</div>
         <h1 className="serif section-title">Place your order.</h1>
         <p className="section-sub">Review your selections, add your contact details, and send — we'll reply with your written quote within 48 hours.</p>
 
@@ -636,6 +661,109 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
           <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Your Order <ArrowRight /></button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+
+  if (!supabaseEnabled) {
+    return (
+      <div className="page-fade">
+        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80 }}>
+          <h1 className="serif section-title">My Orders</h1>
+          <p style={{ color: "var(--ink-60)" }}>Account features are not yet configured for this site.</p>
+        </section>
+        <Footer navigate={navigate} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="page-fade">
+        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80, textAlign: "center" }}>
+          <h1 className="serif section-title">My Orders</h1>
+          <p style={{ color: "var(--ink-60)", marginBottom: 28 }}>Sign in with Google to save your orders and come back to them any time.</p>
+          <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>
+        </section>
+        <Footer navigate={navigate} />
+      </div>
+    );
+  }
+
+  const startEdit = (order) => { setEditingId(order.id); setEditingName(order.name); };
+  const commitEdit = () => {
+    if (editingId && editingName.trim()) renameOrder(editingId, editingName.trim());
+    setEditingId(null);
+  };
+
+  return (
+    <div className="page-fade">
+      <section className="container" style={{ paddingTop: 56, paddingBottom: 80 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 36 }}>
+          <div>
+            <div className="section-eyebrow">{user.email}</div>
+            <h1 className="serif section-title" style={{ marginBottom: 0 }}>My Orders</h1>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <button className="btn btn-sage" onClick={() => createOrder('New Order').then(o => { if (o) navigate('quote'); })}>
+              New Order <ArrowRight size={14} />
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={signOut}>Sign out</button>
+          </div>
+        </div>
+
+        {orders.length === 0 ? (
+          <div className="empty-state">
+            <h3 className="serif">No orders yet.</h3>
+            <p>Browse products and use "Add to Order" to start your first order.</p>
+            <button className="btn btn-sage" onClick={() => navigate('products')} style={{ marginTop: 20 }}>
+              Browse Products <ArrowRight />
+            </button>
+          </div>
+        ) : (
+          <div className="orders-grid">
+            {orders.map(order => (
+              <div key={order.id} className={`order-card${order.id === activeOrderId ? ' active' : ''}`}>
+                <div className="order-card-body">
+                  {editingId === order.id ? (
+                    <input
+                      className="input"
+                      value={editingName}
+                      autoFocus
+                      onChange={e => setEditingName(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                      style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }} />
+                  ) : (
+                    <button className="order-card-name" onClick={() => startEdit(order)} title="Click to rename">
+                      {order.name}
+                    </button>
+                  )}
+                  <div className="order-card-meta">
+                    {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? 's' : ''}
+                    {' · '}
+                    {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {order.id === activeOrderId && <span className="order-active-badge">Active</span>}
+                  </div>
+                </div>
+                <div className="order-card-actions">
+                  <button className="btn btn-sage btn-sm" onClick={() => openOrder(order.id)}>
+                    Open <ArrowRight size={13} />
+                  </button>
+                  <button className="order-card-delete" onClick={() => deleteOrder(order.id)} title="Delete order">
+                    <XIcon />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      <Footer navigate={navigate} />
     </div>
   );
 }

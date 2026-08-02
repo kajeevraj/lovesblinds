@@ -990,6 +990,40 @@ a { color: inherit; }
 /* room label inline edit in order list */
 .room-label-input { margin-top: 6px; padding: 5px 8px; font-size: 12px; color: var(--sage-dark); }
 
+/* nav auth elements */
+.nav-avatar-btn { position: relative; display: flex; align-items: center; background: none; border: none; cursor: pointer; padding: 0; margin-right: 14px; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--sage); }
+.nav-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 600; border: 2px solid var(--sage); }
+.nav-orders-count { position: absolute; top: -4px; right: -6px; background: var(--sage); color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--warm-white); }
+.nav-signin { opacity: 0.7; margin-right: 8px; }
+
+/* order breadcrumb on QuotePage */
+.order-breadcrumb { display: flex; align-items: center; gap: 8px; margin-top: 20px; margin-bottom: 4px; font-size: 13px; color: var(--ink-60); }
+.order-breadcrumb button { background: none; border: none; cursor: pointer; color: var(--ink-60); font-size: 13px; padding: 0; }
+.order-breadcrumb button:hover { color: var(--sage-dark); }
+.order-breadcrumb-sep { opacity: 0.4; }
+.order-breadcrumb-name { font-weight: 500; color: var(--charcoal); }
+
+/* orders page grid */
+.orders-page { padding: 60px 0 80px; }
+.orders-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+.orders-page-title { font-family: var(--serif); font-size: 28px; color: var(--charcoal); margin: 0; }
+.orders-page-actions { display: flex; gap: 10px; align-items: center; }
+.orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.order-card { background: #fff; border: 1px solid var(--hairline); border-radius: 8px; padding: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; transition: border-color 0.15s; }
+.order-card.active { border-color: var(--sage); }
+.order-card-body { flex: 1; min-width: 0; }
+.order-card-name { background: none; border: none; padding: 0; cursor: pointer; font-size: 17px; font-weight: 600; font-family: var(--serif); color: var(--charcoal); text-align: left; width: 100%; }
+.order-card-name:hover { color: var(--sage-dark); }
+.order-card-meta { font-size: 12px; color: var(--ink-60); margin-top: 6px; }
+.order-active-badge { display: inline-block; margin-left: 8px; background: var(--pale-sage); color: var(--sage-dark); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; vertical-align: middle; }
+.order-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.order-card-delete { background: none; border: none; cursor: pointer; color: var(--ink-40); padding: 4px; border-radius: 4px; font-size: 16px; line-height: 1; }
+.order-card-delete:hover { color: #a8513f; background: rgba(168,81,63,0.08); }
+.orders-empty { text-align: center; padding: 60px 0; color: var(--ink-60); }
+.orders-signin-prompt { text-align: center; padding: 80px 0; }
+.orders-signin-prompt p { color: var(--ink-60); margin-bottom: 20px; }
+
 /* page transitions */
 .page-fade { animation: pageFade 0.35s ease; }
 @keyframes pageFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
