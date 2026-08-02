@@ -328,7 +328,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                 </div>
                 <div className="config-actions">
                   <button className="btn btn-outline btn-sm" onClick={onEstimate}>Get Estimate</button>
-                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, price: showPrice ? samplePrice : null })}>Add to Quote</button>
+                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: showPrice ? samplePrice : null })}>Add to Quote</button>
                 </div>
               </div>
             </div>
@@ -341,7 +341,6 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
 
 export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, updateQty }) {
   const [tab, setTab] = useState("estimator");
-  const [submitted, setSubmitted] = useState(false);
 
   return (
     <div className="page-fade">
@@ -370,8 +369,6 @@ export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, u
             items={quoteItems}
             removeFromQuote={removeFromQuote}
             updateQty={updateQty}
-            submitted={submitted}
-            onSubmit={() => setSubmitted(true)}
             goEstimator={() => setTab("estimator")} />
         }
       </section>
@@ -417,7 +414,7 @@ function Estimator({ addToQuote, switchToQuote }) {
   const showPrice = product.baseCost > 0 && allFilled;
 
   const handleAdd = () => {
-    addToQuote({ product, variant, mech, mount, color, width: w, height: h, qty: n, price: showPrice ? Math.round(perWindow) : null, addons });
+    addToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, width: w, length: h, qty: n, price: showPrice ? Math.round(perWindow) : null, addons });
     switchToQuote();
   };
 
@@ -531,18 +528,73 @@ function Estimator({ addToQuote, switchToQuote }) {
   );
 }
 
-function QuoteList({ items, removeFromQuote, updateQty, submitted, onSubmit, goEstimator }) {
+function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [shipTo, setShipTo] = useState("");
+  const [callTime, setCallTime] = useState("Anytime");
+  const [measureMethod, setMeasureMethod] = useState("I'll measure myself");
+  const [notes, setNotes] = useState("");
+  const [errors, setErrors] = useState({});
+  const [review, setReview] = useState(null);
+
   const total = items.reduce((s, it) => s + (it.price ? it.price * it.qty : 0), 0);
   const hasPricing = items.some(it => it.price);
 
-  if (submitted) {
+  if (review) {
+    const customer = review;
     return (
-      <div className="success-banner">
-        <h3 className="serif">Thanks — your quote is in.</h3>
-        <p>We'll send a written proposal to your inbox within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
+      <div>
+        <div className="success-banner" style={{ marginBottom: 32 }}>
+          <h3 className="serif">Quote ready to send.</h3>
+          <p style={{ margin: 0 }}>Review everything below — we'll reach out to <strong>{customer.email}</strong> within 48 hours with a written proposal.</p>
+        </div>
+
+        <h4 className="serif" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h4>
+        <div className="review-grid">
+          <div><span className="label">Name</span><div>{customer.name}</div></div>
+          <div><span className="label">Email</span><div>{customer.email}</div></div>
+          {customer.phone && <div><span className="label">Phone</span><div>{customer.phone}</div></div>}
+          {customer.shipTo && <div><span className="label">Ship to</span><div>{customer.shipTo}</div></div>}
+          <div><span className="label">Best time to call</span><div>{customer.callTime}</div></div>
+          <div><span className="label">Measurement</span><div>{customer.measureMethod}</div></div>
+          {customer.notes && <div className="full"><span className="label">Notes</span><div>{customer.notes}</div></div>}
+        </div>
+
+        <h4 className="serif" style={{ fontSize: 20, margin: "32px 0 14px" }}>Items ({items.length})</h4>
+        <div className="quote-list">
+          {items.map((it, idx) => {
+            const itemMech = getMechanism(it.product, it.mech);
+            return (
+              <div key={idx} className="quote-line">
+                <PhotoPH label={it.colorName || it.variant} sub={itemMech?.code} className="empty" />
+                <div>
+                  <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
+                  <div className="quote-line-meta">
+                    {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
+                    {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
+                    {it.code && <span style={{ marginLeft: 8, opacity: 0.5, fontSize: 12 }}>#{it.code}</span>}
+                  </div>
+                </div>
+                <div className="qty-stepper" style={{ pointerEvents: "none" }}>
+                  <button>−</button><span>{it.qty}</span><button>+</button>
+                </div>
+                <div className="quote-line-total">
+                  {it.price ? `$${(it.price * it.qty).toLocaleString()}` : <span style={{ fontStyle: "italic", fontSize: 14, color: "var(--ink-60)" }}>Quote on request</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="grand-total">
+          <div><div className="lbl">Estimated total</div>{!hasPricing && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Final pricing sent within 48 hours</div>}</div>
+          <div className="amt">{hasPricing ? `$${total.toLocaleString()}` : "—"}</div>
+        </div>
       </div>
     );
   }
+
   if (items.length === 0) {
     return (
       <div className="empty-state">
@@ -553,6 +605,16 @@ function QuoteList({ items, removeFromQuote, updateQty, submitted, onSubmit, goE
     );
   }
 
+  const handleSubmit = () => {
+    const errs = {};
+    if (!name.trim()) errs.name = "Required";
+    if (!email.trim()) errs.email = "Required";
+    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    setReview({ name: name.trim(), email: email.trim(), phone: phone.trim(), shipTo: shipTo.trim(), callTime, measureMethod, notes: notes.trim() });
+  };
+
   return (
     <div>
       <div className="quote-list">
@@ -561,14 +623,14 @@ function QuoteList({ items, removeFromQuote, updateQty, submitted, onSubmit, goE
           return (
             <div key={idx} className="quote-line">
               <PhotoPH
-                label={`${it.variant}`}
+                label={it.colorName || it.variant}
                 sub={`${itemMech?.code} · ${it.mount}`}
                 className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
               <div>
-                <div className="quote-line-title">{it.product.name} · {it.variant}</div>
+                <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
                 <div className="quote-line-meta">
                   {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
-                  {it.width && ` · ${it.width}"W × ${it.height}"H`}
+                  {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
                 </div>
               </div>
               <div className="qty-stepper">
@@ -600,23 +662,42 @@ function QuoteList({ items, removeFromQuote, updateQty, submitted, onSubmit, goE
       <p style={{ color: "var(--ink-60)", margin: 0 }}>We'll never share your contact information.</p>
 
       <div className="quote-form">
-        <div><div className="label">Name</div><input className="input" placeholder="Full name" /></div>
-        <div><div className="label">Email</div><input className="input" type="email" placeholder="you@example.com" /></div>
-        <div><div className="label">Phone</div><input className="input" placeholder="(555) 555-5555" /></div>
-        <div><div className="label">Best time to call</div>
-          <select className="select"><option>Anytime</option><option>Mornings</option><option>Afternoons</option><option>Evenings</option></select>
+        <div>
+          <div className="label">Name{errors.name && <span className="field-error"> — {errors.name}</span>}</div>
+          <input className={`input${errors.name ? " input-error" : ""}`} placeholder="Full name" value={name} onChange={e => { setName(e.target.value); setErrors(v => ({ ...v, name: "" })); }} />
+        </div>
+        <div>
+          <div className="label">Email{errors.email && <span className="field-error"> — {errors.email}</span>}</div>
+          <input className={`input${errors.email ? " input-error" : ""}`} type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); setErrors(v => ({ ...v, email: "" })); }} />
+        </div>
+        <div>
+          <div className="label">Phone</div>
+          <input className="input" placeholder="(555) 555-5555" value={phone} onChange={e => setPhone(e.target.value)} />
+        </div>
+        <div>
+          <div className="label">Ship to address</div>
+          <input className="input" placeholder="123 Main St, City, State" value={shipTo} onChange={e => setShipTo(e.target.value)} />
+        </div>
+        <div>
+          <div className="label">Best time to call</div>
+          <select className="select" value={callTime} onChange={e => setCallTime(e.target.value)}>
+            <option>Anytime</option><option>Mornings</option><option>Afternoons</option><option>Evenings</option>
+          </select>
         </div>
         <div className="full">
           <div className="label">Measurement method</div>
           <div className="config-options">
-            <button className="opt-btn selected">I'll measure myself</button>
-            <button className="opt-btn">Send someone to measure</button>
-            <button className="opt-btn">Not sure yet</button>
+            {["I'll measure myself", "Send someone to measure", "Not sure yet"].map(opt => (
+              <button key={opt} className={`opt-btn${measureMethod === opt ? " selected" : ""}`} onClick={() => setMeasureMethod(opt)}>{opt}</button>
+            ))}
           </div>
         </div>
-        <div className="full"><div className="label">Notes — rooms, timing, anything we should know</div><textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." /></div>
         <div className="full">
-          <button className="btn btn-sage" onClick={onSubmit} style={{ padding: "14px 28px" }}>Submit Quote Request <ArrowRight /></button>
+          <div className="label">Notes — rooms, timing, anything we should know</div>
+          <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
+        <div className="full">
+          <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Quote Request <ArrowRight /></button>
         </div>
       </div>
     </div>

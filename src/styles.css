@@ -509,6 +509,13 @@ a { color: inherit; }
 .success-banner h3 { color: var(--sage-dark); font-size: 22px; margin-bottom: 6px; }
 .success-banner p { color: var(--charcoal); margin: 0; font-size: 14px; }
 
+.field-error { color: #a8513f; font-size: 12px; font-weight: 500; }
+.input-error { border-color: #a8513f !important; }
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.review-grid .full { grid-column: 1 / -1; }
+.review-grid .label { display: block; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 3px; }
+.review-grid div > div { font-size: 14px; }
+
 /* ===== Contact page ===== */
 .contact-page { padding: 80px 0 100px; }
 .contact-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 64px; margin-top: 48px; }
