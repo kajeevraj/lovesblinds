@@ -45,8 +45,8 @@ export function Footer({ navigate }) {
           <div>
             <h4>Studio</h4>
             <ul>
-              <li>2104 Cedar Ave</li>
-              <li>Asheville, NC 28801</li>
+              <li>512 Glenwyck Court</li>
+              <li>Fuquay-Varina, NC 27526</li>
               <li>{SETTINGS.phone}</li>
               <li>{SETTINGS.email}</li>
             </ul>
@@ -54,9 +54,7 @@ export function Footer({ navigate }) {
           <div>
             <h4>Hours</h4>
             <ul>
-              <li>Mon–Fri · 9–6</li>
-              <li>Sat · 10–4</li>
-              <li>Sun · By appointment</li>
+              <li>{SETTINGS.hours}</li>
             </ul>
           </div>
           <div>
@@ -939,10 +937,10 @@ export function ContactPage({ navigate }) {
             }
           </div>
           <aside className="contact-details">
-            <div className="contact-detail-row"><div className="label">Studio</div><div className="val">2104 Cedar Ave<br />Asheville, NC 28801</div></div>
+            <div className="contact-detail-row"><div className="label">Studio</div><div className="val">512 Glenwyck Court<br />Fuquay-Varina, NC 27526</div></div>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val">{SETTINGS.phone}</div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val">{SETTINGS.email}</div></div>
-            <div className="contact-detail-row"><div className="label">Hours</div><div className="val">Mon–Fri · 9–6<br />Sat · 10–4</div></div>
+            <div className="contact-detail-row"><div className="label">Hours</div><div className="val">{SETTINGS.hours}</div></div>
             <div className="contact-detail-row"><div className="label">In-home consults</div><div className="val">Free within 30 miles<br /><span style={{ fontFamily: "var(--sans)", fontSize: 13, color: "var(--ink-60)" }}>Beyond 30mi · $80 flat fee, refunded with order</span></div></div>
           </aside>
         </div>

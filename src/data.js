@@ -216,6 +216,7 @@ export const RECENT_QUOTES = [
 
 export const SETTINGS = {
   businessName: "Love's Blinds",
+  businessAddress: "512 Glenwyck Court, Fuquay-Varina, NC 27526",
   phone: "262-434-0949",
   email: "loveblindswindows@gmail.com",
   hours: "Mon–Sat · 9am – 6pm",
