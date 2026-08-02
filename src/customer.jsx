@@ -538,17 +538,77 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
   const [review, setReview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const total = items.reduce((s, it) => s + (it.price ? it.price * it.qty : 0), 0);
   const hasPricing = items.some(it => it.price);
+
+  if (submitted) {
+    return (
+      <div className="success-banner">
+        <h3 className="serif">Quote sent — you're all set.</h3>
+        <p>We'll send a written proposal to <strong>{review.email}</strong> within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
+      </div>
+    );
+  }
+
+  const handleConfirmSend = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const payload = {
+        customer: {
+          name: review.name,
+          email: review.email,
+          phone: review.phone,
+          shipTo: review.shipTo,
+          callTime: review.callTime,
+          measureMethod: review.measureMethod,
+        },
+        lines: items.map(it => ({
+          code: it.code || null,
+          colorName: it.colorName || it.variant,
+          category: it.category || it.product.category,
+          description: `${it.product.name} · ${it.colorName || it.variant}`,
+          mechId: it.mech,
+          mechName: getMechanism(it.product, it.mech)?.name || it.mech,
+          mountId: it.mount,
+          width: it.width || null,
+          length: it.length || it.height || null,
+          qty: it.qty,
+          location: it.location || it.product.location,
+        })),
+        notes: review.notes,
+      };
+
+      const res = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Server error (${res.status})`);
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (review) {
     const customer = review;
     return (
       <div>
         <div className="success-banner" style={{ marginBottom: 32 }}>
-          <h3 className="serif">Quote ready to send.</h3>
-          <p style={{ margin: 0 }}>Review everything below — we'll reach out to <strong>{customer.email}</strong> within 48 hours with a written proposal.</p>
+          <h3 className="serif">Review your quote request.</h3>
+          <p style={{ margin: 0 }}>Check everything below, then confirm to send.</p>
         </div>
 
         <h4 className="serif" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h4>
@@ -591,6 +651,21 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
           <div><div className="lbl">Estimated total</div>{!hasPricing && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>Final pricing sent within 48 hours</div>}</div>
           <div className="amt">{hasPricing ? `$${total.toLocaleString()}` : "—"}</div>
         </div>
+
+        {submitError && (
+          <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(168,81,63,0.08)", border: "1px solid rgba(168,81,63,0.3)", borderRadius: 4, color: "#a8513f", fontSize: 14 }}>
+            {submitError}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+          <button className="btn btn-outline" onClick={() => { setReview(null); setSubmitError(null); }} disabled={submitting}>
+            ← Edit
+          </button>
+          <button className="btn btn-sage" onClick={handleConfirmSend} disabled={submitting} style={{ padding: "14px 28px" }}>
+            {submitting ? "Sending…" : "Confirm & Send Quote"} {!submitting && <ArrowRight />}
+          </button>
+        </div>
       </div>
     );
   }
@@ -610,6 +685,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
     if (!name.trim()) errs.name = "Required";
     if (!email.trim()) errs.email = "Required";
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
+    if (items.length === 0) errs._items = "Add at least one item before submitting";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setReview({ name: name.trim(), email: email.trim(), phone: phone.trim(), shipTo: shipTo.trim(), callTime, measureMethod, notes: notes.trim() });
@@ -697,6 +773,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
           <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
         <div className="full">
+          {errors._items && <div style={{ marginBottom: 10, color: "#a8513f", fontSize: 13 }}>{errors._items}</div>}
           <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Quote Request <ArrowRight /></button>
         </div>
       </div>
