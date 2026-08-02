@@ -418,6 +418,16 @@ a { color: inherit; }
 .opt-btn.selected { background: var(--charcoal); color: var(--warm-white); border-color: var(--charcoal); }
 .opt-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+.swatch-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch-btn {
+  width: 28px; height: 28px; border-radius: 4px;
+  border: 2px solid var(--ink-15); padding: 0; cursor: pointer;
+  overflow: hidden; background: none; flex-shrink: 0;
+}
+.swatch-btn:hover { border-color: var(--charcoal); }
+.swatch-btn.selected { border-color: var(--charcoal); outline: 2px solid var(--charcoal); outline-offset: 1px; }
+.swatch-btn img, .swatch-btn span { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
+
 .slat-desc { font-size: 14px; color: var(--ink-60); line-height: 1.6; }
 .feature-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .config-meta { display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--hairline); align-items: baseline; gap: 16px; }

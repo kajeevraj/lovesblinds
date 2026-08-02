@@ -1,3 +1,6 @@
+import { swatchesFor } from './data/catalog.js';
+import { hasRealPhoto } from './lib/photos.js';
+
 // Mock data for Love's Blinds
 
 export const MECHANISM_TEMPLATES = [
@@ -227,27 +230,22 @@ export const ADDON_UPCHARGES = {
   outside_mount: 0,
 };
 
+PRODUCTS.forEach(p => { p.colors = swatchesFor(p.category); });
+
 export const productsByLocation = (loc) => PRODUCTS.filter(p => p.location === loc && p.visible);
 export const getMechanism = (product, mechId) => product?.mechanisms?.find(m => m.id === mechId);
 export const productById = (id) => PRODUCTS.find(p => p.id === id);
 
-export const hasPhotoForCombo = (productId, variant, mechId, mountId) => {
-  const key = `${productId}|${variant}|${mechId}|${mountId}`;
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return (h % 5) === 0;
-};
-
 export const photoCountForProduct = (p) => {
   let n = 0;
-  for (const v of p.variants) {
+  for (const c of (p.colors || [])) {
     for (const m of p.mechanisms) {
       for (const mt of p.mounts) {
-        if (hasPhotoForCombo(p.id, v, m.id, mt)) n++;
+        if (hasRealPhoto(p.category, c.code, m.id, mt)) n++;
       }
     }
   }
   return n;
 };
 
-export const totalCombosForProduct = (p) => p.variants.length * p.mechanisms.length * p.mounts.length;
+export const totalCombosForProduct = (p) => (p.colors?.length || 0) * p.mechanisms.length * p.mounts.length;

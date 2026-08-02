@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   PRODUCTS, SUPPLIERS, RECENT_QUOTES, MOUNTS, SETTINGS,
   MECHANISM_TEMPLATES, SHIPPING_LABELS,
-  hasPhotoForCombo, photoCountForProduct, totalCombosForProduct,
+  photoCountForProduct, totalCombosForProduct,
 } from './data.js';
+import { hasRealPhoto } from './lib/photos.js';
 import { CATEGORY_ICONS, ChevDown, Plus, XIcon, ArrowRight } from './icons.jsx';
 import { PhotoPH } from './customer.jsx';
 
@@ -291,7 +292,7 @@ function AdminProductEditor({ product, onBack }) {
         </div>
       )}
 
-      {tab === "photos" && <ConfigPhotoMatrix product={product} variants={variants} mechanisms={mechanisms} mounts={mounts} />}
+      {tab === "photos" && <ConfigPhotoMatrix product={product} colors={product.colors || []} mechanisms={mechanisms} mounts={mounts} />}
     </div>
   );
 }
@@ -373,10 +374,18 @@ function TagInput({ tags, setTags, placeholder }) {
   );
 }
 
-function ConfigPhotoMatrix({ product, variants, mechanisms, mounts }) {
+function ConfigPhotoMatrix({ product, colors, mechanisms, mounts }) {
   const [collapsed, setCollapsed] = useState({});
   const photos = photoCountForProduct(product);
-  const total = variants.length * mechanisms.length * mounts.length;
+  const total = colors.length * mechanisms.length * mounts.length;
+
+  if (colors.length === 0) {
+    return (
+      <div className="admin-card">
+        <p style={{ color: "var(--ink-60)", margin: 0 }}>No supplier colors loaded for this product yet. Photos are indexed by color code — add colors in <strong>catalog.js</strong> to start tracking coverage.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -385,7 +394,7 @@ function ConfigPhotoMatrix({ product, variants, mechanisms, mounts }) {
           <div>
             <h4 className="serif" style={{ marginBottom: 6, fontSize: 20 }}>Configuration photo matrix</h4>
             <p style={{ fontSize: 13, color: "var(--charcoal)", margin: 0, maxWidth: 640 }}>
-              Each photo is tied to one specific <em>variant + mechanism + mount</em> combination — when a customer changes any selector on the site, the photo updates live to match. Missing combos fall back to the closest available photo.
+              Each photo is tied to one specific <em>color + mechanism + mount</em> combination — when a customer picks a color on the site, the photo updates live to match. Missing combos fall back to the closest available photo.
             </p>
           </div>
           <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -395,7 +404,7 @@ function ConfigPhotoMatrix({ product, variants, mechanisms, mounts }) {
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
           <button className="btn btn-outline btn-sm" onClick={() => {
-            const all = {}; variants.forEach(v => all[v] = true); setCollapsed(all);
+            const all = {}; colors.forEach(c => { all[c.code] = true; }); setCollapsed(all);
           }}>Collapse all</button>
           <button className="btn btn-outline btn-sm" onClick={() => setCollapsed({})}>Expand all</button>
           <button className="btn btn-sage btn-sm" style={{ marginLeft: "auto" }}>+ Bulk upload</button>
@@ -403,24 +412,24 @@ function ConfigPhotoMatrix({ product, variants, mechanisms, mounts }) {
       </div>
 
       <div className="config-matrix">
-        {variants.map(variant => {
-          const isCollapsed = !!collapsed[variant];
-          const variantPhotos = mechanisms.reduce((sum, m) => sum + mounts.reduce((s, mt) => s + (hasPhotoForCombo(product.id, variant, m.id, mt) ? 1 : 0), 0), 0);
-          const variantTotal = mechanisms.length * mounts.length;
+        {colors.map(color => {
+          const isCollapsed = !!collapsed[color.code];
+          const colorPhotos = mechanisms.reduce((sum, m) => sum + mounts.reduce((s, mt) => s + (hasRealPhoto(product.category, color.code, m.id, mt) ? 1 : 0), 0), 0);
+          const colorTotal = mechanisms.length * mounts.length;
           return (
-            <div key={variant} className={`variant-group ${isCollapsed ? "collapsed" : ""}`}>
-              <button className="variant-header" onClick={() => setCollapsed({ ...collapsed, [variant]: !isCollapsed })}>
+            <div key={color.code} className={`variant-group ${isCollapsed ? "collapsed" : ""}`}>
+              <button className="variant-header" onClick={() => setCollapsed({ ...collapsed, [color.code]: !isCollapsed })}>
                 <div className="variant-chev"><ChevDown size={16} /></div>
-                <div className="variant-name">{variant}</div>
-                <div className="variant-meta">{variantPhotos} of {variantTotal} photographed</div>
-                <span className="badge" style={{ background: variantPhotos === variantTotal ? "var(--sage)" : variantPhotos === 0 ? "rgba(168,81,63,0.15)" : "var(--sand)", color: variantPhotos === 0 ? "#a8513f" : variantPhotos === variantTotal ? "var(--warm-white)" : "var(--charcoal)" }}>
-                  {variantPhotos === variantTotal ? "Complete" : variantPhotos === 0 ? "Missing" : "Partial"}
+                <div className="variant-name">{color.name || color.code}{color.collection ? ` · ${color.collection}` : ""}</div>
+                <div className="variant-meta">{colorPhotos} of {colorTotal} photographed</div>
+                <span className="badge" style={{ background: colorPhotos === colorTotal ? "var(--sage)" : colorPhotos === 0 ? "rgba(168,81,63,0.15)" : "var(--sand)", color: colorPhotos === 0 ? "#a8513f" : colorPhotos === colorTotal ? "var(--warm-white)" : "var(--charcoal)" }}>
+                  {colorPhotos === colorTotal ? "Complete" : colorPhotos === 0 ? "Missing" : "Partial"}
                 </span>
               </button>
               <div className="variant-rows">
                 {mechanisms.flatMap(m => mounts.map(mountId => {
                   const mount = MOUNTS.find(x => x.id === mountId);
-                  const has = hasPhotoForCombo(product.id, variant, m.id, mountId);
+                  const has = hasRealPhoto(product.category, color.code, m.id, mountId);
                   return (
                     <div key={`${m.id}-${mountId}`} className="combo-row">
                       <PhotoPH
@@ -429,7 +438,7 @@ function ConfigPhotoMatrix({ product, variants, mechanisms, mounts }) {
                         className={has ? "" : "empty"}
                       />
                       <div className="combo-label">
-                        <div className="combo-mech">{variant} · {m.name}</div>
+                        <div className="combo-mech">{color.name || color.code} · {m.name}</div>
                         <div className="combo-mount">{mount.name}</div>
                       </div>
                       <div className="combo-price-input">

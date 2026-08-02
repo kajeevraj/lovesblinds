@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
   PRODUCTS, MOUNTS, SETTINGS, ADDON_UPCHARGES,
-  productsByLocation, getMechanism, hasPhotoForCombo,
+  productsByLocation, getMechanism,
 } from './data.js';
+import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/photos.js';
 import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
 
 export function Nav({ route, navigate, onAdmin }) {
@@ -237,11 +238,12 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
   const [variant, setVariant] = useState(product.variants[0]);
   const [mech, setMech] = useState(product.mechanisms[0].id);
   const [mount, setMount] = useState(product.mounts[0]);
+  const [color, setColor] = useState(product.colors?.[0] || null);
 
   const mechObj = getMechanism(product, mech);
   const mountObj = MOUNTS.find(m => m.id === mount);
-  const photoLabel = `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
-  const hasPhoto = hasPhotoForCombo(product.id, variant, mech, mount);
+  const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
+  const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
 
   const showPrice = product.baseCost > 0;
   const sqftPrice = product.baseCost / (1 - product.margin);
@@ -262,11 +264,10 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
         <div className="slat-body-inner">
           <div className="slat-body-content">
             <div className="slat-photo-wrap">
-              <PhotoPH
-                label={photoLabel}
-                sub={hasPhoto ? "configuration photo" : "no photo for this combination yet"}
-                className={hasPhoto ? "" : "empty"}
-                aspect="4 / 5" />
+              {hasPhoto
+                ? <img src={productPhoto(product.category, color?.code, mech, mount)} alt={photoLabel} style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 4 }} />
+                : <PhotoPH label={photoLabel} sub="no photo for this combination yet" className="empty" aspect="4 / 5" />
+              }
             </div>
             <div className="slat-config">
               <div className="config-group">
@@ -298,6 +299,21 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                   })}
                 </div>
               </div>
+              {product.colors?.length > 0 && (
+                <div className="config-group">
+                  <div className="label">Color{color ? ` · ${color.name}${color.collection ? ` (${color.collection})` : ""}` : ""}</div>
+                  <div className="swatch-grid">
+                    {product.colors.map(c => {
+                      const img = swatchImage(c);
+                      return (
+                        <button key={c.code} className={`swatch-btn${color?.code === c.code ? " selected" : ""}`} title={`${c.name}${c.collection ? ` – ${c.collection}` : ""} (${c.code})`} onClick={() => setColor(c)}>
+                          {img ? <img src={img} alt={c.name} /> : <span style={{ background: swatchColor(c) }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="slat-desc">{product.description}</div>
               <div className="feature-chips">
                 {product.features.map(f => <span key={f} className="chip">{f}</span>)}
@@ -312,7 +328,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                 </div>
                 <div className="config-actions">
                   <button className="btn btn-outline btn-sm" onClick={onEstimate}>Get Estimate</button>
-                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, price: showPrice ? samplePrice : null })}>Add to Quote</button>
+                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, price: showPrice ? samplePrice : null })}>Add to Quote</button>
                 </div>
               </div>
             </div>
@@ -370,6 +386,7 @@ function Estimator({ addToQuote, switchToQuote }) {
   const [variant, setVariant] = useState(product.variants[0]);
   const [mech, setMech] = useState(product.mechanisms[0].id);
   const [mount, setMount] = useState(product.mounts[0]);
+  const [color, setColor] = useState(product.colors?.[0] || null);
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
   const [windows, setWindows] = useState("1");
@@ -381,12 +398,13 @@ function Estimator({ addToQuote, switchToQuote }) {
     setVariant(p.variants[0]);
     setMech(p.mechanisms[0].id);
     setMount(p.mounts[0]);
+    setColor(p.colors?.[0] || null);
   };
 
   const mechObj = getMechanism(product, mech);
   const mountObj = MOUNTS.find(m => m.id === mount);
-  const hasPhoto = hasPhotoForCombo(product.id, variant, mech, mount);
-  const photoLabel = `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
+  const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
+  const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
 
   const w = parseFloat(width), h = parseFloat(height), n = parseInt(windows || "0", 10);
   const allFilled = w > 0 && h > 0 && n > 0;
@@ -399,7 +417,7 @@ function Estimator({ addToQuote, switchToQuote }) {
   const showPrice = product.baseCost > 0 && allFilled;
 
   const handleAdd = () => {
-    addToQuote({ product, variant, mech, mount, width: w, height: h, qty: n, price: showPrice ? Math.round(perWindow) : null, addons });
+    addToQuote({ product, variant, mech, mount, color, width: w, height: h, qty: n, price: showPrice ? Math.round(perWindow) : null, addons });
     switchToQuote();
   };
 
@@ -437,6 +455,21 @@ function Estimator({ addToQuote, switchToQuote }) {
             })}
           </div>
         </div>
+        {product.colors?.length > 0 && (
+          <div>
+            <div className="label">Color{color ? ` · ${color.name}${color.collection ? ` (${color.collection})` : ""}` : ""}</div>
+            <div className="swatch-grid">
+              {product.colors.map(c => {
+                const img = swatchImage(c);
+                return (
+                  <button key={c.code} className={`swatch-btn${color?.code === c.code ? " selected" : ""}`} title={`${c.name}${c.collection ? ` – ${c.collection}` : ""} (${c.code})`} onClick={() => setColor(c)}>
+                    {img ? <img src={img} alt={c.name} /> : <span style={{ background: swatchColor(c) }} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="est-row">
           <div>
             <div className="label">Width (in)</div>
@@ -468,11 +501,10 @@ function Estimator({ addToQuote, switchToQuote }) {
         </div>
       </div>
       <div className="est-aside">
-        <PhotoPH
-          label={photoLabel}
-          sub={hasPhoto ? "configuration photo" : "no photo for this combination yet"}
-          className={hasPhoto ? "" : "empty"}
-          aspect="4 / 5" />
+        {hasPhoto
+          ? <img src={productPhoto(product.category, color?.code, mech, mount)} alt={photoLabel} style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 4 }} />
+          : <PhotoPH label={photoLabel} sub="no photo for this combination yet" className="empty" aspect="4 / 5" />
+        }
         <div className="est-summary">
           <div className="label">Estimated total</div>
           {showPrice
@@ -531,7 +563,7 @@ function QuoteList({ items, removeFromQuote, updateQty, submitted, onSubmit, goE
               <PhotoPH
                 label={`${it.variant}`}
                 sub={`${itemMech?.code} · ${it.mount}`}
-                className={hasPhotoForCombo(it.product.id, it.variant, it.mech, it.mount) ? "" : "empty"} />
+                className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
               <div>
                 <div className="quote-line-title">{it.product.name} · {it.variant}</div>
                 <div className="quote-line-meta">
