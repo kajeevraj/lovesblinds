@@ -216,8 +216,8 @@ export const RECENT_QUOTES = [
 
 export const SETTINGS = {
   businessName: "Love's Blinds",
-  phone: "(555) 408-1290",
-  email: "studio@lovesblinds.com",
+  phone: "262-434-0949",
+  email: "loveblindswindows@gmail.com",
   hours: "Mon–Sat · 9am – 6pm",
   globalMargin: 40,
   quoteExpiry: 14,

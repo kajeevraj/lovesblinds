@@ -1,20 +1,20 @@
 import XLSX from 'xlsx';
 import { Resend } from 'resend';
 
-const BUSINESS_NAME = "Loves Blinds and Window Treatments";
-const BUSINESS_ADDRESS = ""; // set your address here or via env var
-const BUSINESS_PHONE = "(555) 408-1290";
-const BUSINESS_EMAIL = "loveblindswindows@gmail.com";
-const INTERNAL_TO = "loveblindswindows@gmail.com";
+const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
+const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
+const BUSINESS_PHONE   = "262-434-0949";
+const BUSINESS_EMAIL   = "loveblindswindows@gmail.com";
+const INTERNAL_TO      = "loveblindswindows@gmail.com";
 
 // ── xlsx ─────────────────────────────────────────────────────────────────────
 
 function buildWorkbook(customer, lines, notes) {
   const rows = [];
 
-  // Header block
+  // Header block — all four lines always present
   rows.push([BUSINESS_NAME]);
-  if (BUSINESS_ADDRESS) rows.push([BUSINESS_ADDRESS]);
+  rows.push([BUSINESS_ADDRESS]);
   rows.push([BUSINESS_PHONE]);
   rows.push([BUSINESS_EMAIL]);
   rows.push([
