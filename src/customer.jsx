@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
-  PRODUCTS, MOUNTS, SETTINGS, ADDON_UPCHARGES,
+  PRODUCTS, MOUNTS, SETTINGS,
   productsByLocation, getMechanism,
 } from './data.js';
 import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/photos.js';
 import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
 
-export function Nav({ route, navigate, onAdmin }) {
+export function Nav({ route, navigate, onAdmin, quoteCount }) {
   return (
     <nav className="nav">
       <div className="nav-inner">
@@ -17,7 +17,9 @@ export function Nav({ route, navigate, onAdmin }) {
           <button className={`nav-link ${route === "home" ? "active" : ""}`} onClick={() => navigate("home")}>Home</button>
           <button className={`nav-link ${route === "products" ? "active" : ""}`} onClick={() => navigate("products")}>Products</button>
           <button className={`nav-link ${route === "measure" ? "active" : ""}`} onClick={() => navigate("measure")}>Measure Guide</button>
-          <button className={`nav-link ${route === "quote" ? "active" : ""}`} onClick={() => navigate("quote")}>Your Order</button>
+          <button className={`nav-link ${route === "quote" ? "active" : ""}`} onClick={() => navigate("quote")}>
+            Your Order{quoteCount > 0 && <span className="nav-count">{quoteCount}</span>}
+          </button>
           <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
         </div>
         <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
@@ -219,8 +221,7 @@ export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, loca
               <SlatRow key={p.id} product={p}
                 open={openSlat === p.id}
                 onToggle={() => setOpenSlat(openSlat === p.id ? null : p.id)}
-                onAddToQuote={addToQuote}
-                onEstimate={() => navigate("quote")} />
+                onAddToQuote={addToQuote} />
             )}
           </div>
         </section>
@@ -231,17 +232,29 @@ export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, loca
   );
 }
 
-function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
+function SlatRow({ product, open, onToggle, onAddToQuote }) {
   const Icon = CATEGORY_ICONS[product.category];
   const [variant, setVariant] = useState(product.variants[0]);
   const [mech, setMech] = useState(product.mechanisms[0].id);
   const [mount, setMount] = useState(product.mounts[0]);
   const [color, setColor] = useState(product.colors?.[0] || null);
+  const [width, setWidth] = useState("");
+  const [height, setHeight] = useState("");
+  const [windows, setWindows] = useState("1");
+  const [roomLabel, setRoomLabel] = useState("");
+  const [addons, setAddons] = useState({ blackout: false, install: false });
 
   const mechObj = getMechanism(product, mech);
   const mountObj = MOUNTS.find(m => m.id === mount);
   const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
   const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
+
+  const handleAdd = () => {
+    const w = parseFloat(width) || null;
+    const h = parseFloat(height) || null;
+    const n = parseInt(windows, 10) || 1;
+    onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: null, width: w, length: h, qty: n, roomLabel: roomLabel.trim(), addons });
+  };
 
   return (
     <div className={`slat ${open ? "open" : ""}`} data-product-id={product.id}>
@@ -308,6 +321,40 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                   </div>
                 </div>
               )}
+              <div className="config-group">
+                <div className="label">Dimensions <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional — enter now or tell us in the notes)</span></div>
+                <div className="slat-dims">
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}>Width (in)</div>
+                    <input className="input" type="number" value={width} onChange={e => setWidth(e.target.value)} placeholder="36" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}>Height (in)</div>
+                    <input className="input" type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="60" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}># Windows</div>
+                    <input className="input" type="number" value={windows} onChange={e => setWindows(e.target.value)} min="1" placeholder="1" />
+                  </div>
+                </div>
+              </div>
+              <div className="config-group">
+                <div className="label">Room <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></div>
+                <input className="input" type="text" value={roomLabel} onChange={e => setRoomLabel(e.target.value)} placeholder="e.g. Master bedroom" />
+              </div>
+              <div className="config-group">
+                <div className="label">Add-ons</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="checkbox-row">
+                    <input type="checkbox" id={`ck-bl-${product.id}`} checked={addons.blackout} onChange={e => setAddons(a => ({ ...a, blackout: e.target.checked }))} />
+                    <label htmlFor={`ck-bl-${product.id}`}>Blackout lining</label>
+                  </div>
+                  <div className="checkbox-row">
+                    <input type="checkbox" id={`ck-in-${product.id}`} checked={addons.install} onChange={e => setAddons(a => ({ ...a, install: e.target.checked }))} />
+                    <label htmlFor={`ck-in-${product.id}`}>Professional installation</label>
+                  </div>
+                </div>
+              </div>
               <div className="slat-desc">{product.description}</div>
               <div className="feature-chips">
                 {product.features.map(f => <span key={f} className="chip">{f}</span>)}
@@ -317,7 +364,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
                   <div className="lead">Lead time · {product.lead}</div>
                 </div>
                 <div className="config-actions">
-                  <button className="btn btn-sage btn-sm" onClick={() => onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: null })}>Add to Order</button>
+                  <button className="btn btn-sage btn-sm" onClick={handleAdd}>Add to Order</button>
                 </div>
               </div>
             </div>
@@ -328,15 +375,13 @@ function SlatRow({ product, open, onToggle, onAddToQuote, onEstimate }) {
   );
 }
 
-export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, updateQty }) {
-  const [tab, setTab] = useState("estimator");
-
+export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel }) {
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
-        <div className="section-eyebrow">Configure</div>
-        <h1 className="serif section-title">Configure your windows.</h1>
-        <p className="section-sub">Choose your product, options, and dimensions for each window. When you're ready, submit and we'll send a written quote within 48 hours.</p>
+        <div className="section-eyebrow">Your Order</div>
+        <h1 className="serif section-title">Place your order.</h1>
+        <p className="section-sub">Review your selections, add your contact details, and send — we'll reply with your written quote within 48 hours.</p>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 18, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
           <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
@@ -345,155 +390,19 @@ export function QuotePage({ navigate, quoteItems, addToQuote, removeFromQuote, u
           <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
         </div>
 
-        <div className="tabs" style={{ marginTop: 30 }}>
-          <button className={`tab ${tab === "estimator" ? "active" : ""}`} onClick={() => setTab("estimator")}>Configure</button>
-          <button className={`tab ${tab === "quote" ? "active" : ""}`} onClick={() => setTab("quote")}>
-            Your Order{quoteItems.length > 0 && <span className="count">{quoteItems.length}</span>}
-          </button>
-        </div>
-
-        {tab === "estimator" && <Estimator addToQuote={addToQuote} switchToQuote={() => setTab("quote")} />}
-        {tab === "quote" &&
-          <QuoteList
-            items={quoteItems}
-            removeFromQuote={removeFromQuote}
-            updateQty={updateQty}
-            goEstimator={() => setTab("estimator")} />
-        }
+        <QuoteList
+          items={quoteItems}
+          removeFromQuote={removeFromQuote}
+          updateQty={updateQty}
+          updateRoomLabel={updateRoomLabel}
+          goToProducts={() => navigate("products")} />
       </section>
       <Footer navigate={navigate} />
     </div>
   );
 }
 
-function Estimator({ addToQuote, switchToQuote }) {
-  const [productId, setProductId] = useState(PRODUCTS[0].id);
-  const product = PRODUCTS.find(p => p.id === productId);
-  const [variant, setVariant] = useState(product.variants[0]);
-  const [mech, setMech] = useState(product.mechanisms[0].id);
-  const [mount, setMount] = useState(product.mounts[0]);
-  const [color, setColor] = useState(product.colors?.[0] || null);
-  const [width, setWidth] = useState("");
-  const [height, setHeight] = useState("");
-  const [windows, setWindows] = useState("1");
-  const [addons, setAddons] = useState({ blackout: false, install: false });
-
-  const handleProductChange = (id) => {
-    const p = PRODUCTS.find(x => x.id === id);
-    setProductId(id);
-    setVariant(p.variants[0]);
-    setMech(p.mechanisms[0].id);
-    setMount(p.mounts[0]);
-    setColor(p.colors?.[0] || null);
-  };
-
-  const mechObj = getMechanism(product, mech);
-  const mountObj = MOUNTS.find(m => m.id === mount);
-  const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
-  const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
-
-  const w = parseFloat(width), h = parseFloat(height), n = parseInt(windows || "0", 10);
-  const allFilled = w > 0 && h > 0 && n > 0;
-
-  const handleAdd = () => {
-    addToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, width: w || null, length: h || null, qty: n || 1, price: null, addons });
-    switchToQuote();
-  };
-
-  return (
-    <div className="estimator-grid">
-      <div className="est-form">
-        <div>
-          <div className="label">Product</div>
-          <select className="select" value={productId} onChange={e => handleProductChange(e.target.value)}>
-            {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}{p.location === "outdoor" ? " · outdoor" : ""}</option>)}
-          </select>
-        </div>
-        <div>
-          <div className="label">Variant</div>
-          <div className="config-options">
-            {product.variants.map(v => <button key={v} className={`opt-btn ${variant === v ? "selected" : ""}`} onClick={() => setVariant(v)}>{v}</button>)}
-          </div>
-        </div>
-        <div>
-          <div className="label">Mechanism</div>
-          <div className="config-options">
-            {product.mechanisms.map(m => (
-              <button key={m.id} className={`opt-btn ${mech === m.id ? "selected" : ""}`} onClick={() => setMech(m.id)}>
-                {m.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="label">Mount Type</div>
-          <div className="config-options">
-            {product.mounts.map(mid => {
-              const m = MOUNTS.find(x => x.id === mid);
-              return <button key={mid} className={`opt-btn ${mount === mid ? "selected" : ""}`} onClick={() => setMount(mid)}>{m.name}</button>;
-            })}
-          </div>
-        </div>
-        {product.colors?.length > 0 && (
-          <div>
-            <div className="label">Color{color ? ` · ${color.name}${color.collection ? ` (${color.collection})` : ""}` : ""}</div>
-            <div className="swatch-grid">
-              {product.colors.map(c => {
-                const img = swatchImage(c);
-                return (
-                  <button key={c.code} className={`swatch-btn${color?.code === c.code ? " selected" : ""}`} title={`${c.name}${c.collection ? ` – ${c.collection}` : ""} (${c.code})`} onClick={() => setColor(c)}>
-                    {img ? <img src={img} alt={c.name} /> : <span style={{ background: swatchColor(c) }} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        <div className="est-row">
-          <div>
-            <div className="label">Width (in)</div>
-            <input className="input" type="number" value={width} onChange={e => setWidth(e.target.value)} placeholder="e.g. 36" />
-          </div>
-          <div>
-            <div className="label">Height (in)</div>
-            <input className="input" type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="e.g. 60" />
-          </div>
-          <div>
-            <div className="label"># Windows</div>
-            <input className="input" type="number" value={windows} onChange={e => setWindows(e.target.value)} min="1" />
-          </div>
-        </div>
-        <div>
-          <div className="label">Optional add-ons</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="checkbox-row">
-              <input type="checkbox" id="ck-bl" checked={addons.blackout} onChange={e => setAddons({ ...addons, blackout: e.target.checked })} />
-              <label htmlFor="ck-bl">Blackout lining</label>
-            </div>
-            <div className="checkbox-row">
-              <input type="checkbox" id="ck-in" checked={addons.install} onChange={e => setAddons({ ...addons, install: e.target.checked })} />
-              <label htmlFor="ck-in">Professional installation</label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="est-aside">
-        {hasPhoto
-          ? <img src={productPhoto(product.category, color?.code, mech, mount)} alt={photoLabel} style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 4 }} />
-          : <PhotoPH label={photoLabel} sub="no photo for this combination yet" className="empty" aspect="4 / 5" />
-        }
-        <div className="est-summary">
-          <button className="btn btn-sage" style={{ marginTop: 0, width: "100%" }}
-            onClick={handleAdd}>
-            Add to Order
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
+function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -541,6 +450,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
           length: it.length || it.height || null,
           qty: it.qty,
           location: it.location || it.product.location,
+          roomLabel: it.roomLabel || '',
         })),
         notes: review.notes,
       };
@@ -569,7 +479,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
     return (
       <div>
         <div className="success-banner" style={{ marginBottom: 32 }}>
-          <h3 className="serif">Review your quote request.</h3>
+          <h3 className="serif">Review your order.</h3>
           <p style={{ margin: 0 }}>Check everything below, then confirm to send.</p>
         </div>
 
@@ -596,6 +506,7 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
                   <div className="quote-line-meta">
                     {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
                     {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
+                    {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
                     {it.code && <span style={{ marginLeft: 8, opacity: 0.5, fontSize: 12 }}>#{it.code}</span>}
                   </div>
                 </div>
@@ -629,8 +540,8 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
     return (
       <div className="empty-state">
         <h3 className="serif">Nothing in your order yet.</h3>
-        <p>Use the Configure tab to pick a product and add it here.</p>
-        <button className="btn btn-outline" onClick={goEstimator} style={{ marginTop: 20 }}>Configure a window <ArrowRight /></button>
+        <p>Browse our products and use "Add to Order" to build your list.</p>
+        <button className="btn btn-outline" onClick={goToProducts} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
       </div>
     );
   }
@@ -663,6 +574,12 @@ function QuoteList({ items, removeFromQuote, updateQty, goEstimator }) {
                   {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
                   {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
                 </div>
+                <input
+                  className="input room-label-input"
+                  type="text"
+                  value={it.roomLabel || ""}
+                  onChange={e => updateRoomLabel(idx, e.target.value)}
+                  placeholder="Room (optional)" />
               </div>
               <div className="qty-stepper">
                 <button onClick={() => updateQty(idx, Math.max(1, it.qty - 1))}>−</button>

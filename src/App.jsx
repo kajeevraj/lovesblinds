@@ -13,6 +13,7 @@ export default function App() {
   const [openSlat, setOpenSlat] = useState(null);
   const [productLocation, setProductLocation] = useState(null);
   const [quote, setQuote] = useState([]);
+  const [toast, setToast] = useState(null);
 
   const navigate = (r) => {
     setRoute(r);
@@ -37,9 +38,12 @@ export default function App() {
 
   const addToQuote = (item) => {
     setQuote(q => [...q, { ...item, qty: item.qty || 1 }]);
+    setToast(item.product.name);
+    setTimeout(() => setToast(null), 2500);
   };
   const removeFromQuote = (idx) => setQuote(q => q.filter((_, i) => i !== idx));
   const updateQty = (idx, qty) => setQuote(q => q.map((it, i) => i === idx ? { ...it, qty } : it));
+  const updateRoomLabel = (idx, label) => setQuote(q => q.map((it, i) => i === idx ? { ...it, roomLabel: label } : it));
 
   const goAdmin = () => {
     setMode("admin");
@@ -67,11 +71,12 @@ export default function App() {
 
   return (
     <div>
-      <Nav route={route} navigate={navigate} onAdmin={goAdmin} />
+      <Nav route={route} navigate={navigate} onAdmin={goAdmin} quoteCount={quote.length} />
+      {toast && <div className="toast">✓ {toast} added to your order</div>}
       {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} />}
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} />}
-      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} addToQuote={addToQuote} removeFromQuote={removeFromQuote} updateQty={updateQty} />}
+      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} />}
       {route === "contact"  && <ContactPage navigate={navigate} />}
     </div>
   );

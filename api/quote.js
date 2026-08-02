@@ -38,7 +38,7 @@ function buildWorkbook(customer, lines, notes) {
       line.width  || '',
       line.length || '',
       line.mechName || '',
-      line.location || '',
+      line.roomLabel || '',
       '', // Price per unit — Stage 2 fills
       '', // Total — Stage 2 fills
     ]);
