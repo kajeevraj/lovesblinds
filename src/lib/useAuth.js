@@ -12,23 +12,22 @@ export function useAuth() {
   useEffect(() => {
     if (!supabase) { setAuthLoading(false); return; }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // INITIAL_SESSION fires on mount (replaces getSession). SIGNED_IN fires after OAuth.
+    // TOKEN_REFRESHED / USER_UPDATED must NOT re-fetch — they'd overwrite local order state
+    // with a stale DB snapshot taken before createOrder finishes writing.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) fetchOrders(u.id);
-      else setAuthLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        fetchOrders(u.id);
-      } else {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (u) fetchOrders(u.id);
+        else setAuthLoading(false);
+      } else if (event === 'SIGNED_OUT') {
         setOrders([]);
         setActiveOrderId(null);
         setAuthLoading(false);
       }
+      // TOKEN_REFRESHED, USER_UPDATED: user object is updated above; orders stay intact.
     });
 
     return () => subscription.unsubscribe();
@@ -59,11 +58,11 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  const createOrder = async (name = 'New Order', items = []) => {
+  const createOrder = async (name = 'Order 1', items = []) => {
     if (!supabase || !user) return null;
     const { data, error } = await supabase
       .from('orders')
-      .insert({ user_id: user.id, name, items })
+      .insert({ user_id: user.id, name, items, status: 'draft' })
       .select()
       .single();
     if (error || !data) return null;
@@ -93,6 +92,12 @@ export function useAuth() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, name } : o));
   };
 
+  const markOrderSent = async (orderId) => {
+    if (!supabase || !orderId) return;
+    await supabase.from('orders').update({ status: 'sent' }).eq('id', orderId);
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'sent' } : o));
+  };
+
   const deleteOrder = async (orderId) => {
     if (!supabase) return;
     await supabase.from('orders').delete().eq('id', orderId);
@@ -109,6 +114,6 @@ export function useAuth() {
     supabaseEnabled: !!supabase,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
     authLoading, signInWithGoogle, signOut,
-    createOrder, saveItems, renameOrder, deleteOrder,
+    createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   };
 }

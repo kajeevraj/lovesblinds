@@ -22,7 +22,7 @@ export default function App() {
     supabaseEnabled,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
     authLoading, signInWithGoogle, signOut,
-    createOrder, saveItems, renameOrder, deleteOrder,
+    createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   } = useAuth();
 
   // Load items when switching to a different order. Intentionally does NOT
@@ -60,7 +60,8 @@ export default function App() {
         syncToSupabase(next);
       } else {
         // No order yet — create one with everything accumulated so far
-        createOrder('New Order', next.map(serializeItem));
+        const name = `Order ${orders.length + 1}`;
+        createOrder(name, next.map(serializeItem));
       }
     }
     showToast(`${item.product.name} added to your order`);
@@ -137,8 +138,8 @@ export default function App() {
       {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} />}
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} />}
-      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} user={user} />}
-      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={signInWithGoogle} supabaseEnabled={supabaseEnabled} quoteCount={quote.length} />}
+      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} activeOrderId={activeOrderId} user={user} onOrderSent={markOrderSent} />}
+      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={signInWithGoogle} supabaseEnabled={supabaseEnabled} quoteCount={quote.length} ordersLength={orders.length} />}
       {route === "contact"  && <ContactPage navigate={navigate} />}
     </div>
   );

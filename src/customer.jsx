@@ -388,7 +388,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote }) {
   );
 }
 
-export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, user }) {
+export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, activeOrderId, user, onOrderSent }) {
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
@@ -414,14 +414,16 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
           updateQty={updateQty}
           updateRoomLabel={updateRoomLabel}
           navigate={navigate}
-          goToProducts={() => navigate("products")} />
+          goToProducts={() => navigate("products")}
+          activeOrderId={activeOrderId}
+          onOrderSent={onOrderSent} />
       </section>
       <Footer navigate={navigate} />
     </div>
   );
 }
 
-function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts, navigate }) {
+function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts, navigate, activeOrderId, onOrderSent }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -486,6 +488,7 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
       }
 
       setSubmitted(true);
+      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId);
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -668,7 +671,7 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
   );
 }
 
-export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount }) {
+export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount, ordersLength }) {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -721,7 +724,8 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
   };
 
   const handleNewOrder = () => {
-    createOrder('New Order').then(o => { if (o) navigate('quote'); });
+    const name = `Order ${(ordersLength ?? orders.length) + 1}`;
+    createOrder(name).then(o => { if (o) navigate('quote'); });
   };
 
   return (
@@ -790,7 +794,13 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
                     {' · '}
                     {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
-                  {isActive && <div className="order-active-pill">Active order</div>}
+                  <div className="order-card-pills">
+                    {order.status === 'sent'
+                      ? <span className="order-pill order-pill-sent">Sent</span>
+                      : <span className="order-pill order-pill-draft">In progress</span>
+                    }
+                    {isActive && <span className="order-pill order-pill-active">Active</span>}
+                  </div>
                 </div>
               );
             })}
