@@ -44,13 +44,15 @@ export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, use
   );
 }
 
-export function Footer({ navigate }) {
+export function Footer({ navigate, quoteCount }) {
   return (
     <footer>
       <div className="footer-cta">
         <div className="footer-cta-inner">
           <h2 className="serif">Ready to dress your windows?</h2>
-          <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
+          <button className="btn btn-outline-light" onClick={() => navigate("quote")}>
+            {quoteCount > 0 ? `Continue Your Order · ${quoteCount} item${quoteCount !== 1 ? 's' : ''}` : 'Start Your Order'} <ArrowRight />
+          </button>
         </div>
       </div>
       <div className="footer">
@@ -192,12 +194,12 @@ export function HomePage({ navigate, goToProduct, quoteCount }) {
         </div>
       </section>
 
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteCount} />
     </div>
   );
 }
 
-export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, location, setLocation }) {
+export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, location, setLocation, quoteCount }) {
   const products = location ? productsByLocation(location) : [];
 
   return (
@@ -244,7 +246,7 @@ export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, loca
         </section>
       }
 
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteCount} />
     </div>
   );
 }
@@ -422,7 +424,7 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
           activeOrderId={activeOrderId}
           onOrderSent={onOrderSent} />
       </section>
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteItems.length} />
     </div>
   );
 }
@@ -687,7 +689,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <h1 className="serif section-title">My Orders</h1>
           <p style={{ color: "var(--ink-60)" }}>Account features are not yet configured for this site.</p>
         </section>
-        <Footer navigate={navigate} />
+        <Footer navigate={navigate} quoteCount={quoteCount} />
       </div>
     );
   }
@@ -700,7 +702,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <p style={{ color: "var(--ink-60)", marginBottom: 28 }}>Sign in with Google to save your orders and come back to them any time.</p>
           <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>
         </section>
-        <Footer navigate={navigate} />
+        <Footer navigate={navigate} quoteCount={quoteCount} />
       </div>
     );
   }
@@ -811,12 +813,12 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           </div>
         )}
       </section>
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteCount} />
     </div>
   );
 }
 
-export function MeasureGuidePage({ navigate }) {
+export function MeasureGuidePage({ navigate, quoteCount }) {
   const [mountType, setMountType] = useState("inside");
   return (
     <div className="page-fade">
@@ -935,12 +937,12 @@ export function MeasureGuidePage({ navigate }) {
           </div>
         </div>
       </section>
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteCount} />
     </div>
   );
 }
 
-export function ContactPage({ navigate }) {
+export function ContactPage({ navigate, quoteCount }) {
   const [sent, setSent] = useState(false);
   return (
     <div className="page-fade">
@@ -982,7 +984,7 @@ export function ContactPage({ navigate }) {
           </aside>
         </div>
       </section>
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} quoteCount={quoteCount} />
     </div>
   );
 }

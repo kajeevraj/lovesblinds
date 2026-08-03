@@ -7,8 +7,9 @@ export function useAuth() {
   const [orders, setOrders]           = useState([]);
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dbError, setDbError]         = useState(null);
   const saveTimer = useRef(null);
-  const fetchedUserId = useRef(null); // prevents double-fetch when INITIAL_SESSION + SIGNED_IN both fire
+  const fetchedUserId = useRef(null);
 
   useEffect(() => {
     if (!supabase) { setAuthLoading(false); return; }
@@ -19,9 +20,6 @@ export function useAuth() {
 
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         if (u) {
-          // Only fetch if we haven't already fetched for this user in this session.
-          // After Google OAuth redirect, INITIAL_SESSION and SIGNED_IN both fire —
-          // without this guard the second fetchOrders can overwrite locally-created orders.
           if (fetchedUserId.current !== u.id) {
             fetchedUserId.current = u.id;
             fetchOrders(u.id);
@@ -35,22 +33,48 @@ export function useAuth() {
         setActiveOrderId(null);
         setAuthLoading(false);
       }
-      // TOKEN_REFRESHED, USER_UPDATED: update user object only; orders stay intact.
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchOrders = async (userId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('*')
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('[fetchOrders]', error);
+      setDbError(error.message);
+      setAuthLoading(false);
+      return;
+    }
+
     const list = data ?? [];
-    setOrders(list);
-    setActiveOrderId(list[0]?.id ?? null);
-    setAuthLoading(false);
+
+    if (list.length > 0) {
+      setOrders(list);
+      setActiveOrderId(list[0].id);
+      setAuthLoading(false);
+    } else {
+      // First login — create their initial order immediately so activeOrderId is always set.
+      const { data: first, error: createErr } = await supabase
+        .from('orders')
+        .insert({ user_id: userId, name: 'Order 1', items: [], status: 'draft' })
+        .select()
+        .single();
+
+      if (createErr) {
+        console.error('[fetchOrders/createFirst]', createErr);
+        setDbError(createErr.message);
+      } else if (first) {
+        setOrders([first]);
+        setActiveOrderId(first.id);
+      }
+      setAuthLoading(false);
+    }
   };
 
   const signInWithGoogle = () => {
@@ -66,14 +90,19 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  const createOrder = async (name = 'Order 1', items = []) => {
+  const createOrder = async (name = 'New Order', items = []) => {
     if (!supabase || !user) return null;
     const { data, error } = await supabase
       .from('orders')
       .insert({ user_id: user.id, name, items, status: 'draft' })
       .select()
       .single();
-    if (error || !data) return null;
+    if (error) {
+      console.error('[createOrder]', error);
+      setDbError(error.message);
+      return null;
+    }
+    if (!data) return null;
     setOrders(prev => [data, ...prev]);
     setActiveOrderId(data.id);
     return data;
@@ -84,31 +113,35 @@ export function useAuth() {
     const serialized = items.map(serializeItem);
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({ items: serialized })
         .eq('id', orderId)
         .select()
         .single();
+      if (error) console.error('[saveItems]', error);
       if (data) setOrders(prev => prev.map(o => o.id === orderId ? data : o));
     }, 600);
   }, []);
 
   const renameOrder = async (orderId, name) => {
     if (!supabase) return;
-    await supabase.from('orders').update({ name }).eq('id', orderId);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, name } : o));
+    const { error } = await supabase.from('orders').update({ name }).eq('id', orderId);
+    if (error) console.error('[renameOrder]', error);
+    else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, name } : o));
   };
 
   const markOrderSent = async (orderId) => {
     if (!supabase || !orderId) return;
-    await supabase.from('orders').update({ status: 'sent' }).eq('id', orderId);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'sent' } : o));
+    const { error } = await supabase.from('orders').update({ status: 'sent' }).eq('id', orderId);
+    if (error) console.error('[markOrderSent]', error);
+    else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'sent' } : o));
   };
 
   const deleteOrder = async (orderId) => {
     if (!supabase) return;
-    await supabase.from('orders').delete().eq('id', orderId);
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) { console.error('[deleteOrder]', error); return; }
     setOrders(prev => {
       const next = prev.filter(o => o.id !== orderId);
       if (activeOrderId === orderId) setActiveOrderId(next[0]?.id ?? null);
@@ -121,7 +154,7 @@ export function useAuth() {
   return {
     supabaseEnabled: !!supabase,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
-    authLoading, signInWithGoogle, signOut,
+    authLoading, signInWithGoogle, signOut, dbError,
     createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   };
 }
