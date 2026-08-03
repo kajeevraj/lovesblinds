@@ -35,26 +35,15 @@ export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, use
             <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
           )
         )}
-        {quoteCount === 0 && (
-          <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
-        )}
         <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
     </nav>
   );
 }
 
-export function Footer({ navigate, quoteCount }) {
+export function Footer({ navigate }) {
   return (
     <footer>
-      <div className="footer-cta">
-        <div className="footer-cta-inner">
-          <h2 className="serif">Ready to dress your windows?</h2>
-          <button className="btn btn-outline-light" onClick={() => navigate("quote")}>
-            {quoteCount > 0 ? `Continue Your Order · ${quoteCount} item${quoteCount !== 1 ? 's' : ''}` : 'Start Your Order'} <ArrowRight />
-          </button>
-        </div>
-      </div>
       <div className="footer">
         <div className="footer-grid">
           <div>
@@ -113,10 +102,7 @@ export function HomePage({ navigate, goToProduct, quoteCount }) {
             <h1>Quiet rooms.<br /><em>Beautifully</em> dressed windows.</h1>
             <p className="hero-tag">Made-to-measure blinds, shades, shutters, and drapes — measured your way: in-home consult with us, or DIY with our step-by-step guide.</p>
             <div className="hero-ctas">
-              <button className="btn btn-sand" onClick={() => navigate("products")} style={{ background: "var(--sand)", color: "var(--charcoal)" }}>Browse Products</button>
-              <button className="btn btn-outline-light" onClick={() => navigate("quote")}>
-                {quoteCount > 0 ? `Continue Your Order · ${quoteCount} item${quoteCount !== 1 ? 's' : ''}` : 'Start Your Order'} <ArrowRight />
-              </button>
+              <button className="btn btn-sand" onClick={() => navigate("products")} style={{ background: "var(--sand)", color: "var(--charcoal)" }}>Browse Products <ArrowRight /></button>
             </div>
           </div>
           <div className="hero-aside" style={{ padding: "10px 0px 20px 40px" }}>
@@ -194,7 +180,7 @@ export function HomePage({ navigate, goToProduct, quoteCount }) {
         </div>
       </section>
 
-      <Footer navigate={navigate} quoteCount={quoteCount} />
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -246,7 +232,7 @@ export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, loca
         </section>
       }
 
-      <Footer navigate={navigate} quoteCount={quoteCount} />
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -410,7 +396,7 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
           </div>
         ) : (
           <div className="order-breadcrumb">
-            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("products")}>← Browse products</button>
+            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
           </div>
         )}
 
@@ -428,7 +414,7 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
           activeOrderId={activeOrderId}
           onOrderSent={onOrderSent} />
       </section>
-      <Footer navigate={navigate} quoteCount={quoteItems.length} />
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -693,7 +679,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <h1 className="serif section-title">My Orders</h1>
           <p style={{ color: "var(--ink-60)" }}>Account features are not yet configured for this site.</p>
         </section>
-        <Footer navigate={navigate} quoteCount={quoteCount} />
+        <Footer navigate={navigate} />
       </div>
     );
   }
@@ -706,7 +692,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <p style={{ color: "var(--ink-60)", marginBottom: 28 }}>Sign in with Google to save your orders and come back to them any time.</p>
           <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>
         </section>
-        <Footer navigate={navigate} quoteCount={quoteCount} />
+        <Footer navigate={navigate} />
       </div>
     );
   }
@@ -824,7 +810,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           </div>
         )}
       </section>
-      <Footer navigate={navigate} quoteCount={quoteCount} />
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -948,7 +934,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
           </div>
         </div>
       </section>
-      <Footer navigate={navigate} quoteCount={quoteCount} />
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -995,7 +981,7 @@ export function ContactPage({ navigate, quoteCount }) {
           </aside>
         </div>
       </section>
-      <Footer navigate={navigate} quoteCount={quoteCount} />
+      <Footer navigate={navigate} />
     </div>
   );
 }

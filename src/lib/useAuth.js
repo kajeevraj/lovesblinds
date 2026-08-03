@@ -62,7 +62,7 @@ export function useAuth() {
       // First login — create their initial order immediately so activeOrderId is always set.
       const { data: first, error: createErr } = await supabase
         .from('orders')
-        .insert({ user_id: userId, name: 'Order 1', items: [] })
+        .insert({ user_id: userId, name: 'Order 1', items: [], status: 'draft' })
         .select()
         .single();
 
@@ -94,7 +94,7 @@ export function useAuth() {
     if (!supabase || !user) return null;
     const { data, error } = await supabase
       .from('orders')
-      .insert({ user_id: user.id, name, items })
+      .insert({ user_id: user.id, name, items, status: 'draft' })
       .select()
       .single();
     if (error) {
