@@ -8,26 +8,34 @@ export function useAuth() {
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const saveTimer = useRef(null);
+  const fetchedUserId = useRef(null); // prevents double-fetch when INITIAL_SESSION + SIGNED_IN both fire
 
   useEffect(() => {
     if (!supabase) { setAuthLoading(false); return; }
 
-    // INITIAL_SESSION fires on mount (replaces getSession). SIGNED_IN fires after OAuth.
-    // TOKEN_REFRESHED / USER_UPDATED must NOT re-fetch — they'd overwrite local order state
-    // with a stale DB snapshot taken before createOrder finishes writing.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
 
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        if (u) fetchOrders(u.id);
-        else setAuthLoading(false);
+        if (u) {
+          // Only fetch if we haven't already fetched for this user in this session.
+          // After Google OAuth redirect, INITIAL_SESSION and SIGNED_IN both fire —
+          // without this guard the second fetchOrders can overwrite locally-created orders.
+          if (fetchedUserId.current !== u.id) {
+            fetchedUserId.current = u.id;
+            fetchOrders(u.id);
+          }
+        } else {
+          setAuthLoading(false);
+        }
       } else if (event === 'SIGNED_OUT') {
+        fetchedUserId.current = null;
         setOrders([]);
         setActiveOrderId(null);
         setAuthLoading(false);
       }
-      // TOKEN_REFRESHED, USER_UPDATED: user object is updated above; orders stay intact.
+      // TOKEN_REFRESHED, USER_UPDATED: update user object only; orders stay intact.
     });
 
     return () => subscription.unsubscribe();

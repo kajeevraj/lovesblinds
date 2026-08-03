@@ -135,7 +135,7 @@ export default function App() {
     <div>
       <Nav route={route} navigate={navigate} onAdmin={goAdmin} quoteCount={quote.length} {...authProps} />
       {toast && <div className="toast">✓ {toast}</div>}
-      {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} />}
+      {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} quoteCount={quote.length} />}
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} />}
       {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} activeOrderId={activeOrderId} user={user} onOrderSent={markOrderSent} />}

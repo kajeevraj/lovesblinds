@@ -35,7 +35,9 @@ export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, use
             <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
           )
         )}
-        <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
+        {quoteCount === 0 && (
+          <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")} style={{ marginRight: 18 }}>Start Your Order</button>
+        )}
         <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
     </nav>
@@ -100,7 +102,7 @@ export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
   );
 }
 
-export function HomePage({ navigate, goToProduct }) {
+export function HomePage({ navigate, goToProduct, quoteCount }) {
   return (
     <div className="page-fade">
       <section className="hero">
@@ -110,7 +112,9 @@ export function HomePage({ navigate, goToProduct }) {
             <p className="hero-tag">Made-to-measure blinds, shades, shutters, and drapes — measured your way: in-home consult with us, or DIY with our step-by-step guide.</p>
             <div className="hero-ctas">
               <button className="btn btn-sand" onClick={() => navigate("products")} style={{ background: "var(--sand)", color: "var(--charcoal)" }}>Browse Products</button>
-              <button className="btn btn-outline-light" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
+              <button className="btn btn-outline-light" onClick={() => navigate("quote")}>
+                {quoteCount > 0 ? `Continue Your Order · ${quoteCount} item${quoteCount !== 1 ? 's' : ''}` : 'Start Your Order'} <ArrowRight />
+              </button>
             </div>
           </div>
           <div className="hero-aside" style={{ padding: "10px 0px 20px 40px" }}>
