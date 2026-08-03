@@ -408,18 +408,12 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
         <h1 className="serif section-title">Place your order.</h1>
         <p className="section-sub">Review your selections, add your contact details, and send — we'll reply with your written quote within 48 hours.</p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 18, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
-          <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
-            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips and printable worksheet.
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
-        </div>
-
         <QuoteList
           items={quoteItems}
           removeFromQuote={removeFromQuote}
           updateQty={updateQty}
           updateRoomLabel={updateRoomLabel}
+          navigate={navigate}
           goToProducts={() => navigate("products")} />
       </section>
       <Footer navigate={navigate} />
@@ -427,7 +421,7 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
   );
 }
 
-function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts }) {
+function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts, navigate }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -661,13 +655,23 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
           <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Your Order <ArrowRight /></button>
         </div>
       </div>
+
+      {navigate && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
+          <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
+            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips and a printable worksheet.
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
+        </div>
+      )}
     </div>
   );
 }
 
-export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled }) {
+export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount }) {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   if (!supabaseEnabled) {
     return (
@@ -694,72 +698,102 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
     );
   }
 
-  const startEdit = (order) => { setEditingId(order.id); setEditingName(order.name); };
+  const startEdit = (e, order) => {
+    e.stopPropagation();
+    setEditingId(order.id);
+    setEditingName(order.name);
+    setPendingDelete(null);
+  };
+
   const commitEdit = () => {
     if (editingId && editingName.trim()) renameOrder(editingId, editingName.trim());
     setEditingId(null);
   };
 
+  const handleDelete = (e, orderId) => {
+    e.stopPropagation();
+    if (pendingDelete === orderId) {
+      deleteOrder(orderId);
+      setPendingDelete(null);
+    } else {
+      setPendingDelete(orderId);
+    }
+  };
+
+  const handleNewOrder = () => {
+    createOrder('New Order').then(o => { if (o) navigate('quote'); });
+  };
+
   return (
     <div className="page-fade">
       <section className="container" style={{ paddingTop: 56, paddingBottom: 80 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 36 }}>
+        <div className="orders-page-header">
           <div>
             <div className="section-eyebrow">{user.email}</div>
             <h1 className="serif section-title" style={{ marginBottom: 0 }}>My Orders</h1>
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button className="btn btn-sage" onClick={() => createOrder('New Order').then(o => { if (o) navigate('quote'); })}>
-              New Order <ArrowRight size={14} />
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={signOut}>Sign out</button>
+          <div className="orders-page-actions">
+            <button className="btn btn-sage" onClick={handleNewOrder}>+ New Order</button>
+            <button className="btn btn-ghost btn-sm" onClick={signOut}>Sign out</button>
           </div>
         </div>
 
         {orders.length === 0 ? (
           <div className="empty-state">
             <h3 className="serif">No orders yet.</h3>
-            <p>Browse products and use "Add to Order" to start your first order.</p>
+            <p>Browse products and use "Add to Order" to get started.</p>
             <button className="btn btn-sage" onClick={() => navigate('products')} style={{ marginTop: 20 }}>
               Browse Products <ArrowRight />
             </button>
           </div>
         ) : (
           <div className="orders-grid">
-            {orders.map(order => (
-              <div key={order.id} className={`order-card${order.id === activeOrderId ? ' active' : ''}`}>
-                <div className="order-card-body">
-                  {editingId === order.id ? (
-                    <input
-                      className="input"
-                      value={editingName}
-                      autoFocus
-                      onChange={e => setEditingName(e.target.value)}
-                      onBlur={commitEdit}
-                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingId(null); }}
-                      style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }} />
-                  ) : (
-                    <button className="order-card-name" onClick={() => startEdit(order)} title="Click to rename">
-                      {order.name}
-                    </button>
-                  )}
+            {orders.map(order => {
+              const isActive = order.id === activeOrderId;
+              const itemCount = isActive ? quoteCount : (order.items?.length ?? 0);
+              return (
+                <div
+                  key={order.id}
+                  className={`order-card${isActive ? ' active' : ''}`}
+                  onClick={() => openOrder(order.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrder(order.id); }}}
+                >
+                  <div className="order-card-header">
+                    {editingId === order.id ? (
+                      <input
+                        className="input order-card-name-input"
+                        value={editingName}
+                        autoFocus
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setEditingName(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                      />
+                    ) : (
+                      <div className="order-card-name">{order.name}</div>
+                    )}
+                    <div className="order-card-btns" onClick={e => e.stopPropagation()}>
+                      <button className="order-card-btn" title="Rename" onClick={e => startEdit(e, order)}>✎</button>
+                      <button
+                        className={`order-card-btn${pendingDelete === order.id ? ' danger' : ''}`}
+                        title={pendingDelete === order.id ? 'Click again to confirm delete' : 'Delete'}
+                        onClick={e => handleDelete(e, order.id)}
+                      >
+                        {pendingDelete === order.id ? 'Delete?' : <XIcon size={13} />}
+                      </button>
+                    </div>
+                  </div>
                   <div className="order-card-meta">
-                    {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? 's' : ''}
+                    {itemCount} item{itemCount !== 1 ? 's' : ''}
                     {' · '}
                     {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    {order.id === activeOrderId && <span className="order-active-badge">Active</span>}
                   </div>
+                  {isActive && <div className="order-active-pill">Active order</div>}
                 </div>
-                <div className="order-card-actions">
-                  <button className="btn btn-sage btn-sm" onClick={() => openOrder(order.id)}>
-                    Open <ArrowRight size={13} />
-                  </button>
-                  <button className="order-card-delete" onClick={() => deleteOrder(order.id)} title="Delete order">
-                    <XIcon />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

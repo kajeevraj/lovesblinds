@@ -25,24 +25,21 @@ export default function App() {
     createOrder, saveItems, renameOrder, deleteOrder,
   } = useAuth();
 
-  // When the active order changes, load its items into local quote state.
+  // Load items when switching to a different order. Intentionally does NOT
+  // depend on `user` — logging in must not clear the local quote state.
   useEffect(() => {
-    if (!user) return;
-    if (activeOrder) {
-      setQuote(activeOrder.items.map(reconstructItem).filter(Boolean));
-    } else {
-      setQuote([]);
-    }
-  }, [activeOrderId, user]);
+    if (!activeOrderId || !activeOrder) return;
+    setQuote(activeOrder.items.map(reconstructItem).filter(Boolean));
+  }, [activeOrderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When a guest logs in with items in their cart, save them as a new order.
+  // On first login: if there are guest items and no existing orders, save them.
   useEffect(() => {
     if (!user || authLoading || guestSaved) return;
-    if (orders.length === 0 && quote.length > 0) {
-      setGuestSaved(true);
+    setGuestSaved(true);
+    if (!activeOrderId && quote.length > 0) {
       createOrder('My First Order', quote.map(serializeItem));
     }
-  }, [user?.id, authLoading]);
+  }, [user?.id, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncToSupabase = useCallback((items) => {
     if (user && activeOrderId) saveItems(activeOrderId, items);
@@ -55,36 +52,37 @@ export default function App() {
 
   const addToQuote = (item) => {
     const newItem = { ...item, qty: item.qty || 1 };
-    if (user && !activeOrderId) {
-      // First item while logged in — create an order on the fly.
-      createOrder('New Order', [serializeItem(newItem)]);
-    } else {
-      setQuote(q => {
-        const next = [...q, newItem];
+    const next = [...quote, newItem];
+    setQuote(next); // always update local state immediately
+
+    if (user) {
+      if (activeOrderId) {
         syncToSupabase(next);
-        return next;
-      });
+      } else {
+        // No order yet — create one with everything accumulated so far
+        createOrder('New Order', next.map(serializeItem));
+      }
     }
     showToast(`${item.product.name} added to your order`);
   };
 
-  const removeFromQuote = (idx) => setQuote(q => {
-    const next = q.filter((_, i) => i !== idx);
+  const removeFromQuote = (idx) => {
+    const next = quote.filter((_, i) => i !== idx);
+    setQuote(next);
     syncToSupabase(next);
-    return next;
-  });
+  };
 
-  const updateQty = (idx, qty) => setQuote(q => {
-    const next = q.map((it, i) => i === idx ? { ...it, qty } : it);
+  const updateQty = (idx, qty) => {
+    const next = quote.map((it, i) => i === idx ? { ...it, qty } : it);
+    setQuote(next);
     syncToSupabase(next);
-    return next;
-  });
+  };
 
-  const updateRoomLabel = (idx, label) => setQuote(q => {
-    const next = q.map((it, i) => i === idx ? { ...it, roomLabel: label } : it);
+  const updateRoomLabel = (idx, label) => {
+    const next = quote.map((it, i) => i === idx ? { ...it, roomLabel: label } : it);
+    setQuote(next);
     syncToSupabase(next);
-    return next;
-  });
+  };
 
   const navigate = (r) => {
     setRoute(r);
@@ -140,7 +138,7 @@ export default function App() {
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} />}
       {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} user={user} />}
-      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={signInWithGoogle} supabaseEnabled={supabaseEnabled} />}
+      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={signInWithGoogle} supabaseEnabled={supabaseEnabled} quoteCount={quote.length} />}
       {route === "contact"  && <ContactPage navigate={navigate} />}
     </div>
   );
