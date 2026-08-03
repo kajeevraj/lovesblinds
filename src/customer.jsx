@@ -7,6 +7,7 @@ import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/phot
 import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
 
 export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, orders, authLoading }) {
+  const goToMyOrders = () => navigate("orders");
   return (
     <nav className="nav">
       <div className="nav-inner">
@@ -17,23 +18,13 @@ export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, use
           <button className={`nav-link ${route === "home" ? "active" : ""}`} onClick={() => navigate("home")}>Home</button>
           <button className={`nav-link ${route === "products" ? "active" : ""}`} onClick={() => navigate("products")}>Products</button>
           <button className={`nav-link ${route === "measure" ? "active" : ""}`} onClick={() => navigate("measure")}>Measure Guide</button>
-          <button className={`nav-link ${route === "quote" ? "active" : ""}`} onClick={() => navigate("quote")}>
-            Your Order{quoteCount > 0 && <span className="nav-count">{quoteCount}</span>}
+          <button className={`nav-link ${(route === "quote" || route === "orders" || route === "review") ? "active" : ""}`} onClick={goToMyOrders}>
+            My Orders{quoteCount > 0 && <span className="nav-count">{quoteCount}</span>}
           </button>
           <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
         </div>
-        {supabaseEnabled && !authLoading && (
-          user ? (
-            <button className="nav-avatar-btn" onClick={() => navigate("orders")} title="My Orders">
-              {user.user_metadata?.avatar_url
-                ? <img src={user.user_metadata.avatar_url} alt="" className="nav-avatar" />
-                : <div className="nav-avatar nav-avatar-fallback">{user.email?.[0]?.toUpperCase()}</div>
-              }
-              {orders.length > 0 && <span className="nav-orders-count">{orders.length}</span>}
-            </button>
-          ) : (
-            <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
-          )
+        {supabaseEnabled && !authLoading && !user && (
+          <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
         )}
         <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
@@ -70,7 +61,7 @@ export function Footer({ navigate }) {
             <ul>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("products")}>All Products</button></li>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("measure")}>Measurement Guide</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Your Order</button></li>
+              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Order Summary</button></li>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("contact")}>Contact</button></li>
             </ul>
           </div>
@@ -380,46 +371,122 @@ function SlatRow({ product, open, onToggle, onAddToQuote }) {
   );
 }
 
-export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, activeOrderId, user, onOrderSent, signInWithGoogle }) {
+export function OrderSummaryPage({ navigate, quoteItems, removeFromQuote, updateItem, activeOrder, user }) {
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
-        {user && activeOrder ? (
-          <div className="order-breadcrumb">
-            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
-            <span className="order-breadcrumb-sep">·</span>
-            <span className="order-breadcrumb-name">{activeOrder.name}</span>
-          </div>
-        ) : user ? (
-          <div className="order-breadcrumb">
-            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
+        <div className="order-breadcrumb">
+          <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
+          {user && activeOrder && (
+            <>
+              <span className="order-breadcrumb-sep">·</span>
+              <span className="order-breadcrumb-name">{activeOrder.name}</span>
+            </>
+          )}
+        </div>
+
+        <div className="section-eyebrow" style={{ marginTop: 12 }}>Order Summary</div>
+        <h1 className="serif section-title">Your order.</h1>
+        <p className="section-sub">Adjust colors, mechanisms, dimensions, and rooms right here, then continue to send us your contact details.</p>
+
+        {quoteItems.length === 0 ? (
+          <div className="empty-state">
+            <h3 className="serif">Nothing in your order yet.</h3>
+            <p>Browse our products and use "Add to Order" to build your list.</p>
+            <button className="btn btn-outline" onClick={() => navigate("products")} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
           </div>
         ) : (
-          <div className="order-breadcrumb">
-            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
-          </div>
+          <>
+            <div className="quote-list">
+              {quoteItems.map((it, idx) => (
+                <QuoteRow key={idx} item={it} idx={idx} updateItem={updateItem} removeFromQuote={removeFromQuote} />
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 28 }}>
+              <button className="btn btn-sage" onClick={() => navigate("review")} style={{ padding: "14px 28px" }}>
+                Continue to Review <ArrowRight />
+              </button>
+            </div>
+          </>
         )}
 
-        <div className="section-eyebrow" style={{ marginTop: user ? 12 : 0 }}>Your Order</div>
-        <h1 className="serif section-title">Place your order.</h1>
-        <p className="section-sub">Review your selections, add your contact details, and send — we'll reply with your written quote within 48 hours.</p>
-
-        <QuoteList
-          items={quoteItems}
-          removeFromQuote={removeFromQuote}
-          updateQty={updateQty}
-          updateRoomLabel={updateRoomLabel}
-          navigate={navigate}
-          goToProducts={() => navigate("products")}
-          activeOrderId={activeOrderId}
-          onOrderSent={onOrderSent} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
+          <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
+            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips and a printable worksheet.
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
+        </div>
       </section>
       <Footer navigate={navigate} />
     </div>
   );
 }
 
-function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToProducts, navigate, activeOrderId, onOrderSent }) {
+function QuoteRow({ item: it, idx, updateItem, removeFromQuote }) {
+  const itemMech = getMechanism(it.product, it.mech);
+  const hasColors = it.product.colors?.length > 0;
+
+  const handleColorChange = (code) => {
+    const color = it.product.colors.find(c => c.code === code) || null;
+    updateItem(idx, { color, code: color?.code ?? null, colorName: color?.name ?? it.variant });
+  };
+  const handleVariantChange = (v) => updateItem(idx, { variant: v, colorName: hasColors ? it.colorName : v });
+  const handleWidthChange = (v) => updateItem(idx, { width: v === "" ? null : parseFloat(v) });
+  const handleLengthChange = (v) => updateItem(idx, { length: v === "" ? null : parseFloat(v) });
+
+  return (
+    <div className="quote-line">
+      <PhotoPH
+        label={it.colorName || it.variant}
+        sub={`${itemMech?.code} · ${it.mount}`}
+        className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
+      <div>
+        <div className="quote-line-title">{it.product.name}</div>
+        <div className="quote-line-controls">
+          {hasColors ? (
+            <select className="select" value={it.code || ""} onChange={e => handleColorChange(e.target.value)}>
+              {it.product.colors.map(c => (
+                <option key={c.code} value={c.code}>{c.name}{c.collection ? ` · ${c.collection}` : ""}</option>
+              ))}
+            </select>
+          ) : (
+            <select className="select" value={it.variant} onChange={e => handleVariantChange(e.target.value)}>
+              {it.product.variants.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          )}
+          <select className="select" value={it.mech} onChange={e => updateItem(idx, { mech: e.target.value })}>
+            {it.product.mechanisms.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <select className="select" value={it.mount} onChange={e => updateItem(idx, { mount: e.target.value })}>
+            {it.product.mounts.map(mid => {
+              const m = MOUNTS.find(x => x.id === mid);
+              return <option key={mid} value={mid}>{m.name}</option>;
+            })}
+          </select>
+          <input className="input" type="number" placeholder="Width (in)" value={it.width ?? ""} onChange={e => handleWidthChange(e.target.value)} />
+          <input className="input" type="number" placeholder="Length (in)" value={it.length ?? ""} onChange={e => handleLengthChange(e.target.value)} />
+          <input
+            className="input"
+            type="text"
+            value={it.roomLabel || ""}
+            onChange={e => updateItem(idx, { roomLabel: e.target.value })}
+            placeholder="Room (optional)" />
+        </div>
+      </div>
+      <div className="qty-stepper">
+        <button onClick={() => updateItem(idx, { qty: Math.max(1, it.qty - 1) })}>−</button>
+        <span>{it.qty}</span>
+        <button onClick={() => updateItem(idx, { qty: it.qty + 1 })}>+</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove"><XIcon /></button>
+      </div>
+    </div>
+  );
+}
+
+export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent }) {
+  const items = quoteItems;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -432,15 +499,6 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-
-  if (submitted) {
-    return (
-      <div className="success-banner">
-        <h3 className="serif">Order request sent.</h3>
-        <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
-      </div>
-    );
-  }
 
   const handleConfirmSend = async () => {
     setSubmitting(true);
@@ -492,40 +550,142 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
     }
   };
 
+  if (submitted) {
+    return (
+      <div className="page-fade">
+        <section className="quote-page container-narrow">
+          <div className="success-banner">
+            <h3 className="serif">Order request sent.</h3>
+            <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
+          </div>
+          <button className="btn btn-outline" style={{ marginTop: 24 }} onClick={() => navigate("home")}>Back to Home</button>
+        </section>
+        <Footer navigate={navigate} />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="page-fade">
+        <section className="quote-page container-narrow">
+          <div className="empty-state">
+            <h3 className="serif">Nothing to review yet.</h3>
+            <p>Add items to your order first.</p>
+            <button className="btn btn-outline" onClick={() => navigate("products")} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
+          </div>
+        </section>
+        <Footer navigate={navigate} />
+      </div>
+    );
+  }
+
   if (review) {
     const customer = review;
     return (
-      <div>
-        <div className="success-banner" style={{ marginBottom: 32 }}>
-          <h3 className="serif">Review your order.</h3>
-          <p style={{ margin: 0 }}>Check everything below, then confirm to send.</p>
+      <div className="page-fade">
+        <section className="quote-page container-narrow">
+          <div className="order-breadcrumb">
+            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => { setReview(null); setSubmitError(null); }}>← Edit details</button>
+          </div>
+
+          <div className="success-banner" style={{ marginTop: 20, marginBottom: 32 }}>
+            <h3 className="serif">Review your order.</h3>
+            <p style={{ margin: 0 }}>Check everything below, then confirm to send.</p>
+          </div>
+
+          <h4 className="serif" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h4>
+          <div className="review-grid">
+            <div><span className="label">Name</span><div>{customer.name}</div></div>
+            <div><span className="label">Email</span><div>{customer.email}</div></div>
+            {customer.phone && <div><span className="label">Phone</span><div>{customer.phone}</div></div>}
+            {customer.shipTo && <div><span className="label">Ship to</span><div>{customer.shipTo}</div></div>}
+            <div><span className="label">Best time to call</span><div>{customer.callTime}</div></div>
+            <div><span className="label">Measurement</span><div>{customer.measureMethod}</div></div>
+            {customer.notes && <div className="full"><span className="label">Notes</span><div>{customer.notes}</div></div>}
+          </div>
+
+          <h4 className="serif" style={{ fontSize: 20, margin: "32px 0 14px" }}>Items ({items.length})</h4>
+          <div className="quote-list">
+            {items.map((it, idx) => {
+              const itemMech = getMechanism(it.product, it.mech);
+              return (
+                <div key={idx} className="quote-line">
+                  <PhotoPH label={it.colorName || it.variant} sub={itemMech?.code} className="empty" />
+                  <div>
+                    <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
+                    <div className="quote-line-meta">
+                      {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
+                      {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
+                      {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
+                      {it.code && <span style={{ marginLeft: 8, opacity: 0.5, fontSize: 12 }}>#{it.code}</span>}
+                    </div>
+                  </div>
+                  <div className="qty-stepper" style={{ pointerEvents: "none" }}>
+                    <button>−</button><span>{it.qty}</span><button>+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {submitError && (
+            <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(168,81,63,0.08)", border: "1px solid rgba(168,81,63,0.3)", borderRadius: 4, color: "#a8513f", fontSize: 14 }}>
+              {submitError}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+            <button className="btn btn-outline" onClick={() => { setReview(null); setSubmitError(null); }} disabled={submitting}>
+              ← Edit
+            </button>
+            <button className="btn btn-sage" onClick={handleConfirmSend} disabled={submitting} style={{ padding: "14px 28px" }}>
+              {submitting ? "Sending…" : "Send Order"} {!submitting && <ArrowRight />}
+            </button>
+          </div>
+        </section>
+        <Footer navigate={navigate} />
+      </div>
+    );
+  }
+
+  const handleSubmit = () => {
+    const errs = {};
+    if (!name.trim()) errs.name = "Required";
+    if (!email.trim()) errs.email = "Required";
+    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    setReview({ name: name.trim(), email: email.trim(), phone: phone.trim(), shipTo: shipTo.trim(), callTime, measureMethod, notes: notes.trim() });
+  };
+
+  return (
+    <div className="page-fade">
+      <section className="quote-page container-narrow">
+        <div className="order-breadcrumb">
+          <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("quote")}>← Back to Order Summary</button>
         </div>
 
-        <h4 className="serif" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h4>
-        <div className="review-grid">
-          <div><span className="label">Name</span><div>{customer.name}</div></div>
-          <div><span className="label">Email</span><div>{customer.email}</div></div>
-          {customer.phone && <div><span className="label">Phone</span><div>{customer.phone}</div></div>}
-          {customer.shipTo && <div><span className="label">Ship to</span><div>{customer.shipTo}</div></div>}
-          <div><span className="label">Best time to call</span><div>{customer.callTime}</div></div>
-          <div><span className="label">Measurement</span><div>{customer.measureMethod}</div></div>
-          {customer.notes && <div className="full"><span className="label">Notes</span><div>{customer.notes}</div></div>}
-        </div>
+        <div className="section-eyebrow" style={{ marginTop: 12 }}>Review Your Order</div>
+        <h1 className="serif section-title">Where should we send your quote?</h1>
+        <p className="section-sub">We'll never share your contact information.</p>
 
-        <h4 className="serif" style={{ fontSize: 20, margin: "32px 0 14px" }}>Items ({items.length})</h4>
+        <h4 className="serif" style={{ fontSize: 20, margin: "24px 0 14px" }}>Items ({items.length})</h4>
         <div className="quote-list">
           {items.map((it, idx) => {
             const itemMech = getMechanism(it.product, it.mech);
             return (
               <div key={idx} className="quote-line">
-                <PhotoPH label={it.colorName || it.variant} sub={itemMech?.code} className="empty" />
+                <PhotoPH
+                  label={it.colorName || it.variant}
+                  sub={`${itemMech?.code} · ${it.mount}`}
+                  className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
                 <div>
                   <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
                   <div className="quote-line-meta">
                     {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
                     {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
                     {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
-                    {it.code && <span style={{ marginLeft: 8, opacity: 0.5, fontSize: 12 }}>#{it.code}</span>}
                   </div>
                 </div>
                 <div className="qty-stepper" style={{ pointerEvents: "none" }}>
@@ -536,133 +696,47 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
           })}
         </div>
 
-        {submitError && (
-          <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(168,81,63,0.08)", border: "1px solid rgba(168,81,63,0.3)", borderRadius: 4, color: "#a8513f", fontSize: 14 }}>
-            {submitError}
+        <div className="quote-form" style={{ marginTop: 32 }}>
+          <div>
+            <div className="label">Name{errors.name && <span className="field-error"> — {errors.name}</span>}</div>
+            <input className={`input${errors.name ? " input-error" : ""}`} placeholder="Full name" value={name} onChange={e => { setName(e.target.value); setErrors(v => ({ ...v, name: "" })); }} />
           </div>
-        )}
-
-        <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-          <button className="btn btn-outline" onClick={() => { setReview(null); setSubmitError(null); }} disabled={submitting}>
-            ← Edit
-          </button>
-          <button className="btn btn-sage" onClick={handleConfirmSend} disabled={submitting} style={{ padding: "14px 28px" }}>
-            {submitting ? "Sending…" : "Send Order"} {!submitting && <ArrowRight />}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="empty-state">
-        <h3 className="serif">Nothing in your order yet.</h3>
-        <p>Browse our products and use "Add to Order" to build your list.</p>
-        <button className="btn btn-outline" onClick={goToProducts} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
-      </div>
-    );
-  }
-
-  const handleSubmit = () => {
-    const errs = {};
-    if (!name.trim()) errs.name = "Required";
-    if (!email.trim()) errs.email = "Required";
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
-    if (items.length === 0) errs._items = "Add at least one item before submitting";
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-    setReview({ name: name.trim(), email: email.trim(), phone: phone.trim(), shipTo: shipTo.trim(), callTime, measureMethod, notes: notes.trim() });
-  };
-
-  return (
-    <div>
-      <div className="quote-list">
-        {items.map((it, idx) => {
-          const itemMech = getMechanism(it.product, it.mech);
-          return (
-            <div key={idx} className="quote-line">
-              <PhotoPH
-                label={it.colorName || it.variant}
-                sub={`${itemMech?.code} · ${it.mount}`}
-                className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
-              <div>
-                <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
-                <div className="quote-line-meta">
-                  {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
-                  {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
-                </div>
-                <input
-                  className="input room-label-input"
-                  type="text"
-                  value={it.roomLabel || ""}
-                  onChange={e => updateRoomLabel(idx, e.target.value)}
-                  placeholder="Room (optional)" />
-              </div>
-              <div className="qty-stepper">
-                <button onClick={() => updateQty(idx, Math.max(1, it.qty - 1))}>−</button>
-                <span>{it.qty}</span>
-                <button onClick={() => updateQty(idx, it.qty + 1)}>+</button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove"><XIcon /></button>
-              </div>
+          <div>
+            <div className="label">Email{errors.email && <span className="field-error"> — {errors.email}</span>}</div>
+            <input className={`input${errors.email ? " input-error" : ""}`} type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); setErrors(v => ({ ...v, email: "" })); }} />
+          </div>
+          <div>
+            <div className="label">Phone</div>
+            <input className="input" placeholder="(555) 555-5555" value={phone} onChange={e => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <div className="label">Ship to address</div>
+            <input className="input" placeholder="123 Main St, City, State" value={shipTo} onChange={e => setShipTo(e.target.value)} />
+          </div>
+          <div>
+            <div className="label">Best time to call</div>
+            <select className="select" value={callTime} onChange={e => setCallTime(e.target.value)}>
+              <option>Anytime</option><option>Mornings</option><option>Afternoons</option><option>Evenings</option>
+            </select>
+          </div>
+          <div className="full">
+            <div className="label">Measurement method</div>
+            <div className="config-options">
+              {["I'll measure myself", "Send someone to measure", "Not sure yet"].map(opt => (
+                <button key={opt} className={`opt-btn${measureMethod === opt ? " selected" : ""}`} onClick={() => setMeasureMethod(opt)}>{opt}</button>
+              ))}
             </div>
-          );
-        })}
-      </div>
-      <h3 className="serif" style={{ fontSize: 28, marginTop: 48, marginBottom: 8 }}>Where should we send your quote?</h3>
-      <p style={{ color: "var(--ink-60)", margin: 0 }}>We'll never share your contact information.</p>
-
-      <div className="quote-form">
-        <div>
-          <div className="label">Name{errors.name && <span className="field-error"> — {errors.name}</span>}</div>
-          <input className={`input${errors.name ? " input-error" : ""}`} placeholder="Full name" value={name} onChange={e => { setName(e.target.value); setErrors(v => ({ ...v, name: "" })); }} />
-        </div>
-        <div>
-          <div className="label">Email{errors.email && <span className="field-error"> — {errors.email}</span>}</div>
-          <input className={`input${errors.email ? " input-error" : ""}`} type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); setErrors(v => ({ ...v, email: "" })); }} />
-        </div>
-        <div>
-          <div className="label">Phone</div>
-          <input className="input" placeholder="(555) 555-5555" value={phone} onChange={e => setPhone(e.target.value)} />
-        </div>
-        <div>
-          <div className="label">Ship to address</div>
-          <input className="input" placeholder="123 Main St, City, State" value={shipTo} onChange={e => setShipTo(e.target.value)} />
-        </div>
-        <div>
-          <div className="label">Best time to call</div>
-          <select className="select" value={callTime} onChange={e => setCallTime(e.target.value)}>
-            <option>Anytime</option><option>Mornings</option><option>Afternoons</option><option>Evenings</option>
-          </select>
-        </div>
-        <div className="full">
-          <div className="label">Measurement method</div>
-          <div className="config-options">
-            {["I'll measure myself", "Send someone to measure", "Not sure yet"].map(opt => (
-              <button key={opt} className={`opt-btn${measureMethod === opt ? " selected" : ""}`} onClick={() => setMeasureMethod(opt)}>{opt}</button>
-            ))}
+          </div>
+          <div className="full">
+            <div className="label">Notes — rooms, timing, anything we should know</div>
+            <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
+          </div>
+          <div className="full">
+            <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review & Send <ArrowRight /></button>
           </div>
         </div>
-        <div className="full">
-          <div className="label">Notes — rooms, timing, anything we should know</div>
-          <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
-        </div>
-        <div className="full">
-          {errors._items && <div style={{ marginBottom: 10, color: "#a8513f", fontSize: 13 }}>{errors._items}</div>}
-          <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review Your Order <ArrowRight /></button>
-        </div>
-      </div>
-
-      {navigate && (
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
-          <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
-            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips and a printable worksheet.
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
-        </div>
-      )}
+      </section>
+      <Footer navigate={navigate} />
     </div>
   );
 }
@@ -721,7 +795,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
 
   const handleNewOrder = () => {
     const name = `Order ${(ordersLength ?? orders.length) + 1}`;
-    createOrder(name).then(o => { if (o) navigate('quote'); });
+    createOrder(name).then(o => { if (o) navigate('products'); });
   };
 
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Nav, HomePage, ProductsPage, QuotePage, ContactPage, MeasureGuidePage, OrdersPage } from './customer.jsx';
+import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
 import {
@@ -28,7 +28,7 @@ export default function App() {
     } catch { /* ignore */ }
     return [];
   });
-  const [toast, setToast]         = useState(null);
+  const [snackbar, setSnackbar]   = useState(null);
   const quoteRef = useRef(quote);
   useEffect(() => { quoteRef.current = quote; });
 
@@ -39,9 +39,9 @@ export default function App() {
     createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   } = useAuth();
 
-  // Show DB errors as toasts so we can see what's going wrong.
+  // Show DB errors as snackbars so we can see what's going wrong.
   useEffect(() => {
-    if (dbError) showToast(`⚠ ${dbError}`);
+    if (dbError) showSnackbar(`⚠ ${dbError}`);
   }, [dbError]);
 
   // Once logged in and order is ready, clear the guest localStorage backup and
@@ -65,9 +65,9 @@ export default function App() {
     if (user && activeOrderId) saveItems(activeOrderId, items);
   }, [user, activeOrderId, saveItems]);
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const showSnackbar = (msg, action) => {
+    setSnackbar({ msg, action });
+    setTimeout(() => setSnackbar(null), 4000);
   };
 
   const addToQuote = (item) => {
@@ -77,7 +77,7 @@ export default function App() {
     syncToSupabase(next); // no-op if not logged in or no activeOrderId
     // Keep localStorage in sync so guest items survive an OAuth redirect.
     if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
-    showToast(`${item.product.name} added to your order`);
+    showSnackbar(`${item.product.name} added to your order`, { label: 'View Order', onClick: () => navigate('quote') });
   };
 
   const removeFromQuote = (idx) => {
@@ -87,16 +87,11 @@ export default function App() {
     if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
   };
 
-  const updateQty = (idx, qty) => {
-    const next = quote.map((it, i) => i === idx ? { ...it, qty } : it);
+  const updateItem = (idx, patch) => {
+    const next = quote.map((it, i) => i === idx ? { ...it, ...patch } : it);
     setQuote(next);
     syncToSupabase(next);
-  };
-
-  const updateRoomLabel = (idx, label) => {
-    const next = quote.map((it, i) => i === idx ? { ...it, roomLabel: label } : it);
-    setQuote(next);
-    syncToSupabase(next);
+    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
   };
 
   // Wrap signInWithGoogle to save guest quote before the OAuth page redirect wipes state.
@@ -157,11 +152,21 @@ export default function App() {
   return (
     <div>
       <Nav route={route} navigate={navigate} onAdmin={goAdmin} quoteCount={q} {...authProps} />
-      {toast && <div className="toast">{toast}</div>}
+      {snackbar && (
+        <div className="snackbar">
+          <span>{snackbar.msg}</span>
+          {snackbar.action && (
+            <button className="snackbar-action" onClick={() => { snackbar.action.onClick(); setSnackbar(null); }}>
+              {snackbar.action.label}
+            </button>
+          )}
+        </div>
+      )}
       {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} quoteCount={q} />}
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
-      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} activeOrderId={activeOrderId} user={user} onOrderSent={markOrderSent} signInWithGoogle={handleSignIn} />}
+      {route === "quote"    && <OrderSummaryPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrder={activeOrder} user={user} />}
+      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} />}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
     </div>

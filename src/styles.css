@@ -479,6 +479,9 @@ a { color: inherit; }
 .quote-line .photo-ph .ph-label { padding: 3px 5px; font-size: 9px; line-height: 1.2; }
 .quote-line-title { font-family: var(--serif); font-size: 22px; line-height: 1.15; }
 .quote-line-meta { font-size: 12px; color: var(--ink-60); margin-top: 4px; }
+.quote-line-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.quote-line-controls .select,
+.quote-line-controls .input { width: auto; flex: 1 1 130px; max-width: 190px; padding: 7px 10px; font-size: 12px; }
 .qty-stepper { display: inline-flex; align-items: center; border: 1px solid var(--hairline); }
 .qty-stepper button { width: 30px; height: 30px; background: none; border: none; cursor: pointer; font-size: 16px; color: var(--charcoal); }
 .qty-stepper button:hover { background: var(--ink-08); }
@@ -971,16 +974,22 @@ a { color: inherit; }
   margin-left: 5px; line-height: 1; vertical-align: middle;
 }
 
-/* add-to-order toast */
-.toast {
+/* add-to-order snackbar */
+.snackbar {
   position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+  display: flex; align-items: center; gap: 14px;
   background: var(--charcoal); color: #fff;
-  padding: 12px 18px; border-radius: 6px;
+  padding: 12px 14px 12px 18px; border-radius: 6px;
   font-size: 13px; font-weight: 500;
   box-shadow: 0 4px 20px rgba(44,44,42,0.28);
   animation: toastIn 0.22s ease;
-  pointer-events: none;
 }
+.snackbar-action {
+  background: none; border: none; color: var(--sage);
+  font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 8px;
+  white-space: nowrap;
+}
+.snackbar-action:hover { text-decoration: underline; }
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -989,17 +998,10 @@ a { color: inherit; }
 /* slat dimension inputs */
 .slat-dims { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
-/* room label inline edit in order list */
-.room-label-input { margin-top: 6px; padding: 5px 8px; font-size: 12px; color: var(--sage-dark); }
-
 /* nav auth elements */
-.nav-avatar-btn { position: relative; display: flex; align-items: center; background: none; border: none; cursor: pointer; padding: 0; margin-right: 14px; }
-.nav-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--sage); }
-.nav-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 600; border: 2px solid var(--sage); }
-.nav-orders-count { position: absolute; top: -4px; right: -6px; background: var(--sage); color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; padding: 0 4px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--warm-white); }
 .nav-signin { opacity: 0.7; margin-right: 8px; }
 
-/* order breadcrumb on QuotePage */
+/* order breadcrumb on Order Summary / Review pages */
 .order-breadcrumb { display: flex; align-items: center; gap: 8px; margin-top: 20px; margin-bottom: 4px; font-size: 13px; color: var(--ink-60); }
 .order-breadcrumb button { background: none; border: none; cursor: pointer; color: var(--ink-60); font-size: 13px; padding: 0; }
 .order-breadcrumb button:hover { color: var(--sage-dark); }
