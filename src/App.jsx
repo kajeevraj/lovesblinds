@@ -7,6 +7,8 @@ import {
   AdminPricing, AdminMechanisms, AdminSuppliers, AdminInbox, AdminSettings,
 } from './admin.jsx';
 
+const GUEST_QUOTE_KEY = 'lb_guest_quote';
+
 export default function App() {
   const [mode, setMode]           = useState("customer");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -14,7 +16,18 @@ export default function App() {
   const [adminPage, setAdminPage] = useState("dashboard");
   const [openSlat, setOpenSlat]   = useState(null);
   const [productLocation, setProductLocation] = useState(null);
-  const [quote, setQuote]         = useState([]);
+  const [quote, setQuote]         = useState(() => {
+    // On page load (which happens after OAuth redirect), restore guest items from localStorage.
+    try {
+      const saved = localStorage.getItem(GUEST_QUOTE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const items = parsed.map(reconstructItem).filter(Boolean);
+        if (items.length > 0) return items;
+      }
+    } catch { /* ignore */ }
+    return [];
+  });
   const [toast, setToast]         = useState(null);
   const quoteRef = useRef(quote);
   useEffect(() => { quoteRef.current = quote; });
@@ -31,17 +44,18 @@ export default function App() {
     if (dbError) showToast(`⚠ ${dbError}`);
   }, [dbError]);
 
-  // When switching to an existing order, load its items from DB.
-  // If the DB order is empty but we have local items (guest → login migration),
-  // save the local items into this order instead of clearing them.
+  // Once logged in and order is ready, clear the guest localStorage backup and
+  // migrate any guest items into the active order if the order is currently empty.
   useEffect(() => {
     if (!activeOrderId || !activeOrder) return;
     const dbItems = activeOrder.items.map(reconstructItem).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
+      localStorage.removeItem(GUEST_QUOTE_KEY);
     } else if (quoteRef.current.length > 0) {
-      // New empty order, but we have guest items locally — push them up.
+      // New empty order, but we have guest items (from localStorage restore) — push them up.
       saveItems(activeOrderId, quoteRef.current);
+      localStorage.removeItem(GUEST_QUOTE_KEY);
       // Leave quote as-is (already has the items).
     }
     // Both empty → leave quote alone.
@@ -61,6 +75,8 @@ export default function App() {
     const next = [...quote, newItem];
     setQuote(next);
     syncToSupabase(next); // no-op if not logged in or no activeOrderId
+    // Keep localStorage in sync so guest items survive an OAuth redirect.
+    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
     showToast(`${item.product.name} added to your order`);
   };
 
@@ -68,6 +84,7 @@ export default function App() {
     const next = quote.filter((_, i) => i !== idx);
     setQuote(next);
     syncToSupabase(next);
+    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
   };
 
   const updateQty = (idx, qty) => {
@@ -80,6 +97,14 @@ export default function App() {
     const next = quote.map((it, i) => i === idx ? { ...it, roomLabel: label } : it);
     setQuote(next);
     syncToSupabase(next);
+  };
+
+  // Wrap signInWithGoogle to save guest quote before the OAuth page redirect wipes state.
+  const handleSignIn = () => {
+    if (quoteRef.current.length > 0) {
+      localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
+    }
+    signInWithGoogle();
   };
 
   const navigate = (r) => {
@@ -127,7 +152,7 @@ export default function App() {
   }
 
   const q = quote.length;
-  const authProps = { supabaseEnabled, user, signInWithGoogle, signOut, orders, authLoading };
+  const authProps = { supabaseEnabled, user, signInWithGoogle: handleSignIn, signOut, orders, authLoading };
 
   return (
     <div>
@@ -136,8 +161,8 @@ export default function App() {
       {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} quoteCount={q} />}
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
-      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} activeOrderId={activeOrderId} user={user} onOrderSent={markOrderSent} />}
-      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={signInWithGoogle} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} />}
+      {route === "quote"    && <QuotePage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateQty={updateQty} updateRoomLabel={updateRoomLabel} activeOrder={activeOrder} activeOrderId={activeOrderId} user={user} onOrderSent={markOrderSent} signInWithGoogle={handleSignIn} />}
+      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
     </div>
   );

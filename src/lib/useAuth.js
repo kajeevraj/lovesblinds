@@ -47,7 +47,7 @@ export function useAuth() {
 
     if (error) {
       console.error('[fetchOrders]', error);
-      setDbError(error.message);
+      setDbError(`Could not load orders: ${error.message}`);
       setAuthLoading(false);
       return;
     }
@@ -62,13 +62,13 @@ export function useAuth() {
       // First login — create their initial order immediately so activeOrderId is always set.
       const { data: first, error: createErr } = await supabase
         .from('orders')
-        .insert({ user_id: userId, name: 'Order 1', items: [], status: 'draft' })
+        .insert({ user_id: userId, name: 'Order 1', items: [] })
         .select()
         .single();
 
       if (createErr) {
         console.error('[fetchOrders/createFirst]', createErr);
-        setDbError(createErr.message);
+        setDbError(`Could not create first order: ${createErr.message}`);
       } else if (first) {
         setOrders([first]);
         setActiveOrderId(first.id);
@@ -94,12 +94,12 @@ export function useAuth() {
     if (!supabase || !user) return null;
     const { data, error } = await supabase
       .from('orders')
-      .insert({ user_id: user.id, name, items, status: 'draft' })
+      .insert({ user_id: user.id, name, items })
       .select()
       .single();
     if (error) {
       console.error('[createOrder]', error);
-      setDbError(error.message);
+      setDbError(`Could not create order: ${error.message}`);
       return null;
     }
     if (!data) return null;

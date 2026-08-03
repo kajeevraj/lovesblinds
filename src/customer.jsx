@@ -394,7 +394,7 @@ function SlatRow({ product, open, onToggle, onAddToQuote }) {
   );
 }
 
-export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, activeOrderId, user, onOrderSent }) {
+export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, updateRoomLabel, activeOrder, activeOrderId, user, onOrderSent, signInWithGoogle }) {
   return (
     <div className="page-fade">
       <section className="quote-page container-narrow">
@@ -408,7 +408,11 @@ export function QuotePage({ navigate, quoteItems, removeFromQuote, updateQty, up
           <div className="order-breadcrumb">
             <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
           </div>
-        ) : null}
+        ) : (
+          <div className="order-breadcrumb">
+            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("products")}>← Browse products</button>
+          </div>
+        )}
 
         <div className="section-eyebrow" style={{ marginTop: user ? 12 : 0 }}>Your Order</div>
         <h1 className="serif section-title">Place your order.</h1>
@@ -677,7 +681,7 @@ function QuoteList({ items, removeFromQuote, updateQty, updateRoomLabel, goToPro
   );
 }
 
-export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount, ordersLength }) {
+export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount, ordersLength, dbError }) {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -748,7 +752,14 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           </div>
         </div>
 
-        {orders.length === 0 ? (
+        {dbError && (
+          <div className="db-error-banner">
+            <strong>Could not connect to your orders.</strong> {dbError}
+            <br /><small>Try refreshing the page. If this keeps happening, contact us.</small>
+          </div>
+        )}
+
+        {orders.length === 0 && !dbError ? (
           <div className="empty-state">
             <h3 className="serif">No orders yet.</h3>
             <p>Browse products and use "Add to Order" to get started.</p>
@@ -756,7 +767,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
               Browse Products <ArrowRight />
             </button>
           </div>
-        ) : (
+        ) : orders.length === 0 ? null : (
           <div className="orders-grid">
             {orders.map(order => {
               const isActive = order.id === activeOrderId;

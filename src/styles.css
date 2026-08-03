@@ -502,6 +502,8 @@ a { color: inherit; }
 .empty-state h3 { font-size: 28px; margin-bottom: 10px; }
 .empty-state p { color: var(--ink-60); max-width: 380px; margin: 0 auto; }
 
+.db-error-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; color: #856404; line-height: 1.5; }
+
 .success-banner {
   background: var(--pale-sage); border-left: 3px solid var(--sage);
   padding: 24px 26px; margin-bottom: 24px;
