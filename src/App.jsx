@@ -70,13 +70,17 @@ export default function App() {
     setTimeout(() => setSnackbar(null), 4000);
   };
 
+  // Keep localStorage in sync so guest items survive an OAuth redirect.
+  const persistGuestQuote = (items) => {
+    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
+  };
+
   const addToQuote = (item) => {
     const newItem = { ...item, qty: item.qty || 1 };
     const next = [...quote, newItem];
     setQuote(next);
     syncToSupabase(next); // no-op if not logged in or no activeOrderId
-    // Keep localStorage in sync so guest items survive an OAuth redirect.
-    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
+    persistGuestQuote(next);
     showSnackbar(`${item.product.name} added to your order`, { label: 'View Order', onClick: () => navigate('quote') });
   };
 
@@ -84,14 +88,21 @@ export default function App() {
     const next = quote.filter((_, i) => i !== idx);
     setQuote(next);
     syncToSupabase(next);
-    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
+    persistGuestQuote(next);
   };
 
   const updateItem = (idx, patch) => {
     const next = quote.map((it, i) => i === idx ? { ...it, ...patch } : it);
     setQuote(next);
     syncToSupabase(next);
-    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(next.map(serializeItem)));
+    persistGuestQuote(next);
+  };
+
+  // Clear the local cart after a successful order submission so the empty
+  // Order Summary / Review pages don't let the same order be resubmitted.
+  const clearQuote = () => {
+    setQuote([]);
+    localStorage.removeItem(GUEST_QUOTE_KEY);
   };
 
   // Wrap signInWithGoogle to save guest quote before the OAuth page redirect wipes state.
@@ -166,7 +177,7 @@ export default function App() {
       {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {route === "quote"    && <OrderSummaryPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrder={activeOrder} user={user} />}
-      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} />}
+      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} />}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
     </div>

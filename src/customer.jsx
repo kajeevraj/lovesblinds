@@ -7,6 +7,9 @@ import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/phot
 import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
 
 export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, orders, authLoading }) {
+  // Guests have no saved Orders list — OrdersPage shows them a
+  // "sign in to save your orders" prompt, which is the intended landing
+  // spot so they always have a path to save their cart, not just view it.
   const goToMyOrders = () => navigate("orders");
   return (
     <nav className="nav">
@@ -485,7 +488,7 @@ function QuoteRow({ item: it, idx, updateItem, removeFromQuote }) {
   );
 }
 
-export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent }) {
+export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent, onSubmitted }) {
   const items = quoteItems;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -543,6 +546,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
 
       setSubmitted(true);
       if (onOrderSent && activeOrderId) onOrderSent(activeOrderId);
+      onSubmitted?.();
     } catch (err) {
       setSubmitError(err.message);
     } finally {
