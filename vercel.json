@@ -1,8 +1,61 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/products/drapes",
+      "destination": "/products/drapery",
+      "permanent": true
+    },
+    {
+      "source": "/products/shangrila",
+      "destination": "/products/shangri-la",
+      "permanent": true
+    },
+    {
+      "source": "/products/solar",
+      "destination": "/products/roller",
+      "permanent": true
+    },
+    {
+      "source": "/products/screen-view",
+      "destination": "/products/roller",
+      "permanent": true
+    },
+    {
+      "source": "/products/blackout",
+      "destination": "/products/roller",
+      "permanent": true
+    },
+    {
+      "source": "/products/wood",
+      "destination": "/products",
+      "permanent": true
+    },
+    {
+      "source": "/products/shutters",
+      "destination": "/products",
+      "permanent": true
+    },
+    {
+      "source": "/products/zipscreen",
+      "destination": "/products",
+      "permanent": true
+    },
+    {
+      "source": "/products/outdoor",
+      "destination": "/products",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

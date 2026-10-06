@@ -1,18 +1,23 @@
-import { useState } from 'react';
-import {
-  PRODUCTS, MOUNTS, SETTINGS,
-  productsByLocation, getMechanism,
-} from './data.js';
-import { swatchImage, swatchColor, productPhoto, hasRealPhoto } from './lib/photos.js';
-import { CATEGORY_ICONS, ArrowRight, ChevDown, XIcon } from './icons.jsx';
+import { useState, useEffect, useRef } from 'react';
+import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
+import { SITE } from './data/site.js';
+import { summarize, describeItem } from './lib/selection.js';
+import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
+import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 
-export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, orders, authLoading }) {
-  // Guests have no saved Orders list — OrdersPage shows them a
+const linkTo = (navigate, path) => (e) => {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
+  e.preventDefault();
+  navigate(path);
+};
+
+export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, authLoading }) {
+  // Guests have no saved Orders list. OrdersPage shows them a
   // "sign in to save your orders" prompt, which is the intended landing
   // spot so they always have a path to save their cart, not just view it.
   const goToMyOrders = () => navigate("orders");
   return (
-    <nav className="nav">
+    <nav className="nav" aria-label="Main">
       <div className="nav-inner">
         <button className="wordmark" onClick={() => navigate("home")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
           <span className="w-loves">Love's</span><span className="w-blinds">Blinds</span>
@@ -29,7 +34,6 @@ export function Nav({ route, navigate, onAdmin, quoteCount, supabaseEnabled, use
         {supabaseEnabled && !authLoading && !user && (
           <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
         )}
-        <button className="nav-admin" onClick={onAdmin}>Admin</button>
       </div>
     </nav>
   );
@@ -42,21 +46,20 @@ export function Footer({ navigate }) {
         <div className="footer-grid">
           <div>
             <div className="footer-wordmark"><em>Love's</em> Blinds</div>
-            <p className="footer-tag">Custom window treatments, measured and installed by a small studio that takes the time to get it right.</p>
+            <p className="footer-tag">Custom window treatments, made to your measurements and shipped to your door.</p>
           </div>
           <div>
             <h4>Studio</h4>
             <ul>
-              <li>512 Glenwyck Court</li>
-              <li>Fuquay-Varina, NC 27526</li>
-              <li>{SETTINGS.phone}</li>
-              <li>{SETTINGS.email}</li>
+              {SITE.address.map(a => <li key={a}>{a}</li>)}
+              <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
+              <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
             </ul>
           </div>
           <div>
             <h4>Hours</h4>
             <ul>
-              <li>{SETTINGS.hours}</li>
+              <li>{SITE.hours}</li>
             </ul>
           </div>
           <div>
@@ -78,6 +81,7 @@ export function Footer({ navigate }) {
   );
 }
 
+// Kept exported: the admin area still imports it.
 export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
   return (
     <div className={`photo-ph ${className}`} style={{ aspectRatio: aspect, ...style }}>
@@ -87,289 +91,178 @@ export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
   );
 }
 
-export function HomePage({ navigate, goToProduct, quoteCount }) {
+// ---- Lineup tiles ----------------------------------------------------------
+
+function LineTile({ line, navigate }) {
+  const path = `/products/${line.slug}`;
+  const photo = showcaseFor(line.slug)[0] || null;
+  return (
+    <a className="line-tile" href={path} onClick={linkTo(navigate, path)}>
+      <div className="line-tile-media">
+        {photo
+          ? <ShowcasePhoto entry={photo} lineName={line.name} sizes="(min-width: 900px) 33vw, 100vw" />
+          : <BrandPanel title={line.name} aspect="4 / 3" />}
+      </div>
+      <div className="line-tile-body">
+        <h3 className="line-tile-name serif">{line.name}</h3>
+        <p className="line-tile-blurb">{line.blurb}</p>
+        <span className="line-tile-cta">Choose fabrics <ArrowRight size={14} /></span>
+      </div>
+    </a>
+  );
+}
+
+function LineupGrid({ lines, navigate }) {
+  return (
+    <div className="line-grid">
+      {lines.map(l => <LineTile key={l.id} line={l} navigate={navigate} />)}
+    </div>
+  );
+}
+
+// ---- Home ------------------------------------------------------------------
+
+const HERO_MS = 6000;
+
+function Hero() {
+  const slides = showcaseFor("hero");
+  const [i, setI] = useState(0);
+  const paused = useRef(false);
+  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (slides.length < 2 || reduce) return undefined;
+    const t = setInterval(() => { if (!paused.current) setI(n => (n + 1) % slides.length); }, HERO_MS);
+    return () => clearInterval(t);
+  }, [slides.length, reduce]);
+
+  return (
+    <section className="hero2" onMouseEnter={() => { paused.current = true; }} onMouseLeave={() => { paused.current = false; }}>
+      {slides.length > 0 && (
+        <div className="hero2-slides" aria-hidden="true">
+          {slides.map((s, n) => (
+            <div key={s.file} className={`hero2-slide${n === i ? " on" : ""}`}>
+              <ShowcasePhoto entry={s} lineName="Love's Blinds" eager={n === 0} sizes="100vw" />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="hero2-overlay" />
+      <div className="hero2-inner">
+        <h1 className="serif">Six ways to <em>dress a window.</em></h1>
+        <p className="hero2-sub">Scroll down to explore our lineup</p>
+      </div>
+    </section>
+  );
+}
+
+const STEPS = [
+  ["Pick a style and fabric", "Choose from six lines and see every fabric as a real swatch."],
+  ["Enter your window sizes", "Our measuring guide walks you through it. You measure, we build to those sizes."],
+  ["Get a written quote", "We review every request and reply with clear pricing within 48 hours."],
+  ["We build it and ship it", "Made to your exact sizes and delivered to your door in two to three weeks."],
+];
+const ANSWERS = [
+  ["Made to Measure", "Every piece is built to your exact window sizes."],
+  ["Hundreds of Fabrics", "Textures and colors across every product line."],
+  ["Honest Guidance", "Straight advice on light, privacy and fit for each room."],
+  ["Shipped Anywhere", "Custom-built and delivered to your door, wherever you are."],
+];
+
+export function HomePage({ navigate }) {
+  return (
+    <div className="page-fade home">
+      <Hero />
+
+      <section className="home-section cream" id="lineup" aria-labelledby="lineup-title">
+        <div className="container">
+          <div className="eyebrow">Our lineup</div>
+          <h2 id="lineup-title" className="serif section-title gold-rule">Choose your style</h2>
+          <LineupGrid lines={activeLines()} navigate={navigate} />
+        </div>
+      </section>
+
+      <section className="home-section cream-2" aria-labelledby="how-title">
+        <div className="container">
+          <div className="eyebrow">How it works</div>
+          <h2 id="how-title" className="serif section-title gold-rule">Four steps from window to doorstep</h2>
+          <ol className="how-steps">
+            {STEPS.map(([t, d], n) => (
+              <li key={t} className="how-step">
+                <span className="how-num serif" aria-hidden="true">{n + 1}</span>
+                <h3 className="serif">{t}</h3>
+                <p>{d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="home-section cream" aria-labelledby="answers-title">
+        <div className="container">
+          <div className="eyebrow">Straight answers</div>
+          <h2 id="answers-title" className="serif section-title gold-rule">No email harvesting. No upsell. Just a quote.</h2>
+          <div className="answers-grid">
+            {ANSWERS.map(([t, d]) => (
+              <div key={t} className="answer">
+                <h3 className="serif">{t}</h3>
+                <p>{d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section closing" aria-labelledby="closing-title">
+        <div className="container closing-inner">
+          <h2 id="closing-title" className="serif section-title gold-rule">Ready to dress your windows?</h2>
+          <p className="closing-text">Choose a fabric online, enter your window sizes, and we'll follow up with a clear, custom quote. Then we build your order to size and ship it to your door.</p>
+          <button className="btn btn-gold" onClick={() => navigate("products")}>Start your order <ArrowRight /></button>
+          <div className="closing-contact">
+            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+            <span aria-hidden="true">·</span>
+            <a href={SITE.phoneHref}>{SITE.phone}</a>
+          </div>
+        </div>
+      </section>
+
+      <Footer navigate={navigate} />
+    </div>
+  );
+}
+
+// ---- Products ----------------------------------------------------------------
+
+export function ProductsPage({ navigate, location, setLocation }) {
+  // The Indoor/Outdoor step only exists while more than one location has active lines.
+  const locationStep = needsLocationStep();
+  const locations = activeLocations();
+  const lines = locationStep ? (location ? activeLinesIn(location) : []) : activeLines();
+
   return (
     <div className="page-fade">
-      <section className="hero">
-        <div className="hero-inner">
-          <div>
-            <h1>Quiet rooms.<br /><em>Beautifully</em> dressed windows.</h1>
-            <p className="hero-tag">Made-to-measure blinds, shades, shutters, and drapes — measured your way: in-home consult with us, or DIY with our step-by-step guide.</p>
-            <div className="hero-ctas">
-              <button className="btn btn-sand" onClick={() => navigate("products")} style={{ background: "var(--sand)", color: "var(--charcoal)" }}>Browse Products <ArrowRight /></button>
+      <section className="products-hero2">
+        <div className="container">
+          <div className="eyebrow">Our lineup</div>
+          <h1 className="serif">Choose your style</h1>
+          <p className="section-sub">Pick a line to see every fabric as a real swatch and build your order.</p>
+          {locationStep && (
+            <div className="location-cards">
+              {locations.map(loc => (
+                <button key={loc} className={`loc-card ${location === loc ? "selected" : ""}`} onClick={() => setLocation(loc)}>
+                  <div className="loc-card-eyebrow">Location</div>
+                  <h3 className="serif">{LOCATION_LABELS[loc]}</h3>
+                  <div className="loc-card-meta"><span><strong>{activeLinesIn(loc).length}</strong> product lines</span></div>
+                </button>
+              ))}
             </div>
-          </div>
-          <div className="hero-aside" style={{ padding: "10px 0px 20px 40px" }}>
-            <div className="hero-aside-eyebrow" style={{ fontSize: "10px" }}>Now booking</div>
-            <div className="hero-aside-line"><span>Free in-home consult</span><span>48hr</span></div>
-            <div className="hero-aside-line"><span>Self-measure guide</span><span>Online</span></div>
-            <div className="hero-aside-line"><span>Custom roller shades</span><span>7–10d</span></div>
-            <div className="hero-aside-line"><span>Plantation shutters</span><span>4–6w</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section className="stats-strip">
-        <div className="stats-inner">
-          <div className="stat"><div className="stat-num">12+</div><div className="stat-label">Product Lines</div></div>
-          <div className="stat"><div className="stat-num">48hr</div><div className="stat-label">Quote Turnaround</div></div>
-          <div className="stat"><div className="stat-num">100%</div><div className="stat-label">Custom Fit</div></div>
-          <div className="stat"><div className="stat-num">5 ★</div><div className="stat-label">Across 200+ Reviews</div></div>
-        </div>
-      </section>
-
-      <section className="section container">
-        <div className="section-eyebrow">How it works</div>
-        <h2 className="section-title">Four unhurried steps from window to finished room.</h2>
-        <div className="steps">
-          <div className="step">
-            <div className="step-num">01</div>
-            <h4 className="serif">Start your order</h4>
-            <p>Tell us your windows. We send a written quote within 48 hours — no email harvesting, no upsell.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">02</div>
-            <h4 className="serif">Measure your way</h4>
-            <p>Book a free in-home consult and we'll measure, or <button className="link-inline" onClick={() => navigate("measure")}>follow our guide</button> and send the numbers yourself.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">03</div>
-            <h4 className="serif">Made to measure</h4>
-            <p>Your treatments are built by trusted mills and finishers. Most are ready within 2–3 weeks.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">04</div>
-            <h4 className="serif">Install &amp; enjoy</h4>
-            <p>We mount and tune the operation — or ship to your door if you'd rather DIY. Either way, we vacuum up after.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="section container" style={{ paddingTop: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 24 }}>
-          <div>
-            <div className="section-eyebrow">Featured</div>
-            <h2 className="section-title">A few studio favourites.</h2>
-          </div>
-          <button className="btn btn-outline" onClick={() => navigate("products")}>See all products <ArrowRight /></button>
-        </div>
-        <div className="featured-grid">
-          {PRODUCTS.filter(p => p.featured).slice(0, 3).map(p =>
-            <article key={p.id}
-                     className="feat-card feat-card-link"
-                     role="link"
-                     tabIndex={0}
-                     onClick={() => goToProduct(p)}
-                     onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToProduct(p); } }}
-                     aria-label={`View ${p.name}`}>
-              <PhotoPH label={`${p.name} · feature image`} sub="grey placeholder · drop hero photo" aspect="4 / 5" />
-              <div className="feat-body">
-                <div className="feat-cat">{p.location} · {p.lead}</div>
-                <div className="feat-name">{p.name}</div>
-                <div className="feat-desc">{p.description}</div>
-                <div className="feat-cta">View product <ArrowRight size={14} /></div>
-              </div>
-            </article>
           )}
         </div>
       </section>
-
-      <Footer navigate={navigate} />
-    </div>
-  );
-}
-
-export function ProductsPage({ navigate, openSlat, setOpenSlat, addToQuote, location, setLocation, quoteCount }) {
-  const products = location ? productsByLocation(location) : [];
-
-  return (
-    <div className="page-fade">
-      <section className="products-hero">
-        <div className="container">
-          <div className="section-eyebrow">Catalog</div>
-          <h1 className="serif">Find the treatment that <em>fits</em> the room.</h1>
-          <p className="section-sub">Start by choosing where the window lives. Then expand any category to configure variant, mechanism, and mount type — the preview updates as you go.</p>
-
-          <div className="location-cards">
-            <button className={`loc-card ${location === "indoor" ? "selected" : ""}`} onClick={() => { setLocation("indoor"); setOpenSlat(null); }}>
-              <div className="loc-card-eyebrow">Step 1 — Location</div>
-              <h3 className="serif">Indoor</h3>
-              <div className="loc-card-desc">Blinds, shades, shutters, and drapery for inside the home — bedroom, living, kitchen, study.</div>
-              <div className="loc-card-meta"><span><strong>8</strong> product lines</span><span>From 7-day lead</span></div>
-              <div className="loc-browse">Browse indoor <ArrowRight size={14} /></div>
-            </button>
-            <button className={`loc-card ${location === "outdoor" ? "selected" : ""}`} onClick={() => { setLocation("outdoor"); setOpenSlat(null); }}>
-              <div className="loc-card-eyebrow">Step 1 — Location</div>
-              <h3 className="serif">Outdoor</h3>
-              <div className="loc-card-desc">Weatherproof shades and screens for porches, patios, decks, and pergolas.</div>
-              <div className="loc-card-meta"><span><strong>2</strong> product lines</span><span>From 5-day lead</span></div>
-              <div className="loc-browse">Browse outdoor <ArrowRight size={14} /></div>
-            </button>
-          </div>
-        </div>
+      <section className="container products-grid-wrap">
+        <LineupGrid lines={lines} navigate={navigate} />
       </section>
-
-      {location &&
-        <section className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8 }}>
-            <div className="section-eyebrow" style={{ marginBottom: 0 }}>Step 2 — Browse {location} catalog</div>
-            <button className="nav-link" onClick={() => { setLocation(null); setOpenSlat(null); }} style={{ fontSize: 12 }}>← Change location</button>
-          </div>
-          <div className="slats">
-            {products.map(p =>
-              <SlatRow key={p.id} product={p}
-                open={openSlat === p.id}
-                onToggle={() => setOpenSlat(openSlat === p.id ? null : p.id)}
-                onAddToQuote={addToQuote} />
-            )}
-          </div>
-        </section>
-      }
-
       <Footer navigate={navigate} />
-    </div>
-  );
-}
-
-function SlatRow({ product, open, onToggle, onAddToQuote }) {
-  const Icon = CATEGORY_ICONS[product.category];
-  const [variant, setVariant] = useState(product.variants[0]);
-  const [mech, setMech] = useState(product.mechanisms[0].id);
-  const [mount, setMount] = useState(product.mounts[0]);
-  const [color, setColor] = useState(product.colors?.[0] || null);
-  const [width, setWidth] = useState("");
-  const [height, setHeight] = useState("");
-  const [windows, setWindows] = useState("1");
-  const [roomLabel, setRoomLabel] = useState("");
-  const [addons, setAddons] = useState({ blackout: false, install: false });
-
-  const mechObj = getMechanism(product, mech);
-  const mountObj = MOUNTS.find(m => m.id === mount);
-  const photoLabel = color ? `${color.name} · ${mechObj?.name} · ${mountObj?.name}` : `${variant} · ${mechObj?.name} · ${mountObj?.name}`;
-  const hasPhoto = hasRealPhoto(product.category, color?.code, mech, mount);
-
-  const handleAdd = () => {
-    const w = parseFloat(width) || null;
-    const h = parseFloat(height) || null;
-    const n = parseInt(windows, 10) || 1;
-    onAddToQuote({ product, variant, mech, mount, color, code: color?.code || null, colorName: color?.name || variant, category: product.category, location: product.location, price: null, width: w, length: h, qty: n, roomLabel: roomLabel.trim(), addons });
-  };
-
-  return (
-    <div className={`slat ${open ? "open" : ""}`} data-product-id={product.id}>
-      <button className="slat-row" onClick={onToggle}>
-        <div className="slat-icon"><Icon /></div>
-        <div className="slat-name">{product.name}</div>
-        <div className="slat-meta">
-          {product.badge && <span className="badge badge-sage">{product.badge}</span>}
-          <span>{product.variants.length} variants</span>
-        </div>
-        <div className="slat-chev"><ChevDown /></div>
-      </button>
-      <div className="slat-body">
-        <div className="slat-body-inner">
-          <div className="slat-body-content">
-            <div className="slat-photo-wrap">
-              {hasPhoto
-                ? <img src={productPhoto(product.category, color?.code, mech, mount)} alt={photoLabel} style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: 4 }} />
-                : <PhotoPH label={photoLabel} sub="no photo for this combination yet" className="empty" aspect="4 / 5" />
-              }
-            </div>
-            <div className="slat-config">
-              <div className="config-group">
-                <div className="label">Variant</div>
-                <div className="config-options">
-                  {product.variants.map(v =>
-                    <button key={v} className={`opt-btn ${variant === v ? "selected" : ""}`} onClick={() => setVariant(v)}>{v}</button>
-                  )}
-                </div>
-              </div>
-              <div className="config-group">
-                <div className="label">Mechanism</div>
-                <div className="config-options">
-                  {product.mechanisms.map(m => (
-                    <button key={m.id} className={`opt-btn ${mech === m.id ? "selected" : ""}`} onClick={() => setMech(m.id)}>
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="config-group">
-                <div className="label">Mount Type</div>
-                <div className="config-options">
-                  {product.mounts.map(mid => {
-                    const m = MOUNTS.find(x => x.id === mid);
-                    return (
-                      <button key={mid} className={`opt-btn ${mount === mid ? "selected" : ""}`} onClick={() => setMount(mid)}>{m.name}</button>
-                    );
-                  })}
-                </div>
-              </div>
-              {product.colors?.length > 0 && (
-                <div className="config-group">
-                  <div className="label">Color{color ? ` · ${color.name}${color.collection ? ` (${color.collection})` : ""}` : ""}</div>
-                  <div className="swatch-grid">
-                    {product.colors.map(c => {
-                      const img = swatchImage(c);
-                      return (
-                        <button key={c.code} className={`swatch-btn${color?.code === c.code ? " selected" : ""}`} title={`${c.name}${c.collection ? ` – ${c.collection}` : ""} (${c.code})`} onClick={() => setColor(c)}>
-                          {img ? <img src={img} alt={c.name} /> : <span style={{ background: swatchColor(c) }} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="config-group">
-                <div className="label">Dimensions <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional — enter now or tell us in the notes)</span></div>
-                <div className="slat-dims">
-                  <div>
-                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}>Width (in)</div>
-                    <input className="input" type="number" value={width} onChange={e => setWidth(e.target.value)} placeholder="36" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}>Height (in)</div>
-                    <input className="input" type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="60" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: "var(--ink-60)", marginBottom: 3 }}># Windows</div>
-                    <input className="input" type="number" value={windows} onChange={e => setWindows(e.target.value)} min="1" placeholder="1" />
-                  </div>
-                </div>
-              </div>
-              <div className="config-group">
-                <div className="label">Room <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></div>
-                <input className="input" type="text" value={roomLabel} onChange={e => setRoomLabel(e.target.value)} placeholder="e.g. Master bedroom" />
-              </div>
-              <div className="config-group">
-                <div className="label">Add-ons</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div className="checkbox-row">
-                    <input type="checkbox" id={`ck-bl-${product.id}`} checked={addons.blackout} onChange={e => setAddons(a => ({ ...a, blackout: e.target.checked }))} />
-                    <label htmlFor={`ck-bl-${product.id}`}>Blackout lining</label>
-                  </div>
-                  <div className="checkbox-row">
-                    <input type="checkbox" id={`ck-in-${product.id}`} checked={addons.install} onChange={e => setAddons(a => ({ ...a, install: e.target.checked }))} />
-                    <label htmlFor={`ck-in-${product.id}`}>Professional installation</label>
-                  </div>
-                </div>
-              </div>
-              <div className="slat-desc">{product.description}</div>
-              <div className="feature-chips">
-                {product.features.map(f => <span key={f} className="chip">{f}</span>)}
-              </div>
-              <div className="config-meta">
-                <div>
-                  <div className="lead">Lead time · {product.lead}</div>
-                </div>
-                <div className="config-actions">
-                  <button className="btn btn-sage btn-sm" onClick={handleAdd}>Add to Order</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -390,7 +283,7 @@ export function OrderSummaryPage({ navigate, quoteItems, removeFromQuote, update
 
         <div className="section-eyebrow" style={{ marginTop: 12 }}>Order Summary</div>
         <h1 className="serif section-title">Your order.</h1>
-        <p className="section-sub">Adjust colors, mechanisms, dimensions, and rooms right here, then continue to send us your contact details.</p>
+        <p className="section-sub">Adjust controls, dimensions, and rooms right here, then continue to send us your contact details.</p>
 
         {quoteItems.length === 0 ? (
           <div className="empty-state">
@@ -425,64 +318,87 @@ export function OrderSummaryPage({ navigate, quoteItems, removeFromQuote, update
   );
 }
 
-function QuoteRow({ item: it, idx, updateItem, removeFromQuote }) {
-  const itemMech = getMechanism(it.product, it.mech);
-  const hasColors = it.product.colors?.length > 0;
+function ItemThumb({ item }) {
+  const [failed, setFailed] = useState(false);
+  const pick = item.selection?.picks?.[0];
+  if (pick?.thumb && !failed) {
+    return <img className="quote-thumb" src={pick.thumb} alt={`${pick.fabric}${pick.colorName ? `, ${pick.colorName}` : ""}, ${pick.code}`} width="72" height="72" loading="lazy" onError={() => setFailed(true)} />;
+  }
+  const Icon = CATEGORY_ICONS[item.product.icon];
+  return <div className="quote-thumb quote-thumb-fallback" role="img" aria-label={item.product.name}>{pick?.code || (Icon ? <Icon /> : item.product.name)}</div>;
+}
 
-  const handleColorChange = (code) => {
-    const color = it.product.colors.find(c => c.code === code) || null;
-    updateItem(idx, { color, code: color?.code ?? null, colorName: color?.name ?? it.variant });
-  };
-  const handleVariantChange = (v) => updateItem(idx, { variant: v, colorName: hasColors ? it.colorName : v });
+function QuoteRow({ item: it, idx, updateItem, removeFromQuote }) {
+  const sum = summarize(it);
+  const mechs = it.product.mechanisms;
+  const mechKnown = mechs.some(m => m.id === it.mech);
+  const mounts = it.product.mounts;
+
   const handleWidthChange = (v) => updateItem(idx, { width: v === "" ? null : parseFloat(v) });
   const handleLengthChange = (v) => updateItem(idx, { length: v === "" ? null : parseFloat(v) });
 
   return (
     <div className="quote-line">
-      <PhotoPH
-        label={it.colorName || it.variant}
-        sub={`${itemMech?.code} · ${it.mount}`}
-        className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
+      <ItemThumb item={it} />
       <div>
-        <div className="quote-line-title">{it.product.name}</div>
+        <div className="quote-line-title">{sum.title}</div>
+        <ul className="quote-line-parts">
+          {sum.parts.map((p, i) => <li key={i}>{p}</li>)}
+        </ul>
         <div className="quote-line-controls">
-          {hasColors ? (
-            <select className="select" value={it.code || ""} onChange={e => handleColorChange(e.target.value)}>
-              {it.product.colors.map(c => (
-                <option key={c.code} value={c.code}>{c.name}{c.collection ? ` · ${c.collection}` : ""}</option>
-              ))}
-            </select>
-          ) : (
-            <select className="select" value={it.variant} onChange={e => handleVariantChange(e.target.value)}>
-              {it.product.variants.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          )}
-          <select className="select" value={it.mech} onChange={e => updateItem(idx, { mech: e.target.value })}>
-            {it.product.mechanisms.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          <select className="select" aria-label="Control" value={it.mech} onChange={e => updateItem(idx, { mech: e.target.value })}>
+            {!mechKnown && <option value={it.mech}>{it.mech}</option>}
+            {mechs.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
-          <select className="select" value={it.mount} onChange={e => updateItem(idx, { mount: e.target.value })}>
-            {it.product.mounts.map(mid => {
+          <select className="select" aria-label="Mount type" value={it.mount} onChange={e => updateItem(idx, { mount: e.target.value })}>
+            {!mounts.includes(it.mount) && <option value={it.mount}>{it.mount}</option>}
+            {mounts.map(mid => {
               const m = MOUNTS.find(x => x.id === mid);
               return <option key={mid} value={mid}>{m.name}</option>;
             })}
           </select>
-          <input className="input" type="number" placeholder="Width (in)" value={it.width ?? ""} onChange={e => handleWidthChange(e.target.value)} />
-          <input className="input" type="number" placeholder="Length (in)" value={it.length ?? ""} onChange={e => handleLengthChange(e.target.value)} />
+          <input className="input" type="number" aria-label="Width (in)" placeholder="Width (in)" value={it.width ?? ""} onChange={e => handleWidthChange(e.target.value)} />
+          <input className="input" type="number" aria-label="Length (in)" placeholder="Length (in)" value={it.length ?? ""} onChange={e => handleLengthChange(e.target.value)} />
           <input
             className="input"
             type="text"
+            aria-label="Room"
             value={it.roomLabel || ""}
             onChange={e => updateItem(idx, { roomLabel: e.target.value })}
             placeholder="Room (optional)" />
         </div>
       </div>
       <div className="qty-stepper">
-        <button onClick={() => updateItem(idx, { qty: Math.max(1, it.qty - 1) })}>−</button>
+        <button aria-label="Decrease quantity" onClick={() => updateItem(idx, { qty: Math.max(1, it.qty - 1) })}>−</button>
         <span>{it.qty}</span>
-        <button onClick={() => updateItem(idx, { qty: it.qty + 1 })}>+</button>
+        <button aria-label="Increase quantity" onClick={() => updateItem(idx, { qty: it.qty + 1 })}>+</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove"><XIcon /></button>
+        <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove" aria-label="Remove item"><XIcon /></button>
+      </div>
+    </div>
+  );
+}
+
+function ReviewLine({ it, showCode }) {
+  const sum = summarize(it);
+  const itemMech = getMechanism(it.product, it.mech);
+  return (
+    <div className="quote-line">
+      <ItemThumb item={it} />
+      <div>
+        <div className="quote-line-title">{sum.title}</div>
+        <ul className="quote-line-parts">
+          {sum.parts.map((p, i) => <li key={i}>{p}</li>)}
+        </ul>
+        <div className="quote-line-meta">
+          {itemMech?.name || it.mech} · {MOUNTS.find(m => m.id === it.mount)?.name || it.mount}
+          {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
+          {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
+        </div>
+      </div>
+      <div className="qty-stepper" style={{ pointerEvents: "none" }}>
+        <button tabIndex={-1}>−</button><span>{it.qty}</span><button tabIndex={-1}>+</button>
       </div>
     </div>
   );
@@ -516,20 +432,26 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
           callTime: review.callTime,
           measureMethod: review.measureMethod,
         },
-        lines: items.map(it => ({
-          code: it.code || null,
-          colorName: it.colorName || it.variant,
-          category: it.category || it.product.category,
-          description: `${it.product.name} · ${it.colorName || it.variant}`,
-          mechId: it.mech,
-          mechName: getMechanism(it.product, it.mech)?.name || it.mech,
-          mountId: it.mount,
-          width: it.width || null,
-          length: it.length || it.height || null,
-          qty: it.qty,
-          location: it.location || it.product.location,
-          roomLabel: it.roomLabel || '',
-        })),
+        lines: items.map(it => {
+          const sum = summarize(it);
+          return {
+            code: sum.codes.length ? sum.codes.join(", ") : (it.code || null),
+            colorName: sum.colorText || it.colorName || it.variant,
+            category: it.category || it.product.id,
+            section: it.selection?.section || null,
+            description: describeItem(it),
+            details: sum.parts,
+            selection: it.selection || null,
+            mechId: it.mech,
+            mechName: getMechanism(it.product, it.mech)?.name || it.mech,
+            mountId: it.mount,
+            width: it.width || null,
+            length: it.length || it.height || null,
+            qty: it.qty,
+            location: it.location || it.product.location,
+            roomLabel: it.roomLabel || '',
+          };
+        }),
         notes: review.notes,
       };
 
@@ -560,7 +482,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
         <section className="quote-page container-narrow">
           <div className="success-banner">
             <h3 className="serif">Order request sent.</h3>
-            <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SETTINGS.phone}.</p>
+            <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SITE.phone}.</p>
           </div>
           <button className="btn btn-outline" style={{ marginTop: 24 }} onClick={() => navigate("home")}>Back to Home</button>
         </section>
@@ -611,26 +533,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
 
           <h4 className="serif" style={{ fontSize: 20, margin: "32px 0 14px" }}>Items ({items.length})</h4>
           <div className="quote-list">
-            {items.map((it, idx) => {
-              const itemMech = getMechanism(it.product, it.mech);
-              return (
-                <div key={idx} className="quote-line">
-                  <PhotoPH label={it.colorName || it.variant} sub={itemMech?.code} className="empty" />
-                  <div>
-                    <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
-                    <div className="quote-line-meta">
-                      {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
-                      {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
-                      {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
-                      {it.code && <span style={{ marginLeft: 8, opacity: 0.5, fontSize: 12 }}>#{it.code}</span>}
-                    </div>
-                  </div>
-                  <div className="qty-stepper" style={{ pointerEvents: "none" }}>
-                    <button>−</button><span>{it.qty}</span><button>+</button>
-                  </div>
-                </div>
-              );
-            })}
+            {items.map((it, idx) => <ReviewLine key={idx} it={it} showCode />)}
           </div>
 
           {submitError && (
@@ -676,28 +579,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
 
         <h4 className="serif" style={{ fontSize: 20, margin: "24px 0 14px" }}>Items ({items.length})</h4>
         <div className="quote-list">
-          {items.map((it, idx) => {
-            const itemMech = getMechanism(it.product, it.mech);
-            return (
-              <div key={idx} className="quote-line">
-                <PhotoPH
-                  label={it.colorName || it.variant}
-                  sub={`${itemMech?.code} · ${it.mount}`}
-                  className={hasRealPhoto(it.product.category, it.color?.code, it.mech, it.mount) ? "" : "empty"} />
-                <div>
-                  <div className="quote-line-title">{it.product.name} · {it.colorName || it.variant}</div>
-                  <div className="quote-line-meta">
-                    {itemMech?.name} · {MOUNTS.find(m => m.id === it.mount)?.name}
-                    {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
-                    {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
-                  </div>
-                </div>
-                <div className="qty-stepper" style={{ pointerEvents: "none" }}>
-                  <button>−</button><span>{it.qty}</span><button>+</button>
-                </div>
-              </div>
-            );
-          })}
+          {items.map((it, idx) => <ReviewLine key={idx} it={it} />)}
         </div>
 
         <div className="quote-form" style={{ marginTop: 32 }}>
@@ -726,7 +608,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
           <div className="full">
             <div className="label">Measurement method</div>
             <div className="config-options">
-              {["I'll measure myself", "Send someone to measure", "Not sure yet"].map(opt => (
+              {["I'll measure myself", "Not sure yet"].map(opt => (
                 <button key={opt} className={`opt-btn${measureMethod === opt ? " selected" : ""}`} onClick={() => setMeasureMethod(opt)}>{opt}</button>
               ))}
             </div>
@@ -899,14 +781,13 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
     <div className="page-fade">
       <section className="measure-hero">
         <div className="container">
-          <div className="section-eyebrow">DIY guide · 10 minutes</div>
+          <div className="section-eyebrow">Measure guide · 10 minutes</div>
           <h1 className="serif">Measure with <em>confidence.</em></h1>
           <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical — older houses rarely come square.</p>
 
           <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
             <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
             <button className="btn btn-outline btn-sm">Download printable worksheet</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate("contact")}>Or book an in-home consult →</button>
           </div>
         </div>
       </section>
@@ -924,8 +805,8 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             </ol>
             <div className="measure-toc-callout">
               <div className="label" style={{ color: "var(--sage-dark)" }}>Need help?</div>
-              <p>If you're unsure about any window — bay, arch, French door, or anything out of plumb — book a free in-home consult and we'll measure for you.</p>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate("contact")}>Book consult <ArrowRight size={14} /></button>
+              <p>Unsure about a window, such as a bay, an arch, a French door or anything out of plumb? Send us a note or call and we will talk it through before you order.</p>
+              <button className="btn btn-outline btn-sm" onClick={() => navigate("contact")}>Contact us <ArrowRight size={14} /></button>
             </div>
           </aside>
 
@@ -979,7 +860,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                 ]).map(([t, d, ph], i) => (
                   <div key={i} className="meas-step">
                     <div className="meas-step-photo">
-                      <PhotoPH label={ph} sub="diagram placeholder" aspect="4 / 3" />
+                      <BrandPanel title={ph} aspect="4 / 3" />
                     </div>
                     <div>
                       <div className="meas-step-num">Step {i + 1}</div>
@@ -1022,9 +903,9 @@ export function ContactPage({ navigate, quoteCount }) {
   return (
     <div className="page-fade">
       <section className="contact-page container-narrow">
-        <div className="section-eyebrow">Visit us</div>
+        <div className="section-eyebrow">Contact</div>
         <h1 className="serif section-title">Drop us a line.</h1>
-        <p className="section-sub">Have a project in mind, or just want to feel some swatches? Come by the studio or send a note.</p>
+        <p className="section-sub">Have a project in mind or a question about a fabric? Send us a note.</p>
 
         <div className="contact-grid">
           <div>
@@ -1039,7 +920,6 @@ export function ContactPage({ navigate, quoteCount }) {
                   <div className="full"><div className="label">What's this about?</div>
                     <div className="config-options">
                       <button className="opt-btn selected">General question</button>
-                      <button className="opt-btn">Book in-home consult</button>
                       <button className="opt-btn">Question about a quote</button>
                       <button className="opt-btn">Trade / wholesale</button>
                     </div>
@@ -1052,10 +932,9 @@ export function ContactPage({ navigate, quoteCount }) {
           </div>
           <aside className="contact-details">
             <div className="contact-detail-row"><div className="label">Studio</div><div className="val">512 Glenwyck Court<br />Fuquay-Varina, NC 27526</div></div>
-            <div className="contact-detail-row"><div className="label">Phone</div><div className="val">{SETTINGS.phone}</div></div>
-            <div className="contact-detail-row"><div className="label">Email</div><div className="val">{SETTINGS.email}</div></div>
-            <div className="contact-detail-row"><div className="label">Hours</div><div className="val">{SETTINGS.hours}</div></div>
-            <div className="contact-detail-row"><div className="label">In-home consults</div><div className="val">Free within 30 miles<br /><span style={{ fontFamily: "var(--sans)", fontSize: 13, color: "var(--ink-60)" }}>Beyond 30mi · $80 flat fee, refunded with order</span></div></div>
+            <div className="contact-detail-row"><div className="label">Phone</div><div className="val">{SITE.phone}</div></div>
+            <div className="contact-detail-row"><div className="label">Email</div><div className="val">{SITE.email}</div></div>
+            <div className="contact-detail-row"><div className="label">Hours</div><div className="val">{SITE.hours}</div></div>
           </aside>
         </div>
       </section>

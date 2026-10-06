@@ -82,12 +82,17 @@ function buildWorkbook(customer, lines, notes) {
 
 // ── HTML snippets ─────────────────────────────────────────────────────────────
 
+const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// description already names the line, section and every pick with its code
+// (for example "Drapery, Dream Curtains · Sunflower Pearl White (ZDS3001-1) · Style A").
 function lineListHtml(lines) {
   return lines.map(l =>
-    `<li>${l.description} — ${l.colorName || l.code || 'no color'}, ` +
-    `qty ${l.qty}` +
-    (l.width ? `, ${l.width}"W × ${l.length}"H` : '') +
-    (l.mechName ? `, ${l.mechName}` : '') +
+    `<li>${esc(l.description)}` +
+    `, qty ${esc(l.qty)}` +
+    (l.width ? `, ${esc(l.width)}"W × ${esc(l.length)}"H` : '') +
+    (l.mechName ? `, ${esc(l.mechName)}` : '') +
+    (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
     `</li>`
   ).join('');
 }

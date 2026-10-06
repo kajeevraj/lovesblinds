@@ -1,4 +1,4 @@
-import { PRODUCTS } from '../data.js';
+import { getLine, resolveLineId } from '../data/lines.js';
 
 export const serializeItem = (item) => ({
   productId: item.product.id,
@@ -6,6 +6,8 @@ export const serializeItem = (item) => ({
   mech:      item.mech,
   mount:     item.mount,
   colorCode: item.code ?? null,
+  colorName: item.colorName ?? null,
+  selection: item.selection ?? null,
   width:     item.width ?? null,
   length:    item.length ?? null,
   qty:       item.qty ?? 1,
@@ -13,19 +15,20 @@ export const serializeItem = (item) => ({
   addons:    item.addons ?? { blackout: false, install: false },
 });
 
+// Saved orders may use older line ids (shangrila, drapes) or have no `selection`.
+// Archived lines still resolve here so old orders keep displaying.
 export const reconstructItem = (stored) => {
-  const product = PRODUCTS.find(p => p.id === stored.productId);
+  const product = getLine(resolveLineId(stored.productId));
   if (!product) return null;
-  const color = product.colors?.find(c => c.code === stored.colorCode) ?? null;
   return {
     product,
     variant:   stored.variant,
     mech:      stored.mech,
     mount:     stored.mount,
-    color,
+    selection: stored.selection ?? null,
     code:      stored.colorCode ?? null,
-    colorName: color?.name ?? stored.variant,
-    category:  product.category,
+    colorName: stored.colorName ?? stored.variant,
+    category:  product.id,
     location:  product.location,
     price:     null,
     width:     stored.width ?? null,

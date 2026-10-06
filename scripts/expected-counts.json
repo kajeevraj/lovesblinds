@@ -1,0 +1,19 @@
+{
+  "fabrics": 89,
+  "swatches": 437,
+  "byLine": {
+    "roller": 133,
+    "zebra": 88,
+    "shangri-la": 21,
+    "cellular": 33,
+    "dream-curtains": 39,
+    "drapery": 123
+  },
+  "byLineFamily": {
+    "roller/screen-view": 54,
+    "roller/solar": 35,
+    "roller/blackout": 44,
+    "cellular/blackout": 16,
+    "cellular/light-filtering": 17
+  }
+}

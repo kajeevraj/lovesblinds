@@ -1,20 +1,33 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
-import {
-  AdminGate, AdminShell, AdminDashboard, AdminProducts,
-  AdminPricing, AdminMechanisms, AdminSuppliers, AdminInbox, AdminSettings,
-} from './admin.jsx';
+import { resolvePath, routeFor, pathFor } from './lib/router.js';
+
+// Code-split: the line page pulls in the swatch data, and the admin area is
+// reachable only by typing /admin (it is not linked from any public page).
+const LinePage = lazy(() => import('./linepage.jsx'));
+const AdminApp = lazy(() => import('./AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 
 export default function App() {
-  const [mode, setMode]           = useState("customer");
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const [route, setRoute]         = useState("home");
-  const [adminPage, setAdminPage] = useState("dashboard");
-  const [openSlat, setOpenSlat]   = useState(null);
+  // Real paths: the URL is the source of truth, redirects are applied before first render.
+  const [path, setPath] = useState(() => {
+    const r = resolvePath(window.location.pathname);
+    if (r.redirect) window.history.replaceState({}, '', r.redirect + window.location.search);
+    return r.redirect || window.location.pathname;
+  });
+  useEffect(() => {
+    const onPop = () => {
+      const r = resolvePath(window.location.pathname);
+      if (r.redirect) window.history.replaceState({}, '', r.redirect);
+      setPath(r.redirect || window.location.pathname);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const { route, slug } = routeFor(path);
   const [productLocation, setProductLocation] = useState(null);
   const [quote, setQuote]         = useState(() => {
     // On page load (which happens after OAuth redirect), restore guest items from localStorage.
@@ -113,25 +126,12 @@ export default function App() {
     signInWithGoogle();
   };
 
+  // Accepts a route name ("products"), or a path ("/products/roller").
   const navigate = (r) => {
-    setRoute(r);
+    const target = r.startsWith('/') ? r : pathFor(r);
+    if (target !== window.location.pathname) window.history.pushState({}, '', target);
+    setPath(target);
     window.scrollTo({ top: 0, behavior: "instant" });
-  };
-
-  const goToProduct = (product) => {
-    setProductLocation(product.location);
-    setOpenSlat(product.id);
-    setRoute("products");
-    window.scrollTo({ top: 0, behavior: "instant" });
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const el = document.querySelector(`[data-product-id="${product.id}"]`);
-        if (el) {
-          const top = el.getBoundingClientRect().top + window.scrollY - 96;
-          window.scrollTo({ top, behavior: "smooth" });
-        }
-      }, 60);
-    });
   };
 
   const openOrder = (orderId) => {
@@ -139,21 +139,11 @@ export default function App() {
     navigate("quote");
   };
 
-  const goAdmin = () => { setMode("admin"); window.scrollTo({ top: 0, behavior: "instant" }); };
-  const exitAdmin = () => { setMode("customer"); navigate("home"); };
-
-  if (mode === "admin") {
-    if (!adminUnlocked) return <AdminGate onUnlock={() => setAdminUnlocked(true)} />;
+  if (route === "admin") {
     return (
-      <AdminShell page={adminPage} setPage={setAdminPage} onExit={exitAdmin}>
-        {adminPage === "dashboard"  && <AdminDashboard />}
-        {adminPage === "products"   && <AdminProducts />}
-        {adminPage === "pricing"    && <AdminPricing />}
-        {adminPage === "mechanisms" && <AdminMechanisms />}
-        {adminPage === "suppliers"  && <AdminSuppliers />}
-        {adminPage === "inbox"      && <AdminInbox />}
-        {adminPage === "settings"   && <AdminSettings />}
-      </AdminShell>
+      <Suspense fallback={null}>
+        <AdminApp onExit={() => navigate("home")} />
+      </Suspense>
     );
   }
 
@@ -162,7 +152,7 @@ export default function App() {
 
   return (
     <div>
-      <Nav route={route} navigate={navigate} onAdmin={goAdmin} quoteCount={q} {...authProps} />
+      <Nav route={route === 'line' ? 'products' : route} navigate={navigate} quoteCount={q} {...authProps} />
       {snackbar && (
         <div className="snackbar">
           <span>{snackbar.msg}</span>
@@ -173,8 +163,13 @@ export default function App() {
           )}
         </div>
       )}
-      {route === "home"     && <HomePage navigate={navigate} goToProduct={goToProduct} quoteCount={q} />}
-      {route === "products" && <ProductsPage navigate={navigate} openSlat={openSlat} setOpenSlat={setOpenSlat} addToQuote={addToQuote} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
+      {route === "home"     && <HomePage navigate={navigate} quoteCount={q} />}
+      {route === "products" && <ProductsPage navigate={navigate} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
+      {route === "line"     && (
+        <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
+          <LinePage key={slug} slug={slug} navigate={navigate} addToQuote={addToQuote} />
+        </Suspense>
+      )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {route === "quote"    && <OrderSummaryPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrder={activeOrder} user={user} />}
       {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} />}
