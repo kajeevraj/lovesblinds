@@ -58,13 +58,14 @@ const keySpecs = (f) => {
 // Step 1 fabric, step 2 swatch grid, step 3 large preview.
 // `showColorName` is false for collections (Roman, Drapery curtains): name + code only.
 // ---------------------------------------------------------------------------
-function PickerBlock({ heading, fabrics, role, showColorName = true, onChange, initial = null }) {
+function PickerBlock({ heading, fabrics, role, family = null, showColorName = true, onChange, initial = null }) {
   const [fabricId, setFabricId] = useState(initial?.fabricId || (fabrics.length === 1 ? fabrics[0].id : null));
   const [swatchId, setSwatchId] = useState(initial?.swatchId || null);
   const [styleKey, setStyleKey] = useState(initial?.style || null);
 
   const fabric = fabrics.find(f => f.id === fabricId) || null;
-  const swatches = fabric ? swatchesForFabric(fabric.id) : [];
+  // Cellular keeps one fabric for both families; each swatch carries its own family.
+  const swatches = fabric ? swatchesForFabric(fabric.id).filter(sw => !family || sw.family === family) : [];
   const swatch = swatchId ? getSwatch(swatchId) : null;
   const styles = swatch?.styles || [];
   const styleObj = styles.find(s => s.style === styleKey) || null;
@@ -362,12 +363,12 @@ function Configurator({ line, addToQuote }) {
               <Choice label="Light filtering or blackout" value={c.cellFamily}
                 options={line.families.map(f => ({ id: f, label: FAMILY_LABELS[f] }))}
                 onChange={(f) => set({ cellFamily: f, pick: null })} />
-              <PickerBlock key={c.cellFamily} fabrics={fabricsFor("cellular", c.cellFamily)} onChange={(p) => set({ pick: p })} />
+              <PickerBlock key={c.cellFamily} family={c.cellFamily} fabrics={fabricsFor("cellular")} onChange={(p) => set({ pick: p })} />
             </>
           ) : (
             <>
-              <PickerBlock key="day" heading="Day color (light-filtering)" role="Day (light-filtering)" fabrics={fabricsFor("cellular", "light-filtering")} onChange={(p) => set({ day: p })} />
-              <PickerBlock key="night" heading="Night color (blackout)" role="Night (blackout)" fabrics={fabricsFor("cellular", "blackout")} onChange={(p) => set({ night: p })} />
+              <PickerBlock key="day" heading="Day color (light-filtering)" role="Day (light-filtering)" family="light-filtering" fabrics={fabricsFor("cellular")} onChange={(p) => set({ day: p })} />
+              <PickerBlock key="night" heading="Night color (blackout)" role="Night (blackout)" family="blackout" fabrics={fabricsFor("cellular")} onChange={(p) => set({ night: p })} />
             </>
           )}
         </>

@@ -34,7 +34,8 @@ export const SECTION_LABELS = { curtains: "Curtains", "dream-curtains": "Dream C
 const label = (list, id) => list.find(x => x.id === id)?.label || id;
 
 export const pickText = (p) => {
-  const name = p.colorName ? `${p.fabric} ${p.colorName}` : p.fabric;
+  // Cellular has a single fabric, so its name adds nothing next to the color.
+  const name = p.line === "cellular" && p.colorName ? p.colorName : p.colorName ? `${p.fabric} ${p.colorName}` : p.fabric;
   return `${name} (${p.code})`;
 };
 

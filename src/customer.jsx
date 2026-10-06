@@ -584,11 +584,11 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
 
         <div className="quote-form" style={{ marginTop: 32 }}>
           <div>
-            <div className="label">Name{errors.name && <span className="field-error"> — {errors.name}</span>}</div>
+            <div className="label">Name{errors.name && <span className="field-error">: {errors.name}</span>}</div>
             <input className={`input${errors.name ? " input-error" : ""}`} placeholder="Full name" value={name} onChange={e => { setName(e.target.value); setErrors(v => ({ ...v, name: "" })); }} />
           </div>
           <div>
-            <div className="label">Email{errors.email && <span className="field-error"> — {errors.email}</span>}</div>
+            <div className="label">Email{errors.email && <span className="field-error">: {errors.email}</span>}</div>
             <input className={`input${errors.email ? " input-error" : ""}`} type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); setErrors(v => ({ ...v, email: "" })); }} />
           </div>
           <div>
@@ -614,7 +614,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
             </div>
           </div>
           <div className="full">
-            <div className="label">Notes — rooms, timing, anything we should know</div>
+            <div className="label">Notes: rooms, timing, anything we should know</div>
             <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
           <div className="full">
@@ -783,7 +783,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
         <div className="container">
           <div className="section-eyebrow">Measure guide · 10 minutes</div>
           <h1 className="serif">Measure with <em>confidence.</em></h1>
-          <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical — older houses rarely come square.</p>
+          <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
 
           <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
             <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
@@ -815,7 +815,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <h2 className="serif">1 · What you'll need</h2>
               <div className="measure-tools">
                 {[
-                  ["Steel tape", "At least 16 ft. Avoid cloth tapes — they stretch."],
+                  ["Steel tape", "At least 16 ft. Avoid cloth tapes, they stretch."],
                   ["Pencil & paper", "Or download our worksheet (one row per window)."],
                   ["Step stool", "For tall windows. Don't measure on tiptoe."],
                   ["A second pair of eyes", "Optional but helpful for double-checking."],
@@ -830,7 +830,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
             <div id="choose" className="measure-block">
               <h2 className="serif">2 · Choose inside or outside mount</h2>
-              <p>Most windows accept either. <strong>Inside mount</strong> sits inside the window frame for a clean, recessed look — but needs at least 2 inches of depth. <strong>Outside mount</strong> covers the frame and trim — better for light control and for shallow frames.</p>
+              <p>Most windows accept either. <strong>Inside mount</strong> sits inside the window frame for a clean, recessed look, but needs at least 2 inches of depth. <strong>Outside mount</strong> covers the frame and trim, better for light control and for shallow frames.</p>
 
               <div className="mount-toggle">
                 <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
@@ -848,15 +848,15 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <h2 className="serif">3 · {mountType === "inside" ? "Inside mount, step by step" : "Outside mount, step by step"}</h2>
               <div className="measure-steps">
                 {(mountType === "inside" ? [
-                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement — that's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
+                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement, that's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
                   ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
                   ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
-                  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills — anything that sticks into the frame.", "Obstructions"],
+                  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
                 ] : [
                   ["Decide overlap", "We recommend at least 2 inches of overlap on each side and 3 inches above the frame. More overlap = better light blocking.", "Wall area to cover"],
-                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once — outside-mount widths don't vary.", "Total width incl. overlap"],
-                  ["Measure final height", "From your chosen top point down to where you want the shade to end — either the sill, just past it, or all the way to the floor.", "Total height"],
-                  ["Check for clearance", "Make sure there's wall space above and to the sides for mounting brackets — usually 1.5\" each direction.", "Bracket clearance"],
+                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once, outside-mount widths don't vary.", "Total width incl. overlap"],
+                  ["Measure final height", "From your chosen top point down to where you want the shade to end, either the sill, just past it, or all the way to the floor.", "Total height"],
+                  ["Check for clearance", "Make sure there's wall space above and to the sides for mounting brackets, usually 1.5\" each direction.", "Bracket clearance"],
                 ]).map(([t, d, ph], i) => (
                   <div key={i} className="meas-step">
                     <div className="meas-step-photo">
@@ -875,11 +875,11 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             <div id="tips" className="measure-block">
               <h2 className="serif">4 · Tips &amp; tolerances</h2>
               <ul className="measure-tips">
-                <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine — just be consistent.</li>
+                <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
                 <li><strong>Don't make any deductions.</strong> Send us the raw window numbers. We apply manufacturer deductions in the workshop.</li>
                 <li><strong>Measure every window.</strong> Even if they look identical. Older houses rarely come square.</li>
                 <li><strong>Photo your worksheet.</strong> Attach it when you submit your quote and we'll cross-check before we cut.</li>
-                <li><strong>Out of plumb?</strong> If a window's left and right heights differ by more than 1/4 inch, flag it in notes — we'll discuss options.</li>
+                <li><strong>Out of plumb?</strong> If a window's left and right heights differ by more than 1/4 inch, flag it in notes, we'll discuss options.</li>
               </ul>
             </div>
 
