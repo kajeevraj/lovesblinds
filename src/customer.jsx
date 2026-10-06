@@ -49,7 +49,7 @@ export function Footer({ navigate }) {
             <p className="footer-tag">Custom window treatments, made to your measurements and shipped to your door.</p>
           </div>
           <div>
-            <h4>Studio</h4>
+            <h3>Studio</h3>
             <ul>
               {SITE.address.map(a => <li key={a}>{a}</li>)}
               <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
@@ -57,13 +57,13 @@ export function Footer({ navigate }) {
             </ul>
           </div>
           <div>
-            <h4>Hours</h4>
+            <h3>Hours</h3>
             <ul>
               <li>{SITE.hours}</li>
             </ul>
           </div>
           <div>
-            <h4>Browse</h4>
+            <h3>Browse</h3>
             <ul>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("products")}>All Products</button></li>
               <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("measure")}>Measurement Guide</button></li>

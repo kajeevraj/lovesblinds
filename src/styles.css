@@ -81,7 +81,7 @@ a { color: inherit; }
 }
 .input:focus, .textarea:focus, .select:focus { border-color: var(--sage); }
 .textarea { min-height: 90px; resize: vertical; font-family: var(--sans); }
-.label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 6px; font-weight: 500; }
+.label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(44,44,42,0.78); margin-bottom: 6px; font-weight: 500; }
 
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -291,7 +291,7 @@ a { color: inherit; }
   max-width: 1280px; margin: 0 auto; padding: 0 32px;
   display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 48px;
 }
-.footer h4 { font-family: var(--sans); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--warm-white); margin-bottom: 18px; font-weight: 500; }
+.footer h3, .footer h4 { font-family: var(--sans); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--warm-white); margin-bottom: 18px; font-weight: 500; }
 .footer ul { list-style: none; padding: 0; margin: 0; }
 .footer li { padding: 5px 0; font-size: 13px; }
 .footer-wordmark { font-family: var(--serif); font-size: 32px; color: var(--warm-white); margin-bottom: 12px; }
@@ -1174,8 +1174,8 @@ a { color: inherit; }
 .configurator { padding: 40px 0 32px; }
 .configurator .section-title { margin-bottom: 28px; }
 .config-group { margin-bottom: 26px; }
-.label-note { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.8; }
-.field-label { display: block; font-size: 11px; color: var(--ink-60); margin-bottom: 3px; }
+.label-note { text-transform: none; letter-spacing: 0; font-weight: 400; color: rgba(34,31,26,0.75); }
+.field-label { display: block; font-size: 11px; color: rgba(34,31,26,0.75); margin-bottom: 3px; }
 .choice-note { margin-top: 10px; font-size: 13px; line-height: 1.55; color: rgba(34,31,26,0.75); max-width: 640px; }
 .section-switch { display: inline-flex; border: 1px solid var(--hairline); border-radius: 999px; padding: 4px; margin-bottom: 30px; background: #fff; }
 .section-tab { border: none; background: none; padding: 10px 22px; border-radius: 999px; font-family: var(--label); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; color: var(--ink); }

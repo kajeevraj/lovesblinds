@@ -163,6 +163,7 @@ export default function App() {
           )}
         </div>
       )}
+      <main id="main">
       {route === "home"     && <HomePage navigate={navigate} quoteCount={q} />}
       {route === "products" && <ProductsPage navigate={navigate} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "line"     && (
@@ -175,6 +176,7 @@ export default function App() {
       {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} />}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
+      </main>
     </div>
   );
 }
