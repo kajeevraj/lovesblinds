@@ -4,6 +4,7 @@ import { SITE } from './data/site.js';
 import { summarize, describeItem } from './lib/selection.js';
 import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
+import { ExplainerImg } from './components/ExplainerImg.jsx';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -308,7 +309,7 @@ export function OrderSummaryPage({ navigate, quoteItems, removeFromQuote, update
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
           <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
-            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips and a printable worksheet.
+            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips.
           </div>
           <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
         </div>
@@ -787,7 +788,6 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
           <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
             <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
-            <button className="btn btn-outline btn-sm">Download printable worksheet</button>
           </div>
         </div>
       </section>
@@ -816,7 +816,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <div className="measure-tools">
                 {[
                   ["Steel tape", "At least 16 ft. Avoid cloth tapes, they stretch."],
-                  ["Pencil & paper", "Or download our worksheet (one row per window)."],
+                  ["Pencil & paper", "Or your phone's notes app. One line per window."],
                   ["Step stool", "For tall windows. Don't measure on tiptoe."],
                   ["A second pair of eyes", "Optional but helpful for double-checking."],
                 ].map(([t, d]) => (
@@ -828,9 +828,25 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               </div>
             </div>
 
+            <figure className="measure-figure" style={{ margin: "0 0 28px" }}>
+              <ExplainerImg name="measure/window-types" alt="Three window types: a sliding window, a French door and a casement window." />
+              <figcaption>Measure every window, whatever its type.</figcaption>
+            </figure>
+
             <div id="choose" className="measure-block">
               <h2 className="serif">2 · Choose inside or outside mount</h2>
               <p>Most windows accept either. <strong>Inside mount</strong> sits inside the window frame for a clean, recessed look, but needs at least 2 inches of depth. <strong>Outside mount</strong> covers the frame and trim, better for light control and for shallow frames.</p>
+
+              <div className="measure-figures">
+                <figure className="measure-figure">
+                  <ExplainerImg name="measure/roman-measure-diagram" alt="Window diagram for shades. OM(W) and OM(H) are the outside mount width and height, IM(W) and IM(H) the inside mount width and height." eager />
+                  <figcaption>Shades. OM = outside mount, IM = inside mount, W = width, H = height.</figcaption>
+                </figure>
+                <figure className="measure-figure">
+                  <ExplainerImg name="measure/drapery-measure-diagram" alt="Window diagram for drapery showing the outside mount width and height and the drop to the floor." />
+                  <figcaption>Drapery. OM = outside mount, W = width, H = height, with the drop to the floor.</figcaption>
+                </figure>
+              </div>
 
               <div className="mount-toggle">
                 <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
@@ -848,20 +864,17 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <h2 className="serif">3 · {mountType === "inside" ? "Inside mount, step by step" : "Outside mount, step by step"}</h2>
               <div className="measure-steps">
                 {(mountType === "inside" ? [
-                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement, that's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
+                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
                   ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
                   ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
                   ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
                 ] : [
                   ["Decide overlap", "We recommend at least 2 inches of overlap on each side and 3 inches above the frame. More overlap = better light blocking.", "Wall area to cover"],
-                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once, outside-mount widths don't vary.", "Total width incl. overlap"],
+                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once. Outside-mount widths don't vary.", "Total width incl. overlap"],
                   ["Measure final height", "From your chosen top point down to where you want the shade to end, either the sill, just past it, or all the way to the floor.", "Total height"],
                   ["Check for clearance", "Make sure there's wall space above and to the sides for mounting brackets, usually 1.5\" each direction.", "Bracket clearance"],
-                ]).map(([t, d, ph], i) => (
+                ]).map(([t, d], i) => (
                   <div key={i} className="meas-step">
-                    <div className="meas-step-photo">
-                      <BrandPanel title={ph} aspect="4 / 3" />
-                    </div>
                     <div>
                       <div className="meas-step-num">Step {i + 1}</div>
                       <h3 className="serif" style={{ fontSize: 22, marginBottom: 6 }}>{t}</h3>
@@ -876,9 +889,9 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <h2 className="serif">4 · Tips &amp; tolerances</h2>
               <ul className="measure-tips">
                 <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
-                <li><strong>Don't make any deductions.</strong> Send us the raw window numbers. We apply manufacturer deductions in the workshop.</li>
+                <li><strong>Don't make any deductions.</strong> Send us the raw window numbers.</li>
                 <li><strong>Measure every window.</strong> Even if they look identical. Older houses rarely come square.</li>
-                <li><strong>Photo your worksheet.</strong> Attach it when you submit your quote and we'll cross-check before we cut.</li>
+                <li><strong>Write every window down as you go.</strong> You'll enter each width and height with your order.</li>
                 <li><strong>Out of plumb?</strong> If a window's left and right heights differ by more than 1/4 inch, flag it in notes, we'll discuss options.</li>
               </ul>
             </div>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Crop fabric swatches out of the supplier catalog page-images and (critically)
+Crop fabric swatches out of the source catalog page-images and (critically)
 build a CONTACT SHEET so a human can confirm each crop is labeled with the
 right code before anything goes live.
 
@@ -12,7 +12,7 @@ text order alone will mislabel colors. So this script does the mechanical part
 USAGE
   1. Put the unzipped catalog page-images somewhere, e.g. catalogs/<Name>/<n>.jpeg
   2. Edit TILE_SLOTS below if a catalog's grid differs (they're mostly the same).
-  3. python scripts/crop_swatches.py catalogs/Zebra_Blinds zebra
+  3. python scripts/crop_swatches.py catalogs/<Line> <category>
   4. Open the generated _contact_sheet.html, confirm/rename, then move the
      approved crops into public/swatches/<category>/<CODE>.jpg
 """

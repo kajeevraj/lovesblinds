@@ -1,6 +1,9 @@
 // The one data module for swatches. Everything keys by line + family + fabric + code,
 // never by fabric name alone (names repeat across Roller families).
 import { mergeCatalogs, orderCatalogs } from './mergeSwatches.js';
+import COLOR_FAMILIES from './colorFamilies.json';
+import { COLOR_FAMILY_LIST } from './colorFamilyList.js';
+import COLOR_OVERRIDES from './colorFamilyOverrides.json';
 
 const files = import.meta.glob('./swatches*.json', { eager: true, import: 'default' });
 const { fabrics, swatches } = mergeCatalogs(
@@ -52,13 +55,62 @@ const SPEC_LABELS = [
   ['thickness', 'Thickness'], ['use', 'Use'], ['care', 'Care'],
 ];
 
-// Drapery composition strings carry a leading "GRADE" label that is internal pricing data, so they are not shown.
+// Grade (A to E) is stored in its own field and is never shown to customers.
 export function specRows(fabric) {
   const sp = fabric?.specs || {};
   return SPEC_LABELS
-    .filter(([k]) => has(sp[k]) && !(k === 'composition' && /^GRADE\b/i.test(sp[k])))
+    .filter(([k]) => has(sp[k]))
     .map(([k, label]) => [label, k === 'openness' ? `${sp[k]} open` : sp[k]]);
 }
 
 export const swatchLabel = (s) =>
   [s.fabric, s.colorName, s.code].filter(has).join(' · ');
+
+// ---- Filtering facets: color family, light control, material -----------------
+
+export const COLOR_FAMILY_ORDER = COLOR_FAMILY_LIST;
+
+// Manual overrides (colorFamilyOverrides.json) win over the script result (colorFamilies.json).
+export const colorFamilyOf = (s) => COLOR_OVERRIDES[s.id] || COLOR_FAMILIES[s.id] || 'Pattern/Multi';
+
+// Light control: Screen View by openness (0% most private), everything else by opacity.
+const OPACITY_ORDER = ['Blackout', 'Semi-blackout', 'Translucent', 'Semi-transparent', 'Visual contact outside'];
+export function lightControlOf(s, fabric) {
+  const sp = fabric?.specs || {};
+  if (s.line === 'roller' && s.family === 'screen-view' && has(sp.openness)) {
+    return { label: `${sp.openness} open`, order: parseFloat(sp.openness) };
+  }
+  if (has(sp.opacity)) {
+    const i = OPACITY_ORDER.indexOf(sp.opacity);
+    return { label: sp.opacity, order: i === -1 ? OPACITY_ORDER.length : i };
+  }
+  return null;
+}
+
+// Material: from composition (the swatch's own, else the fabric's).
+export function materialOf(s, fabric) {
+  const comp = s.specs?.composition ?? fabric?.specs?.composition;
+  if (!has(comp)) return null;
+  if (/pvc/i.test(comp)) return s.line === 'roller' && s.family === 'screen-view' ? 'Screen mesh (PVC)' : 'Polyester/PVC blend';
+  if (/linen/i.test(comp)) return 'Linen blend';
+  if (/viscose/i.test(comp)) return 'Viscose blend';
+  if (/wool/i.test(comp)) return 'Wool blend';
+  if (/acrylic/i.test(comp)) return 'Acrylic blend';
+  if (/^\s*100%\s*polyester/i.test(comp)) return 'Polyester';
+  return 'Polyester blend';
+}
+
+// One searchable entry per swatch, with its facet values resolved once.
+export function entriesFor(fabricList, family = null) {
+  const out = [];
+  for (const f of fabricList) {
+    for (const s of swatchesForFabric(f.id)) {
+      if (family && s.family !== family) continue;
+      out.push({ swatch: s, fabric: f, color: colorFamilyOf(s), light: lightControlOf(s, f), material: materialOf(s, f) });
+    }
+  }
+  return out;
+}
+
+// Small grid tile for a swatch (built by scripts/build_swatch_tiles.js); the original image is the fallback.
+export const tileSrc = (s) => s.image.replace('/images/swatches/', '/images/swatches-opt/').replace(/\.jpe?g$/i, '.webp');

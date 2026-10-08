@@ -5,6 +5,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
 import { mergeCatalogs, orderCatalogs } from '../src/data/mergeSwatches.js';
+import { COLOR_FAMILY_LIST } from '../src/data/colorFamilyList.js';
 
 const DATA_DIR = 'src/data';
 const IMG_ROOT = 'public/images/swatches';
@@ -30,6 +31,10 @@ const { fabrics, swatches, skipped } = mergeCatalogs(catalogs);
 for (const s of skipped) warnings.push(`${s.kind} id "${s.id}" in ${s.from} already exists; kept the earlier record`);
 
 const fabricIds = new Set(fabrics.map(f => f.id));
+for (const f of fabrics) {
+  const comp = f.specs?.composition;
+  if (typeof comp === 'string' && /^\s*GRADE\b/i.test(comp)) fail(`fabric ${f.id}: composition starts with "GRADE"`);
+}
 const referenced = new Set();
 const ref = (p, who) => {
   if (!p) { fail(`${who}: missing image path`); return; }
@@ -39,6 +44,10 @@ const ref = (p, who) => {
   if (!existsSync(file)) fail(`${who}: file missing ${p}`);
 };
 for (const s of swatches) {
+  // Grade is its own field; the label must never leak into the composition text.
+  const comp = s.specs?.composition;
+  if (typeof comp === 'string' && /^\s*GRADE\b/i.test(comp)) fail(`swatch ${s.id}: composition starts with "GRADE" (grade belongs in the grade field)`);
+  if (s.line === 'drapery' && !/^[A-E]$/.test(s.grade || '')) fail(`swatch ${s.id}: drapery swatch needs grade A to E`);
   if (!fabricIds.has(s.fabricId)) fail(`swatch ${s.id}: no fabric with id "${s.fabricId}"`);
   ref(s.image, `swatch ${s.id} image`);
   ref(s.thumb, `swatch ${s.id} thumb`);
@@ -68,6 +77,22 @@ for (const [k, want] of Object.entries(expected.byLineFamily)) {
 }
 const known = new Set(Object.keys(expected.byLine));
 for (const s of swatches) if (!known.has(s.line)) { fail(`swatch ${s.id}: line "${s.line}" has no expected count`); break; }
+
+// Color families: every swatch needs one (script result, or an override that wins over it).
+const FAMILIES = COLOR_FAMILY_LIST;
+const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : fallback);
+const autoFam = readJson('src/data/colorFamilies.json', {});
+const overFam = readJson('src/data/colorFamilyOverrides.json', {});
+const ids = new Set(swatches.map(s => s.id));
+for (const s of swatches) {
+  const f = overFam[s.id] || autoFam[s.id];
+  if (!f) fail(`swatch ${s.id}: no color family (run npm run color-families)`);
+  else if (!FAMILIES.includes(f)) fail(`swatch ${s.id}: unknown color family "${f}"`);
+}
+for (const [id, f] of Object.entries(overFam)) {
+  if (!ids.has(id)) fail(`colorFamilyOverrides.json: unknown swatch id "${id}"`);
+  if (!FAMILIES.includes(f)) fail(`colorFamilyOverrides.json: "${id}" has unknown family "${f}"`);
+}
 
 warnings.forEach(w => console.warn('warn:', w));
 if (errors.length) {

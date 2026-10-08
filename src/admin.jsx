@@ -95,10 +95,10 @@ export function AdminDashboard() {
           {[
             ["09:42", "Quote Q-2034 submitted by Sarah Whitfield · DIY measured", "$1,840"],
             ["yest.", "Quote Q-2033 marked In Review", "$2,210"],
-            ["yest.", "Quote Q-2032 confirmed → ordered with Hunter Mill", "$8,640"],
+            ["yest.", "Quote Q-2032 confirmed → ordered with Supplier A", "$8,640"],
             ["May 6", "Pricing updated · Roller Shades base $9.50/sqft", "—"],
             ["May 6", "New configuration photos uploaded · Cellular Blackout", "+4 photos"],
-            ["May 5", "Quote Q-2030 confirmed → ordered with Pacific Shade · Express shipping", "$3,120"],
+            ["May 5", "Quote Q-2030 confirmed → ordered with Supplier D · Express shipping", "$3,120"],
           ].map((row, i) => (
             <div className="activity-row" key={i}>
               <span className="activity-time">{row[0]}</span>

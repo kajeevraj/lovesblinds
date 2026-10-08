@@ -1,4 +1,4 @@
-// AUTO-GENERATED from supplier catalogs. UNVERIFIED image<->code mapping.
+// AUTO-GENERATED from source catalogs. UNVERIFIED image<->code mapping.
 // Each color: { code, name, collection, hex, swatch, source, verified }
 //  - hex      : name-derived fallback chip (safe to show now)
 //  - swatch   : path to real fabric crop (may not exist yet -> UI falls back to hex)

@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/build_photo_manifest.js && node scripts/build_showcase_manifest.js && node scripts/validate-catalog.js",
+    "prebuild": "node scripts/build_photo_manifest.js && node scripts/build_showcase_manifest.js && node scripts/build_explainers.js && node scripts/build_swatch_tiles.js && node scripts/build_color_families.js && node scripts/validate-catalog.js",
     "build": "vite build",
     "preview": "vite preview",
-    "validate-catalog": "node scripts/validate-catalog.js"
+    "validate-catalog": "node scripts/validate-catalog.js",
+    "color-families": "node scripts/build_color_families.js",
+    "color-report": "node scripts/color_report.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

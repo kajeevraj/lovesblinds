@@ -1,171 +1,32 @@
-import { useState, useMemo } from 'react';
-import { getActiveLine, getMechanism } from './data/lines.js';
-import { MOUNTS } from './data/lines.js';
-import {
-  fabricsFor, swatchesForFabric, getSwatch, badgeFor, specRows,
-} from './data/swatchData.js';
+import { useState } from 'react';
+import { getActiveLine, getMechanism, MOUNTS } from './data/lines.js';
+import { fabricsFor, getSwatch } from './data/swatchData.js';
 import {
   FAMILY_LABELS, CELLULAR_TYPES, SHANGRI_FORMATS, ROMAN_STYLES, LINING_LABELS, PLEATS,
-  SECTION_LABELS, romanStyleOptions, summarize,
+  romanStyleOptions, summarize,
 } from './lib/selection.js';
+import {
+  CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, SHANGRI_FORMAT_INFO, CELLULAR_TYPE_INFO,
+  ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO,
+} from './data/optionInfo.js';
 import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
+import { OptionCards } from './components/ExplainerImg.jsx';
+import SwatchPicker from './components/SwatchPicker.jsx';
 import { Footer } from './customer.jsx';
 import { ArrowRight } from './icons.jsx';
 
-// ---------------------------------------------------------------------------
-// Swatch images: lazy, with a neutral tile showing the code when the file fails.
-// ---------------------------------------------------------------------------
-function SwatchImg({ src, alt, code, size, className = "" }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return <span className={`swatch-fallback ${className}`} role="img" aria-label={alt}>{code}</span>;
-  }
-  return (
-    <img className={className} src={src} alt={alt} width={size} height={size} loading="lazy" decoding="async" onError={() => setFailed(true)} />
-  );
-}
-
-const altOf = (s, code = s.code) => [s.fabric, s.colorName, code].filter(Boolean).join(", ");
-
-function makePick(swatch, role, styleObj) {
-  const src = styleObj || swatch;
-  return {
-    role: role || null,
-    swatchId: swatch.id,
-    line: swatch.line,
-    family: swatch.family || null,
-    fabric: swatch.fabric,
-    fabricId: swatch.fabricId,
-    code: styleObj ? styleObj.code : swatch.code,
-    colorName: swatch.colorName ?? null,
-    style: styleObj ? styleObj.style : null,
-    thumb: src.thumb,
-  };
-}
-
-const keySpecs = (f) => {
-  const out = [];
-  const b = badgeFor(f);
-  if (b) out.push(b);
-  if (f.specs?.vaneSize) out.push(`${f.specs.vaneSize} vanes`);
-  if (f.specs?.care) out.push(f.specs.care);
-  const n = swatchesForFabric(f.id).length;
-  out.push(`${n} ${n === 1 ? "swatch" : "swatches"}`);
-  return out;
-};
-
-// ---------------------------------------------------------------------------
-// Step 1 fabric, step 2 swatch grid, step 3 large preview.
-// `showColorName` is false for collections (Roman, Drapery curtains): name + code only.
-// ---------------------------------------------------------------------------
-function PickerBlock({ heading, fabrics, role, family = null, showColorName = true, onChange, initial = null }) {
-  const [fabricId, setFabricId] = useState(initial?.fabricId || (fabrics.length === 1 ? fabrics[0].id : null));
-  const [swatchId, setSwatchId] = useState(initial?.swatchId || null);
-  const [styleKey, setStyleKey] = useState(initial?.style || null);
-
-  const fabric = fabrics.find(f => f.id === fabricId) || null;
-  // Cellular keeps one fabric for both families; each swatch carries its own family.
-  const swatches = fabric ? swatchesForFabric(fabric.id).filter(sw => !family || sw.family === family) : [];
-  const swatch = swatchId ? getSwatch(swatchId) : null;
-  const styles = swatch?.styles || [];
-  const styleObj = styles.find(s => s.style === styleKey) || null;
-  const idBase = useMemo(() => `pk-${Math.random().toString(36).slice(2, 8)}`, []);
-
-  const emit = (sw, st) => {
-    if (!sw) return onChange(null);
-    if (sw.styles?.length && !st) return onChange(null);          // style still to be chosen
-    onChange(makePick(sw, role, st));
-  };
-  const chooseFabric = (id) => { setFabricId(id); setSwatchId(null); setStyleKey(null); onChange(null); };
-  const chooseSwatch = (sw) => { setSwatchId(sw.id); setStyleKey(null); emit(sw, null); };
-  const chooseStyle = (st) => { setStyleKey(st.style); emit(swatch, st); };
-
-  const preview = styleObj || swatch;
-  const nameLine = swatch && [swatch.fabric, showColorName ? swatch.colorName : null].filter(Boolean).join(" · ");
-
-  return (
-    <div className="picker">
-      {heading && <h3 className="picker-heading serif">{heading}</h3>}
-
-      {fabrics.length > 1 && (
-        <div className="config-group">
-          <div className="label" id={`${idBase}-f`}>1 · Choose a fabric</div>
-          <div className="fabric-cards" role="group" aria-labelledby={`${idBase}-f`}>
-            {fabrics.map(f => (
-              <button key={f.id} type="button" className={`fabric-card${fabricId === f.id ? " selected" : ""}`} aria-pressed={fabricId === f.id} onClick={() => chooseFabric(f.id)}>
-                <span className="fabric-card-name">{f.fabric}</span>
-                <span className="fabric-card-specs">{keySpecs(f).join(" · ")}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {fabric && (
-        <div className="config-group">
-          <div className="label" id={`${idBase}-s`}>
-            {fabrics.length > 1 ? "2 · " : ""}Choose {showColorName ? "a color" : "a swatch"}
-            <span className="label-note"> {fabric.fabric}</span>
-          </div>
-          <div className="swatch-grid2" role="group" aria-labelledby={`${idBase}-s`}>
-            {swatches.map(s => (
-              <button key={s.id} type="button" className={`sw${swatchId === s.id ? " selected" : ""}`} aria-pressed={swatchId === s.id} onClick={() => chooseSwatch(s)}>
-                <SwatchImg src={s.thumb} alt={altOf(s)} code={s.code} size={160} />
-                {showColorName && s.colorName && <span className="sw-name">{s.colorName}</span>}
-                <span className="sw-code">{s.styles?.length ? s.styles.map(x => x.code).join(" / ") : s.code}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {swatch && styles.length > 0 && (
-        <div className="config-group">
-          <div className="label">Choose a style</div>
-          <div className="style-options" role="group" aria-label="Style">
-            {styles.map(st => (
-              <button key={st.style} type="button" className={`style-opt${styleKey === st.style ? " selected" : ""}`} aria-pressed={styleKey === st.style} onClick={() => chooseStyle(st)}>
-                <SwatchImg src={st.thumb} alt={`${swatch.fabric}, ${swatch.colorName}, Style ${st.style}, ${st.code}`} code={st.code} size={64} />
-                <span>
-                  <strong>Style {st.style}</strong>
-                  <span className="style-opt-sub">{st.style === "A" ? "41 cm panel" : "33 cm panel"}{fabric.specs?.[`weightStyle${st.style}`] ? ` · ${fabric.specs[`weightStyle${st.style}`]}` : ""}</span>
-                  <span className="sw-code">{st.code}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {swatch && (
-        <div className="preview" aria-live="polite">
-          <SwatchImg className="preview-img" src={preview.image} alt={altOf(swatch, preview.code)} code={preview.code} size={600} />
-          <div className="preview-body">
-            <div className="preview-eyebrow">{role || "Your selection"}</div>
-            <div className="preview-name serif">{nameLine}</div>
-            <div className="preview-code">Code {preview.code}{styleObj ? ` · Style ${styleObj.style}` : ""}</div>
-            <dl className="preview-specs">
-              {specRows(fabric).map(([k, v]) => (<div key={k}><dt>{k}</dt><dd>{v}</dd></div>))}
-            </dl>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Choice({ label, options, value, onChange, disabledIds = [], note }) {
+// A compact row of buttons for simple choices that need no picture (fabric family).
+function Choice({ label, options, value, onChange }) {
   return (
     <div className="config-group">
       <div className="label">{label}</div>
       <div className="config-options" role="group" aria-label={label}>
         {options.map(o => (
-          <button key={o.id} type="button" className={`opt-btn${value === o.id ? " selected" : ""}`} aria-pressed={value === o.id} disabled={disabledIds.includes(o.id)} onClick={() => onChange(o.id)}>
+          <button key={o.id} type="button" className={`opt-btn${value === o.id ? " selected" : ""}`} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
             {o.label}
           </button>
         ))}
       </div>
-      {note && <div className="choice-note">{note}</div>}
     </div>
   );
 }
@@ -246,6 +107,10 @@ function buildSelection(line, c) {
   return { selection: sel, missing };
 }
 
+const controlOptions = (line) => line.mechanisms.map(m => ({
+  id: m.id, label: m.name, desc: CONTROL_COPY[m.id], img: CONTROL_IMG[line.id]?.[m.id],
+}));
+
 function Configurator({ line, addToQuote }) {
   const [c, setC] = useState(INITIAL);
   const set = (patch) => setC(prev => ({ ...prev, ...patch }));
@@ -256,11 +121,12 @@ function Configurator({ line, addToQuote }) {
   const [windows, setWindows] = useState("1");
   const [roomLabel, setRoomLabel] = useState("");
   const [added, setAdded] = useState(false);
+  const [dreamOpened, setDreamOpened] = useState(false);   // the Dream Curtains grid is not built until that section is opened
 
   const { selection, missing } = buildSelection(line, c);
   const ready = missing.length === 0;
 
-  // Roman: the style/lining a swatch allows
+  // Roman: the style/lining a swatch allows, straight from its romanStyles data
   const romanSwatch = c.pick ? getSwatch(c.pick.swatchId) : null;
   const romanOpts = romanStyleOptions(romanSwatch);
   const liningsForStyle = c.romanStyle ? romanOpts.find(o => o.id === c.romanStyle)?.linings || [] : [];
@@ -311,13 +177,12 @@ function Configurator({ line, addToQuote }) {
 
   return (
     <section className="configurator" id="configure" aria-labelledby="configure-title">
-      <div className="section-eyebrow">Configure</div>
-      <h2 id="configure-title" className="serif section-title gold-rule">Build your {line.name.toLowerCase()} order</h2>
+      <h2 id="configure-title" className="sr-only">Configure your {line.name.toLowerCase()} order</h2>
 
       {line.id === "drapery" && (
         <div className="section-switch" role="tablist" aria-label="Drapery type">
           {line.sections.map(s => (
-            <button key={s.id} role="tab" aria-selected={c.section === s.id} className={`section-tab${c.section === s.id ? " active" : ""}`} onClick={() => set({ section: s.id })}>
+            <button key={s.id} role="tab" aria-selected={c.section === s.id} className={`section-tab${c.section === s.id ? " active" : ""}`} onClick={() => { set({ section: s.id }); if (s.id === "dream-curtains") setDreamOpened(true); }}>
               {s.name}
             </button>
           ))}
@@ -327,48 +192,49 @@ function Configurator({ line, addToQuote }) {
       {/* ---- Roller ---- */}
       {line.id === "roller" && (
         <>
-          <Choice label="Single or double-stack" value={c.mode} onChange={(mode) => set({ mode, front: null, back: null })}
-            options={[{ id: "single", label: "Single" }, { id: "double-stack", label: "Double-stack" }]}
-            note="Double-stack pairs two fabrics on one window and lets you pull each one down on its own. At night with lights on, people outside can see through Screen View and see-through Solar fabrics, so choose Blackout or a double-stack for night privacy." />
+          <OptionCards label="Single or double-stack" value={c.mode} onChange={(mode) => set({ mode, front: null, back: null })}
+            options={line.modes.map(m => ({ id: m, label: m === "single" ? "Single" : "Double-stack", desc: ROLLER_MODE_INFO[m].desc, img: ROLLER_MODE_INFO[m].img }))}
+            note="At night with lights on, people outside can see through Screen View and see-through Solar fabrics, so choose Blackout or a double-stack for night privacy." />
           {(c.mode === "single" ? [["front", "frontFamily", null]] : [["front", "frontFamily", "Front shade"], ["back", "backFamily", "Back shade"]]).map(([k, fk, role]) => (
             <div key={k + c.mode} className="picker-wrap">
               <Choice label={role ? `${role}: fabric family` : "Fabric family"} value={c[fk]}
                 options={line.families.map(f => ({ id: f, label: FAMILY_LABELS[f] }))}
                 onChange={(f) => set({ [fk]: f, [k]: null })} />
-              <PickerBlock key={`${k}-${c[fk]}`} heading={role} role={role} fabrics={fabricsFor("roller", c[fk])} onChange={(p) => set({ [k]: p })} />
+              <SwatchPicker key={`${k}-${c[fk]}`} heading={role} role={role} family={c[fk]} fabrics={fabricsFor("roller", c[fk])} onChange={(p) => set({ [k]: p })} />
             </div>
           ))}
         </>
       )}
 
       {/* ---- Zebra ---- */}
-      {line.id === "zebra" && <PickerBlock fabrics={fabricsFor("zebra")} onChange={(p) => set({ pick: p })} />}
+      {line.id === "zebra" && <SwatchPicker fabrics={fabricsFor("zebra")} onChange={(p) => set({ pick: p })} />}
 
       {/* ---- Shangri-La ---- */}
       {line.id === "shangri-la" && (
         <>
-          <Choice label="Format" value={c.format} options={SHANGRI_FORMATS} onChange={(format) => set({ format })}
-            note="The same fabrics can be made as a horizontal shade or as a sheer vertical blind for wide windows and sliding doors." />
-          <PickerBlock fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
+          <OptionCards label="Format" value={c.format} onChange={(format) => set({ format })}
+            options={SHANGRI_FORMATS.map(f => ({ ...f, desc: SHANGRI_FORMAT_INFO[f.id].desc, img: SHANGRI_FORMAT_INFO[f.id].img }))} />
+          <SwatchPicker fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
         </>
       )}
 
       {/* ---- Cellular ---- */}
       {line.id === "cellular" && (
         <>
-          <Choice label="Product type" value={c.type} options={CELLULAR_TYPES} onChange={(type) => set({ type, pick: null, day: null, night: null })}
+          <OptionCards label="Product type" value={c.type} onChange={(type) => set({ type, pick: null, day: null, night: null })}
+            options={CELLULAR_TYPES.map(t => ({ ...t, desc: CELLULAR_TYPE_INFO[t.id].desc, img: CELLULAR_TYPE_INFO[t.id].img }))}
             note={c.type === "day-night" ? "Day & Night needs two colors: light-filtering for day and blackout for night." : null} />
           {c.type !== "day-night" ? (
             <>
               <Choice label="Light filtering or blackout" value={c.cellFamily}
                 options={line.families.map(f => ({ id: f, label: FAMILY_LABELS[f] }))}
                 onChange={(f) => set({ cellFamily: f, pick: null })} />
-              <PickerBlock key={c.cellFamily} family={c.cellFamily} fabrics={fabricsFor("cellular")} onChange={(p) => set({ pick: p })} />
+              <SwatchPicker key={c.cellFamily} family={c.cellFamily} fabrics={fabricsFor("cellular")} onChange={(p) => set({ pick: p })} />
             </>
           ) : (
             <>
-              <PickerBlock key="day" heading="Day color (light-filtering)" role="Day (light-filtering)" family="light-filtering" fabrics={fabricsFor("cellular")} onChange={(p) => set({ day: p })} />
-              <PickerBlock key="night" heading="Night color (blackout)" role="Night (blackout)" family="blackout" fabrics={fabricsFor("cellular")} onChange={(p) => set({ night: p })} />
+              <SwatchPicker key="day" heading="Day color (light-filtering)" role="Day (light-filtering)" family="light-filtering" fabrics={fabricsFor("cellular")} onChange={(p) => set({ day: p })} />
+              <SwatchPicker key="night" heading="Night color (blackout)" role="Night (blackout)" family="blackout" fabrics={fabricsFor("cellular")} onChange={(p) => set({ night: p })} />
             </>
           )}
         </>
@@ -377,55 +243,45 @@ function Configurator({ line, addToQuote }) {
       {/* ---- Roman ---- */}
       {line.id === "roman" && (
         <>
-          <PickerBlock fabrics={fabricsFor("roman")} showColorName={false} onChange={onRomanPick} />
+          <SwatchPicker fabrics={fabricsFor("roman")} onChange={onRomanPick} />
           {c.pick && (
             <>
-              <Choice label="Style" value={c.romanStyle} onChange={onRomanStyle}
-                options={ROMAN_STYLES} disabledIds={romanOpts.filter(o => !o.available).map(o => o.id)}
+              <OptionCards label="Style" value={c.romanStyle} onChange={onRomanStyle}
+                options={ROMAN_STYLES.map(s => ({ ...s, desc: ROMAN_STYLE_INFO[s.id].desc, img: ROMAN_STYLE_INFO[s.id].img }))}
+                disabledIds={romanOpts.filter(o => !o.available).map(o => o.id)}
                 note={romanOpts.some(o => !o.available) ? "Greyed styles are not available in this fabric." : null} />
               {c.romanStyle && (
-                <Choice label="Lining" value={c.lining} onChange={(lining) => set({ lining })}
-                  options={liningsForStyle.map(l => ({ id: l, label: LINING_LABELS[l] }))} />
+                <OptionCards label="Lining" value={c.lining} onChange={(lining) => set({ lining })}
+                  options={liningsForStyle.map(l => ({ id: l, label: LINING_LABELS[l], desc: LINING_INFO[l] }))} />
               )}
             </>
           )}
         </>
       )}
 
-      {/* ---- Drapery ---- */}
+      {/* ---- Drapery: once opened, Dream Curtains stays mounted so a pick survives switching tabs ---- */}
       {line.id === "drapery" && (
         <>
           <div hidden={c.section !== "curtains"}>
-            <PickerBlock key="curtains" fabrics={fabricsFor("drapery")} showColorName={false} onChange={(p) => set({ pick: p })} />
-            <Choice label="Pleat style" value={c.pleat} onChange={(pleat) => set({ pleat })}
-              options={PLEATS.map(p => ({ id: p, label: p }))} note="Availability confirmed with your quote" />
-            <Choice label="Lining" value={c.lining} onChange={(lining) => set({ lining })}
-              options={["blackout", "light-filtering", "none"].map(l => ({ id: l, label: LINING_LABELS[l] }))} />
+            <SwatchPicker key="curtains" fabrics={fabricsFor("drapery")} onChange={(p) => set({ pick: p })} />
+            <OptionCards label="Pleat style" value={c.pleat} onChange={(pleat) => set({ pleat })}
+              options={PLEATS.map(p => ({ id: p, label: p, desc: PLEAT_INFO[p].desc, img: PLEAT_INFO[p].img }))}
+              note="Availability confirmed with your quote" />
+            <OptionCards label="Lining" value={c.lining} onChange={(lining) => set({ lining })}
+              options={["blackout", "light-filtering", "none"].map(l => ({ id: l, label: LINING_LABELS[l], desc: LINING_INFO[l] }))} />
           </div>
-          <div hidden={c.section !== "dream-curtains"}>
-            <PickerBlock key="dream" fabrics={fabricsFor("dream-curtains")} onChange={(p) => set({ dream: p })} />
-          </div>
+          {dreamOpened && (
+            <div hidden={c.section !== "dream-curtains"}>
+              <SwatchPicker key="dream" eagerFirst={false} fabrics={fabricsFor("dream-curtains")} onChange={(p) => set({ dream: p })} />
+            </div>
+          )}
         </>
       )}
 
       {/* ---- Shared order options ---- */}
-      <div className="config-group">
-        <div className="label">{line.id === "drapery" ? "Control (track)" : "Control"}</div>
-        <div className="config-options" role="group" aria-label="Control">
-          {line.mechanisms.map(m => (
-            <button key={m.id} type="button" className={`opt-btn${mech === m.id ? " selected" : ""}`} aria-pressed={mech === m.id} onClick={() => setMech(m.id)}>{m.name}</button>
-          ))}
-        </div>
-      </div>
-      <div className="config-group">
-        <div className="label">Mount type</div>
-        <div className="config-options" role="group" aria-label="Mount type">
-          {line.mounts.map(mid => {
-            const m = MOUNTS.find(x => x.id === mid);
-            return <button key={mid} type="button" className={`opt-btn${mount === mid ? " selected" : ""}`} aria-pressed={mount === mid} onClick={() => setMount(mid)}>{m.name}</button>;
-          })}
-        </div>
-      </div>
+      <OptionCards label={line.id === "drapery" ? "Control (track)" : "Control"} value={mech} onChange={setMech} options={controlOptions(line)} />
+      <OptionCards label="Mount type" value={mount} onChange={setMount}
+        options={line.mounts.map(mid => ({ id: mid, label: MOUNTS.find(m => m.id === mid).name, desc: MOUNT_INFO[mid].desc, img: MOUNT_INFO[mid].img }))} />
       <div className="config-group">
         <div className="label">Window size <span className="label-note">(optional here, you can add it to your notes later)</span></div>
         <div className="slat-dims">
@@ -476,30 +332,39 @@ export default function LinePage({ slug, navigate, addToQuote }) {
   const line = getActiveLine(slug);
   if (!line) return null;
   const photos = showcaseFor(line.slug);
-  const hero = photos[0] || null;
 
   return (
     <div className="page-fade">
-      <section className="line-hero">
-        <div className="line-hero-media">
-          <ShowcasePhoto entry={hero} lineName={line.name} eager sizes="100vw" />
-        </div>
-        <div className="container line-hero-text">
-          <button className="crumb" onClick={() => navigate("products")}>← All products</button>
+      <header className="line-head">
+        <div className="container line-head-inner">
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <a href="/products" onClick={(e) => { e.preventDefault(); navigate("products"); }}>Products</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{line.name}</span>
+          </nav>
           <h1 className="serif">{line.name}</h1>
-          <p className="line-desc">{line.description}</p>
+          <p className="line-desc">{line.blurb}</p>
         </div>
-      </section>
-
-      <section className="container line-good">
-        <div className="section-eyebrow">Good to know</div>
-        <ul className="good-list">
-          {line.goodToKnow.map((g, i) => <li key={i}>{g}</li>)}
-        </ul>
-      </section>
+      </header>
 
       <div className="container line-body">
         <Configurator key={line.id} line={line} addToQuote={addToQuote} />
+
+        <section className="line-good" aria-labelledby="good-title">
+          <h2 id="good-title" className="eyebrow">Good to know</h2>
+          <ul className="good-list">
+            {line.goodToKnow.map((g, i) => <li key={i}>{g}</li>)}
+          </ul>
+        </section>
+
+        {photos.length > 0 && (
+          <section className="line-gallery" aria-label={`${line.name} in a home`}>
+            {photos.slice(0, 6).map(p => (
+              <ShowcasePhoto key={p.file} entry={p} lineName={line.name} sizes="(min-width: 900px) 33vw, 100vw" />
+            ))}
+          </section>
+        )}
+
         <div className="line-measure-link">
           <strong>Not sure how to measure?</strong> Our guide walks you through it.
           <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>

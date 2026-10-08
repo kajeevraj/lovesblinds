@@ -1,0 +1,218 @@
+{
+ "cellular-types/cellular-day-night": {
+  "src": "/explainers/cellular-types/cellular-day-night.png",
+  "webp": "/explainers-opt/cellular-types/cellular-day-night.webp",
+  "width": 296,
+  "height": 339
+ },
+ "cellular-types/cellular-standard": {
+  "src": "/explainers/cellular-types/cellular-standard.png",
+  "webp": "/explainers-opt/cellular-types/cellular-standard.webp",
+  "width": 296,
+  "height": 334
+ },
+ "cellular-types/cellular-top-down-bottom-up": {
+  "src": "/explainers/cellular-types/cellular-top-down-bottom-up.png",
+  "webp": "/explainers-opt/cellular-types/cellular-top-down-bottom-up.webp",
+  "width": 296,
+  "height": 334
+ },
+ "control/roller-chain": {
+  "src": "/explainers/control/roller-chain.png",
+  "webp": "/explainers-opt/control/roller-chain.webp",
+  "width": 605,
+  "height": 640
+ },
+ "control/roller-cordless": {
+  "src": "/explainers/control/roller-cordless.png",
+  "webp": "/explainers-opt/control/roller-cordless.webp",
+  "width": 452,
+  "height": 640
+ },
+ "control/roller-motorized": {
+  "src": "/explainers/control/roller-motorized.png",
+  "webp": "/explainers-opt/control/roller-motorized.webp",
+  "width": 494,
+  "height": 640
+ },
+ "control/roman-chain": {
+  "src": "/explainers/control/roman-chain.png",
+  "webp": "/explainers-opt/control/roman-chain.webp",
+  "width": 427,
+  "height": 640
+ },
+ "control/roman-cordless": {
+  "src": "/explainers/control/roman-cordless.png",
+  "webp": "/explainers-opt/control/roman-cordless.webp",
+  "width": 459,
+  "height": 640
+ },
+ "control/roman-motorized": {
+  "src": "/explainers/control/roman-motorized.png",
+  "webp": "/explainers-opt/control/roman-motorized.webp",
+  "width": 403,
+  "height": 640
+ },
+ "control/zebra-chain": {
+  "src": "/explainers/control/zebra-chain.png",
+  "webp": "/explainers-opt/control/zebra-chain.webp",
+  "width": 497,
+  "height": 640
+ },
+ "control/zebra-cordless": {
+  "src": "/explainers/control/zebra-cordless.png",
+  "webp": "/explainers-opt/control/zebra-cordless.webp",
+  "width": 494,
+  "height": 640
+ },
+ "control/zebra-motorized": {
+  "src": "/explainers/control/zebra-motorized.png",
+  "webp": "/explainers-opt/control/zebra-motorized.webp",
+  "width": 491,
+  "height": 640
+ },
+ "drapery-pleats/euro-pleat-2": {
+  "src": "/explainers/drapery-pleats/euro-pleat-2.png",
+  "webp": "/explainers-opt/drapery-pleats/euro-pleat-2.webp",
+  "width": 277,
+  "height": 263
+ },
+ "drapery-pleats/euro-pleat-3": {
+  "src": "/explainers/drapery-pleats/euro-pleat-3.png",
+  "webp": "/explainers-opt/drapery-pleats/euro-pleat-3.webp",
+  "width": 276,
+  "height": 263
+ },
+ "drapery-pleats/french-pleat-2": {
+  "src": "/explainers/drapery-pleats/french-pleat-2.png",
+  "webp": "/explainers-opt/drapery-pleats/french-pleat-2.webp",
+  "width": 277,
+  "height": 262
+ },
+ "drapery-pleats/french-pleat-3": {
+  "src": "/explainers/drapery-pleats/french-pleat-3.png",
+  "webp": "/explainers-opt/drapery-pleats/french-pleat-3.webp",
+  "width": 276,
+  "height": 262
+ },
+ "drapery-pleats/goblet": {
+  "src": "/explainers/drapery-pleats/goblet.png",
+  "webp": "/explainers-opt/drapery-pleats/goblet.webp",
+  "width": 277,
+  "height": 259
+ },
+ "drapery-pleats/inverted-pleat": {
+  "src": "/explainers/drapery-pleats/inverted-pleat.png",
+  "webp": "/explainers-opt/drapery-pleats/inverted-pleat.webp",
+  "width": 276,
+  "height": 259
+ },
+ "drapery-pleats/pinch-pleat-1": {
+  "src": "/explainers/drapery-pleats/pinch-pleat-1.png",
+  "webp": "/explainers-opt/drapery-pleats/pinch-pleat-1.webp",
+  "width": 277,
+  "height": 262
+ },
+ "drapery-pleats/ripple-fold": {
+  "src": "/explainers/drapery-pleats/ripple-fold.png",
+  "webp": "/explainers-opt/drapery-pleats/ripple-fold.webp",
+  "width": 276,
+  "height": 262
+ },
+ "dream-curtains/style-a": {
+  "src": "/explainers/dream-curtains/style-a.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "dream-curtains/style-b": {
+  "src": "/explainers/dream-curtains/style-b.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "measure/drapery-measure-diagram": {
+  "src": "/explainers/measure/drapery-measure-diagram.png",
+  "webp": "/explainers-opt/measure/drapery-measure-diagram.webp",
+  "width": 850,
+  "height": 1100
+ },
+ "measure/roman-measure-diagram": {
+  "src": "/explainers/measure/roman-measure-diagram.png",
+  "webp": "/explainers-opt/measure/roman-measure-diagram.webp",
+  "width": 1023,
+  "height": 1100
+ },
+ "measure/window-types": {
+  "src": "/explainers/measure/window-types.png",
+  "webp": "/explainers-opt/measure/window-types.webp",
+  "width": 1100,
+  "height": 492
+ },
+ "mount/inside": {
+  "src": "/explainers/mount/inside.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "mount/outside": {
+  "src": "/explainers/mount/outside.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "roller/double-stack": {
+  "src": "/explainers/roller/double-stack.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "roller/single": {
+  "src": "/explainers/roller/single.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "roman-styles/flat": {
+  "src": "/explainers/roman-styles/flat.png",
+  "webp": "/explainers-opt/roman-styles/flat.webp",
+  "width": 226,
+  "height": 354
+ },
+ "roman-styles/hobble": {
+  "src": "/explainers/roman-styles/hobble.png",
+  "webp": "/explainers-opt/roman-styles/hobble.webp",
+  "width": 218,
+  "height": 362
+ },
+ "roman-styles/plain-fold": {
+  "src": "/explainers/roman-styles/plain-fold.png",
+  "webp": "/explainers-opt/roman-styles/plain-fold.webp",
+  "width": 219,
+  "height": 341
+ },
+ "roman-styles/relax": {
+  "src": "/explainers/roman-styles/relax.png",
+  "webp": "/explainers-opt/roman-styles/relax.webp",
+  "width": 235,
+  "height": 363
+ },
+ "roman-styles/ribble": {
+  "src": "/explainers/roman-styles/ribble.png",
+  "webp": "/explainers-opt/roman-styles/ribble.webp",
+  "width": 220,
+  "height": 336
+ },
+ "shangri-la/horizontal": {
+  "src": "/explainers/shangri-la/horizontal.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ },
+ "shangri-la/vertical": {
+  "src": "/explainers/shangri-la/vertical.svg",
+  "svg": true,
+  "width": 240,
+  "height": 180
+ }
+}

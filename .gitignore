@@ -4,3 +4,7 @@ dist/
 *.local
 bundle/
 public/images/showcase-opt/
+chats/
+reports/
+public/explainers-opt/
+public/images/swatches-opt/

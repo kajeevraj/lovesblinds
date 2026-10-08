@@ -4,10 +4,11 @@ import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
 
-// Code-split: the line page pulls in the swatch data, and the admin area is
-// reachable only by typing /admin (it is not linked from any public page).
+// Code-split: the line page pulls in the swatch data. The admin area is a mockup with no real
+// authentication, so it is excluded from production builds (VITE_ENABLE_ADMIN).
 const LinePage = lazy(() => import('./linepage.jsx'));
-const AdminApp = lazy(() => import('./AdminApp.jsx'));
+// With the flag off, this branch is dead code and the admin chunk is not built at all.
+const AdminApp = import.meta.env.VITE_ENABLE_ADMIN === 'true' ? lazy(() => import('./AdminApp.jsx')) : null;
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 
@@ -139,7 +140,7 @@ export default function App() {
     navigate("quote");
   };
 
-  if (route === "admin") {
+  if (route === "admin" && AdminApp) {
     return (
       <Suspense fallback={null}>
         <AdminApp onExit={() => navigate("home")} />

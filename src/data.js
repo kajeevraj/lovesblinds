@@ -1,7 +1,8 @@
 import { swatchesFor } from './data/catalog.js';
 import { hasRealPhoto } from './lib/photos.js';
 
-// Mock data for Love's Blinds
+// Mock data for the admin mockup only. Never imported by the public site; the admin is excluded from
+// production builds unless VITE_ENABLE_ADMIN=true. Supplier entries are generic placeholders.
 
 export const MECHANISM_TEMPLATES = [
   { id: "manual",      code: "MNL", name: "Manual cord/chain",        defaultUpcharge: 0,   desc: "Traditional pull-cord operation" },
@@ -30,7 +31,7 @@ export const SHIPPING_LABELS = ["Standard", "Express", "Sea Freight", "Air Freig
 
 export const SUPPLIERS = [
   {
-    id: "s1", name: "Hunter Mill Co.", origin: "North Carolina, USA", terms: "Net 30",
+    id: "s1", name: "Supplier A", origin: "North Carolina, USA", terms: "Net 30",
     products: ["wood", "shutters"],
     shipping: [
       { id: "sh1", internal: "Ground", customerLabel: "Standard", days: "10–14 business days", cost: 0, visible: true, isDefault: true },
@@ -38,7 +39,7 @@ export const SUPPLIERS = [
     ],
   },
   {
-    id: "s2", name: "Linden & Ash", origin: "Portland, OR, USA", terms: "Net 30",
+    id: "s2", name: "Supplier B", origin: "Portland, OR, USA", terms: "Net 30",
     products: ["cellular", "roller", "zebra", "roman"],
     shipping: [
       { id: "sh3", internal: "Standard ground", customerLabel: "Standard", days: "7–10 business days", cost: 0, visible: true, isDefault: true },
@@ -46,7 +47,7 @@ export const SUPPLIERS = [
     ],
   },
   {
-    id: "s3", name: "Atelier Veneto", origin: "Verona, Italy", terms: "Prepaid",
+    id: "s3", name: "Supplier C", origin: "Verona, Italy", terms: "Prepaid",
     products: ["shangrila", "drapes"],
     shipping: [
       { id: "sh5", internal: "Ocean freight", customerLabel: "Standard (Sea)", days: "5–6 weeks", cost: 0, visible: true, isDefault: true },
@@ -55,7 +56,7 @@ export const SUPPLIERS = [
     ],
   },
   {
-    id: "s4", name: "Pacific Shade Supply", origin: "Vancouver, Canada", terms: "Net 15",
+    id: "s4", name: "Supplier D", origin: "Vancouver, Canada", terms: "Net 15",
     products: ["zipscreen", "outdoor"],
     shipping: [
       { id: "sh8", internal: "Cross-border ground", customerLabel: "Standard", days: "5–7 business days", cost: 0, visible: true, isDefault: true },
