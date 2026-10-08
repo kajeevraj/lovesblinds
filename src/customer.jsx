@@ -50,17 +50,10 @@ export function Footer({ navigate }) {
             <p className="footer-tag">Custom window treatments, made to your measurements and shipped to your door.</p>
           </div>
           <div>
-            <h3>Studio</h3>
+            <h3>Contact</h3>
             <ul>
-              {SITE.address.map(a => <li key={a}>{a}</li>)}
               <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
               <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3>Hours</h3>
-            <ul>
-              <li>{SITE.hours}</li>
             </ul>
           </div>
           <div>
@@ -75,7 +68,7 @@ export function Footer({ navigate }) {
         </div>
         <div className="footer-bottom">
           <span>© 2026 Love's Blinds Studio LLC</span>
-          <span>Made-to-measure · Family run · Since 2014</span>
+          <span>Made-to-measure · Family run · Since 2000</span>
         </div>
       </div>
     </footer>
@@ -944,10 +937,8 @@ export function ContactPage({ navigate, quoteCount }) {
             }
           </div>
           <aside className="contact-details">
-            <div className="contact-detail-row"><div className="label">Studio</div><div className="val">512 Glenwyck Court<br />Fuquay-Varina, NC 27526</div></div>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val">{SITE.phone}</div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val">{SITE.email}</div></div>
-            <div className="contact-detail-row"><div className="label">Hours</div><div className="val">{SITE.hours}</div></div>
           </aside>
         </div>
       </section>

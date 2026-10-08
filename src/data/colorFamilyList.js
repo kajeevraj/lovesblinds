@@ -6,7 +6,7 @@ export const COLOR_FAMILY_LIST = ['White', 'Cream/Ivory', 'Beige/Tan', 'Gray', '
 export const NAME_WORDS = {
   white: 'White',
   ivory: 'Cream/Ivory', cream: 'Cream/Ivory',
-  beige: 'Beige/Tan', tan: 'Beige/Tan', sand: 'Beige/Tan', khaki: 'Beige/Tan',
+  beige: 'Beige/Tan', tan: 'Beige/Tan', sand: 'Beige/Tan', khaki: 'Beige/Tan', latte: 'Beige/Tan',
   gray: 'Gray', grey: 'Gray', silver: 'Gray',
   charcoal: 'Charcoal/Black', black: 'Charcoal/Black',
   brown: 'Brown', coffee: 'Brown', chocolate: 'Brown',

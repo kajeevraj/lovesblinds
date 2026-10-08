@@ -24,7 +24,9 @@ Eleven families: White, Cream/Ivory, Beige/Tan, Gray, Charcoal/Black, Brown, Blu
 
 Order of precedence, highest first:
 1. `src/data/colorFamilyOverrides.json` (`{ "<swatch id>": "<family>" }`), never touched by the scripts.
-2. A family word in the swatch's color name (white, ivory, cream, beige, tan, sand, khaki, gray/grey, silver, charcoal, black, brown, coffee, chocolate, blue, navy, green, pink, red, purple, lilac, mauve). With several words, the first one wins ("White Grey" is White).
+2. A family word in the swatch's color name (white, ivory, cream, beige, tan, sand, khaki, latte, gray/grey, silver, charcoal, black, brown, coffee, chocolate, blue, navy, green, pink, red, purple, lilac, mauve). With several words, the first one wins ("White Grey" is White).
 3. Image analysis of the thumbnail (LAB average of the center area, plus a pattern check; zebra tiles are classified by their colored band). Used only where the name has no family word, mainly Roman and Curtains.
+
+`src/data/colorFamilyReviewed.json` (`{ "<swatch id>": "<family>" }`) marks image-decided tiles you have checked: they stop being flagged in the report while the family stays the same. It does not change any family.
 
 Commands: `npm run color-families` writes `src/data/colorFamilies.json`. `npm run color-report` writes `docs/color-review.html` (open it from GitHub, or locally) and a copy in the git-ignored `reports/`. In the report, change a tile's family with its dropdown and paste the JSON it builds into the overrides file. `npm run validate-catalog` fails if a swatch has no family or an override names an unknown swatch or family.

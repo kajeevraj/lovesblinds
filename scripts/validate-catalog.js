@@ -84,6 +84,11 @@ const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, 'u
 const autoFam = readJson('src/data/colorFamilies.json', {});
 const overFam = readJson('src/data/colorFamilyOverrides.json', {});
 const ids = new Set(swatches.map(s => s.id));
+const reviewedFam = readJson('src/data/colorFamilyReviewed.json', {});
+for (const [id, f] of Object.entries(reviewedFam)) {
+  if (!ids.has(id)) fail(`colorFamilyReviewed.json: unknown swatch id "${id}"`);
+  if (!FAMILIES.includes(f)) fail(`colorFamilyReviewed.json: "${id}" has unknown family "${f}"`);
+}
 for (const s of swatches) {
   const f = overFam[s.id] || autoFam[s.id];
   if (!f) fail(`swatch ${s.id}: no color family (run npm run color-families)`);

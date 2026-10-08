@@ -13,6 +13,8 @@ const names = readdirSync('src/data').filter(n => /^swatches.*\.json$/.test(n));
 const { swatches } = mergeCatalogs(orderCatalogs(names.map(name => ({ name, data: JSON.parse(readFileSync(join('src/data', name), 'utf8')) }))));
 const auto = JSON.parse(readFileSync('src/data/colorFamilies.json', 'utf8'));
 const over = JSON.parse(readFileSync('src/data/colorFamilyOverrides.json', 'utf8'));
+// Tiles you have looked at and confirmed: { id: family }. They stop being flagged while the family is unchanged.
+const reviewed = JSON.parse(readFileSync('src/data/colorFamilyReviewed.json', 'utf8'));
 
 // A tile is flagged for a second look when the image decided its family (no family word in the name) and
 //  - it was sorted as Pattern/Multi, or
@@ -24,7 +26,7 @@ const HINTS = [
   [/teal|aqua|mint|olive|sage|lake|avocado/i, ['Blue', 'Green']],
 ];
 const flagReason = (s, fam, byName) => {
-  if (byName) return null;
+  if (byName || reviewed[s.id] === fam) return null;
   if (fam === 'Pattern/Multi') return 'sorted as pattern by the image';
   const hit = s.colorName && HINTS.find(([re]) => re.test(s.colorName));
   if (hit && !hit[1].includes(fam)) return `name "${s.colorName}" hints elsewhere`;
@@ -49,7 +51,7 @@ const sections = FAMILIES.map(f => {
   const tiles = groups[f].sort((a, b) => b.L - a.L).map(t => `
     <figure class="t${t.flag ? ' flag' : ''}" data-id="${esc(t.s.id)}" data-auto="${esc(auto[t.s.id])}">
       <img src="data:image/jpeg;base64,${t.thumb}" alt="">
-      <figcaption><b>${esc(t.s.colorName || t.s.fabric)}</b><br>${esc(t.s.code)}<br><i>${esc(t.s.line)}${t.s.family ? '/' + esc(t.s.family) : ''}</i> <small>${t.overridden ? 'override' : t.byName ? 'from name' : 'from image'}</small>${t.flag ? `<br><span class="why">${esc(t.reason)}</span>` : ''}
+      <figcaption><b>${esc(t.s.colorName || t.s.fabric)}</b><br>${esc(t.s.code)}<br><i>${esc(t.s.line)}${t.s.family ? '/' + esc(t.s.family) : ''}</i> <small>${t.overridden ? 'override' : t.byName ? 'from name' : reviewed[t.s.id] === t.family ? 'from image, reviewed' : 'from image'}</small>${t.flag ? `<br><span class="why">${esc(t.reason)}</span>` : ''}
       <select aria-label="Family for ${esc(t.s.code)}">${FAMILIES.map(o => `<option${o === t.family ? ' selected' : ''}>${o}</option>`).join('')}</select></figcaption>
     </figure>`).join('');
   return `<section><h2>${f} <small>${groups[f].length}</small></h2><div class="g">${tiles}</div></section>`;
