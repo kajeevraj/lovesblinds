@@ -18,11 +18,9 @@ export function SwatchImg({ src, fallback, srcSet, sizes, alt, code, size, class
   );
 }
 
-// Same name and code as the order will carry; the label falls back to the color family when a
-// fabric has no color name (Roman, Curtains).
-const labelOf = (e) => e.swatch.colorName || e.color;
-const altOf = (e, code = e.swatch.code) => [e.swatch.fabric, labelOf(e), code].join(", ");
-const hideFabric = (e) => e.swatch.fabric === "Cellular Shades";
+// Customers see the display name and the supplier code. The supplier's collection and color names are never shown.
+const labelOf = (e) => e.swatch.displayName;
+const altOf = (e, code = e.swatch.code) => `${labelOf(e)}, ${code}`;
 
 function makePick(swatch, role, styleObj) {
   const src = styleObj || swatch;
@@ -34,7 +32,8 @@ function makePick(swatch, role, styleObj) {
     fabric: swatch.fabric,
     fabricId: swatch.fabricId,
     code: styleObj ? styleObj.code : swatch.code,
-    colorName: swatch.colorName ?? null,
+    colorName: swatch.colorName ?? null,           // supplier name: internal only
+    displayName: swatch.displayName,
     style: styleObj ? styleObj.style : null,
     thumb: src.thumb,
   };
@@ -80,14 +79,13 @@ function SwatchDialog({ entry, role, onChoose, onClose, chosen }) {
   const s = entry.swatch;
   const rows = specRows(entry.fabric);
   return (
-    <dialog ref={ref} className="swatch-dialog" onClose={onClose} onClick={(ev) => { if (ev.target === ref.current) ref.current.close(); }} aria-label={`${s.fabric} ${labelOf(entry)} ${s.code}`}>
+    <dialog ref={ref} className="swatch-dialog" onClose={onClose} onClick={(ev) => { if (ev.target === ref.current) ref.current.close(); }} aria-label={`${labelOf(entry)} ${s.code}`}>
       <div className="swatch-dialog-body">
         <SwatchImg className="swatch-dialog-img" src={s.image} alt={altOf(entry)} code={s.code} size={600} />
         <div className="swatch-dialog-text">
           <div className="preview-eyebrow">{role || "Swatch"}</div>
           <h3 className="preview-name serif">{labelOf(entry)}</h3>
           <div className="preview-code">Code {s.styles?.length ? s.styles.map(x => `${x.style}: ${x.code}`).join(" · ") : s.code}</div>
-          {!hideFabric(entry) && <div className="preview-coll">Collection: {s.fabric}</div>}
           <dl className="preview-specs">
             {entry.light && <div><dt>Light control</dt><dd>{entry.light.label}</dd></div>}
             {rows.filter(([k]) => k !== "Openness" && k !== "Opacity").map(([k, v]) => (<div key={k}><dt>{k}</dt><dd>{v}</dd></div>))}
@@ -148,7 +146,7 @@ export default function SwatchPicker({ heading, step, fabrics, role, family = nu
           <SwatchImg src={styleKey ? styles.find(x => x.style === styleKey)?.thumb : picked.swatch.thumb} alt={altOf(picked)} code={picked.swatch.code} size={56} />
           <div className="picked-text">
             <strong>{labelOf(picked)}</strong>
-            <span>{styleKey ? styles.find(x => x.style === styleKey).code : (styles.length ? styles.map(x => x.code).join(" / ") : picked.swatch.code)}{!hideFabric(picked) ? ` · ${picked.swatch.fabric}` : ""}</span>
+            <span>{styleKey ? styles.find(x => x.style === styleKey).code : (styles.length ? styles.map(x => x.code).join(" / ") : picked.swatch.code)}</span>
           </div>
           <button type="button" className="link-btn" onClick={() => setView(picked)}>View larger</button>
         </div>
@@ -200,9 +198,7 @@ export default function SwatchPicker({ heading, step, fabrics, role, family = nu
                   <SwatchImg src={tileSrc(s)} fallback={s.image} srcSet={`${s.thumb} 160w, ${tileSrc(s)} 320w`} sizes="(max-width: 639px) 45vw, 190px" alt={altOf(e)} code={s.code} size={160} eager={eager} />
                   <span className="sw-label">{labelOf(e)}</span>
                   <span className="sw-code">{s.styles?.length ? s.styles.map(x => x.code).join(" / ") : s.code}</span>
-                  {(!hideFabric(e) || e.light) && (
-                    <span className="sw-sub">{[!hideFabric(e) ? s.fabric : null, e.light?.label].filter(Boolean).join(" · ")}</span>
-                  )}
+                  {e.light && <span className="sw-sub">{e.light.label}</span>}
                 </button>
               );
             })}

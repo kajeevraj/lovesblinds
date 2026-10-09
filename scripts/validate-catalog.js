@@ -99,6 +99,35 @@ for (const [id, f] of Object.entries(overFam)) {
   if (!FAMILIES.includes(f)) fail(`colorFamilyOverrides.json: "${id}" has unknown family "${f}"`);
 }
 
+// Display names: the customer-facing color names (src/data/displayNames.json, keyed by swatch id).
+// Every swatch needs one, unique within its product line, and it may not carry a digit, a supplier
+// collection name, or any supplier code. The supplier's own color name and code are never edited.
+const FAMILY_SCOPED_LINES = ['roller', 'cellular'];
+const displayNames = readJson('src/data/displayNames.json', null);
+if (!displayNames) fail('src/data/displayNames.json is missing');
+else {
+  const collections = [...new Set(fabrics.map(f => f.fabric))];
+  const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const seenName = new Map();
+  for (const [id] of Object.entries(displayNames)) if (!ids.has(id)) fail(`displayNames.json: unknown swatch id "${id}"`);
+  for (const s of swatches) {
+    const n = displayNames[s.id];
+    if (typeof n !== 'string' || !n.trim()) { fail(`swatch ${s.id}: no display name`); continue; }
+    if (n !== n.trim() || /\s{2,}/.test(n)) fail(`swatch ${s.id}: display name "${n}" has extra spaces`);
+    if (/\d/.test(n)) fail(`swatch ${s.id}: display name "${n}" contains a number`);
+    const hit = collections.find(c => new RegExp(`\\b${esc(c)}\\b`, 'i').test(n));
+    if (hit) fail(`swatch ${s.id}: display name "${n}" contains the collection name "${hit}"`);
+    for (const other of swatches) {
+      if (other.code && n.toLowerCase().includes(other.code.toLowerCase())) { fail(`swatch ${s.id}: display name "${n}" contains the supplier code ${other.code}`); break; }
+    }
+    // Roller and Cellular pickers show one family at a time, so a name only has to be unique inside its family.
+    const scope = FAMILY_SCOPED_LINES.includes(s.line) ? `${s.line}/${s.family}` : s.line;
+    const key = `${scope}|${n.trim().toLowerCase()}`;
+    if (seenName.has(key)) fail(`display name "${n}" is used twice in ${scope}: ${seenName.get(key)} and ${s.id}`);
+    else seenName.set(key, s.id);
+  }
+}
+
 warnings.forEach(w => console.warn('warn:', w));
 if (errors.length) {
   errors.slice(0, 50).forEach(e => console.error('FAIL:', e));

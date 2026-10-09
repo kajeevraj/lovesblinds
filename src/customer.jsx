@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
 import { SITE } from './data/site.js';
-import { summarize, describeItem } from './lib/selection.js';
+import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
 import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
@@ -316,7 +316,7 @@ function ItemThumb({ item }) {
   const [failed, setFailed] = useState(false);
   const pick = item.selection?.picks?.[0];
   if (pick?.thumb && !failed) {
-    return <img className="quote-thumb" src={pick.thumb} alt={`${pick.fabric}${pick.colorName ? `, ${pick.colorName}` : ""}, ${pick.code}`} width="72" height="72" loading="lazy" onError={() => setFailed(true)} />;
+    return <img className="quote-thumb" src={pick.thumb} alt={`${displayNameOf(pick)}, ${pick.code}`} width="72" height="72" loading="lazy" onError={() => setFailed(true)} />;
   }
   const Icon = CATEGORY_ICONS[item.product.icon];
   return <div className="quote-thumb quote-thumb-fallback" role="img" aria-label={item.product.name}>{pick?.code || (Icon ? <Icon /> : item.product.name)}</div>;
@@ -430,10 +430,13 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
           const sum = summarize(it);
           return {
             code: sum.codes.length ? sum.codes.join(", ") : (it.code || null),
-            colorName: sum.colorText || it.colorName || it.variant,
+            codes: sum.codes,
+            colorName: sum.colorText || it.colorName || it.variant,     // customer wording: display name and code
             category: it.category || it.product.id,
             section: it.selection?.section || null,
-            description: describeItem(it),
+            description: describeItem(it),                                // customer wording, used in the customer email
+            internalDescription: describeInternal(it),                    // supplier collection, color name and code, for us only
+            internalPicks: (it.selection?.picks || []).map(p => ({ line: p.line, role: p.role, code: p.code, displayName: displayNameOf(p), supplierColor: p.colorName ?? null, collection: p.fabric, style: p.style })),
             details: sum.parts,
             selection: it.selection || null,
             mechId: it.mech,

@@ -2,6 +2,7 @@
 // never by fabric name alone (names repeat across Roller families).
 import { mergeCatalogs, orderCatalogs } from './mergeSwatches.js';
 import COLOR_FAMILIES from './colorFamilies.json';
+import DISPLAY_NAMES from './displayNames.json';
 import { COLOR_FAMILY_LIST } from './colorFamilyList.js';
 import COLOR_OVERRIDES from './colorFamilyOverrides.json';
 
@@ -9,6 +10,10 @@ const files = import.meta.glob('./swatches*.json', { eager: true, import: 'defau
 const { fabrics, swatches } = mergeCatalogs(
   orderCatalogs(Object.entries(files).map(([path, data]) => ({ name: path.replace('./', ''), data })))
 );
+
+// Customer-facing names live in displayNames.json, apart from the supplier data. The supplier's own color name
+// and code stay as stored; a missing display name falls back to the code, never to the supplier name.
+for (const s of swatches) s.displayName = DISPLAY_NAMES[s.id] || s.code;
 
 export const FABRICS = fabrics;
 export const SWATCHES = swatches;
@@ -63,8 +68,7 @@ export function specRows(fabric) {
     .map(([k, label]) => [label, k === 'openness' ? `${sp[k]} open` : sp[k]]);
 }
 
-export const swatchLabel = (s) =>
-  [s.fabric, s.colorName, s.code].filter(has).join(' · ');
+export const swatchLabel = (s) => `${s.displayName} (${s.code})`;
 
 // ---- Filtering facets: color family, light control, material -----------------
 

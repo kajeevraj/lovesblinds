@@ -7,6 +7,29 @@ const BUSINESS_PHONE   = "262-434-0949";
 const BUSINESS_EMAIL   = "loveblindswindows@gmail.com";
 const INTERNAL_TO      = "loveblindswindows@gmail.com";
 
+// ── per-line wording ─────────────────────────────────────────────────────────
+// description: customer wording (display name + code). internalDescription: supplier collection, color name and
+// code plus the display name, for our own email and spreadsheet only.
+const rolePrefix = (p, multi) => (multi && p.role ? `${p.role}: ` : '');
+function codeCell(line) {
+  const picks = line.internalPicks || [];
+  if (!picks.length) return line.code || '';
+  return picks.map(p => `${rolePrefix(p, picks.length > 1)}${p.code}`).join(' / ');
+}
+// The old "Color" cell: supplier collection and color name with the code, as we have always received it.
+function supplierColorCell(line) {
+  const picks = line.internalPicks || [];
+  if (!picks.length) return line.colorName || line.code || '';
+  return picks.map(p => {
+    const name = p.line === 'cellular' && p.supplierColor ? p.supplierColor : [p.collection, p.supplierColor].filter(Boolean).join(' ');
+    return `${rolePrefix(p, picks.length > 1)}${name} (${p.code})`;
+  }).join(' / ');
+}
+function nameCell(line) {
+  const picks = line.internalPicks || [];
+  return picks.map(p => `${rolePrefix(p, picks.length > 1)}${p.displayName}${p.style ? ` (Style ${p.style})` : ''}`).join(' / ');
+}
+
 // ── xlsx ─────────────────────────────────────────────────────────────────────
 
 function buildWorkbook(customer, lines, notes) {
@@ -27,20 +50,23 @@ function buildWorkbook(customer, lines, notes) {
   rows.push([
     'Description', 'Color', 'Quantity', 'Width', 'Length',
     'Drive System', 'Location', 'Price per unit', 'Total',
+    'Supplier code', 'Display name',     // appended: the original columns stay where they were
   ]);
 
   // Line items
   for (const line of lines) {
     rows.push([
-      line.description,
-      line.colorName || line.code || '',
+      line.internalDescription || line.description,
+      supplierColorCell(line),
       line.qty,
       line.width  || '',
       line.length || '',
       line.mechName || '',
       line.roomLabel || '',
-      '', // Price per unit — Stage 2 fills
-      '', // Total — Stage 2 fills
+      '', // Price per unit: Stage 2 fills
+      '', // Total: Stage 2 fills
+      codeCell(line),
+      nameCell(line),
     ]);
   }
 
@@ -59,7 +85,7 @@ function buildWorkbook(customer, lines, notes) {
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Merge the business name across all 9 columns
+  // Merge the business name across the 9 original columns
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
 
   // Column widths
@@ -73,6 +99,8 @@ function buildWorkbook(customer, lines, notes) {
     { wch: 12 }, // Location
     { wch: 16 }, // Price per unit
     { wch: 14 }, // Total
+    { wch: 28 }, // Supplier code (appended)
+    { wch: 28 }, // Display name (appended)
   ];
 
   const wb = XLSX.utils.book_new();
@@ -84,11 +112,10 @@ function buildWorkbook(customer, lines, notes) {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// description already names the line, section and every pick with its code
-// (for example "Drapery, Dream Curtains · Sunflower Pearl White (ZDS3001-1) · Style A").
-function lineListHtml(lines) {
+// Customer email: description (display name + code). Internal email: internalDescription (supplier data too).
+function lineListHtml(lines, internal = false) {
   return lines.map(l =>
-    `<li>${esc(l.description)}` +
+    `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
     `, qty ${esc(l.qty)}` +
     (l.width ? `, ${esc(l.width)}"W × ${esc(l.length)}"H` : '') +
     (l.mechName ? `, ${esc(l.mechName)}` : '') +
@@ -142,7 +169,7 @@ export default async function handler(req, res) {
           ${customer.measureMethod ? `<strong>Measurement:</strong> ${customer.measureMethod}` : ''}
         </p>
         <h3 style="font-family:Georgia,serif;color:#2c2c2a">Items (${lines.length})</h3>
-        <ul>${lineListHtml(lines)}</ul>
+        <ul>${lineListHtml(lines, true)}</ul>
         ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
         <p style="color:#666;font-size:13px">Full order sheet attached as Excel.</p>
       `,

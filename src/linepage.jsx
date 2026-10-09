@@ -156,7 +156,7 @@ function Configurator({ line, addToQuote }) {
       mech, mount,
       selection,
       code: first?.code ?? null,
-      colorName: first ? (first.colorName || first.fabric) : line.name,
+      colorName: first ? first.displayName : line.name,   // customer-facing; the supplier name stays in the pick for internal use
       category: line.id,
       location: line.location,
       price: null,

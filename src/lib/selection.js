@@ -1,5 +1,6 @@
 // What a customer picked, and how it reads in the order summary and the order email.
-// Kept free of swatch data so the main bundle never needs the catalog.
+// Kept free of the swatch catalog (only the small display-name list is imported).
+import DISPLAY_NAMES from "../data/displayNames.json";
 //
 // selection = {
 //   lineId, section?, mode?, type?, format?, style?, pleat?, lining?,
@@ -33,11 +34,14 @@ export const SECTION_LABELS = { curtains: "Curtains", "dream-curtains": "Dream C
 
 const label = (list, id) => list.find(x => x.id === id)?.label || id;
 
-export const pickText = (p) => {
-  // Cellular has a single fabric, so its name adds nothing next to the color.
-  const name = p.line === "cellular" && p.colorName ? p.colorName : p.colorName ? `${p.fabric} ${p.colorName}` : p.fabric;
-  return `${name} (${p.code})`;
-};
+// Customers see the display name and the code, never the supplier's collection or color name.
+// Picks saved before display names existed are filled in from their swatch id.
+export const displayNameOf = (p) => p.displayName || DISPLAY_NAMES[p.swatchId] || p.code;
+export const pickText = (p) => `${displayNameOf(p)} (${p.code})`;
+
+// Internal only (order email to us, spreadsheet): supplier collection, supplier color name and code.
+export const internalPickText = (p) =>
+  `${[p.fabric, p.colorName].filter(Boolean).join(" ")} (${p.code}) [${displayNameOf(p)}]`;
 
 export function summarize(item) {
   const sel = item.selection;
@@ -68,7 +72,18 @@ export function summarize(item) {
   };
 }
 
-// One line of text for the order email and xlsx description.
+// Internal one-liner: same options, supplier data in place of the customer wording.
+export function describeInternal(item) {
+  const sel = item.selection;
+  if (!sel) return describeItem(item);
+  const s = summarize(item);
+  const multi = sel.picks.length > 1;
+  const lines = sel.picks.map(p => `${multi && p.role ? `${p.role}: ` : ""}${p.family ? `${FAMILY_LABELS[p.family]} · ` : ""}${internalPickText(p)}${p.style ? ` · Style ${p.style}` : ""}`);
+  const opts = s.parts.slice(sel.picks.length);
+  return [s.title, ...lines, ...opts].join(" · ");
+}
+
+// One line of text for the customer email and the order summary.
 export const describeItem = (item) => {
   const s = summarize(item);
   return [s.title, ...s.parts].join(" · ");
