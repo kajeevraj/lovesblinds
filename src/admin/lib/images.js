@@ -67,3 +67,17 @@ export async function removePaths(paths) {
   const { error } = await supabase.storage.from(BUCKET).remove(list);
   if (error) console.warn('[admin] could not remove old images', list, error.message);
 }
+
+// A single picture for an option card (full-size JPEG only). Unique name, 24-hour cache, like the swatch photos.
+export async function uploadOptionImage(folder, key, prepared) {
+  const path = `${folder}/${slug(key)}-${rand()}.${extOf(prepared.full)}`;
+  const { error } = await supabase.storage.from('option-images').upload(path, prepared.full, { cacheControl: '86400', contentType: prepared.full.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+export async function removeOptionImage(path) {
+  if (!path) return;
+  const { error } = await supabase.storage.from('option-images').remove([path]);
+  if (error) console.warn('[admin] could not remove option image', path, error.message);
+}
+export const optionImageUrl = (path) => (path ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/option-images/${path.split('/').map(encodeURIComponent).join('/')}` : '');

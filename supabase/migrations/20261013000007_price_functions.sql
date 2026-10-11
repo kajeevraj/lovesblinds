@@ -7,6 +7,8 @@ language sql immutable as $$
   select coalesce(array_agg(m[1]::numeric), '{}') from regexp_matches(coalesce(t, ''), '(\d+(?:\.\d+)?)', 'g') as m;
 $$;
 
+revoke all on function public.roll_numbers(text) from public, anon, authenticated;
+
 -- one lookup in one grid: round both sizes UP to the next axis value
 create or replace function public.grid_lookup(g public.price_grids, p_w numeric, p_h numeric) returns jsonb
 language plpgsql immutable set search_path = public as $$
@@ -25,6 +27,8 @@ begin
     'width_used',  case when g.rows_are = 'width' then g.row_axis[ri] else g.col_axis[ci] end,
     'height_used', case when g.rows_are = 'width' then g.col_axis[ci] else g.row_axis[ri] end);
 end $$;
+
+revoke all on function public.grid_lookup(public.price_grids, numeric, numeric) from public, anon, authenticated;
 
 -- one shade: full breakdown (internal)
 create or replace function public.price_single(p_line text, p_fabric text, p_opts jsonb, p_w numeric, p_h numeric) returns jsonb
