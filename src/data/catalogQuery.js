@@ -2,7 +2,8 @@
 // vite.config.js also imports it to build the early-fetch script in index.html, so the page and that script
 // can never ask for different things.
 //
-// One request per line page: the line's fabrics with their swatches embedded. Row Level Security returns
+// One request per line page: the line's fabrics with their swatches embedded. It goes to /api/catalog first (cached at the
+// edge) and to Supabase directly if that fails. Row Level Security returns
 // active rows only, so hidden swatches never reach the browser.
 
 const FABRIC_COLS = 'id,product_line,shown_in,family,collection_name,width,composition,weight,thickness,openness,opacity,use_area,extra_specs,sort_order';
@@ -27,6 +28,9 @@ export const catalogPath = (lineKey) => {
   return `/rest/v1/fabrics?select=${encodeURIComponent(select)}&shown_in=ov.${encodeURIComponent(`{${scope.join(',')}}`)}`
     + '&order=product_line,sort_order&swatches.order=sort_order';
 };
+
+// The same data from our own edge-cached function (api/catalog.js): same origin, so no extra connection to wait for.
+export const edgePath = (lineKey) => `/api/catalog?line=${encodeURIComponent(lineKey)}`;
 
 // Where a stored image path is served from (the public "swatches" bucket).
 export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swatches/${path.split('/').map(encodeURIComponent).join('/')}`;

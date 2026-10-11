@@ -1,21 +1,20 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { LINE_SCOPE, catalogPath } from './src/data/catalogQuery.js'
+import { LINE_SCOPE, edgePath } from './src/data/catalogQuery.js'
 
-// Line pages need their catalog from Supabase. This starts that request from index.html, before the app
-// script has even been downloaded, and opens the connection that the catalog request and the swatch images (both CORS-anonymous) share. It only runs on
-// /products/<line>, so the home page is unchanged. src/data/catalogApi.js picks the result up (window.__lbCatalog)
-// and makes the same request itself if this one failed. The query comes from catalogQuery.js, shared with the app.
+// Line pages need their catalog. This asks for it from index.html, before the app script has even been downloaded:
+// from our edge-cached function (api/catalog.js), which is same origin. It also opens the one connection to Supabase
+// that the swatch pictures use (they are CORS-anonymous, so the preconnect is too). It runs only on /products/<line>, so
+// the other pages are unchanged. src/data/catalogApi.js picks up the answer (window.__lbCatalog); if the function failed,
+// it asks Supabase directly. The path comes from catalogQuery.js, shared with the app.
 const earlyCatalog = (env) => ({
   name: 'early-catalog-fetch',
   transformIndexHtml() {
-    const base = env.VITE_SUPABASE_URL, key = env.VITE_SUPABASE_ANON_KEY
-    if (!base || !key) return []
-    const paths = Object.fromEntries(Object.keys(LINE_SCOPE).map(k => [k, catalogPath(k)]))
+    const base = env.VITE_SUPABASE_URL
+    const paths = Object.fromEntries(Object.keys(LINE_SCOPE).map(k => [k, edgePath(k)]))
     const script = `(function(){var m=location.pathname.match(/^\\/products\\/([^\\/]+)\\/?$/);var P=${JSON.stringify(paths)};if(!m||!P[m[1]])return;`
-      + `var u=${JSON.stringify(base)};`
-      + `var l=document.createElement('link');l.rel='preconnect';l.href=u;l.crossOrigin='anonymous';document.head.appendChild(l);`
-      + `window.__lbCatalog={line:m[1],promise:fetch(u+P[m[1]]+'&apikey='+${JSON.stringify(key)}).then(function(r){return r.ok?r.json():null}).catch(function(){return null})}})()`
+      + (base ? `var l=document.createElement('link');l.rel='preconnect';l.href=${JSON.stringify(base)};l.crossOrigin='anonymous';document.head.appendChild(l);` : '')
+      + `window.__lbCatalog={line:m[1],promise:fetch(P[m[1]]).then(function(r){return r.ok?r.json():null}).catch(function(){return null})}})()`
     return [{ tag: 'script', children: script, injectTo: 'head-prepend' }]
   },
 })

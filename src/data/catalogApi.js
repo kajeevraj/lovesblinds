@@ -1,6 +1,6 @@
 // Loads a line's catalog from Supabase and turns the rows into the shapes the pickers already use
 // (fabric.line / fabric.specs, swatch.code / displayName / image / thumb ...), so nothing downstream changes.
-import { catalogPath, storageUrl } from './catalogQuery.js';
+import { catalogPath, edgePath, storageUrl } from './catalogQuery.js';
 import { registerCatalog } from './swatchData.js';
 
 const BASE = import.meta.env.VITE_SUPABASE_URL;
@@ -39,15 +39,28 @@ export function mapRows(rows) {
   return { fabrics, swatches };
 }
 
-async function fetchRows(lineKey) {
+async function getJson(url) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
-    // The key rides in the URL so this is a plain GET: the browser skips the CORS preflight round trip.
-    const res = await fetch(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`, { signal: ctl.signal });
+    const res = await fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`catalog request failed (${res.status})`);
     return await res.json();
   } finally { clearTimeout(timer); }
+}
+
+const usable = (rows) => Array.isArray(rows) && rows.some(r => (r.swatches || []).length);
+
+// Straight from Supabase. The key rides in the URL so this is a plain GET: no CORS preflight round trip.
+const fetchDirect = (lineKey) => getJson(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`);
+
+// Our edge-cached function first; if it is down, answers badly, or is missing (local dev), Supabase directly.
+async function fetchRows(lineKey) {
+  try {
+    const rows = await getJson(edgePath(lineKey));
+    if (usable(rows)) return rows;
+  } catch { /* fall through to Supabase */ }
+  return fetchDirect(lineKey);
 }
 
 const loaded = new Set();
@@ -61,13 +74,13 @@ export function loadLineCatalog(lineKey, { retry = false } = {}) {
   if (pending.has(lineKey) && !retry) return pending.get(lineKey);
   if (!BASE || !KEY) return Promise.reject(new Error('Supabase is not configured'));
 
-  // index.html starts this request before any script has loaded; use it once, then fall back to our own.
+  // index.html asks the edge function before any script has loaded. Use that answer once; if it failed, go to Supabase directly.
   const early = !retry && typeof window !== 'undefined' ? window.__lbCatalog : null;
-  const first = early && early.line === lineKey ? early.promise.then(rows => rows || fetchRows(lineKey)) : fetchRows(lineKey);
+  const first = early && early.line === lineKey ? early.promise.then(rows => (usable(rows) ? rows : fetchDirect(lineKey))) : fetchRows(lineKey);
   if (early) window.__lbCatalog = null;
 
   const p = first.then(rows => {
-    if (!Array.isArray(rows) || rows.length === 0 || !rows.some(r => (r.swatches || []).length)) throw new Error('catalog is empty');
+    if (!usable(rows)) throw new Error('catalog is empty');
     registerCatalog(mapRows(rows));
     loaded.add(lineKey);
   }).finally(() => pending.delete(lineKey));

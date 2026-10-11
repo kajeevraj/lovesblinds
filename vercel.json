@@ -54,7 +54,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|robots\\.txt$).*)",
       "destination": "/index.html"
     }
   ]
