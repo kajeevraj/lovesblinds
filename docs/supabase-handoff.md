@@ -34,6 +34,7 @@ How to read it: the sandbox scores the old build 1 to 3 points under the handoff
 - Preconnects: line pages have two (the font files, and the Supabase image host); other pages one. `public/robots.txt` now allows everything (it was the app's HTML before), and the catch-all rewrite in `vercel.json` skips `/robots.txt`.
 
 ### Open items
+- **LCP regression ~0.7 s from swatch images on Supabase storage; consider serving thumbnails through a same-origin cached route during the redesign.** (Accepted for the merge. PageSpeed, mobile, Zebra, second run, preview `96f39a7`: 84 with LCP 3.7 s, against 88 and 3.0 s on the live site. SEO 100.)
 - Preview deployments need `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set for the **Preview** environment in Vercel, not only Production. Without the first two the line pages show "Colors are temporarily unavailable".
 - `loveblindswindows@gmail.com` is the only admin; its row binds when that account first signs in (it has not yet).
 - `src/data/displayNames.json` is still imported by `src/lib/selection.js` (names for orders saved before display names existed). Step 7 must replace that before the file moves to `archive/`.
