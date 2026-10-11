@@ -147,7 +147,7 @@ if (APPLY) {
     if (t === 'size_rules') {   // no natural key: only seed lines that have no rules yet
       const have = await (await fetch(`${U}/rest/v1/size_rules?select=line_id`, { headers: h })).json();
       const lines = new Set(have.map((x) => x.line_id)); const todo = rs.filter((r) => !lines.has(r.line_id));
-      if (todo.length) { const r = await fetch(`${U}/rest/v1/size_rules`, { method: 'POST', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(todo) }); if (!r.ok) throw new Error(`size_rules: HTTP ${r.status} ${await r.text()}`); }
+      if (todo.length) { const keys = [...new Set(todo.flatMap((x) => Object.keys(x)))]; const body = todo.map((x) => Object.fromEntries(keys.map((k) => [k, x[k] ?? null]))).map((x) => ({ ...x, when_values: x.when_values ?? {}, verified: x.verified ?? false })); const r = await fetch(`${U}/rest/v1/size_rules`, { method: 'POST', headers: { ...h, Prefer: 'return=minimal' }, body: JSON.stringify(body) }); if (!r.ok) throw new Error(`size_rules: HTTP ${r.status} ${await r.text()}`); }
       console.log(`size_rules: ${todo.length} inserted`); continue;
     }
     const r = await fetch(`${U}/rest/v1/${t}?on_conflict=${CONFLICT[t]}`, { method: 'POST', headers: { ...h, Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(rs) });

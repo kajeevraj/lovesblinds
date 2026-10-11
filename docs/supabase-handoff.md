@@ -2,6 +2,33 @@
 
 Branch: `claude/modest-meitner-r3crhf`. `main` is untouched.
 
+## Stage 1: supplier pricing and product options (branch `claude/supplier-pricing-stage1`, not merged)
+Admin only. Customers see no change: the site still reads its options from code and shows no prices.
+- **Migrations 6 and 7** (run in the SQL editor): admin-only tables for product lines, option groups and values, size rules, pricing lines, per-collection markups, price grids, the collections each grid covers, adders, flags and an import log, plus the `option-images` bucket. Functions: `estimate_price()` (anon-callable; returns only `{price, custom_size, price_on_request}`), `estimate_price_debug()` (admin; cost, grid cell, adders, markup), `price_import_apply()` (admin or service role; the same code path serves the one-time import and the admin re-import).
+- **Data** (loaded with the service role): 138 grids and about 164,000 cost cells from the seven workbooks, 14 adders, 91 option values, 16 flags. The workbooks are supplier costs and live only in the git-ignored `private/supplier-sheets/`. The Dream Curtains `--` tab (customer data) is never read.
+- **Price** = round((grid cost x multiplier + adders - deductions) x (1 + markup)), whole dollars; markup 50% per line, optional per-collection override. Sizes round UP to the next grid value; past the grid or a blank cell = "custom size". Double-stack = front + back. Cellular Day & Night is priced from the block of the second fabric. Zebra special sizes (x1.1) only when the standard grid has no price (Uranus and Venus, motor).
+- **Axes.** Roller, Zebra, Roman, Shangri-La, Woven wood: rows = width, columns = drop. Cellular, Dream Curtains: rows = height, columns = width. Verify with one real quote; each grid has a swap in the admin.
+- **Size limits from the grids (inches)**
+
+| Line | System | Width | Height / drop |
+|---|---|---|---|
+| Roller | cord, motor | 23-118 | 24-120 |
+| Roller | cordless | 23-98 | 24-96 |
+| Zebra | cord, motor | 23-118 | 24-118.2 |
+| Zebra | cordless | 23-98 | 24-96 |
+| Zebra special sizes (Uranus, Venus) | motor | 23-118 | 24-154 |
+| Shangri-La | cord | 23-112 | 24-118 (per collection "Max Length" is lower) |
+| Cellular | all types | 24-99 | 21-107 |
+| Roman | cord, motor | 23-94 | 24-104 |
+| Roman | cordless | 23-94 | 24-96 |
+| Dream Curtains | manual, motor | 24-352 | 12-228 |
+| Woven wood (hidden) | all | 16-94.5 | 24-118 (size standards say 94.5) |
+
+- **Admin:** Products (lines, option groups and values with picture upload, size rules) and Pricing (price checker, markups, grid viewer, adders and flags, re-import with preview).
+- **To confirm with the supplier** (flags in the admin): which axis is the width; Dream Curtains motor cost (placeholder +$110); Day & Night block; double-stack; Zebra special sizes; Shangri-La remote wand at the base grid.
+- **Done on the way:** the blackout collection "Gare" is now "Gaea" (ids unchanged). Shangri-La is horizontal only: the Format option, its picture and its copy are removed; saved orders that recorded a format still display as saved.
+- **Tests:** `live_pricing_tests.mjs` (cost privacy and admin actions, 35), `pricing_spotcheck.py` (20 prices against the workbooks), `e2e_admin_pricing_browser.mjs` (29, at 390 px), plus the earlier suites (23, 56, 48). `scripts/import-pricing.mjs`, `scripts/seed-options.mjs` and `scripts/rename-gaea.mjs` are the one-time loaders.
+
 ## Admin (phase 1, branch `claude/blissful-goldberg-y079ph`, not merged)
 - **/admin** (no link from the site; `noindex` meta tag and `X-Robots-Tag` header): Google sign-in only. A signed-in non-admin sees "You don't have access" and a Sign out button. All security is in the database (RLS and `is_admin()`); the browser only has the anon key. Lazy-loaded with its own CSS (`src/admin/`), so customers never download it. Idle sign-out after 30 minutes (client side; Supabase's own inactivity timeout is a Pro-plan setting). It shares the customer Supabase session, so signing out of /admin also signs that browser out of My Orders.
 - **Colors**: list with search and filters, add / edit / replace photo / Hide-Show / Delete, collections with specs and collection-level Hide, Roman style availability per swatch (drapery), Dream Curtains Style A/B codes and photos, color family suggested from the photo (`src/lib/colorFamily.js`, shared with Node; `scripts/check-color-family.mjs` compares it with the old script: 137 of 139 picture-decided swatches identical, the other 2 have manual overrides).

@@ -116,7 +116,7 @@ try {
   await page.getByRole('tab', { name: 'Grids' }).click(); await page.getByText(/\d+ grids/).first().waitFor();
   await page.locator('.adm-table tbody tr').first().getByRole('button', { name: 'View' }).click();
   await page.locator('.adm-grid').waitFor();
-  check('grid viewer shows the axes, the cells and the roll widths (sheet vs ours)', (await page.locator('.adm-grid td').count()) > 500 && /Roll: sheet/.test(await page.locator('.adm-card').last().innerText()), `${await page.locator('.adm-grid td').count()} cells`);
+  check('grid viewer shows the axes, the cells and the roll widths (sheet vs ours)', (await page.locator('.adm-grid td').count()) > 500 && (await page.locator('td[data-label="Roll: sheet"]').count()) > 0 && (await page.locator('td[data-label="Roll: ours"]').count()) > 0, `${await page.locator('.adm-grid td').count()} cells`);
   await page.screenshot({ path: `${OUT}/p4-grid.png`, fullPage: true });
   await page.getByLabel('Line').selectOption('dream-curtains'); await page.getByRole('button', { name: 'View' }).first().click(); await page.locator('.adm-grid').waitFor();
   check('Dream Curtains grid: the 115 in price dip is highlighted', (await page.locator('.adm-grid td.is-dip').count()) >= 42, `${await page.locator('.adm-grid td.is-dip').count()} highlighted cells`);
@@ -124,8 +124,10 @@ try {
   await page.getByRole('tab', { name: /Adders/ }).click(); await page.getByRole('heading', { name: /Things to confirm/ }).waitFor();
   const ft = await page.locator('.adm-flags').innerText();
   check('flags list the supplier questions (axis orientation, double-stack, Day & Night, Dream motor placeholder)', /Which sheet axis is the width/.test(ft) && /Double-stack/.test(ft) && /Day & Night/.test(ft) && /placeholder/i.test(ft), ft.length + ' chars');
-  const at = await page.locator('.adm-table').last().innerText();
-  check('adders include roller -$3 wraps, +$40 Matter, Shangri-La +$140, cellular +$100/+$120, woven wood, Dream +$110 placeholder', /No fabric wrap on the cassette/.test(at) && /140/.test(at) && /Motor \(standard\)/.test(at) && /No coating/.test(at) && /not in the supplier sheet/.test(at), 'checked');
+  const at = (await page.locator('.adm-table').last().innerText()) + ' ' + (await page.locator('input[aria-label^="Amount for"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')} = ${e.value}`).join(' ; ')));
+  const parts = { wraps: /No fabric wrap on the cassette/i, matter: /Bluetooth \(Matter\) motor/i, shangri140: /Bluetooth \/ Matter \(smart\) motor = 140/i, cellular: /Motor \(standard\)/i, woven: /No coating/i, dream: /not in the supplier sheet/i };
+  const missing = Object.entries(parts).filter(([, re]) => !re.test(at)).map(([k]) => k);
+  check('adders include roller wraps, Matter +$40, Shangri-La +$140, cellular motors, woven wood, and the Dream +$110 placeholder', missing.length === 0, missing.length ? `missing: ${missing.join(', ')}; text: ${at.replace(/\s+/g, ' ').slice(0, 400)}` : 'all present');
   await noOverflow('adders and flags');
   // re-import: an unchanged workbook shows nothing to apply; dream curtains has the "--" tab
   await page.getByRole('tab', { name: 'Re-import' }).click();
