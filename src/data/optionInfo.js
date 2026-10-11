@@ -32,11 +32,6 @@ export const ROLLER_MODE_INFO = {
   "double-stack": { desc: "Pairs two fabrics on one window and lets you pull each one down on its own.", img: "roller/double-stack" },
 };
 
-export const SHANGRI_FORMAT_INFO = {
-  "horizontal-shade": { desc: "Soft vanes between two sheer layers. Tilt to diffuse daylight, or raise for a clear view.", img: "shangri-la/horizontal" },
-  "sheer-vertical": { desc: "The same fabrics as a sheer vertical blind, for wide windows and sliding doors.", img: "shangri-la/vertical" },
-};
-
 export const CELLULAR_TYPE_INFO = {
   standard: { desc: "Raises from the bottom, like a standard shade.", img: "cellular-types/cellular-standard" },
   "top-down-bottom-up": { desc: "Lower it from the top or raise it from the bottom to let light in where you want it.", img: "cellular-types/cellular-top-down-bottom-up" },

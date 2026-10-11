@@ -62,7 +62,6 @@ export const LINES = [
     description: "Soft fabric vanes float between two sheer layers. Tilt to diffuse daylight, close for privacy, or raise for a clear view.",
     goodToKnow: [
       "Soft vanes between two sheer layers. Tilt to diffuse daylight, close for privacy, or raise for a clear view.",
-      "The same fabrics can also be made as a sheer vertical blind for wide windows and sliding doors.",
     ],
     mechanisms: mechs("remote_wand", "matter"),
     mounts: ["inside", "outside"],

@@ -13,7 +13,7 @@ dropped in as `public/explainers/mount/inside.jpg` replaces `inside.svg` with no
 | `cellular-types/` | Cellular product type step |
 | `mount/` | Inside vs outside mount (SVG, brand palette) |
 | `roller/` | Single vs double-stack (SVG) |
-| `shangri-la/` | Horizontal shade vs sheer vertical blind (SVG) |
+| `shangri-la/` | `horizontal.svg` (no longer used: Shangri-La has no format step) |
 | `dream-curtains/` | Style A vs Style B (SVG; A 41 cm = 12.5/16/12.5, B 33 cm = 10/13/10) |
 | `measure/` | Measure Guide diagrams (OM = outside mount, IM = inside mount, W = width, H = height) |
 

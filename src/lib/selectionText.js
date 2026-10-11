@@ -17,10 +17,9 @@ export const CELLULAR_TYPES = [
   { id: "top-down-bottom-up", label: "Top-Down/Bottom-Up" },
   { id: "day-night", label: "Day & Night" },
 ];
-export const SHANGRI_FORMATS = [
-  { id: "horizontal-shade", label: "Horizontal shade" },
-  { id: "sheer-vertical", label: "Sheer vertical blind" },
-];
+// Shangri-La only comes as a horizontal shade, so there is no format step any more. Orders saved while a format was offered
+// still carry it, and keep reading the way they were saved.
+const SAVED_SHANGRI_FORMATS = { "horizontal-shade": "Horizontal shade", "sheer-vertical": "Sheer vertical blind" };
 export const ROMAN_STYLES = [
   { id: "relax", label: "Relax" }, { id: "flat", label: "Flat" }, { id: "plain-fold", label: "Plain Fold" },
   { id: "ribble", label: "Ribble" }, { id: "hobble", label: "Hobble" },
@@ -55,7 +54,7 @@ export function summarize(item) {
   if (sel.section) titleBits.push(SECTION_LABELS[sel.section]);
   if (sel.mode) titleBits.push(MODE_LABELS[sel.mode]);
   const parts = [];
-  if (sel.format) parts.push(label(SHANGRI_FORMATS, sel.format));
+  if (sel.format) parts.push(SAVED_SHANGRI_FORMATS[sel.format] || String(sel.format));   // saved orders only
   if (sel.type) parts.push(label(CELLULAR_TYPES, sel.type));
   if (sel.style) parts.push(`${label(ROMAN_STYLES, sel.style)} style`);
   if (sel.pleat) parts.push(sel.pleat);

@@ -3,11 +3,11 @@ import { getActiveLine, getMechanism, MOUNTS } from './data/lines.js';
 import { fabricsFor, getSwatch } from './data/swatchData.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
 import {
-  FAMILY_LABELS, CELLULAR_TYPES, SHANGRI_FORMATS, ROMAN_STYLES, LINING_LABELS, PLEATS,
+  FAMILY_LABELS, CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS,
   romanStyleOptions, summarize,
 } from './lib/selection.js';
 import {
-  CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, SHANGRI_FORMAT_INFO, CELLULAR_TYPE_INFO,
+  CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, CELLULAR_TYPE_INFO,
   ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO,
 } from './data/optionInfo.js';
 import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
@@ -37,7 +37,7 @@ function Choice({ label, options, value, onChange }) {
 // ---------------------------------------------------------------------------
 const INITIAL = {
   mode: "single", frontFamily: "screen-view", backFamily: "screen-view", front: null, back: null,
-  pick: null, format: "horizontal-shade", cellFamily: "light-filtering", type: "standard", day: null, night: null,
+  pick: null, cellFamily: "light-filtering", type: "standard", day: null, night: null,
   romanStyle: null, lining: null, pleat: null, section: "curtains", dream: null,
 };
 
@@ -64,7 +64,6 @@ function buildSelection(line, c) {
       if (c.pick) sel.picks = [c.pick];
       break;
     case "shangri-la":
-      sel.format = c.format;
       need(c.pick, "a fabric and color");
       if (c.pick) sel.picks = [c.pick];
       break;
@@ -214,11 +213,7 @@ function Configurator({ line, addToQuote }) {
 
       {/* ---- Shangri-La ---- */}
       {line.id === "shangri-la" && (
-        <>
-          <OptionCards label="Format" value={c.format} onChange={(format) => set({ format })}
-            options={SHANGRI_FORMATS.map(f => ({ ...f, desc: SHANGRI_FORMAT_INFO[f.id].desc, img: SHANGRI_FORMAT_INFO[f.id].img }))} />
-          <SwatchPicker fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
-        </>
+        <SwatchPicker fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
       )}
 
       {/* ---- Cellular ---- */}

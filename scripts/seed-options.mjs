@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { LINES, MOUNTS } from '../src/data/lines.js';
 import * as INFO from '../src/data/optionInfo.js';
-import { FAMILY_LABELS, CELLULAR_TYPES, SHANGRI_FORMATS, ROMAN_STYLES, LINING_LABELS, PLEATS, SECTION_LABELS, MODE_LABELS } from '../src/lib/selectionText.js';
+import { FAMILY_LABELS, CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS, SECTION_LABELS, MODE_LABELS } from '../src/lib/selectionText.js';
 
 const args = process.argv.slice(2); const APPLY = args.includes('--apply'); const SQL = args.includes('--sql') ? args[args.indexOf('--sql') + 1] : null;
 for (const f of ['.env.seed.local', '.env.local']) if (existsSync(f)) for (const l of readFileSync(f, 'utf8').split('\n')) { const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, ''); }
@@ -56,10 +56,6 @@ for (const id of LINE_ORDER) {
     l.modes.forEach((c, i) => value(m, c, MODE_LABELS[c], { explanation: INFO.ROLLER_MODE_INFO[c].desc, image_key: INFO.ROLLER_MODE_INFO[c].img, is_default: i === 0, sort: i }));
     const f = group(id, 'family', 'Fabric family', { bound: true });
     l.families.forEach((c, i) => value(f, c, FAMILY_LABELS[c], { is_default: i === 0, sort: i }));
-  }
-  if (id === 'shangri-la') {
-    const g = group(id, 'format', 'Format');
-    SHANGRI_FORMATS.forEach((c, i) => value(g, c.id, c.label, { explanation: INFO.SHANGRI_FORMAT_INFO[c.id].desc, image_key: INFO.SHANGRI_FORMAT_INFO[c.id].img, is_default: i === 0, sort: i }));
   }
   if (id === 'cellular') {
     const g = group(id, 'type', 'Product type', { bound: true });
@@ -144,6 +140,9 @@ if (APPLY) {
   const U = process.env.SUPABASE_URL, K = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!U || !K) { console.error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed'); process.exit(1); }
   const h = { apikey: K, Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' };
+  // Shangri-La has no format step (horizontal shade only): make sure an earlier seed did not leave one behind
+  const gone = await fetch(`${U}/rest/v1/option_groups?id=eq.shangri-la:format`, { method: 'DELETE', headers: { ...h, Prefer: 'return=representation' } });
+  if (gone.ok) console.log(`removed the Shangri-La format group if it existed: ${(await gone.json()).length} row(s)`);
   for (const [t, rs] of Object.entries(rows)) {
     if (t === 'size_rules') {   // no natural key: only seed lines that have no rules yet
       const have = await (await fetch(`${U}/rest/v1/size_rules?select=line_id`, { headers: h })).json();
