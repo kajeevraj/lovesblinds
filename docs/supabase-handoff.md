@@ -1,6 +1,38 @@
 # Catalog to Supabase: handoff
 
-Branch: `claude/modest-meitner-r3crhf`. Nothing here has run against the live database. `main` is untouched.
+Branch: `claude/modest-meitner-r3crhf`. `main` is untouched.
+
+## Status (updated after step 6)
+Steps 1 to 6 are done on this branch; step 5's approval was given and the site now reads the catalog from Supabase. **Not merged. Steps 7 and 8 and the merge wait for approval.**
+
+- Project `njhlhjdbcesidgixycxj` (confirmed as the live site's project). Preflight was all 0. Migrations 1 and 2 were run in the SQL editor (the pooler connection is blocked from the cloud session). **Migration 3** (`..._000003_service_role_grants.sql`) is also required: this project does not give `service_role` privileges on tables created in the SQL editor.
+- Seed applied: 89 fabrics, 437 swatches (roller 133, zebra 88, shangri-la 21, cellular 33, dream-curtains 39, drapery 123), 886 images. `--verify` matches, and an anonymous visitor reads all 437.
+- `supabase/tests/live_tests.mjs`: 23 live checks over HTTPS (three constraint refusals; anonymous and signed-in non-admin can read, cannot insert, update, delete, read admins or upload). It creates and deletes a temporary user.
+- Site: each line page makes **one** request (`src/data/catalogQuery.js` is the single definition; the Drapery page also gets Dream Curtains). `index.html` starts that request before the app loads (Vite plugin in `vite.config.js`) and opens the connection the swatch images then share. Skeleton while loading; "Colors are temporarily unavailable" with a Try again button if it fails. The rest of the page stays usable.
+- Rendering check: the old JSON build and the Supabase build produce byte-identical pickers (tile names, codes, filter chips, counts, grouping) for all 10 states of the six lines.
+- Order email (`api/quote.js`): looks up every picked swatch by id with `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` and rebuilds the supplier code, display name, collection and color text from the catalog. A failed lookup, a missing key, or an unknown swatch falls back to the order as sent, so orders always arrive. The shared text logic moved to `src/lib/selectionText.js` (no imports, so Node can load it); `src/lib/selection.js` is the browser entry point.
+- 390 px walkthrough: one item per line (double-stack Roller, Zebra, Shangri-La, Day & Night Cellular, Roman, Drapery curtains, Dream Curtains with Style B, Dream Curtains without styles) through to the `/api/quote` payload: every code, display name, supplier color and collection matched the original supplier data, and the customer text shows no collection name.
+- **Fixed on the way (it was already in `main`):** the filter-chip row made every line page wider than a 390 px screen (611 px on Roller, 847 px on Cellular). The row is meant to scroll sideways; its grid parent now lets it.
+
+### Lighthouse (mobile, performance; accessibility is 100 everywhere, in every run)
+| Page | Handoff baseline | `49a1fda` built and run here | New build, Supabase replayed locally | New build, live Supabase from this sandbox |
+|---|---|---|---|---|
+| Home | 98 | 98 | 99 | 99 |
+| Roller | 96 | 94 | 97 | 99 |
+| Zebra | 99 | 97 | 97 | 90 |
+| Shangri-La | 98 | 96 | 98 | 99 |
+| Cellular | 98 | 96 | 97 | 99 |
+| Roman | 95, 94, 94 | 92 | 92 | 87 |
+| Drapery | 93, 93, 94 | 92 | 93 | 88 |
+
+How to read it: the sandbox scores the old build 1 to 3 points under the handoff numbers, so the handoff table cannot be reproduced here. The last column goes through a slow proxy (each tiny request takes about 0.5 s), which inflates anything that has to wait for a remote request; the replay column removes that but is optimistic (plain HTTP, no handshake). On Zebra, Roman and Drapery the first swatch picture is the Largest Contentful Paint element, and it now waits for the catalog request. **The condition "within 1 point of the baseline" is not proven for Zebra, Roman and Drapery.** Measure the Vercel preview (for example PageSpeed Insights, mobile) before merging. If those three come up short, the fix to consider is a small Vercel function that returns the line's catalog from the edge cache (same origin, so no extra connection), at the price of a short delay before admin changes show.
+
+### Open items
+- Preview deployments need `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set for the **Preview** environment in Vercel, not only Production. Without the first two the line pages show "Colors are temporarily unavailable".
+- `loveblindswindows@gmail.com` is the only admin; its row binds when that account first signs in (it has not yet).
+- `src/data/displayNames.json` is still imported by `src/lib/selection.js` (names for orders saved before display names existed). Step 7 must replace that before the file moves to `archive/`.
+- `/measure` is wider than 390 px (a button, 435 px). Not touched; it is outside this change.
+- Old saved orders still point at `/images/swatches/...` for their thumbnails; keep `public/images/swatches/` until those are migrated or expired.
 
 ## Decisions (approved)
 - Claude runs the migrations from a session, using `SUPABASE_DB_URL`. Before migrating, run `supabase/preflight.sql` (read-only). **If any count is not 0, stop and report.**

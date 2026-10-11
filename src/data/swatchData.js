@@ -1,31 +1,27 @@
 // The one data module for swatches. Everything keys by line + family + fabric + code,
 // never by fabric name alone (names repeat across Roller families).
-import { mergeCatalogs, orderCatalogs } from './mergeSwatches.js';
-import COLOR_FAMILIES from './colorFamilies.json';
-import DISPLAY_NAMES from './displayNames.json';
+// The catalog lives in Supabase: src/data/catalogApi.js loads a line and registers it here, and the
+// helpers below read what has been registered.
 import { COLOR_FAMILY_LIST } from './colorFamilyList.js';
-import COLOR_OVERRIDES from './colorFamilyOverrides.json';
 
-const files = import.meta.glob('./swatches*.json', { eager: true, import: 'default' });
-const { fabrics, swatches } = mergeCatalogs(
-  orderCatalogs(Object.entries(files).map(([path, data]) => ({ name: path.replace('./', ''), data })))
-);
-
-// Customer-facing names live in displayNames.json, apart from the supplier data. The supplier's own color name
-// and code stay as stored; a missing display name falls back to the code, never to the supplier name.
-for (const s of swatches) s.displayName = DISPLAY_NAMES[s.id] || s.code;
-
-export const FABRICS = fabrics;
-export const SWATCHES = swatches;
-
+const fabrics = [];
+const swatches = [];
 const swatchesByFabric = new Map();
 const swatchIndex = new Map();
-for (const s of swatches) {
-  swatchIndex.set(s.id, s);
-  if (!swatchesByFabric.has(s.fabricId)) swatchesByFabric.set(s.fabricId, []);
-  swatchesByFabric.get(s.fabricId).push(s);
+const fabricIndex = new Map();
+
+export function registerCatalog({ fabrics: newFabrics, swatches: newSwatches }) {
+  for (const f of newFabrics) {
+    if (fabricIndex.has(f.id)) continue;
+    fabricIndex.set(f.id, f); fabrics.push(f);
+  }
+  for (const s of newSwatches) {
+    if (swatchIndex.has(s.id)) continue;
+    swatchIndex.set(s.id, s); swatches.push(s);
+    if (!swatchesByFabric.has(s.fabricId)) swatchesByFabric.set(s.fabricId, []);
+    swatchesByFabric.get(s.fabricId).push(s);
+  }
 }
-const fabricIndex = new Map(fabrics.map(f => [f.id, f]));
 
 const linesOf = (x) => x.lines || [x.line];
 
@@ -74,8 +70,8 @@ export const swatchLabel = (s) => `${s.displayName} (${s.code})`;
 
 export const COLOR_FAMILY_ORDER = COLOR_FAMILY_LIST;
 
-// Manual overrides (colorFamilyOverrides.json) win over the script result (colorFamilies.json).
-export const colorFamilyOf = (s) => COLOR_OVERRIDES[s.id] || COLOR_FAMILIES[s.id] || 'Pattern/Multi';
+// Stored on the swatch (swatches.color_family); the review overrides were applied when the catalog was seeded.
+export const colorFamilyOf = (s) => s.colorFamily || 'Pattern/Multi';
 
 // Light control: Screen View by openness (0% most private), everything else by opacity.
 const OPACITY_ORDER = ['Blackout', 'Semi-blackout', 'Translucent', 'Semi-transparent', 'Visual contact outside'];
@@ -116,5 +112,5 @@ export function entriesFor(fabricList, family = null) {
   return out;
 }
 
-// Small grid tile for a swatch (built by scripts/build_swatch_tiles.js); the original image is the fallback.
-export const tileSrc = (s) => s.image.replace('/images/swatches/', '/images/swatches-opt/').replace(/\.jpe?g$/i, '.webp');
+// Small grid tile: the 320 px WebP stored next to the full image; the full image is the fallback.
+export const tileSrc = (s) => s.thumb;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getActiveLine, getMechanism, MOUNTS } from './data/lines.js';
 import { fabricsFor, getSwatch } from './data/swatchData.js';
+import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
 import {
   FAMILY_LABELS, CELLULAR_TYPES, SHANGRI_FORMATS, ROMAN_STYLES, LINING_LABELS, PLEATS,
   romanStyleOptions, summarize,
@@ -112,6 +113,7 @@ const controlOptions = (line) => line.mechanisms.map(m => ({
 }));
 
 function Configurator({ line, addToQuote }) {
+  const catalog = useLineCatalog(line.id);        // one Supabase request for this line's fabrics and swatches
   const [c, setC] = useState(INITIAL);
   const set = (patch) => setC(prev => ({ ...prev, ...patch }));
   const [mech, setMech] = useState(line.mechanisms[0].id);
@@ -176,6 +178,7 @@ function Configurator({ line, addToQuote }) {
   const mountObj = MOUNTS.find(m => m.id === mount);
 
   return (
+    <CatalogStatusContext.Provider value={catalog}>
     <section className="configurator" id="configure" aria-labelledby="configure-title">
       <h2 id="configure-title" className="sr-only">Configure your {line.name.toLowerCase()} order</h2>
 
@@ -325,6 +328,7 @@ function Configurator({ line, addToQuote }) {
         </div>
       </div>
     </section>
+    </CatalogStatusContext.Provider>
   );
 }
 

@@ -2,9 +2,11 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { entriesFor, specRows, COLOR_FAMILY_ORDER, tileSrc } from '../data/swatchData.js';
 import { OptionCards } from './ExplainerImg.jsx';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
+import { useCatalogStatus } from '../lib/useCatalog.js';
 
 // ---------------------------------------------------------------------------
 // Swatch images: lazy, with a neutral tile showing the code when the file fails.
+// crossOrigin="anonymous" (the bucket allows any origin) lets them reuse the connection the catalog request already opened.
 // ---------------------------------------------------------------------------
 export function SwatchImg({ src, fallback, srcSet, sizes, alt, code, size, className = "", eager = false }) {
   const [stage, setStage] = useState(0);            // 0 = src, 1 = fallback file, 2 = code tile
@@ -14,7 +16,7 @@ export function SwatchImg({ src, fallback, srcSet, sizes, alt, code, size, class
   }
   const next = () => setStage(s => (s === 0 && fallback ? 1 : 2));
   return (
-    <img className={className} src={current} srcSet={stage === 0 ? srcSet : undefined} sizes={stage === 0 ? sizes : undefined} alt={alt} width={size} height={size} loading={eager ? "eager" : "lazy"} fetchpriority={eager ? "high" : "low"} decoding="async" onError={next} />
+    <img className={className} crossOrigin="anonymous" src={current} srcSet={stage === 0 ? srcSet : undefined} sizes={stage === 0 ? sizes : undefined} alt={alt} width={size} height={size} loading={eager ? "eager" : "lazy"} fetchpriority={eager ? "high" : "low"} decoding="async" onError={next} />
   );
 }
 
@@ -106,6 +108,7 @@ function SwatchDialog({ entry, role, onChoose, onClose, chosen }) {
 // Picker: filter chips, grouped swatch grid, larger view, optional Dream Curtains style.
 // ---------------------------------------------------------------------------
 export default function SwatchPicker({ heading, step, fabrics, role, family = null, onChange, eagerFirst = true }) {
+  const catalog = useCatalogStatus();
   const entries = useMemo(() => entriesFor(fabrics, family), [fabrics, family]);
   const [sel, setSel] = useState({ color: null, light: null, material: null });
   const [grouped, setGrouped] = useState(true);
@@ -133,6 +136,23 @@ export default function SwatchPicker({ heading, step, fabrics, role, family = nu
     if (!grouped || sel.color) return [{ name: null, items: results }];
     return COLOR_FAMILY_ORDER.map(name => ({ name, items: results.filter(e => e.color === name) })).filter(g => g.items.length);
   }, [grouped, sel.color, results]);
+
+  if (catalog.status !== "ready") {
+    const prefix = step ? `${step} · ` : "";
+    return (
+      <div className="picker" aria-busy={catalog.status === "loading"}>
+        {heading && <h3 className="picker-heading serif">{heading}</h3>}
+        <div className="label">{prefix}Choose a fabric</div>
+        {catalog.status === "loading" ? (
+          <div className="sw-grid sw-skeleton" role="status" aria-label="Loading colors">
+            {Array.from({ length: 8 }, (_, i) => <span key={i} className="sw-skel-tile" aria-hidden="true" />)}
+          </div>
+        ) : (
+          <div className="no-results" role="alert">Colors are temporarily unavailable. <button type="button" className="link-btn" onClick={catalog.retry}>Try again</button></div>
+        )}
+      </div>
+    );
+  }
 
   const tileCount = { n: 0 };                    // the first few tiles load eagerly (they are the first thing people see)
   const prefix = step ? `${step} · ` : "";
@@ -195,7 +215,7 @@ export default function SwatchPicker({ heading, step, fabrics, role, family = nu
               const eager = eagerFirst && tileCount.n++ < 4;
               return (
                 <button key={s.id} type="button" className={`sw-tile${selected ? " selected" : ""}`} aria-pressed={selected} onClick={() => setView(e)}>
-                  <SwatchImg src={tileSrc(s)} fallback={s.image} srcSet={`${s.thumb} 160w, ${tileSrc(s)} 320w`} sizes="(max-width: 639px) 45vw, 190px" alt={altOf(e)} code={s.code} size={160} eager={eager} />
+                  <SwatchImg src={tileSrc(s)} fallback={s.image} alt={altOf(e)} code={s.code} size={160} eager={eager} />
                   <span className="sw-label">{labelOf(e)}</span>
                   <span className="sw-code">{s.styles?.length ? s.styles.map(x => x.code).join(" / ") : s.code}</span>
                   {e.light && <span className="sw-sub">{e.light.label}</span>}

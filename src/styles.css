@@ -1269,8 +1269,8 @@ a { color: inherit; }
 .option-card-desc { font-size: 12px; line-height: 1.4; color: rgba(34,31,26,0.78); padding: 0 4px; }
 
 /* facets */
-.facets { display: grid; gap: 8px; margin: 10px 0 8px; }
-.facet { display: flex; flex-direction: column; gap: 4px; }
+.facets { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 10px 0 8px; }
+.facet { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .facet-label { font-family: var(--label); font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(34,31,26,0.75); }
 .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
 @media (min-width: 900px) { .chips { flex-wrap: wrap; overflow: visible; } }
@@ -1317,3 +1317,9 @@ a { color: inherit; }
 .measure-figure figcaption { font-size: 12.5px; color: rgba(34,31,26,0.78); margin-top: 8px; text-align: center; }
 .measure-figures { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 700px) { .measure-figures { grid-template-columns: 1fr 1fr; } }
+
+/* Catalog loading: a grid of the same size as the swatch tiles, so nothing jumps when the colors arrive. */
+.sw-skeleton { margin-top: 10px; }
+.sw-skel-tile { display: block; aspect-ratio: 1 / 1.45; border-radius: 10px; background: linear-gradient(100deg, #ece7db 30%, #f5f1e8 50%, #ece7db 70%); background-size: 200% 100%; animation: sw-skel 1.4s ease-in-out infinite; }
+@keyframes sw-skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .sw-skel-tile { animation: none; } }

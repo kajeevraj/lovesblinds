@@ -433,6 +433,7 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
             codes: sum.codes,
             colorName: sum.colorText || it.colorName || it.variant,     // customer wording: display name and code
             category: it.category || it.product.id,
+            productName: it.product.name,                                 // lets the server rebuild the text from catalog data
             section: it.selection?.section || null,
             description: describeItem(it),                                // customer wording, used in the customer email
             internalDescription: describeInternal(it),                    // supplier collection, color name and code, for us only

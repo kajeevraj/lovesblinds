@@ -1,5 +1,6 @@
 import XLSX from 'xlsx';
 import { Resend } from 'resend';
+import { summarize, describeItem, describeInternal, displayNameOf } from '../src/lib/selectionText.js';
 
 const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
 const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
@@ -32,7 +33,7 @@ function nameCell(line) {
 
 // ── xlsx ─────────────────────────────────────────────────────────────────────
 
-function buildWorkbook(customer, lines, notes) {
+export function buildWorkbook(customer, lines, notes) {
   const rows = [];
 
   // Header block — all four lines always present
@@ -113,7 +114,7 @@ function buildWorkbook(customer, lines, notes) {
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Customer email: description (display name + code). Internal email: internalDescription (supplier data too).
-function lineListHtml(lines, internal = false) {
+export function lineListHtml(lines, internal = false) {
   return lines.map(l =>
     `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
     `, qty ${esc(l.qty)}` +
@@ -124,6 +125,94 @@ function lineListHtml(lines, internal = false) {
   ).join('');
 }
 
+// ── catalog lookup ────────────────────────────────────────────────────────────
+// The browser sends what the customer saw, but supplier codes and names in our own email and spreadsheet come from the
+// catalog in Supabase (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, server side only). If the lookup fails for any reason,
+// or a swatch is not found, that part of the order falls back to the payload, so an order always arrives.
+
+const LOOKUP_TIMEOUT_MS = 4000;
+
+export async function lookupSwatches(ids, env = process.env) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || ids.length === 0) return null;
+  const list = ids.map(id => `"${String(id).replace(/"/g, '')}"`).join(',');
+  const select = 'id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics(collection_name)';
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${url}/rest/v1/swatches?select=${encodeURIComponent(select)}&id=in.(${encodeURIComponent(list)})`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      signal: ctl.signal,
+    });
+    if (!res.ok) throw new Error(`catalog lookup failed (${res.status})`);
+    return new Map((await res.json()).map(r => [r.id, r]));
+  } finally { clearTimeout(timer); }
+}
+
+// One order line, with every pick it can find in the catalog replaced by the catalog's values, and the text built
+// from the picks rebuilt with the same code the browser uses. Returns the line unchanged when there is nothing to do.
+export function applyCatalog(line, rows) {
+  const picks = line?.selection?.picks;
+  if (!rows || !Array.isArray(picks) || picks.length === 0 || !line.productName) return { line, found: 0, total: picks?.length || 0, diffs: [] };
+  const diffs = [];
+  let found = 0;
+  const fresh = picks.map(p => {
+    const r = rows.get(p.swatchId);
+    if (!r) return p;
+    const styleCode = p.style ? (r.styles || []).find(st => st.style === p.style)?.code : null;
+    const next = {
+      ...p,
+      line: r.product_line,
+      family: r.family || null,
+      fabric: r.fabrics?.collection_name ?? p.fabric,
+      colorName: r.supplier_color_name ?? null,
+      displayName: r.display_name,
+      code: styleCode || (p.style ? p.code : r.supplier_code),
+    };
+    found++;
+    for (const k of ['code', 'displayName', 'colorName', 'fabric']) {
+      if ((p[k] ?? null) !== (next[k] ?? null)) diffs.push(`${p.swatchId}.${k}: sent ${JSON.stringify(p[k] ?? null)}, catalog ${JSON.stringify(next[k] ?? null)}`);
+    }
+    return next;
+  });
+  if (found === 0) return { line, found, total: picks.length, diffs };
+  const selection = { ...line.selection, picks: fresh };
+  const item = { product: { name: line.productName }, selection };
+  const sum = summarize(item);
+  return {
+    found, total: picks.length, diffs,
+    line: {
+      ...line,
+      selection,
+      code: sum.codes.length ? sum.codes.join(', ') : (line.code || null),
+      codes: sum.codes,
+      colorName: sum.colorText || line.colorName,
+      description: describeItem(item),
+      internalDescription: describeInternal(item),
+      internalPicks: fresh.map(p => ({ line: p.line, role: p.role, code: p.code, displayName: displayNameOf(p), supplierColor: p.colorName ?? null, collection: p.fabric, style: p.style })),
+      details: sum.parts,
+    },
+  };
+}
+
+// Never throws: any failure returns the lines exactly as they were sent.
+export async function withCatalog(lines, env = process.env) {
+  try {
+    const ids = [...new Set(lines.flatMap(l => (l?.selection?.picks || []).map(p => p.swatchId)).filter(Boolean))];
+    if (ids.length === 0) return { lines, source: 'payload (no swatches in the order)' };
+    const rows = await lookupSwatches(ids, env);
+    if (!rows) return { lines, source: 'payload (catalog lookup not configured)' };
+    const out = lines.map(l => applyCatalog(l, rows));
+    const missing = out.reduce((n, r) => n + (r.total - r.found), 0);
+    for (const r of out) for (const d of r.diffs) console.warn('[api/quote] payload differs from the catalog:', d);
+    if (missing) console.warn(`[api/quote] ${missing} picked swatch(es) not found in the catalog; payload values used for them`);
+    return { lines: out.map(r => r.line), source: missing ? `catalog (${missing} not found, payload used)` : 'catalog' };
+  } catch (err) {
+    console.error('[api/quote] catalog lookup failed, using the order as sent:', err?.message || err);
+    return { lines, source: 'payload (catalog lookup failed)' };
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -131,12 +220,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { customer, lines, notes } = req.body || {};
+  const { customer, lines: sentLines, notes } = req.body || {};
 
   if (!customer?.email) {
     return res.status(400).json({ error: 'customer.email is required' });
   }
-  if (!Array.isArray(lines) || lines.length === 0) {
+  if (!Array.isArray(sentLines) || sentLines.length === 0) {
     return res.status(400).json({ error: 'At least one line item is required' });
   }
 
@@ -145,6 +234,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { lines, source } = await withCatalog(sentLines);
+    console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}`);
     const wb = buildWorkbook(customer, lines, notes || '');
     const xlsxBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
