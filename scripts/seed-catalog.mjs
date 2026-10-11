@@ -5,6 +5,9 @@
 //   node scripts/seed-catalog.mjs --apply          upsert rows and upload images to the Supabase project in your environment
 //   node scripts/seed-catalog.mjs --verify         only count rows per line and compare with the expected numbers
 //
+// Safe to run twice, but NOTE: --apply writes every row back to the archived data, which undoes anything changed in the admin
+// page since. It therefore needs --overwrite-admin-edits as well (only for rebuilding an empty or damaged catalog).
+//
 // Safe to run twice: rows are upserted by id and images are uploaded with upsert.
 //
 // Keys (never paste them into chat; never give them a VITE_ prefix):
@@ -21,6 +24,10 @@ const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 const arg = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
 const APPLY = has('--apply');
+if (APPLY && !has('--overwrite-admin-edits')) {
+  console.error('Refusing to run: --apply overwrites every catalog row with the archived data, undoing edits made in /admin.\nAdd --overwrite-admin-edits if that is really what you want.');
+  process.exit(1);
+}
 const VERIFY_ONLY = has('--verify');
 const SQL_OUT = arg('--sql');
 

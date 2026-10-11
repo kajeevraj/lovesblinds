@@ -1073,6 +1073,7 @@ a { color: inherit; }
   .admin-layout { grid-template-columns: 1fr; }
   .admin-sidebar { display: none; }
   .admin-main { padding: 24px 18px 60px; }
+  .measure-cta { flex-direction: column; align-items: flex-start; gap: 20px; padding: 24px; }
   .pricing-row { grid-template-columns: 1fr 1fr; }
   .combo-row { grid-template-columns: 80px 1fr; }
   .combo-row .combo-price-input, .combo-row .combo-notes { grid-column: 2; }

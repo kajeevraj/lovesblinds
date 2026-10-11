@@ -19,7 +19,10 @@ export function useAuth() {
       setUser(u);
 
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        if (u) {
+        // The admin page shares this session but is not a customer: don't create a draft order for the admin.
+        if (u && window.location.pathname.startsWith('/admin')) {
+          setAuthLoading(false);
+        } else if (u) {
           if (fetchedUserId.current !== u.id) {
             fetchedUserId.current = u.id;
             fetchOrders(u.id);

@@ -75,7 +75,6 @@ export function Footer({ navigate }) {
   );
 }
 
-// Kept exported: the admin area still imports it.
 export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
   return (
     <div className={`photo-ph ${className}`} style={{ aspectRatio: aspect, ...style }}>

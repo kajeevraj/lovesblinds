@@ -2,13 +2,13 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
+import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
 
-// Code-split: the line page pulls in the swatch data. The admin area is a mockup with no real
-// authentication, so it is excluded from production builds (VITE_ENABLE_ADMIN).
+// Code-split: the line page pulls in the swatch data. The admin area is its own chunk (with its own CSS), fetched only
+// when someone opens /admin, so customers never download it. What an admin may do is decided by the database, not here.
 const LinePage = lazy(() => import('./linepage.jsx'));
-// With the flag off, this branch is dead code and the admin chunk is not built at all.
-const AdminApp = import.meta.env.VITE_ENABLE_ADMIN === 'true' ? lazy(() => import('./AdminApp.jsx')) : null;
+const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 
@@ -43,6 +43,7 @@ export default function App() {
     return [];
   });
   const [snackbar, setSnackbar]   = useState(null);
+  useMissingNames(quote);                       // names for picks saved before display names existed
   const quoteRef = useRef(quote);
   useEffect(() => { quoteRef.current = quote; });
 
@@ -140,10 +141,10 @@ export default function App() {
     navigate("quote");
   };
 
-  if (route === "admin" && AdminApp) {
+  if (route === "admin") {
     return (
       <Suspense fallback={null}>
-        <AdminApp onExit={() => navigate("home")} />
+        <AdminApp />
       </Suspense>
     );
   }
