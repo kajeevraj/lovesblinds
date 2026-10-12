@@ -101,8 +101,8 @@ try {
   const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 150 });
   const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 110 });
-  check('the Dream Curtains motor placeholder (+$110) is editable and flagged as a placeholder', before.adders?.[0]?.status === 'placeholder' && Math.abs(after.subtotal - before.subtotal - 40) < 0.01, `adders ${JSON.stringify(before.adders)}; +$40 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 90 });
+  check('the Dream Curtains motor (+$90) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 90 && Math.abs(after.subtotal - before.subtotal - 40) < 0.01, `adders ${JSON.stringify(before.adders)}; +$40 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
   // options
   r = await call('POST', '/rest/v1/option_values', { ...admin.hdr, ...REP }, { id: 'roller:mode:zz-triple', group_id: 'roller:mode', code: 'zz-triple', label: 'Triple', sort_order: 99 });
   check('admin cannot add an option to a group tied to the site\'s code (roller mode)', r.status >= 400, short(r));
@@ -140,7 +140,7 @@ try {
 } finally {
   for (const fn of cleanup.reverse()) { try { await fn(); } catch { /* best effort */ } }
   await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', svc, { markup: 0.5 });
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: 110 });
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: 90 });
   for (const id of adminRows) await call('DELETE', `/rest/v1/admins?id=eq.${id}`, svc);
   for (const id of users) await call('DELETE', `/auth/v1/admin/users/${id}`, svc);
   const left = []; for (const id of users) left.push((await call('GET', `/auth/v1/admin/users/${id}`, svc)).status);

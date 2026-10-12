@@ -29,6 +29,7 @@ export default function AddersFlags({ data, reload }) {
             <li key={f.id} className={f.resolved ? 'is-done' : ''}>
               <div><span className={`adm-badge ${f.kind === 'info' ? 'is-active' : 'is-off'}`}>{KIND[f.kind]}</span> <strong>{f.title}</strong> <span className="adm-muted adm-small">{lineName(f.line_id)}</span></div>
               <p>{f.detail}</p>
+              {f.resolved && f.resolution_note && <p className="adm-small"><strong>Resolved:</strong> {f.resolution_note}</p>}
               {f.kind !== 'info' && <label className="adm-check"><input type="checkbox" checked={f.resolved} onChange={() => resolve(f)} /> {f.kind === 'anomaly' ? 'Reviewed' : 'Confirmed'}</label>}
             </li>
           ))}
@@ -46,7 +47,7 @@ export default function AddersFlags({ data, reload }) {
                 <td data-label="Adder">{a.kind === 'add' ? '+' : '−'} {a.label}{a.unit === 'per_sqft' ? ' (per sq ft)' : ''}{a.note && <div className="adm-muted adm-small">{a.note}</div>}</td>
                 <td data-label="Applies when" className="adm-small">{when(a.applies_when)}</td>
                 <td data-label="Amount"><div className="adm-inline">$<input type="number" step="0.01" min="0" aria-label={`Amount for ${a.label}`} value={v} onChange={(e) => setEdit({ ...edit, [a.id]: e.target.value })} placeholder="missing" /></div>{a.amount == null && <div className="adm-warn adm-small">missing</div>}</td>
-                <td data-label="Status"><span className={`adm-badge ${a.status === 'from_sheet' ? 'is-active' : 'is-off'}`}>{a.status === 'placeholder' ? 'Placeholder, confirm with supplier' : a.status === 'confirm' ? 'Confirm' : 'From the sheet'}</span></td>
+                <td data-label="Status"><span className={`adm-badge ${a.status === 'from_sheet' || a.status === 'from_supplier' ? 'is-active' : 'is-off'}`}>{a.status === 'placeholder' ? 'Placeholder, confirm with supplier' : a.status === 'confirm' ? 'Confirm' : a.status === 'from_supplier' ? 'From the supplier' : 'From the sheet'}</span></td>
                 <td data-label="Source" className="adm-small adm-muted">{a.source}</td>
                 <td className="adm-actions"><button className="adm-btn adm-btn-sm" disabled={edit[a.id] === undefined} onClick={() => save(a)}>Save</button> <button className="adm-btn adm-btn-sm" onClick={() => toggle(a)}>{a.active ? 'Turn off' : 'Turn on'}</button></td>
               </tr>

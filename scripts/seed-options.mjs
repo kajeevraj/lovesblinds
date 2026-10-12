@@ -93,12 +93,12 @@ const PL = [['roller', 'Roller Shades', 'roller', 'either'], ['zebra', 'Zebra / 
   ['roman', 'Roman Shades', 'roman', null], ['cellular', 'Cellular Shades', 'cellular', null], ['dream-curtains', 'Dream Curtains', 'drapery', null],
   ['drapery', 'Drapery (curtains)', 'drapery', null], ['woven-wood', 'Woven Wood Shades', 'woven-wood', null]];
 for (const [id, name, product_line_id, roll_rule] of PL) rows.pricing_lines.push({ id, name, product_line_id, markup: 0.5, roll_rule, notes: null });
-rows.price_adders.push({ line_id: 'dream-curtains', adder_key: 'motor-cost', label: 'Motor (not in the supplier sheet)', kind: 'add', amount: 110, unit: 'flat',
-  applies_when: { control: ['remote', 'matter'] }, origin: 'manual', status: 'placeholder', source: 'placeholder set by the owner',
-  note: 'The Dream Curtains MOTOR sheet says: "The above quotation does not include the cost of the motor." $110 (added to cost, before markup) is a placeholder: confirm with the supplier.' });
+rows.price_adders.push({ line_id: 'dream-curtains', adder_key: 'motor-cost', label: 'Motor (not in the supplier sheet)', kind: 'add', amount: 90, unit: 'flat',
+  applies_when: { control: ['remote', 'matter'] }, origin: 'manual', status: 'from_supplier', source: 'confirmed by the supplier',
+  note: 'The Dream Curtains MOTOR sheet says: "The above quotation does not include the cost of the motor." The supplier confirmed about $90 (added to cost, before markup).' });
 
 const F = (line_id, flag_key, kind, title, detail) => rows.price_flags.push({ line_id, flag_key, kind, title, detail, resolved: false });
-F('dream-curtains', 'dream-motor-placeholder', 'placeholder', 'Motor cost is a placeholder: +$110', 'The motor sheet excludes the motor. +$110 is added to cost before markup. Edit it under Adders, then confirm with the supplier.');
+F('dream-curtains', 'dream-motor-placeholder', 'placeholder', 'Motor cost: +$90 (confirmed by the supplier)', 'The motor sheet excludes the motor. The supplier confirmed about $90, added to cost before markup.');
 F('dream-curtains', 'dream-115-dip', 'anomaly', 'Price drops at 115 in', 'In both sheets every cell at 115 in is about $27.60 cheaper than at 114 in. Kept as printed. A taller curtain can price lower than a shorter one.');
 F('dream-curtains', 'dream-two-tracks', 'info', '"Divided to 2 tracks for following width"', 'The note sits beside the 100-101 in rows and names no width. The grid already steps up (about +$74, then about +$40) at a width that shrinks as height grows. Shown as a note, not an extra price.');
 F('cellular', 'cellular-day-night', 'confirm', 'Day & Night: which block prices the shade', 'Priced from the block (light-filtering or blackout) that matches the SECOND fabric the customer picks. The sheer layer is always white; the light-filtering block is labelled "White sheer only". The blocks are not added. Confirm with the supplier.');
@@ -109,7 +109,7 @@ F('roller', 'roll-width-differences', 'info', 'Roll widths differ between the sh
 F('roller', 'roller-pansy-violet', 'info', 'Pansy and Violet are priced from the Taurus block', 'The sheet lists them untyped ("new") on the Taurus (solar, 110) grid. We carry them as blackout.');
 F('roller', 'roller-gaea-rename', 'info', '"Gare" renamed "Gaea"', 'The blackout collection Gare was a typo of Gaea. Swatch ids are unchanged. It uses the "Gaea/sundance (BLACKOUT)" grid. Magic (screen-view) has a grid but no fabric on the site, so it is ignored.');
 F('roller', 'roller-zebra-anomalies', 'anomaly', 'Cent-level decreases and 118.2 axis labels kept as printed', 'Roller and Zebra grids have a few places where a bigger size is a few cents cheaper, and some width labels read 118.2. Virgo (118) is capped at 114 in at 120 in; Stone blackout (110) at 109. Shown on each grid.');
-F('shangri-la', 'shangri-remote-wand', 'confirm', 'Remote wand priced at the base grid', 'The site offers "Remote wand" and "Matter". Remote wand = base grid; Matter = base + $140. The sheet\'s "Remote control +$100" matches no control today.');
+F('shangri-la', 'shangri-remote-wand', 'confirm', 'Remote wand priced like motorized (Remote control +$100)', 'The site offers "Remote wand" and "Matter". Remote wand = base grid + the sheet\'s "Remote control +$100"; Matter = base + $140.');
 F('shangri-la', 'shangri-max-length', 'info', '"Max Length" is stricter than the grid', 'The grids list drops up to 112 in, but Hermes and Apollo stop at 98.4, Hera and Erebus 110.2, Hestia 98.4, Alastor 78.7, Aphrodite 66.9. Cronus (118) is limited by its grid (112). The lower number wins.');
 F('roman', 'roman-no-grade', 'info', 'Roman has no collection or grade pricing', 'One grid per system and lining for all 12 drapery collections. The motor grid already includes the $100 motor (every cell = cord cell + $100). Grid widths stop at 94 (rows); some of our Roman fabrics are 102 in wide.');
 F('woven-wood', 'woven-hidden', 'info', 'Woven wood is imported but not on the site', 'The line stays hidden. The grid is the sheet\'s final quote (shipping included). The sheet\'s columns run to 118 in although its size standards say 94.5 in maximum.');

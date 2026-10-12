@@ -175,8 +175,8 @@ function shangriLa(sheets, file) {
     const rowVals = (rows[r - 1] || []).filter((x) => typeof x === 'string' && /\+\$\s*\d+/.test(x));
     const amt = rowVals.length ? Number(rowVals[0].match(/\+\$\s*(\d+(?:\.\d+)?)/)[1]) : null;
     if (/^Remote control/i.test(v.trim()) && amt != null)
-      adders.push({ adder_key: 'remote-control', label: 'Remote control', kind: 'add', amount: amt, applies_when: { control: ['remote'] }, source: `${sheet}!${cellName(r, c)}`,
-        note: 'The site offers "Remote wand" and "Matter" for Shangri-La. Remote wand is priced at the base grid (your decision), so this adder matches no control today.' });
+      adders.push({ adder_key: 'remote-control', label: 'Remote control', kind: 'add', amount: amt, applies_when: { control: ['remote_wand'] }, source: `${sheet}!${cellName(r, c)}`,
+        note: 'Supplier confirmed the Remote wand costs the same as motorized: the sheet\'s "Remote control +$100" applies to the Remote wand control.' });
     if (/Bluetooth\/Matter/i.test(v) && amt != null)
       adders.push({ adder_key: 'matter-motor', label: 'Bluetooth / Matter (smart) motor', kind: 'add', amount: amt, applies_when: { control: ['matter'] }, source: `${sheet}!${cellName(r, c)}` });
   }

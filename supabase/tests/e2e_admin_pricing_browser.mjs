@@ -100,9 +100,9 @@ try {
   await page.getByLabel('Product line').selectOption('dream-curtains');
   await page.getByLabel('Control').selectOption('remote');
   await page.getByLabel('Width (in)').fill('100'); await page.getByLabel('Height / drop (in)').fill('100');
-  await page.getByText(/placeholder/).first().waitFor();
+  await page.getByText(/from_supplier|Motor \(not in the supplier sheet\)/).first().waitFor();
   const dtxt = await page.locator('.adm-kv').first().innerText();
-  check('Dream Curtains motor shows the +$110 adder marked "placeholder"', /\+\$110/.test(dtxt) && /placeholder/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
+  check('Dream Curtains motor shows the +$90 adder marked from the supplier', /\+\$90/.test(dtxt) && /from_supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
   // cellular double: a size outside
   await page.getByLabel('Product line').selectOption('roller');
   await page.getByLabel('Width (in)').fill('500');
@@ -123,11 +123,11 @@ try {
   // adders and flags
   await page.getByRole('tab', { name: /Adders/ }).click(); await page.getByRole('heading', { name: /Things to confirm/ }).waitFor();
   const ft = await page.locator('.adm-flags').innerText();
-  check('flags list the supplier questions (axis orientation, double-stack, Day & Night, Dream motor placeholder)', /Which sheet axis is the width/.test(ft) && /Double-stack/.test(ft) && /Day & Night/.test(ft) && /placeholder/i.test(ft), ft.length + ' chars');
+  check('flags list the supplier questions (axis orientation, double-stack, Day & Night, Dream motor placeholder)', /Which sheet axis is the width/.test(ft) && /Double-stack/.test(ft) && /Day & Night/.test(ft) && /Motor cost/i.test(ft), ft.length + ' chars');
   const at = (await page.locator('.adm-table').last().innerText()) + ' ' + (await page.locator('input[aria-label^="Amount for"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')} = ${e.value}`).join(' ; ')));
   const parts = { wraps: /No fabric wrap on the cassette/i, matter: /Bluetooth \(Matter\) motor/i, shangri140: /Bluetooth \/ Matter \(smart\) motor = 140/i, cellular: /Motor \(standard\)/i, woven: /No coating/i, dream: /not in the supplier sheet/i };
   const missing = Object.entries(parts).filter(([, re]) => !re.test(at)).map(([k]) => k);
-  check('adders include roller wraps, Matter +$40, Shangri-La +$140, cellular motors, woven wood, and the Dream +$110 placeholder', missing.length === 0, missing.length ? `missing: ${missing.join(', ')}; text: ${at.replace(/\s+/g, ' ').slice(0, 400)}` : 'all present');
+  check('adders include roller wraps, Matter +$40, Shangri-La +$140, cellular motors, woven wood, and the Dream +$90 motor', missing.length === 0, missing.length ? `missing: ${missing.join(', ')}; text: ${at.replace(/\s+/g, ' ').slice(0, 400)}` : 'all present');
   await noOverflow('adders and flags');
   // re-import: an unchanged workbook shows nothing to apply; dream curtains has the "--" tab
   await page.getByRole('tab', { name: 'Re-import' }).click();

@@ -138,7 +138,7 @@ def dream(ws,w,h):
 a,v=dream(ws,100,100)
 allok&=check('16 Dream Curtains manual 100x100 (width rounds up to 104)','dream-curtains','dream-curtains:-:sunflower',{'control':'manual'},100,100,v,addr=f"MANUL-DREAM CURTAIN!{a}")
 ws=wb('dream-curtains')['MOTOR-DREAM CURTAIN']; a,v=dream(ws,100,100)
-allok&=check('17 Dream Curtains motor 100x100 (+$110 placeholder)','dream-curtains','dream-curtains:-:sunflower',{'control':'remote'},100,100,v,adders_add=110,addr=f"MOTOR-DREAM CURTAIN!{a}")
+allok&=check('17 Dream Curtains motor 100x100 (+$90 from the supplier)','dream-curtains','dream-curtains:-:sunflower',{'control':'remote'},100,100,v,adders_add=90,addr=f"MOTOR-DREAM CURTAIN!{a}")
 # 18 woven wood remote
 ws=wb('woven-wood').worksheets[0]
 rows=[(r,ws.cell(r,2).value) for r in range(172,249)]; cols=[(c,ws.cell(170,c).value) for c in range(3,16)]
@@ -150,6 +150,8 @@ r=est('drapery','drapery:orsay',{'control':'manual'},60,80); print('PASS' if r.g
 r=est('roller','roller:solar:sag',{'control':'chain','mode':'double-stack','back_fabric_id':'roller:screen-view:purity'},50,60)
 f=est('roller','roller:solar:sag',{'control':'chain'},50,60); b=est('roller','roller:screen-view:purity',{'control':'chain'},50,60)
 ok=r.get('price')==f['price']+b['price']; print('PASS' if ok else 'FAIL','20 Roller double-stack = front + back ->',r.get('price'),'=',f['price'],'+',b['price']); allok&=ok
+# 21 shangri-la remote wand = base grid + Remote control +$100 (same as motorized)
+allok&=check('21 Shangri-La Hermes Remote wand 50x90 (+$100)','shangri-la','shangri-la:-:hermes',{'control':'remote_wand'},50,90,v,adders_add=100,addr=f"SHRL-CORD+MOTOR!{a}")
 print('\nALL PASS' if allok else '\nSOME FAILED')
 http('DELETE', f'/rest/v1/admins?id=eq.{admin_row}', SVC); http('DELETE', f'/auth/v1/admin/users/{uid}', SVC)
 sys.exit(0 if allok else 1)
