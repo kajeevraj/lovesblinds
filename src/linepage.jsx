@@ -8,7 +8,7 @@ import {
 } from './lib/selection.js';
 import {
   CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, CELLULAR_TYPE_INFO,
-  ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO,
+  ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO, ROLLER_FAMILY_INFO, ROLLER_PRIVACY_NOTE,
 } from './data/optionInfo.js';
 import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
 import { OptionCards } from './components/ExplainerImg.jsx';
@@ -17,7 +17,7 @@ import { Footer } from './customer.jsx';
 import { ArrowRight } from './icons.jsx';
 
 // A compact row of buttons for simple choices that need no picture (fabric family).
-function Choice({ label, options, value, onChange }) {
+function Choice({ label, options, value, onChange, hint }) {
   return (
     <div className="config-group">
       <div className="label">{label}</div>
@@ -28,6 +28,7 @@ function Choice({ label, options, value, onChange }) {
           </button>
         ))}
       </div>
+      {hint && <div className="choice-note">{hint}</div>}
     </div>
   );
 }
@@ -128,13 +129,13 @@ function Configurator({ line, addToQuote }) {
   const ready = missing.length === 0;
 
   // Roman: the style/lining a swatch allows, straight from its romanStyles data
-  const romanSwatch = c.pick ? getSwatch(c.pick.swatchId) : null;
+  const romanSwatch = c.pick ? getSwatch(c.pick.swatchId, c.pick.fabricId) : null;
   const romanOpts = romanStyleOptions(romanSwatch);
   const liningsForStyle = c.romanStyle ? romanOpts.find(o => o.id === c.romanStyle)?.linings || [] : [];
 
   const onRomanPick = (pick) => {
     if (!pick) return set({ pick: null, romanStyle: null, lining: null });
-    const opts = romanStyleOptions(getSwatch(pick.swatchId));
+    const opts = romanStyleOptions(getSwatch(pick.swatchId, pick.fabricId));
     const stillOk = opts.find(o => o.id === c.romanStyle)?.available;
     const lins = opts.find(o => o.id === c.romanStyle)?.linings || [];
     set({
@@ -195,16 +196,17 @@ function Configurator({ line, addToQuote }) {
       {line.id === "roller" && (
         <>
           <OptionCards label="Single or double-stack" value={c.mode} onChange={(mode) => set({ mode, front: null, back: null })}
-            options={line.modes.map(m => ({ id: m, label: m === "single" ? "Single" : "Double-stack", desc: ROLLER_MODE_INFO[m].desc, img: ROLLER_MODE_INFO[m].img }))}
-            note="At night with lights on, people outside can see through Screen View and see-through Solar fabrics, so choose Blackout or a double-stack for night privacy." />
+            options={line.modes.map(m => ({ id: m, label: m === "single" ? "Single" : "Double-stack", desc: ROLLER_MODE_INFO[m].desc, img: ROLLER_MODE_INFO[m].img }))} />
           {(c.mode === "single" ? [["front", "frontFamily", null]] : [["front", "frontFamily", "Front shade"], ["back", "backFamily", "Back shade"]]).map(([k, fk, role]) => (
             <div key={k + c.mode} className="picker-wrap">
               <Choice label={role ? `${role}: fabric family` : "Fabric family"} value={c[fk]}
                 options={line.families.map(f => ({ id: f, label: FAMILY_LABELS[f] }))}
+                hint={ROLLER_FAMILY_INFO[c[fk]]}
                 onChange={(f) => set({ [fk]: f, [k]: null })} />
               <SwatchPicker key={`${k}-${c[fk]}`} heading={role} role={role} family={c[fk]} fabrics={fabricsFor("roller", c[fk])} onChange={(p) => set({ [k]: p })} />
             </div>
           ))}
+          <div className="choice-note">{ROLLER_PRIVACY_NOTE}</div>
         </>
       )}
 
@@ -349,12 +351,12 @@ export default function LinePage({ slug, navigate, addToQuote }) {
       <div className="container line-body">
         <Configurator key={line.id} line={line} addToQuote={addToQuote} />
 
-        <section className="line-good" aria-labelledby="good-title">
+        {line.goodToKnow.length > 0 && <section className="line-good" aria-labelledby="good-title">
           <h2 id="good-title" className="eyebrow">Good to know</h2>
           <ul className="good-list">
             {line.goodToKnow.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
-        </section>
+        </section>}
 
         {photos.length > 0 && (
           <section className="line-gallery" aria-label={`${line.name} in a home`}>

@@ -7,7 +7,8 @@
 // cached response. Never use the service role key here.
 //
 // Freshness: the edge keeps a response for 60 s, then may serve it once more while it refreshes in the background
-// (stale-while-revalidate). An admin change shows to the next visitor after the minute is up, or the one after that.
+// (stale-while-revalidate). The admin page clears the entry at once after a save (api/catalog-purge.js, by cache tag), so
+// the 60 s is only the fallback if that clear fails.
 // Browsers are told something different: they always ask the edge again (max-age=0), so a repeat visitor never holds a
 // copy of their own. Vercel-CDN-Cache-Control is for Vercel's CDN only and is not sent on to the browser; the
 // s-maxage=60 in Cache-Control is the same minute for any CDN that ignores the Vercel header.
@@ -35,7 +36,10 @@ export default async function handler(req, res) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS);
   try {
-    const upstream = await fetch(`${base}${catalogPath(line)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, signal: ctl.signal });
+    const get = (opts) => fetch(`${base}${catalogPath(line, opts)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, signal: ctl.signal });
+    let upstream = await get({ links: true });
+    // the links table (migration 9) may not exist yet: fall back to the plain query rather than failing the page
+    if (!upstream.ok) upstream = await get({ links: false });
     if (!upstream.ok) return fail(res, 502, `Catalog request failed (${upstream.status})`);
     const text = await upstream.text();
     const rows = JSON.parse(text);
@@ -43,6 +47,7 @@ export default async function handler(req, res) {
     if (!Array.isArray(rows) || !rows.some(r => (r.swatches || []).length)) return fail(res, 502, 'Catalog is empty');
     res.setHeader('Cache-Control', BROWSER_CACHE);
     res.setHeader('Vercel-CDN-Cache-Control', VERCEL_EDGE_CACHE);
+    res.setHeader('Vercel-Cache-Tag', `catalog,catalog-${line}`);   // api/catalog-purge.js clears these when an admin saves
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.status(200).send(text);
   } catch (err) {

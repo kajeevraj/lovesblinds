@@ -9,6 +9,10 @@ export function explain(err, ctx = {}) {
   const q = (re) => text.match(re)?.[1];
 
   if (/swatches_supplier_code_per_line/.test(text)) return `That supplier code is already used in ${ctx.line ? LINE_LABELS[ctx.line] : 'this product line'}.`;
+  if (/swatch_links_display_name_per_line|already used in this line/.test(text)) return `That name is already used in ${where}.`;
+  if (/swatch_links_not_home_line|already belongs to the|already linked into/.test(text)) return 'This color is already in that line (a color can be placed once per line).';
+  if (/swatch_links_swatch_id_product_line_key/.test(text)) return 'This color is already linked into that line.';
+  if (/swatch_links_family/.test(text)) return 'Cellular needs a family (light-filtering or blackout).';
   if (/swatches_display_name_per_(family|line)/.test(text)) return `That name is already used in ${where}.`;
   if (/swatches_display_name_no_digit/.test(text)) return 'Color names can’t contain numbers.';
   if (/swatches_display_name_spacing/.test(text)) return 'Color names can’t contain double spaces.';

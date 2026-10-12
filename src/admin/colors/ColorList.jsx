@@ -3,7 +3,7 @@ import { LINE_LABELS, LINE_ORDER, FAMILY_LABELS } from '../lib/constants.js';
 import { COLOR_FAMILY_LIST } from '../../data/colorFamilyList.js';
 import { imgUrl, updateRow } from '../lib/db.js';
 import { explain } from '../lib/errors.js';
-import { LIVE_NOTE } from '../lib/constants.js';
+import { linesForSwatch, publishToSite } from '../lib/livecache.js';
 
 const PAGE = 50;
 
@@ -19,6 +19,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
   const fabricById = useMemo(() => new Map(data.fabrics.map((f) => [f.id, f])), [data.fabrics]);
   const collections = useMemo(() => data.fabrics.filter((f) => !line || f.product_line === line), [data.fabrics, line]);
 
+  const linkCount = (id) => (data.links || []).filter((l) => l.swatch_id === id).length;
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return data.swatches.filter((s) => {
@@ -39,7 +40,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
     setBusy(s.id);
     try {
       await updateRow('swatches', s.id, { active: !s.active });
-      setNotice(`“${s.display_name}” is now ${s.active ? 'hidden' : 'visible'}. ${LIVE_NOTE}`);
+      setNotice(`“${s.display_name}” is now ${s.active ? 'hidden' : 'visible'}${linkCount(s.id) ? ' in every line it is linked into' : ''}. ${await publishToSite(linesForSwatch(data, s.id))}`);
       await reload();
     } catch (e) { setError(explain(e)); }
     setBusy('');
@@ -92,7 +93,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
                 <td data-label="Name" className="adm-name"><button className="adm-link" onClick={() => onEdit(s.id)}>{s.display_name}</button></td>
                 <td data-label="Supplier code"><code>{s.supplier_code}</code></td>
                 <td data-label="Collection">{f?.collection_name}</td>
-                <td data-label="Line">{LINE_LABELS[s.product_line]}</td>
+                <td data-label="Line">{LINE_LABELS[s.product_line]}{linkCount(s.id) > 0 && <div className="adm-muted adm-small">+ {linkCount(s.id)} linked {linkCount(s.id) === 1 ? 'line' : 'lines'}</div>}</td>
                 <td data-label="Family">{s.family ? FAMILY_LABELS[s.family] : '—'}</td>
                 <td data-label="Color family">{s.color_family}</td>
                 <td data-label="Status"><span className={`adm-badge ${s.active && !hiddenByCollection ? 'is-active' : 'is-off'}`}>{!s.active ? 'Hidden' : hiddenByCollection ? 'Hidden (collection)' : 'Active'}</span></td>

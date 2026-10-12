@@ -67,3 +67,10 @@ export const DREAM_STYLE_INFO = {
   A: { desc: "41 cm per vane, with 12.5 / 16 / 12.5 cm sections.", img: "dream-curtains/style-a" },
   B: { desc: "33 cm per vane, with 10 / 13 / 10 cm sections.", img: "dream-curtains/style-b" },
 };
+
+// Shown under the Roller fabric-family buttons, for the family that is selected.
+export const ROLLER_FAMILY_INFO = {
+  solar: "A soft fabric that filters sunlight and cuts glare, with a softened view of the outside. Good for living rooms and bedrooms where you want gentle light and some daytime privacy.",
+  "screen-view": "A tighter, tougher screen weave (as little as 3% openness) that blocks glare and heat while keeping a clear view outside. Good for rooms with a view, offices, TV rooms and patios (can be used indoors or outdoors).",
+};
+export const ROLLER_PRIVACY_NOTE = "Note on privacy: With either one, people can see in at night when your lights are on. For nighttime privacy, choose blackout or a dual shade.";

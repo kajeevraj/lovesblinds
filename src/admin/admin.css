@@ -160,3 +160,9 @@
 .adm-options input:not([type=radio]):not([type=file]) { min-height: 38px; }
 tr.is-selected td { background: var(--pale-sage); }
 @media (max-width: 860px) { .adm-grid3, .adm-grid4, .adm-filters3 { grid-template-columns: 1fr; } .adm-grid4 { grid-template-columns: 1fr 1fr; } .adm-kv th { width: 110px; } }
+
+/* price checker: color search results */
+.adm-results { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid var(--adm-line, #d9d4cb); border-radius: 8px; background: #fff; max-height: 320px; overflow: auto; }
+.adm-results li { padding: 8px 12px; border-bottom: 1px solid var(--adm-line, #eee9e0); }
+.adm-results li:last-child { border-bottom: 0; }
+.adm-results .adm-link { text-align: left; width: 100%; min-height: 44px; }

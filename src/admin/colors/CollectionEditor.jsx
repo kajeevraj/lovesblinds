@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { LINE_LABELS, LINE_ORDER, ROLLER_FAMILIES, FAMILY_LABELS, LIVE_NOTE } from '../lib/constants.js';
+import { LINE_LABELS, LINE_ORDER, ROLLER_FAMILIES, FAMILY_LABELS } from '../lib/constants.js';
 import { collectionToForm, emptyCollection, formToCollection, newCollectionRow, diffPatch } from '../lib/collections.js';
 import { insertRow, updateRow } from '../lib/db.js';
+import { linesForFabric, publishToSite } from '../lib/livecache.js';
 import { explain } from '../lib/errors.js';
 import CollectionFields from './CollectionFields.jsx';
 import History from './History.jsx';
@@ -28,12 +29,12 @@ export default function CollectionEditor({ fabricId, data, onDone, onCancel }) {
     try {
       if (isNew) {
         await insertRow('fabrics', newCollectionRow(form, line, family, data.fabrics));
-        onDone(`Collection “${form.name.trim()}” added. You can add colors to it now. ${LIVE_NOTE}`);
+        onDone(`Collection “${form.name.trim()}” added. You can add colors to it now.`);
       } else {
         const patch = diffPatch(fabric, formToCollection(form, fabric.extra_specs));
         if (!Object.keys(patch).length) { onDone('Nothing to save: no changes.'); return; }
         await updateRow('fabrics', fabric.id, patch);
-        onDone(`Collection “${form.name.trim()}” saved. ${LIVE_NOTE}`);
+        onDone(`Collection “${form.name.trim()}” saved. ${await publishToSite(linesForFabric(data, fabric.id))}`);
       }
     } catch (e) { setError(explain(e, { line, family })); setBusy(false); }
   };
@@ -44,7 +45,7 @@ export default function CollectionEditor({ fabricId, data, onDone, onCancel }) {
     setBusy(true); setError('');
     try {
       await updateRow('fabrics', fabric.id, { active: !fabric.active });
-      onDone(`Collection “${fabric.collection_name}” is now ${hide ? 'hidden' : 'visible'}. ${LIVE_NOTE}`);
+      onDone(`Collection “${fabric.collection_name}” is now ${hide ? 'hidden' : 'visible'}. ${await publishToSite(linesForFabric(data, fabric.id))}`);
     } catch (e) { setError(explain(e)); setBusy(false); }
   };
 

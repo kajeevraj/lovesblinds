@@ -99,7 +99,7 @@ try {
   check('admin sets and removes a per-collection markup override', r.status === 201 && po === 162, `override 100%: $${po}`);
   // dream curtains motor placeholder is editable
   const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 150 });
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 130 });
   const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 90 });
   check('the Dream Curtains motor (+$90) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 90 && Math.abs(after.subtotal - before.subtotal - 40) < 0.01, `adders ${JSON.stringify(before.adders)}; +$40 -> subtotal ${before.subtotal} -> ${after.subtotal}`);

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FAMILY_LABELS } from '../lib/constants.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FAMILY_LABELS, LINE_LABELS } from '../lib/constants.js';
 import { estimate, } from './api.js';
 import { money, pct, sheetCell, SYSTEM_LABEL, fabricsOf } from './util.js';
 import { explain } from '../lib/errors.js';
@@ -26,7 +26,7 @@ function Breakdown({ r, title }) {
         <tr><th>Grid cell</th><td><code>{g.source_sheet}!{sheetCell(g)}</code> (row value {g.row_value}, column value {g.col_value})</td></tr>
         <tr><th>Cost from the grid</th><td>{money(r.grid_cost, 4)}{r.multiplier !== 1 ? ` × ${r.multiplier} = ${money(r.cost, 4)}` : ''}</td></tr>
         {(r.adders || []).map((a, i) => (
-          <tr key={i}><th>{a.kind === 'add' ? 'Adder' : 'Deduction'}</th><td>{a.label}: {a.missing ? <strong className="adm-warn">amount missing</strong> : `${a.kind === 'add' ? '+' : '−'}${money(a.amount)}`}{a.unit === 'per_sqft' ? ' (per sq ft)' : ''} {a.status !== 'from_sheet' && <span className="adm-badge is-off">{a.status === 'placeholder' ? 'placeholder' : 'confirm'}</span>}</td></tr>
+          <tr key={i}><th>{a.kind === 'add' ? 'Adder' : 'Deduction'}</th><td>{a.label}: {a.missing ? <strong className="adm-warn">amount missing</strong> : `${a.kind === 'add' ? '+' : '−'}${money(a.amount)}`}{a.unit === 'per_sqft' ? ' (per sq ft)' : ''} {(a.status === 'placeholder' || a.status === 'confirm') && <span className="adm-badge is-off">{a.status === 'placeholder' ? 'placeholder' : 'confirm'}</span>}{a.status === 'from_supplier' && <span className="adm-badge is-active">from the supplier</span>}</td></tr>
         ))}
         {!(r.adders || []).length && <tr><th>Adders</th><td className="adm-muted">none apply</td></tr>}
         <tr><th>Cost before markup</th><td><strong>{money(r.subtotal, 4)}</strong></td></tr>
@@ -57,17 +57,43 @@ export default function PriceChecker({ data, catalog }) {
   const [res, setRes] = useState(null);
   const [cust, setCust] = useState(null);
   const [err, setErr] = useState('');
+  const [fx, setFx] = useState({});   // customer-price effect of each toggle at the current size
 
   const pl = lines.find((l) => l.id === line);
   const fabrics = useMemo(() => fabricsOf(catalog.fabrics, line), [catalog.fabrics, line]);
-  const swatches = useMemo(() => catalog.swatches.filter((s) => s.fabric_id === fabric), [catalog.swatches, fabric]);
+  // Every place a color is sold: its own record, plus each line it is linked into (migration 9), under that line's name.
+  const placements = useMemo(() => {
+    const byId = new Map(catalog.swatches.map((s) => [s.id, s]));
+    const fabById = new Map(catalog.fabrics.map((f) => [f.id, f]));
+    const own = catalog.swatches.map((s) => ({ key: `${s.id}@${s.fabric_id}`, fabric_id: s.fabric_id, name: s.display_name, code: s.supplier_code, family: s.family, active: s.active }));
+    const linked = (catalog.links || []).filter((l) => byId.has(l.swatch_id)).map((l) => ({ key: `${l.swatch_id}@${l.fabric_id}`, fabric_id: l.fabric_id, name: l.display_name, code: byId.get(l.swatch_id).supplier_code, family: l.family, active: l.active && byId.get(l.swatch_id).active }));
+    return [...own, ...linked].map((p) => ({ ...p, fabric: fabById.get(p.fabric_id) })).filter((p) => p.fabric);
+  }, [catalog.swatches, catalog.links, catalog.fabrics]);
+  // the pricing line a result belongs to; Roman and Drapery share fabrics, so keep the current one when it fits
+  const lineOfFabric = (f) => (f.product_line === 'drapery' ? ((f.shown_in || []).includes(line) ? line : (f.shown_in || []).includes('roman') ? 'roman' : 'drapery') : f.product_line);
+  const [query, setQuery] = useState('');
+  const pendingSel = useRef(null);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return placements.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+      .sort((a, b) => (a.name.toLowerCase().startsWith(q) || a.code.toLowerCase().startsWith(q) ? 0 : 1) - (b.name.toLowerCase().startsWith(q) || b.code.toLowerCase().startsWith(q) ? 0 : 1) || a.name.localeCompare(b.name))
+      .slice(0, 12);
+  }, [placements, query]);
+  const chosen = placements.find((p) => p.key === swatch) || null;
+  const choose = (p) => {
+    const target = lineOfFabric(p.fabric);
+    setQuery('');
+    if (target === line) { setFabric(p.fabric_id); setSwatch(p.key); }
+    else { pendingSel.current = { fabric: p.fabric_id, swatch: p.key }; setLine(target); }
+  };
   const controls = useMemo(() => {
     const g = data.groups.find((x) => x.line_id === pl?.product_line_id && x.key === 'control');
     return g ? data.values.filter((v) => v.group_id === g.id) : [];
   }, [data.groups, data.values, pl]);
-  useEffect(() => { setFabric(fabrics[0]?.id || ''); setSwatch(''); setBack(''); }, [line]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const want = pendingSel.current; pendingSel.current = null; setFabric(want?.fabric || fabrics[0]?.id || ''); setSwatch(want?.swatch || ''); setBack(''); }, [line]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setControl(controls.find((c) => c.is_default)?.code || controls[0]?.code || ''); }, [controls]);
-  useEffect(() => { const s = swatches.find((x) => x.id === swatch); if (s && (line === 'cellular') && s.family) setLining(s.family); }, [swatch]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const s = placements.find((x) => x.key === swatch); if (s && (line === 'cellular') && s.family) setLining(s.family); }, [swatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const options = useMemo(() => {
     const o = { control };
@@ -86,12 +112,20 @@ export default function PriceChecker({ data, catalog }) {
       const args = { p_line: line, p_fabric_id: fabric || '', p_options: options, p_width: Number(w) || null, p_height: Number(h) || null };
       try {
         const [a, b] = await Promise.all([estimate('estimate_price_debug', args), estimate('estimate_price', args)]);
-        if (live) { setRes(a); setCust(b); setErr(''); }
+        // each toggle's effect on the CUSTOMER price (after markup and rounding) at this size: price with it minus price without
+        const TOG = { wrapC: ['wrap_cassette', 'none'], wrapB: ['wrap_bottom_rail', 'none'], coating: ['coating', 'none'] };
+        const effects = {};
+        await Promise.all(Object.entries(TOG).map(async ([k, [key, val]]) => {
+          const [on, off] = await Promise.all([{ ...options, [key]: val }, (({ [key]: _drop, ...rest }) => rest)(options)].map((o) => estimate('estimate_price', { ...args, p_options: o })));
+          effects[k] = on?.price != null && off?.price != null ? on.price - off.price : null;
+        }));
+        if (live) { setRes(a); setCust(b); setFx(effects); setErr(''); }
       } catch (e) { if (live) setErr(explain(e)); }
     }, 250);
     return () => { live = false; clearTimeout(t); };
   }, [line, fabric, options, w, h]);
 
+  const effect = (k) => (fx[k] == null ? ' (shown once a price exists at this size)' : ` (${fx[k] < 0 ? '−' : fx[k] > 0 ? '+' : ''}$${Math.abs(fx[k])} on the customer price at this size)`);
   const showFamily = line === 'cellular' || line === 'roman';
   const noFabric = line === 'woven-wood';
   return (
@@ -100,8 +134,30 @@ export default function PriceChecker({ data, catalog }) {
         <h2>Pick what a customer would pick</h2>
         <div className="adm-grid3">
           <label className="adm-field"><span>Product line</span><select value={line} onChange={(e) => setLine(e.target.value)}>{lines.map((l) => <option key={l.id} value={l.id}>{l.name}{l.id === 'woven-wood' ? ' (hidden)' : ''}</option>)}</select></label>
-          {!noFabric && <label className="adm-field"><span>Collection</span><select value={fabric} onChange={(e) => { setFabric(e.target.value); setSwatch(''); }}>{fabrics.map((f) => <option key={f.id} value={f.id}>{f.collection_name}{f.family ? ` (${FAMILY_LABELS[f.family]})` : ''}</option>)}</select></label>}
-          {!noFabric && <label className="adm-field"><span>Color <small>(optional)</small></span><select value={swatch} onChange={(e) => setSwatch(e.target.value)}><option value="">Any</option>{swatches.map((s) => <option key={s.id} value={s.id}>{s.display_name} ({s.supplier_code})</option>)}</select></label>}
+          {!noFabric && (
+            <div className="adm-field adm-search" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="pc-search"><span>Find a color <small>(name or code; picks the line and collection for you)</small></span></label>
+              <input id="pc-search" type="search" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. Purity, Snow, or XSS000105" />
+              {query.trim() && (
+                <ul className="adm-results" role="listbox" aria-label="Matching colors">
+                  {results.length === 0 && <li className="adm-muted">No color matches.</li>}
+                  {results.map((p) => (
+                    <li key={p.key} role="option" aria-selected={p.key === swatch}>
+                      <button type="button" className="adm-link" onClick={() => choose(p)}>
+                        <strong>{p.name}</strong> <code>{p.code}</code>
+                        <span className="adm-muted adm-small"> · {LINE_LABELS[p.fabric.product_line]}{p.fabric.family ? ` · ${FAMILY_LABELS[p.fabric.family]}` : ''} · collection {p.fabric.collection_name}{p.active ? '' : ' · hidden'}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="adm-small" aria-live="polite">
+                {chosen
+                  ? <>Pricing <strong>{chosen.name}</strong> (<code>{chosen.code}</code>) · {LINE_LABELS[chosen.fabric.product_line]} · collection <strong>{chosen.fabric.collection_name}</strong> <button type="button" className="adm-link" onClick={() => setSwatch('')}>Clear</button></>
+                  : <span className="adm-muted">No color chosen: using the first collection in this line ({fabrics.find((f) => f.id === fabric)?.collection_name || 'none'}).</span>}
+              </p>
+            </div>
+          )}
           <label className="adm-field"><span>Control</span><select value={control} onChange={(e) => setControl(e.target.value)}>{controls.map((c) => <option key={c.code} value={c.code}>{c.label}{c.grid_system ? ` → ${SYSTEM_LABEL[c.grid_system]} grid` : ''}</option>)}</select></label>
           {line === 'cellular' && <label className="adm-field"><span>Type</span><select value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
           {showFamily && <label className="adm-field"><span>{line === 'cellular' ? (type === 'day-night' ? 'Second (night) fabric' : 'Fabric') : 'Lining'}</span><select value={lining} onChange={(e) => setLining(e.target.value)}>{LINING.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
@@ -111,9 +167,9 @@ export default function PriceChecker({ data, catalog }) {
           <label className="adm-field"><span>Height / drop (in)</span><input type="number" inputMode="decimal" value={h} onChange={(e) => setH(e.target.value)} /></label>
         </div>
         <div className="adm-bar">
-          {(line === 'roller' || line === 'zebra') && <label className="adm-check"><input type="checkbox" checked={wrapC} onChange={(e) => setWrapC(e.target.checked)} /> No fabric wrap on the cassette (−$3)</label>}
-          {line === 'roller' && <label className="adm-check"><input type="checkbox" checked={wrapB} onChange={(e) => setWrapB(e.target.checked)} /> No fabric wrap on the bottom rail (−$3)</label>}
-          {line === 'woven-wood' && <label className="adm-check"><input type="checkbox" checked={coating} onChange={(e) => setCoating(e.target.checked)} /> No coating (−$0.46 / sq ft)</label>}
+          {(line === 'roller' || line === 'zebra') && <label className="adm-check"><input type="checkbox" checked={wrapC} onChange={(e) => setWrapC(e.target.checked)} /> No fabric wrap on the cassette{effect('wrapC')}</label>}
+          {line === 'roller' && <label className="adm-check"><input type="checkbox" checked={wrapB} onChange={(e) => setWrapB(e.target.checked)} /> No fabric wrap on the bottom rail{effect('wrapB')}</label>}
+          {line === 'woven-wood' && <label className="adm-check"><input type="checkbox" checked={coating} onChange={(e) => setCoating(e.target.checked)} /> No coating{effect('coating')}</label>}
         </div>
       </div>
       {err && <p className="adm-error" role="alert">{err}</p>}

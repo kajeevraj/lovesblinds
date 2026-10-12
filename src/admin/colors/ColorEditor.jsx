@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LINE_LABELS, LINE_ORDER, FAMILY_LABELS, SHOWN_IN, GRADES, ROMAN_STYLE_LIST, LINING_LIST, familyNeeded, scopeLabel, LIVE_NOTE } from '../lib/constants.js';
+import { LINE_LABELS, LINE_ORDER, FAMILY_LABELS, SHOWN_IN, GRADES, ROMAN_STYLE_LIST, LINING_LIST, familyNeeded, scopeLabel } from '../lib/constants.js';
 import { COLOR_FAMILY_LIST } from '../../data/colorFamilyList.js';
 import { suggestColorFamily } from '../../lib/colorFamily.js';
 import { prepareImage, uploadPrepared, removePaths } from '../lib/images.js';
@@ -9,6 +9,9 @@ import { imgUrl, insertRow, updateRow, deleteRow, swatchOrderCount } from '../li
 import { explain } from '../lib/errors.js';
 import CollectionFields from './CollectionFields.jsx';
 import History from './History.jsx';
+import LinkedLines from './LinkedLines.jsx';
+import { linesForSwatch, linesForFabric, publishToSite } from '../lib/livecache.js';
+import { catalogLinesOf } from '../../data/catalogQuery.js';
 
 const NEW = '__new__';
 const blankRoman = () => Object.fromEntries(ROMAN_STYLE_LIST.map((s) => [s.id, { available: false, linings: [] }]));
@@ -23,6 +26,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const isNew = !existing;
   const exFabric = existing && data.fabrics.find((f) => f.id === existing.fabric_id);
   const exStyleB = existing?.styles?.find((s) => s.style === 'B') || null;
+  const linkedHere = existing ? (data.links || []).filter((l) => l.swatch_id === existing.id) : [];
 
   const [line, setLine] = useState(existing?.product_line || 'roller');
   const [fabricId, setFabricId] = useState(existing?.fabric_id || '');
@@ -55,16 +59,18 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const family = line === 'roller' ? (creatingColl ? newCollFamily : fabric?.family || null) : line === 'cellular' ? cellFamily : null;
   const lineFabrics = data.fabrics.filter((f) => f.product_line === line && (isNew || line !== 'roller' || f.family === existing.family));
   const trimmedName = name.trim();
+  // Roman styles are stored on the swatch; a color linked into Drapery & Roman needs them too
+  const showRoman = line === 'drapery' || linkedHere.some((l) => l.product_line === 'drapery');
   const dream = line === 'dream-curtains';
 
   // Color family: suggested from the photo (and the supplier color name) until the person picks one.
   const suggestion = useMemo(() => (photo ? suggestColorFamily({ ...photo.pixels, line, colorName: suppName }) : null), [photo, line, suppName]);
   useEffect(() => { if (suggestion && !cfManual) setColorFamily(suggestion.family); }, [suggestion, cfManual]);
 
-  const nameProblem = checkName(name, { line, family, selfId: existing?.id, swatches: data.swatches, fabrics: data.fabrics });
+  const nameProblem = checkName(name, { line, family, selfId: existing?.id, swatches: data.swatches, fabrics: data.fabrics, links: data.links });
   const codeProblem = checkCode(code, { line, selfId: existing?.id, swatches: data.swatches });
   const bProblem = bCode.trim() && dream ? checkCode(bCode, { line, selfId: existing?.id, swatches: data.swatches }) || (bCode.trim().toLowerCase() === code.trim().toLowerCase() ? 'Style B needs its own code.' : '') : '';
-  const romanProblem = line === 'drapery' && ROMAN_STYLE_LIST.some((s) => roman[s.id].available && roman[s.id].linings.length === 0) ? 'Pick at least one lining for each available Roman style.' : '';
+  const romanProblem = showRoman && ROMAN_STYLE_LIST.some((s) => roman[s.id].available && roman[s.id].linings.length === 0) ? 'Pick at least one lining for each available Roman style.' : '';
   const collNameClash = creatingColl && newColl.name.trim() && data.fabrics.some((f) => f.product_line === line && (f.family || null) === (line === 'roller' ? newCollFamily : null) && f.collection_name.toLowerCase() === newColl.name.trim().toLowerCase());
 
   const missing = [];
@@ -126,7 +132,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         color_family: colorFamily, image_path: main.image_path, thumb_path: main.thumb_path,
         grade: line === 'drapery' || existing?.grade ? (grade || null) : null,
         width: width.trim() || null, composition: composition.trim() || null,
-        roman_styles: line === 'drapery' ? roman : (existing?.roman_styles ?? null),
+        roman_styles: showRoman ? roman : (existing?.roman_styles ?? null),
         styles: dream ? styles : (existing?.styles ?? null),
       };
       if (isNew) {
@@ -134,7 +140,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         const id = swatchId(line, fields.family, code);
         if (data.swatches.some((s) => s.id === id)) throw new Error('A color with that id already exists. Change the supplier code.');
         await insertRow('swatches', { id, ...fields, image_kind: dream ? 'hero' : 'swatch', active: true, sort_order: sort });
-        onDone(`Added “${trimmedName}”. ${LIVE_NOTE}`);
+        onDone(`Added “${trimmedName}”. ${await publishToSite(catalogLinesOf(fab.shown_in))}`);
       } else {
         const patch = diffPatch(existing, fields);
         if (!Object.keys(patch).length) { onDone('Nothing to save: no changes.'); return; }
@@ -146,7 +152,8 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         if (dream && existing.styles && !styles) old.push(...existing.styles.flatMap((s) => [s.image_path, s.thumb_path]));
         const keep = new Set([fields.image_path, fields.thumb_path, ...(styles || []).flatMap((s) => [s.image_path, s.thumb_path])]);
         await removePaths(old.filter((p) => !keep.has(p)));
-        onDone(`Saved “${trimmedName}”. ${LIVE_NOTE}`);
+        // lines to clear: where it was, where it is now (the home collection can change), and every linked line
+        onDone(`Saved “${trimmedName}”. ${await publishToSite([...linesForSwatch(data, existing.id), ...catalogLinesOf(fab.shown_in)])}`);
       }
     } catch (e) {
       // nothing half-saved: take back what this attempt uploaded or created
@@ -161,7 +168,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
     setBusy(true); setError('');
     try {
       await updateRow('swatches', existing.id, { active: !existing.active });
-      onDone(`“${existing.display_name}” is now ${existing.active ? 'hidden' : 'visible'}. ${LIVE_NOTE}`);
+      onDone(`“${existing.display_name}” is now ${existing.active ? 'hidden' : 'visible'}${linkedHere.length ? ' in every line it is linked into' : ''}. ${await publishToSite(linesForSwatch(data, existing.id))}`);
     } catch (e) { setError(explain(e)); setBusy(false); }
   };
 
@@ -173,9 +180,10 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const doDelete = async () => {
     setBusy(true); setError('');
     try {
+      const lines = linesForSwatch(data, existing.id);      // read before the delete: its links go with it
       await deleteRow('swatches', existing.id);
       await removePaths([existing.image_path, existing.thumb_path, ...(existing.styles || []).flatMap((s) => [s.image_path, s.thumb_path])]);
-      onDone(`Deleted “${existing.display_name}”. ${LIVE_NOTE}`);
+      onDone(`Deleted “${existing.display_name}”${linkedHere.length ? ' and its links' : ''}. ${await publishToSite(lines)}`);
     } catch (e) { setDel(null); setError(explain(e)); setBusy(false); }
   };
 
@@ -292,6 +300,8 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         </div>
       </div>
 
+      {!isNew && <LinkedLines swatch={existing} data={data} reload={reload} />}
+
       {dream && (
         <div className="adm-card">
           <h2>Style B <small className="adm-muted">optional</small></h2>
@@ -312,7 +322,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         </div>
       )}
 
-      {line === 'drapery' && (
+      {showRoman && (
         <div className="adm-card">
           <h2>Roman shade styles</h2>
           <p className="adm-muted">Which Roman styles this fabric can be made in, and with which linings.</p>
@@ -346,7 +356,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
           <button className="adm-btn adm-btn-primary" disabled={!canSave} onClick={save}>{busy ? 'Saving…' : isNew ? 'Add color' : 'Save changes'}</button>
           <button className="adm-btn adm-btn-quiet" onClick={onCancel}>Cancel</button>
         </div>
-        <p className="adm-muted adm-small">After saving, the live site updates within about a minute.</p>
+        <p className="adm-muted adm-small">After saving, the live site is refreshed right away{linkedHere.length ? ' in every line this color is linked into' : ''}.</p>
       </div>
 
       {!isNew && (
@@ -375,7 +385,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         </div>
       )}
 
-      {!isNew && <History table="swatches" rowId={existing.id} reloadKey={histKey} />}
+      {!isNew && <History table="swatches" rowId={existing.id} reloadKey={histKey} withLinks />}
     </div>
   );
 }

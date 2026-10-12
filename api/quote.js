@@ -136,14 +136,23 @@ export async function lookupSwatches(ids, env = process.env) {
   const url = env.SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key || ids.length === 0) return null;
   const list = ids.map(id => `"${String(id).replace(/"/g, '')}"`).join(',');
-  const select = 'id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics(collection_name)';
+  // A swatch can also be linked into other lines (migration 9) under another display name and collection; the pick's
+  // fabricId says which placement the customer chose. The plain select is the fallback if the links table is not there yet.
+  const selects = [
+    'id,fabric_id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics:fabrics!fabric_id(collection_name),swatch_links(fabric_id,family,display_name,fabrics(collection_name,product_line,family))',
+    'id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics(collection_name)',
+  ];
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
   try {
-    const res = await fetch(`${url}/rest/v1/swatches?select=${encodeURIComponent(select)}&id=in.(${encodeURIComponent(list)})`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-      signal: ctl.signal,
-    });
+    let res;
+    for (const select of selects) {
+      res = await fetch(`${url}/rest/v1/swatches?select=${encodeURIComponent(select)}&id=in.(${encodeURIComponent(list)})`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        signal: ctl.signal,
+      });
+      if (res.ok) break;
+    }
     if (!res.ok) throw new Error(`catalog lookup failed (${res.status})`);
     return new Map((await res.json()).map(r => [r.id, r]));
   } finally { clearTimeout(timer); }
@@ -159,14 +168,16 @@ export function applyCatalog(line, rows) {
   const fresh = picks.map(p => {
     const r = rows.get(p.swatchId);
     if (!r) return p;
+    // the placement the customer picked: the swatch's own, or one linked into another line
+    const link = p.fabricId && r.fabric_id && p.fabricId !== r.fabric_id ? (r.swatch_links || []).find(l => l.fabric_id === p.fabricId) : null;
     const styleCode = p.style ? (r.styles || []).find(st => st.style === p.style)?.code : null;
     const next = {
       ...p,
-      line: r.product_line,
-      family: r.family || null,
-      fabric: r.fabrics?.collection_name ?? p.fabric,
+      line: link ? link.fabrics?.product_line ?? p.line : r.product_line,
+      family: (link ? link.family || link.fabrics?.family : r.family) || null,
+      fabric: (link ? link.fabrics?.collection_name : r.fabrics?.collection_name) ?? p.fabric,
       colorName: r.supplier_color_name ?? null,
-      displayName: r.display_name,
+      displayName: link ? link.display_name : r.display_name,
       code: styleCode || (p.style ? p.code : r.supplier_code),
     };
     found++;

@@ -20,14 +20,22 @@ export const LINE_SCOPE = {
   drapery: ['drapery', 'dream-curtains'],
 };
 
-// Path and query, no host and no key.
-export const catalogPath = (lineKey) => {
+// Path and query, no host and no key. Besides each collection's own swatches it asks for the swatches LINKED into the
+// collection (migration 9: one swatch record shown in several lines, each with its own display name). The explicit
+// `!fabric_id` / `!swatch_id` hints keep PostgREST from reading the two paths as one ambiguous relationship.
+// { links: false } is the plain query, used as a fallback if the links table is not there yet.
+export const catalogPath = (lineKey, { links = true } = {}) => {
   const scope = LINE_SCOPE[lineKey];
   if (!scope) throw new Error(`unknown catalog line: ${lineKey}`);
-  const select = `${FABRIC_COLS},swatches(${SWATCH_COLS})`;
+  const select = links
+    ? `${FABRIC_COLS},swatches:swatches!fabric_id(${SWATCH_COLS}),swatch_links(id,family,display_name,sort_order,swatch:swatches!swatch_id(${SWATCH_COLS}))`
+    : `${FABRIC_COLS},swatches(${SWATCH_COLS})`;
   return `/rest/v1/fabrics?select=${encodeURIComponent(select)}&shown_in=ov.${encodeURIComponent(`{${scope.join(',')}}`)}`
-    + '&order=product_line,sort_order&swatches.order=sort_order';
+    + '&order=product_line,sort_order&swatches.order=sort_order' + (links ? '&swatch_links.order=sort_order' : '');
 };
+
+// Catalog line keys (the `line` of /api/catalog) that show a collection, from its shown_in values. The Drapery page carries Dream Curtains.
+export const catalogLinesOf = (shownIn) => [...new Set((shownIn || []).map(v => (v === 'dream-curtains' ? 'drapery' : v)).filter(v => Object.hasOwn(LINE_SCOPE, v)))];
 
 // The same data from our own edge-cached function (api/catalog.js): same origin, so no extra connection to wait for.
 export const edgePath = (lineKey) => `/api/catalog?line=${encodeURIComponent(lineKey)}`;

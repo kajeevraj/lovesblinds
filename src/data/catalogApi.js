@@ -22,8 +22,15 @@ export function mapRows(rows) {
         openness: nn(r.openness), opacity: nn(r.opacity), use: nn(r.use_area), ...(r.extra_specs || {}),
       }),
     });
-    for (const s of r.swatches || []) {
+    // own swatches, then swatches linked into this collection (they carry this collection's name for them);
+    // a hidden linked swatch comes back as null from Row Level Security and is skipped
+    const own = (r.swatches || []).map(s => ({ s, link: null }));
+    const linked = (r.swatch_links || []).filter(l => l.swatch).map(l => ({ s: l.swatch, link: l }));
+    const all = [...own, ...linked].sort((a, b) => (a.link ? a.link.sort_order : a.s.sort_order) - (b.link ? b.link.sort_order : b.s.sort_order));
+    for (const { s: base, link } of all) {
+      const s = link ? { ...base, fabric_id: r.id, product_line: r.product_line, shown_in: shownIn, family: r.family || link.family || null, display_name: link.display_name } : base;
       swatches.push({
+        key: `${s.id}@${r.id}`,
         id: s.id, fabricId: s.fabric_id, line: s.product_line, lines: s.shown_in || shownIn, family: s.family || undefined,
         fabric: r.collection_name,                                   // supplier collection: internal only
         code: s.supplier_code, colorName: s.supplier_color_name ?? undefined,   // supplier color name: internal only
@@ -52,7 +59,11 @@ async function getJson(url) {
 const usable = (rows) => Array.isArray(rows) && rows.some(r => (r.swatches || []).length);
 
 // Straight from Supabase. The key rides in the URL so this is a plain GET: no CORS preflight round trip.
-const fetchDirect = (lineKey) => getJson(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`);
+// If the extended query fails (the links table is not in the database yet), the plain one still works.
+const fetchDirect = async (lineKey) => {
+  try { return await getJson(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`); }
+  catch { return getJson(`${BASE}${catalogPath(lineKey, { links: false })}&apikey=${KEY}`); }
+};
 
 // Our edge-cached function first; if it is down, answers badly, or is missing (local dev), Supabase directly.
 async function fetchRows(lineKey) {

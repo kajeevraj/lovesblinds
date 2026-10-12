@@ -96,13 +96,31 @@ try {
   const bt = await page.locator('.adm-kv').first().innerText();
   check('the breakdown shows the grid, the sheet cell, the cost, the adders, the markup and the final price', /Roller shades-cord!\w+\d+/.test(bt) && /Cost from the grid/.test(bt) && /Markup\s+50%/.test(bt) && /Customer price/.test(bt), bt.replace(/\s+/g, ' ').slice(0, 300));
   await noOverflow('price checker'); await page.screenshot({ path: `${OUT}/p3-checker.png`, fullPage: true });
-  // dream curtains motor: placeholder visible
-  await page.getByLabel('Product line').selectOption('dream-curtains');
+  // price checker: one search box finds a color by name or code and fills in the line, collection and color
+  await page.getByLabel(/Find a color/).fill('ZDS3001-17');
+  await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().waitFor();
+  const hit = await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().innerText();
+  check('searching by code ZDS3001-17 lists the color with its line and collection (admin only)', /Anchor Gray/i.test(hit) && /Sunflower/.test(hit) && /Dream Curtains/.test(hit) && /collection/i.test(hit), hit.replace(/\s+/g, ' '));
+  await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().getByRole('button').click();
+  check('choosing a result fills in the line', (await page.getByLabel('Product line').inputValue()) === 'dream-curtains', await page.getByLabel('Product line').inputValue());
+  await page.locator('.adm-search').getByText(/Pricing\s+Anchor Gray/).waitFor();
+  check('the chosen color and collection are shown', /Pricing\s+Anchor Gray/i.test(await page.locator('.adm-search').innerText()), (await page.locator('.adm-search').innerText()).replace(/\s+/g, ' ').slice(-160));
+  const byCode = await (async () => { await page.getByLabel(/Find a color/).fill('xss'); await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().waitFor(); return page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').count(); })();
+  check('searching by a supplier code works', byCode > 0, `${byCode} results for "xss"`);
+  await page.getByLabel(/Find a color/).fill('');
+  // dream curtains motor: from the supplier, +$90
   await page.getByLabel('Control').selectOption('remote');
   await page.getByLabel('Width (in)').fill('100'); await page.getByLabel('Height / drop (in)').fill('100');
-  await page.getByText(/from_supplier|Motor \(not in the supplier sheet\)/).first().waitFor();
+  await page.getByText('from the supplier').first().waitFor();
   const dtxt = await page.locator('.adm-kv').first().innerText();
-  check('Dream Curtains motor shows the +$90 adder marked from the supplier', /\+\$90/.test(dtxt) && /from_supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
+  check('Dream Curtains motor shows the +$90 adder marked "from the supplier"', /\+\$90/.test(dtxt) && /from the supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
+  // option labels show the customer amount, not the supplier cost
+  await page.getByLabel('Product line').selectOption('roller');
+  await page.getByLabel(/Find a color/).fill('XSS000105'); await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().getByRole('button').click();
+  await page.getByLabel('Control').selectOption('chain');
+  await page.getByLabel('Width (in)').fill('40'); await page.getByLabel('Height / drop (in)').fill('64');
+  await page.getByText(/No fabric wrap on the cassette \(−\$4 on the customer price/).waitFor();
+  check('"No fabric wrap on the cassette" shows its customer effect (−$4), not the cost (−$3)', true, await page.locator('.adm-bar').first().innerText());
   // cellular double: a size outside
   await page.getByLabel('Product line').selectOption('roller');
   await page.getByLabel('Width (in)').fill('500');

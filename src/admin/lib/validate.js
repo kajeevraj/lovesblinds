@@ -5,7 +5,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasWord = (haystack, needle) => !!needle && new RegExp(`(^|[^a-z0-9_])${esc(needle.toLowerCase())}($|[^a-z0-9_])`).test(haystack.toLowerCase());
 
 // Returns a plain-words problem, or '' when the name is fine.
-export function checkName(name, { line, family, selfId, swatches, fabrics }) {
+export function checkName(name, { line, family, selfId, swatches, fabrics, links = [], selfLinkId = null }) {
   const n = name ?? '';
   if (!n.trim()) return '';
   if (n !== n.trim()) return 'Remove the space at the start or end.';
@@ -19,6 +19,10 @@ export function checkName(name, { line, family, selfId, swatches, fabrics }) {
   const dup = swatches.find((s) => s.id !== selfId && s.product_line === line && s.display_name.toLowerCase() === n.toLowerCase()
     && (!perFamily || (s.family || null) === (family || null)));
   if (dup) return `That name is already used in ${scopeLabel(line, family)}${dup.active ? '' : ' (by a hidden color)'}.`;
+  // a color linked into this line from another one counts too
+  const linkDup = (links || []).find((l) => l.id !== selfLinkId && l.product_line === line && l.display_name.toLowerCase() === n.toLowerCase()
+    && (!perFamily || (l.family || null) === (family || null)));
+  if (linkDup) return `That name is already used in ${scopeLabel(line, family)} (by a linked color).`;
   return '';
 }
 

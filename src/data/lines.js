@@ -33,12 +33,7 @@ export const LINES = [
     modes: ["single", "double-stack"],
     blurb: "Clean, minimal shades in fabrics from sheer to full blackout, available single or double-stack.",
     description: "Clean, minimal shades in three fabric families, from sheer to full blackout. Choose one shade, or pair two on a single window.",
-    goodToKnow: [
-      "Three fabric families. Screen View keeps the view and cuts glare, rated by openness (0% most private, up to 10% clearest view). Solar softens daylight, rated by opacity. Blackout shuts out light.",
-      "Choose a single shade, or a double-stack that pairs two fabrics on one window and lets you pull each one down on its own.",
-      "At night with lights on, people outside can see through Screen View and see-through Solar fabrics, so choose Blackout or a double-stack for night privacy.",
-      "Control: motorized, cordless or manual chain.",
-    ],
+    goodToKnow: [],
     mechanisms: mechs("chain", "cordless", "remote", "matter", "motor"),
     mounts: ["inside", "outside"],
   },
