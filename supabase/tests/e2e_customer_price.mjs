@@ -10,7 +10,8 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); console.l
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_name`, { headers: H(SVC) })).json();
 const suppNames = (await (await fetch(`${URL_}/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null&limit=2000`, { headers: H(SVC) })).json()).map((x) => x.supplier_color_name).filter((n) => n.length > 5);
-const leak = (text) => names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name);
+// "Cordless spring" is a control name on the page, not a price group: ordinary words in our own copy are not leaks
+const leak = (raw) => { const text = raw.replace(/Cordless spring/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
 const browser = await chromium.launch();
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -59,8 +60,8 @@ try {
 
   // every catalog response of the session
   const all = bodies.map((b) => b[1]).join('');
-  check('no catalog or estimate response of this session had price group names, supplier color names, grades or extra costs',
-    leak(all).length === 0 && !/supplier_color_name|"grade"|extra_cost|collection_name/.test(all) && !suppNames.some((n) => all.includes(`"${n}"`)), `${bodies.length} responses, ${all.length} bytes checked`);
+  check('no catalog or estimate response of this session had price group names, supplier color name / grade / extra cost fields, or cost fields',
+    leak(all).length === 0 && !/supplier_color_name|"grade"|extra_cost|collection_name|"cost"|markup/.test(all), `${bodies.length} responses, ${all.length} bytes checked`);
 } catch (e) {
   console.log('\nTEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false });
 } finally {

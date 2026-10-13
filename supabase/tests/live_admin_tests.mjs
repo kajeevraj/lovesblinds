@@ -72,7 +72,7 @@ try {
   check('admin: can add a color', r.status === 201, short(r));
   r = await call('POST', '/rest/v1/swatches', { ...admin.hdr, ...REP }, { ...row, id: SW + 'b', supplier_code: CODE + 'b', display_name: 'zzqx test color' });
   if (r.status < 300) created.swatches.push(SW + 'b');
-  check('admin: a duplicate name is refused in plain constraint terms', r.status === 409 && /swatches_display_name_per_line/.test(JSON.stringify(r.body)), short(r) + ' ' + (r.body?.message?.match(/"([^"]+)"/)?.[1] ?? ''));
+  check('admin: a duplicate name is refused in plain constraint terms', r.status === 409 && /swatches_display_name_per_line|already used in the zebra line/.test(JSON.stringify(r.body)), short(r) + ' ' + (r.body?.message?.match(/"([^"]+)"/)?.[1] ?? ''));
   r = await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW)}`, { ...admin.hdr, ...REP }, { display_name: 'Zzqx Renamed Color' });
   check('admin: can edit a color', r.status === 200 && r.body[0]?.display_name === 'Zzqx Renamed Color', short(r));
 

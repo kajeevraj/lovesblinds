@@ -152,8 +152,12 @@ try {
   const leakedNames = names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(payload)).map((f) => f.collection_name);
   check('the public catalog contains no price group (collection) names', leakedNames.length === 0, leakedNames.length ? `FOUND: ${leakedNames.slice(0, 8).join(', ')}` : `${names.length} names checked against ${payload.length} bytes`);
   check('the public catalog contains no price group ids', !names.some((f) => payload.includes(f.id)), `${names.length} ids checked`);
-  check('the public catalog has no supplier color names, grades, extra costs, costs or price information',
-    !/supplier_color_name|"grade"|extra_cost|"price|"cost|markup|collection_name|multiplier/i.test(payload) && !supp.some((x) => x.supplier_color_name.length > 4 && payload.includes(`"${x.supplier_color_name}"`)), 'keys and values checked');
+  // exactly these fields and no others (a supplier color name such as "White" is also an ordinary word, so values cannot be searched; the keys can)
+  const GROUP_KEYS = 'composition,extra_specs,family,id,opacity,openness,product_line,shown_in,sort_order,swatches,thickness,use_area,weight,width';
+  const SWATCH_KEYS = 'color_family,composition,display_name,family,fabric_id,id,image_kind,image_path,roman_styles,shown_in,sort_order,styles,supplier_code,thumb_path,width,product_line';
+  const okKeys = (o, allowed) => Object.keys(o).every((k) => allowed.split(',').includes(k));
+  const badKeys = (catAll.body || []).filter((g) => !okKeys(g, GROUP_KEYS) || g.swatches.some((x) => !okKeys(x, SWATCH_KEYS))).length;
+  check('the public catalog carries only display fields: no supplier color names, grades, extra costs, costs or price information', badKeys === 0 && !/supplier_color_name|"grade"|extra_cost|"price|"cost|markup|collection_name|multiplier/i.test(payload), `${(catAll.body || []).length} groups with unexpected fields: ${badKeys}`);
   for (const [label, hdr] of [['anonymous', anon], ['signed-in non-admin', plain.hdr]]) {
     const direct = [];
     for (const t of ['fabrics', 'swatches', 'swatch_links']) { const x = await call('GET', `/rest/v1/${t}?select=*&limit=3`, hdr); if (!refused(x)) direct.push(t); }

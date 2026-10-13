@@ -24,11 +24,11 @@ const tryInsert = async (hdr, row) => { const r = await call('POST', '/rest/v1/s
 
 console.log(`\n=== CONSTRAINTS (service role, which bypasses RLS: only the database's own rules can stop these) ===`);
 let r = await tryInsert(H(SVC, SVC, { [PRE]: 'return=minimal' }), base({ id: 'zz-test:dupname', display_name: a.display_name.toUpperCase(), supplier_code: 'ZZTESTDUP1' }));
-check('1 duplicate display name in the same scope (zebra, different case)', r.status === 409 && /duplicate|unique/i.test(JSON.stringify(r.body)), short(r) + ` [constraint: ${r.body?.message?.match(/"([^"]+)"/)?.[1] ?? ''}]`);
+check('1 duplicate display name in the same scope (zebra, different case)', r.status === 409 && /already used|duplicate|unique/i.test(JSON.stringify(r.body)), short(r));
 r = await tryInsert(H(SVC, SVC, { [PRE]: 'return=minimal' }), base({ id: 'zz-test:digit', display_name: 'Gray 5', supplier_code: 'ZZTESTDIG1' }));
 check('2 display name containing a digit', r.status >= 400 && /swatches_display_name_no_digit/.test(JSON.stringify(r.body)), short(r) + ` [${r.body?.message?.match(/constraint "([^"]+)"/)?.[1] ?? ''}]`);
 r = await tryInsert(H(SVC, SVC, { [PRE]: 'return=minimal' }), base({ id: 'zz-test:dupcode', display_name: 'Zzqx Testing Gray', supplier_code: a.supplier_code.toLowerCase() }));
-check('3 duplicate supplier code in the same line (different case)', r.status === 409 && /duplicate|unique/i.test(JSON.stringify(r.body)), short(r) + ` [${r.body?.message?.match(/"([^"]+)"/)?.[1] ?? ''}]`);
+check('3 duplicate supplier code in the same line (different case)', r.status === 409 && /already used|duplicate|unique/i.test(JSON.stringify(r.body)), short(r));
 
 // --- temporary non-admin user
 const email = `rls-test-${Date.now()}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
