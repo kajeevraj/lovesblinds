@@ -50,7 +50,7 @@ export default function ColorsSection() {
       {error && <p className="adm-error" role="alert">{error}</p>}
       <div className="adm-tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'colors'} className={tab === 'colors' ? 'is-current' : ''} onClick={() => setTab('colors')}>Colors ({data.swatches.length})</button>
-        <button role="tab" aria-selected={tab === 'collections'} className={tab === 'collections' ? 'is-current' : ''} onClick={() => setTab('collections')}>Collections ({data.fabrics.length})</button>
+        <button role="tab" aria-selected={tab === 'collections'} className={tab === 'collections' ? 'is-current' : ''} onClick={() => setTab('collections')}>Price groups ({data.fabrics.length})</button>
       </div>
       {tab === 'colors'
         ? <ColorList data={data} reload={reload} setNotice={setNotice} setError={setError} onEdit={(id) => setView({ type: 'color', id })} />

@@ -96,7 +96,7 @@ export default function SizeRulesTab({ line, data, reload }) {
       <div className="adm-card">
         <h2>Limits from the supplier price grids</h2>
         {rows.length === 0 ? <p className="adm-muted">This line has no price grid, so there are no limits from grids.</p> : (<>
-          <p className="adm-muted">These come straight from the grids (read-only). A size past them has no estimate (“custom size”). Per-collection limits (roll width, “Max Length”) are on each grid.</p>
+          <p className="adm-muted">These come straight from the grids (read-only). A size past them has no estimate (“custom size”). Per-price group limits (roll width, “Max Length”) are on each grid.</p>
           <table className="adm-table"><thead><tr><th>Pricing line</th><th>System</th><th>Variant</th><th>Width (in)</th><th>Height / drop (in)</th><th>Grids</th><th>Source</th></tr></thead><tbody>
             {rows.map((r, i) => <tr key={i}><td data-label="Pricing line">{r.pl.name}</td><td data-label="System">{r.g.systems.map((s) => SYSTEM_LABEL[s]).join(' + ')}{r.g.special ? ' (special sizes)' : ''}</td><td data-label="Variant">{[r.g.variant !== 'all' ? r.g.variant : '', r.g.lining || ''].filter(Boolean).join(' · ') || '—'}</td>
               <td data-label="Width">{r.minW}–{r.maxW}</td><td data-label="Height / drop">{r.minH}–{r.maxH}</td><td data-label="Grids">{r.n}</td><td data-label="Source"><span className="adm-badge is-active">From grid</span></td></tr>)}

@@ -18,20 +18,28 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
 
   const fabricById = useMemo(() => new Map(data.fabrics.map((f) => [f.id, f])), [data.fabrics]);
   const collections = useMemo(() => data.fabrics.filter((f) => !line || f.product_line === line), [data.fabrics, line]);
+  // every line a color is in (its own plus its links) and the price group it uses in each
+  const placementsBy = useMemo(() => {
+    const m = new Map();
+    for (const s of data.swatches) m.set(s.id, [{ line: s.product_line, fabricId: s.fabric_id }]);
+    for (const l of data.links || []) m.get(l.swatch_id)?.push({ line: l.product_line, fabricId: l.fabric_id });
+    return m;
+  }, [data.swatches, data.links]);
 
   const linkCount = (id) => (data.links || []).filter((l) => l.swatch_id === id).length;
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return data.swatches.filter((s) => {
-      if (line && s.product_line !== line) return false;
-      if (collection && s.fabric_id !== collection) return false;
+      const ps = placementsBy.get(s.id) || [];
+      if (line && !ps.some((p) => p.line === line)) return false;
+      if (collection && !ps.some((p) => p.fabricId === collection)) return false;
       if (colorFamily && s.color_family !== colorFamily) return false;
       if (status === 'active' && !s.active) return false;
       if (status === 'hidden' && s.active) return false;
       if (needle && !(s.display_name.toLowerCase().includes(needle) || s.supplier_code.toLowerCase().includes(needle))) return false;
       return true;
     });
-  }, [data.swatches, q, line, collection, colorFamily, status]);
+  }, [data.swatches, placementsBy, q, line, collection, colorFamily, status]);
 
   const reset = () => { setQ(''); setLine(''); setCollection(''); setColorFamily(''); setStatus(''); setShown(PAGE); };
   const onFilter = (set) => (e) => { set(e.target.value); setShown(PAGE); };
@@ -40,7 +48,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
     setBusy(s.id);
     try {
       await updateRow('swatches', s.id, { active: !s.active });
-      setNotice(`“${s.display_name}” is now ${s.active ? 'hidden' : 'visible'}${linkCount(s.id) ? ' in every line it is linked into' : ''}. ${await publishToSite(linesForSwatch(data, s.id))}`);
+      setNotice(`“${s.display_name}” is now ${s.active ? 'hidden' : 'visible'}${linkCount(s.id) ? ' in every line it is in' : ''}. ${await publishToSite(linesForSwatch(data, s.id))}`);
       await reload();
     } catch (e) { setError(explain(e)); }
     setBusy('');
@@ -50,7 +58,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
     <div>
       <div className="adm-filters">
         <label className="adm-field adm-search"><span>Search name or code</span>
-          <input type="search" value={q} onChange={onFilter(setQ)} placeholder="e.g. Purity or XSS000105" />
+          <input type="search" value={q} onChange={onFilter(setQ)} placeholder="e.g. Platinum Gray or XSS000105" />
         </label>
         <label className="adm-field"><span>Product line</span>
           <select value={line} onChange={(e) => { setLine(e.target.value); setCollection(''); setShown(PAGE); }}>
@@ -58,9 +66,9 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
             {LINE_ORDER.map((l) => <option key={l} value={l}>{LINE_LABELS[l]}</option>)}
           </select>
         </label>
-        <label className="adm-field"><span>Collection</span>
+        <label className="adm-field"><span>Price group</span>
           <select value={collection} onChange={onFilter(setCollection)}>
-            <option value="">All collections</option>
+            <option value="">All price groups</option>
             {collections.map((f) => <option key={f.id} value={f.id}>{f.collection_name}{f.family ? ` (${FAMILY_LABELS[f.family]})` : ''}{line ? '' : ` · ${LINE_LABELS[f.product_line]}`}</option>)}
           </select>
         </label>
@@ -82,7 +90,7 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
       </p>
 
       <table className="adm-table">
-        <thead><tr><th>Photo</th><th>Name</th><th>Supplier code</th><th>Collection</th><th>Line</th><th>Family</th><th>Color family</th><th>Status</th><th><span className="adm-sr">Actions</span></th></tr></thead>
+        <thead><tr><th>Photo</th><th>Name</th><th>Supplier code</th><th>Price group</th><th>Product lines</th><th>Family</th><th>Color family</th><th>Status</th><th><span className="adm-sr">Actions</span></th></tr></thead>
         <tbody>
           {rows.slice(0, shown).map((s) => {
             const f = fabricById.get(s.fabric_id);
@@ -92,8 +100,8 @@ export default function ColorList({ data, reload, setNotice, setError, onEdit })
                 <td data-label="Photo"><img className="adm-thumb" src={imgUrl(s.thumb_path)} alt="" loading="lazy" width="48" height="48" /></td>
                 <td data-label="Name" className="adm-name"><button className="adm-link" onClick={() => onEdit(s.id)}>{s.display_name}</button></td>
                 <td data-label="Supplier code"><code>{s.supplier_code}</code></td>
-                <td data-label="Collection">{f?.collection_name}</td>
-                <td data-label="Line">{LINE_LABELS[s.product_line]}{linkCount(s.id) > 0 && <div className="adm-muted adm-small">+ {linkCount(s.id)} linked {linkCount(s.id) === 1 ? 'line' : 'lines'}</div>}</td>
+                <td data-label="Price group">{(placementsBy.get(s.id) || []).length > 1 ? (placementsBy.get(s.id) || []).map((p) => `${fabricById.get(p.fabricId)?.collection_name || '—'} (${LINE_LABELS[p.line]})`).join(', ') : f?.collection_name}</td>
+                <td data-label="Product lines">{(placementsBy.get(s.id) || []).map((p) => LINE_LABELS[p.line]).join(', ')}</td>
                 <td data-label="Family">{s.family ? FAMILY_LABELS[s.family] : '—'}</td>
                 <td data-label="Color family">{s.color_family}</td>
                 <td data-label="Status"><span className={`adm-badge ${s.active && !hiddenByCollection ? 'is-active' : 'is-off'}`}>{!s.active ? 'Hidden' : hiddenByCollection ? 'Hidden (collection)' : 'Active'}</span></td>

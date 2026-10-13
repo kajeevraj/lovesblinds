@@ -83,7 +83,7 @@ export default function ImportWizard({ data, catalog, reload }) {
             <li><strong>{prev.addDiff.length}</strong> adder changes{prev.addDiff.map((a, i) => <div key={i} className="adm-small">{a.kind === 'new' ? 'new' : a.kind === 'removed' ? 'removed' : `changed from ${money(a.from)}`}: {a.adder.label} {a.adder.amount != null ? money(a.adder.amount) : ''}</div>)}</li>
           </ul>
           {d.changed.some((c) => c.fabAdded.length || c.fabRemoved.length) && (
-            <div className="adm-small"><strong>Collections added to or removed from grids:</strong>
+            <div className="adm-small"><strong>Price groups added to or removed from grids:</strong>
               <ul>{d.changed.filter((c) => c.fabAdded.length || c.fabRemoved.length).map((c, i) => <li key={i}>{c.grid.label}: {c.fabAdded.length ? `+ ${c.fabAdded.map(nameOf).join(', ')} ` : ''}{c.fabRemoved.length ? `− ${c.fabRemoved.map(nameOf).join(', ')}` : ''}</li>)}</ul></div>
           )}
           {d.examples.length > 0 && (
@@ -91,7 +91,7 @@ export default function ImportWizard({ data, catalog, reload }) {
               {d.examples.map((x, i) => <tr key={i}><td data-label="Grid">{x.grid}</td><td data-label="Row">{x.row}</td><td data-label="Column">{x.col}</td><td data-label="Was">{x.from == null ? '—' : money(x.from)}</td><td data-label="Now">{x.to == null ? '—' : money(x.to)}</td></tr>)}
             </tbody></table>
           )}
-          {prev.unmapped.length > 0 && <p className="adm-warn">Sheet collections with no fabric on the site (ignored): {prev.unmapped.map((u) => u.name + (u.family ? ` (${u.family})` : '')).join(', ')}</p>}
+          {prev.unmapped.length > 0 && <p className="adm-warn">Sheet price groups with no fabric on the site (ignored): {prev.unmapped.map((u) => u.name + (u.family ? ` (${u.family})` : '')).join(', ')}</p>}
           {prev.fabricsWithoutGrid.length > 0 && <p className="adm-warn">Our fabrics with no grid in this file: {prev.fabricsWithoutGrid.map((f) => f.collection_name).join(', ')}</p>}
           {nothing ? <p className="adm-notice">Nothing changed. Nothing to apply.</p> : (
             <div className="adm-bar"><button className="adm-btn adm-btn-primary" disabled={busy} onClick={apply}>Apply this import</button><button className="adm-btn adm-btn-quiet" onClick={() => setPrev(null)}>Cancel</button></div>

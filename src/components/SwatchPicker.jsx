@@ -31,10 +31,8 @@ function makePick(swatch, role, styleObj) {
     swatchId: swatch.id,
     line: swatch.line,
     family: swatch.family || null,
-    fabric: swatch.fabric,
     fabricId: swatch.fabricId,
     code: styleObj ? styleObj.code : swatch.code,
-    colorName: swatch.colorName ?? null,           // supplier name: internal only
     displayName: swatch.displayName,
     style: styleObj ? styleObj.style : null,
     thumb: src.thumb,

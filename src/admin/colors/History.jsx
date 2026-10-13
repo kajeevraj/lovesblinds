@@ -14,11 +14,10 @@ const short = (v) => {
 function describe(e) {
   if (e.table_name === 'swatch_links') {
     const r = e.new_row || e.old_row || {};
-    const where = r.product_line ? ` in ${LINE_LABELS[r.product_line] || r.product_line}` : '';
-    if (e.action === 'INSERT') return `Linked${where} as “${r.display_name}”`;
-    if (e.action === 'DELETE') return `Unlinked${where} (“${r.display_name}”)`;
-    const o = e.old_row || {};
-    return o.display_name !== r.display_name ? `Renamed${where}: “${o.display_name}” → “${r.display_name}”` : `Link${where} updated`;
+    const where = LINE_LABELS[r.product_line] || r.product_line || 'another line';
+    if (e.action === 'INSERT') return `Added to ${where}`;
+    if (e.action === 'DELETE') return `Removed from ${where}`;
+    return `Price group changed in ${where}`;
   }
   if (e.action === 'INSERT') return 'Created';
   if (e.action === 'DELETE') return 'Deleted';

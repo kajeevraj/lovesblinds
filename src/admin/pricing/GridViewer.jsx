@@ -43,12 +43,12 @@ function Viewer({ meta, data, catalog, onSwapped }) {
         </div>
         <div>
           {fabs.length > 0 ? (
-            <table className="adm-table adm-compact"><thead><tr><th>Collection</th><th>Roll: sheet</th><th>Roll: ours</th><th>Max drop</th></tr></thead><tbody>
+            <table className="adm-table adm-compact"><thead><tr><th>Price group</th><th>Roll: sheet</th><th>Roll: ours</th><th>Max drop</th></tr></thead><tbody>
               {fabs.map((gf) => { const ours = numsIn(gf.fabric?.width); const sheet = gf.sheet_rolls || []; const diff = sheet.length && ours.length && Math.min(...sheet) !== Math.min(...ours);
-                return (<tr key={gf.fabric_id}><td data-label="Collection">{gf.fabric?.collection_name}{gf.fabric?.family ? ` (${gf.fabric.family})` : ''}</td>
+                return (<tr key={gf.fabric_id}><td data-label="Price group">{gf.fabric?.collection_name}{gf.fabric?.family ? ` (${gf.fabric.family})` : ''}</td>
                   <td data-label="Roll: sheet">{sheet.join(' / ') || '—'}</td><td data-label="Roll: ours" className={diff ? 'adm-warn' : ''}>{gf.fabric?.width || '—'}{diff ? ` → uses ${Math.min(...sheet, ...ours)}` : ''}</td><td data-label="Max drop">{gf.max_drop ?? '—'}</td></tr>); })}
             </tbody></table>
-          ) : <p className="adm-muted">Covers every collection in the line.</p>}
+          ) : <p className="adm-muted">Covers every price group in the line.</p>}
         </div>
       </div>
       {!cost ? <p className="adm-muted" aria-busy="true">Loading cells…</p> : (
@@ -73,7 +73,7 @@ export default function GridViewer({ data, catalog, reload }) {
       <div className="adm-filters adm-filters3">
         <label className="adm-field"><span>Line</span><select value={line} onChange={(e) => { setLine(e.target.value); setSel(''); }}>{data.lines.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
         <label className="adm-field"><span>System</span><select value={sys} onChange={(e) => setSys(e.target.value)}><option value="">All</option>{Object.entries(SYSTEM_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-        <label className="adm-field"><span>Search</span><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="collection name" /></label>
+        <label className="adm-field"><span>Search</span><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="price group name" /></label>
       </div>
       <p className="adm-muted">{rows.length} grids</p>
       <table className="adm-table"><thead><tr><th>Grid</th><th>Systems</th><th>Width</th><th>Height / drop</th><th>Cells</th><th>Notes</th><th /></tr></thead><tbody>

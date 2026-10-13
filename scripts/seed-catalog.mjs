@@ -159,10 +159,12 @@ async function verify() {
   const anon = process.env.VITE_SUPABASE_ANON_KEY;
   let okAnon = true;
   if (anon) {
-    const pub = createClient(url, anon, { auth: { persistSession: false } });
-    const r = await pub.from('swatches').select('id', { count: 'exact', head: true });
-    console.log('what an anonymous visitor can read:', r.error ? `ERROR ${r.error.message}` : `${r.count} swatches`);
-    okAnon = !r.error && r.count === EXPECTED.swatches;
+    // the public reads the catalog through public_catalog(), not the tables
+    const res = await fetch(`${url}/rest/v1/rpc/public_catalog`, { method: 'POST', headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_scope: ['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'drapery', 'dream-curtains'] }) });
+    const body = res.ok ? await res.json() : null;
+    const ids = new Set((body || []).flatMap((g) => g.swatches.map((x) => x.id)));
+    console.log('what an anonymous visitor can read:', body ? `${ids.size} colors` : `ERROR HTTP ${res.status}`);
+    okAnon = !!body && ids.size === EXPECTED.swatches;
   }
   console.log(okDb && okAnon ? 'COUNTS MATCH' : 'COUNTS DO NOT MATCH');
   return okDb && okAnon;

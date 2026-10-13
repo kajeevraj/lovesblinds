@@ -39,7 +39,7 @@ function readSheets(file) {
 
 async function fetchFabrics() {
   if (FABRICS_FILE) return JSON.parse(readFileSync(FABRICS_FILE, 'utf8'));
-  const r = await fetch(`${URL_}/rest/v1/fabrics?select=id,product_line,family,collection_name,width&limit=1000`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
+  const r = await fetch(`${URL_}/rest/v1/fabrics?select=id,product_line,family,collection_name,width&limit=1000`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } });
   if (!r.ok) throw new Error(`could not read fabrics: HTTP ${r.status}`);
   return r.json();
 }

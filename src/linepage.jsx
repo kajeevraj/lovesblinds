@@ -13,6 +13,7 @@ import {
 import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
 import { OptionCards } from './components/ExplainerImg.jsx';
 import SwatchPicker from './components/SwatchPicker.jsx';
+import { priceRequest, usePrice } from './lib/estimate.js';
 import { Footer } from './customer.jsx';
 import { ArrowRight } from './icons.jsx';
 
@@ -126,6 +127,7 @@ function Configurator({ line, addToQuote }) {
   const [dreamOpened, setDreamOpened] = useState(false);   // the Dream Curtains grid is not built until that section is opened
 
   const { selection, missing } = buildSelection(line, c);
+  const price = usePrice(priceRequest(line, c, mech, width, height));
   const ready = missing.length === 0;
 
   // Roman: the style/lining a swatch allows, straight from its romanStyles data
@@ -317,6 +319,13 @@ function Configurator({ line, addToQuote }) {
           {mechObj?.name} · {mountObj?.name}
           {width && height ? ` · ${width}"W × ${height}"H` : ""} · Qty {parseInt(windows, 10) || 1}
         </div>
+        {price && (
+          <div className="order-price" aria-live="polite">
+            {price.price != null
+              ? <><span className="order-price-amount serif">${Number(price.price).toLocaleString("en-US")}</span> <small>{(parseInt(windows, 10) || 1) > 1 ? "per window" : "for this window"}</small></>
+              : <span className="order-price-note">{price.custom_size ? "This size needs a custom quote. " : ""}Send us your order and we’ll reply with a price.</span>}
+          </div>
+        )}
         {!ready && <div className="order-summary-missing">Still to choose: {missing.join(", ")}.</div>}
         <div className="config-actions">
           <button className="btn btn-sage" onClick={handleAdd} disabled={!ready}>

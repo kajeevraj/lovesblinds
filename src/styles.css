@@ -1324,3 +1324,8 @@ a { color: inherit; }
 .sw-skel-tile { display: block; aspect-ratio: 1 / 1.45; border-radius: 10px; background: linear-gradient(100deg, #ece7db 30%, #f5f1e8 50%, #ece7db 70%); background-size: 200% 100%; animation: sw-skel 1.4s ease-in-out infinite; }
 @keyframes sw-skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .sw-skel-tile { animation: none; } }
+
+/* live price under the order summary: one number, no breakdown */
+.order-price { margin: 12px 0 4px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.order-price-amount { font-size: 30px; color: var(--charcoal); }
+.order-price small, .order-price-note { font-size: 14px; color: rgba(34,31,26,0.75); }

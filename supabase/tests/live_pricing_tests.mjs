@@ -29,9 +29,16 @@ const mk = async (label) => {
   return { id: cu.body.id, email, hdr: H(ANON, tok.body.access_token) };
 };
 const est = (hdr, fn, args) => call('POST', `/rest/v1/rpc/${fn}`, hdr, args);
+// REQUIRE_CLOSED=1: also assert that migration 11 (closing the public's direct table reads) is applied.
+const REQUIRE_CLOSED = process.env.REQUIRE_CLOSED === '1';
+const SARGS = (o = {}) => ({ p_line: 'roller', p_swatch_id: SW.sag, p_options: { control: 'chain' }, p_width: 40, p_height: 56, ...o });
 const ARGS = (o = {}) => ({ p_line: 'roller', p_fabric_id: 'roller:solar:sag', p_options: { control: 'chain' }, p_width: 40, p_height: 56, ...o });
 
+const SW = {};   // swatch ids the tests price (filled in below, with the service role)
 try {
+  const firstSwatch = async (fab) => (await call('GET', `/rest/v1/swatches?select=id&fabric_id=eq.${enc(fab)}&active=eq.true&order=sort_order&limit=1`, svc)).body[0].id;
+  SW.sag = await firstSwatch('roller:solar:sag'); SW.purity = await firstSwatch('roller:screen-view:purity'); SW.hermes = await firstSwatch('shangri-la:-:hermes');
+  SW.sun = await firstSwatch('dream-curtains:-:sunflower'); SW.orsay = await firstSwatch('drapery:orsay');
   const admin = await mk('padmin'), plain = await mk('pplain');
   const ar = await call('POST', '/rest/v1/admins', { ...svc, ...REP }, { email: admin.email, user_id: admin.id }); adminRows.push(ar.body[0].id);
   console.log(`temporary admin and non-admin created\n`);
@@ -57,17 +64,17 @@ try {
     }
     check(`${label}: cannot change or delete markups, adders, options or flags`, changed.length === 0, changed.length ? `CHANGED: ${changed.join(', ')}` : 'all refused');
     const fns = []; 
-    for (const [fn, args] of [['estimate_price_debug', ARGS()], ['price_breakdown', ARGS()], ['price_single', ARGS()], ['price_import_apply', { p_line: 'roller', p_grids: [], p_remove_keys: null, p_adders: null, p_meta: null }], ['roll_numbers', { t: '98 in' }]]) {
+    for (const [fn, args] of [['estimate_price_debug', ARGS()], ['estimate_price', ARGS()], ['estimate_price_debug_for_swatch', SARGS()], ['price_for_swatch', SARGS()], ['swatch_placement', { p_swatch: SW.sag, p_catline: 'roller' }], ['price_breakdown', ARGS()], ['price_single', ARGS()], ['price_import_apply', { p_line: 'roller', p_grids: [], p_remove_keys: null, p_adders: null, p_meta: null }], ['roll_numbers', { t: '98 in' }]]) {
       const r = await est(hdr, fn, args); if (r.status < 300) fns.push(fn);
     }
-    check(`${label}: cannot call estimate_price_debug, price_breakdown, price_single, price_import_apply or roll_numbers`, fns.length === 0, fns.length ? `CALLABLE: ${fns.join(', ')}` : 'all refused');
+    check(`${label}: cannot call estimate_price (price group route), the debug and internal price functions, price_import_apply or roll_numbers`, fns.length === 0, fns.length ? `CALLABLE: ${fns.join(', ')}` : 'all refused');
 
     // what a customer may learn
-    const samples = [ARGS(), ARGS({ p_width: 10, p_height: 10 }), ARGS({ p_width: 500 }), ARGS({ p_line: 'nope' }), ARGS({ p_line: 'drapery', p_fabric_id: 'drapery:orsay', p_options: { control: 'manual' } }),
-      ARGS({ p_options: { control: 'matter', mode: 'double-stack', back_fabric_id: 'roller:screen-view:purity' } }), ARGS({ p_line: 'shangri-la', p_fabric_id: 'shangri-la:-:hermes', p_options: { control: 'matter' }, p_width: 50, p_height: 90 })];
-    const outs = []; for (const s of samples) outs.push(await est(hdr, 'estimate_price', s));
+    const samples = [SARGS(), SARGS({ p_width: 10, p_height: 10 }), SARGS({ p_width: 500 }), SARGS({ p_line: 'nope' }), SARGS({ p_line: 'drapery', p_swatch_id: SW.orsay, p_options: { control: 'manual' } }),
+      SARGS({ p_options: { control: 'matter', mode: 'double-stack', back_swatch_id: SW.purity } }), SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'matter' }, p_width: 50, p_height: 90 })];
+    const outs = []; for (const s of samples) outs.push(await est(hdr, 'estimate_price_for_swatch', s));
     const keysOk = outs.every((o) => o.status === 200 && o.body && typeof o.body === 'object' && Object.keys(o.body).sort().join() === 'custom_size,price,price_on_request');
-    check(`${label}: estimate_price answers with only {price, custom_size, price_on_request}`, keysOk, outs.map((o) => JSON.stringify(o.body)).join('\n      '));
+    check(`${label}: estimate_price_for_swatch answers with only {price, custom_size, price_on_request}`, keysOk, outs.map((o) => JSON.stringify(o.body)).join('\n      '));
     const leaked = outs.some((o) => /cost|markup|grid|adder|cell|sheet|supplier|margin/i.test(JSON.stringify(o.body)));
     check(`${label}: nothing about cost, markup, grids or adders appears in an estimate`, !leaked, 'checked the 7 answers above');
     check(`${label}: estimates give whole-dollar prices, "custom size" for impossible sizes, "price on request" for curtains`,
@@ -80,21 +87,21 @@ try {
   const cnt = await fetch(URL_ + '/rest/v1/price_grids?select=id', { headers: { ...admin.hdr, Prefer: 'count=exact', Range: '0-0' } });
   const total = Number((cnt.headers.get('content-range') || '').split('/')[1]);
   check('admin reads the price grids', total >= 130, `${total} grids`);
-  const dbg = await est(admin.hdr, 'estimate_price_debug', ARGS()); const cust = await est(anon, 'estimate_price', ARGS());
+  const dbg = await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS()); const cust = await est(anon, 'estimate_price_for_swatch', SARGS());
   check('admin price checker returns cost, grid cell, adders and markup, and the same final price a customer gets', dbg.status === 200 && dbg.body.grid_cost > 0 && dbg.body.markup === 0.5 && dbg.body.price === cust.body.price, `cost ${dbg.body.grid_cost}, markup ${dbg.body.markup}, price ${dbg.body.price} vs customer ${cust.body.price}`);
-  const known = [[ARGS(), 121], [ARGS({ p_line: 'shangri-la', p_fabric_id: 'shangri-la:-:hermes', p_options: { control: 'matter' }, p_width: 50, p_height: 90 }), 390],
-    [ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'manual' }, p_width: 100, p_height: 100 }), 421]];
-  const got = []; for (const [a, want] of known) got.push([(await est(admin.hdr, 'estimate_price_debug', a)).body.price, want]);
+  const known = [[SARGS(), 121], [SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'matter' }, p_width: 50, p_height: 90 }), 390],
+    [SARGS({ p_line: 'dream-curtains', p_swatch_id: SW.sun, p_options: { control: 'manual' }, p_width: 100, p_height: 100 }), 421]];
+  const got = []; for (const [a, want] of known) got.push([(await est(admin.hdr, 'estimate_price_debug_for_swatch', a)).body.price, want]);
   check('three known prices match the spreadsheets (roller 121, shangri-la 390, dream curtains 421)', got.every(([g, w]) => g === w), JSON.stringify(got));
 
   // markup: change, see the price move, restore
   r = await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: 0.6 });
-  const p60 = (await est(anon, 'estimate_price', ARGS())).body.price;
+  const p60 = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
   await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: 0.5 });
-  const p50 = (await est(anon, 'estimate_price', ARGS())).body.price;
+  const p50 = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
   check('admin changes a line markup (50% -> 60% -> 50%) and the customer price follows', p60 === 129 && p50 === 121, `60%: $${p60}, back to 50%: $${p50}`);
   r = await call('POST', '/rest/v1/collection_markups', { ...admin.hdr, ...REP }, { fabric_id: 'roller:solar:sag', markup: 1.0 }); cleanup.push(() => call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', svc));
-  const po = (await est(anon, 'estimate_price', ARGS())).body.price;
+  const po = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
   await call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', { ...admin.hdr, ...REP });
   check('admin sets and removes a per-collection markup override', r.status === 201 && po === 162, `override 100%: $${po}`);
   // dream curtains motor placeholder is editable
@@ -133,8 +140,44 @@ try {
   r = await call('GET', '/rest/v1/audit_log?select=id,new_row&table_name=eq.price_grids&limit=1000', admin.hdr);
   check('the audit log never stores a grid\'s cost cells (only a fingerprint)', Array.isArray(r.body) && r.body.every((e) => !e.new_row || !('cost' in e.new_row)), `${r.body.length} price_grids entries checked`);
   // the existing site is untouched
-  const sw = await fetch(URL_ + '/rest/v1/swatches?select=id', { headers: { ...anon, Prefer: 'count=exact', Range: '0-0' } });
-  check('the public catalog is unchanged (437 colors visible to anonymous visitors)', /\/437$/.test(sw.headers.get('content-range') || ''), sw.headers.get('content-range'));
+  const catAll = await est(anon, 'public_catalog', { p_scope: ['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'drapery', 'dream-curtains'] });
+  const idsAll = new Set((catAll.body || []).flatMap((g) => g.swatches.map((x) => x.id)));
+  check('the public catalog is unchanged (437 colors visible to anonymous visitors, through public_catalog)', idsAll.size === 437, `${idsAll.size} colors`);
+
+  // ------------------------------------------------------------------ PRIVACY: what the customer side can learn
+  console.log('\n=== PRIVACY (customer side)');
+  const names = (await call('GET', '/rest/v1/fabrics?select=id,collection_name', svc)).body;
+  const supp = (await call('GET', '/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null', svc)).body;
+  const payload = JSON.stringify(catAll.body);
+  const leakedNames = names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(payload)).map((f) => f.collection_name);
+  check('the public catalog contains no price group (collection) names', leakedNames.length === 0, leakedNames.length ? `FOUND: ${leakedNames.slice(0, 8).join(', ')}` : `${names.length} names checked against ${payload.length} bytes`);
+  check('the public catalog contains no price group ids', !names.some((f) => payload.includes(f.id)), `${names.length} ids checked`);
+  check('the public catalog has no supplier color names, grades, extra costs, costs or price information',
+    !/supplier_color_name|"grade"|extra_cost|"price|"cost|markup|collection_name|multiplier/i.test(payload) && !supp.some((x) => x.supplier_color_name.length > 4 && payload.includes(`"${x.supplier_color_name}"`)), 'keys and values checked');
+  for (const [label, hdr] of [['anonymous', anon], ['signed-in non-admin', plain.hdr]]) {
+    const direct = [];
+    for (const t of ['fabrics', 'swatches', 'swatch_links']) { const x = await call('GET', `/rest/v1/${t}?select=*&limit=3`, hdr); if (!refused(x)) direct.push(t); }
+    check(`${label}: direct reads of fabrics, swatches and swatch_links are ${REQUIRE_CLOSED ? 'closed (migration 11)' : 'still open until migration 11 (main reads them)'}`, REQUIRE_CLOSED ? direct.length === 0 : true, direct.length ? `readable now: ${direct.join(', ')}` : 'all refused');
+  }
+  const anyExtra = (await call('GET', '/rest/v1/swatches?select=id&extra_cost=neq.0&limit=5', svc)).body;
+  check('every existing color starts with an extra cost of $0 (no price changes today)', Array.isArray(anyExtra) && anyExtra.length === 0, `${anyExtra.length} colors with an extra cost`);
+  // extra cost is added to the customer price AFTER the markup, and only the price comes back
+  const base = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 12.5 }); cleanup.push(() => call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: 0 }));
+  const withExtra = await est(anon, 'estimate_price_for_swatch', SARGS());
+  const dbgExtra = (await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS())).body;
+  check('an extra cost of $12.50 is added after the markup (price +$12 or +$13 after rounding, whole dollars)', Number.isInteger(withExtra.body.price) && withExtra.body.price - base >= 12 && withExtra.body.price - base <= 13, `$${base} -> $${withExtra.body.price}`);
+  check('the customer answer is still only price / custom size / price on request, and shows no extra cost', Object.keys(withExtra.body).sort().join() === 'custom_size,price,price_on_request' && !/extra/i.test(JSON.stringify(withExtra.body)), JSON.stringify(withExtra.body));
+  check('the admin breakdown keeps the price group and the extra cost apart', dbgExtra.price_group?.name && Number(dbgExtra.extra_cost) === 12.5 && dbgExtra.price_before_extra === base, `group ${dbgExtra.price_group?.name}, extra ${dbgExtra.extra_cost}, before ${dbgExtra.price_before_extra}`);
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 0 });
+  // a hidden color and an unknown color give no price, and no hint why
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { active: false });
+  const hid = await est(anon, 'estimate_price_for_swatch', SARGS());
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { active: true });
+  const unk = await est(anon, 'estimate_price_for_swatch', SARGS({ p_swatch_id: 'no-such-color' }));
+  check('a hidden or unknown color gets "custom size" and nothing else', hid.body.custom_size === true && hid.body.price === null && unk.body.custom_size === true && unk.body.price === null, `${JSON.stringify(hid.body)} / ${JSON.stringify(unk.body)}`);
+  const sizes = [await est(anon, 'estimate_price_for_swatch', SARGS({ p_width: null, p_height: null })), await est(anon, 'estimate_price_for_swatch', SARGS({ p_width: 0 }))];
+  check('no size, no price (custom size)', sizes.every((x) => x.body.price === null), JSON.stringify(sizes.map((x) => x.body)));
 } catch (e) {
   console.log('\nTEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false });
 } finally {

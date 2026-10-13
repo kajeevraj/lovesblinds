@@ -166,3 +166,8 @@ tr.is-selected td { background: var(--pale-sage); }
 .adm-results li { padding: 8px 12px; border-bottom: 1px solid var(--adm-line, #eee9e0); }
 .adm-results li:last-child { border-bottom: 0; }
 .adm-results .adm-link { text-align: left; width: 100%; min-height: 44px; }
+
+/* product lines multi-select and the collapsed pricing section in the color editor */
+.adm-linepick { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; }
+.adm-linepick .adm-check { min-height: 44px; display: inline-flex; align-items: center; }
+.adm-details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

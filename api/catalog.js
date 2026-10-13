@@ -3,8 +3,8 @@
 // cross-origin request. Same query and same JSON as src/data/catalogQuery.js asks Supabase directly; the page falls back to
 // Supabase itself if this function fails.
 //
-// Reads with the ANON key, so Row Level Security still applies: inactive fabrics and swatches never appear in this public,
-// cached response. Never use the service role key here.
+// Reads with the ANON key through public_catalog(): inactive colors never appear, and the response has no price group names,
+// supplier color names, grades or extra costs. Never use the service role key here.
 //
 // Freshness: the edge keeps a response for 60 s, then may serve it once more while it refreshes in the background
 // (stale-while-revalidate). The admin page clears the entry at once after a save (api/catalog-purge.js, by cache tag), so
@@ -36,10 +36,7 @@ export default async function handler(req, res) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS);
   try {
-    const get = (opts) => fetch(`${base}${catalogPath(line, opts)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, signal: ctl.signal });
-    let upstream = await get({ links: true });
-    // the links table (migration 9) may not exist yet: fall back to the plain query rather than failing the page
-    if (!upstream.ok) upstream = await get({ links: false });
+    const upstream = await fetch(`${base}${catalogPath(line)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, signal: ctl.signal });
     if (!upstream.ok) return fail(res, 502, `Catalog request failed (${upstream.status})`);
     const text = await upstream.text();
     const rows = JSON.parse(text);

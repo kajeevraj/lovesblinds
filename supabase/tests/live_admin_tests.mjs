@@ -18,6 +18,8 @@ const refused = (r) => r.status >= 400 || (Array.isArray(r.body) && r.body.lengt
 const REP = { Prefer: 'return=representation' };
 const svc = H(SVC);
 const enc = encodeURIComponent;
+// is this color in what the public site reads? (the public no longer reads the tables; it calls public_catalog)
+const pubHas = async (id) => { const r = await call('POST', '/rest/v1/rpc/public_catalog', H(ANON), { p_scope: ['zebra'] }); return (r.body || []).some((g) => g.swatches.some((x) => x.id === id)) ? 1 : 0; };
 
 const stamp = Date.now();
 const FAB = `zebra:-:zz-test-${stamp}`, SW = `zebra:ZZTEST${stamp}`, CODE = `ZZTEST${stamp}`, COLL = 'Zztestcoll';
@@ -74,10 +76,10 @@ try {
   r = await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW)}`, { ...admin.hdr, ...REP }, { display_name: 'Zzqx Renamed Color' });
   check('admin: can edit a color', r.status === 200 && r.body[0]?.display_name === 'Zzqx Renamed Color', short(r));
 
-  check('anonymous can see the active test color', (await cnt(anon, `/rest/v1/swatches?id=eq.${enc(SW)}&select=id`)) === 1, 'count via anon key');
+  check('anonymous can see the active test color', (await pubHas(SW)) === 1, 'via public_catalog');
   r = await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW)}`, { ...admin.hdr, ...REP }, { active: false });
   check('admin: can hide a color', r.status === 200 && r.body[0]?.active === false, short(r));
-  check('hidden color is invisible to anonymous', (await cnt(anon, `/rest/v1/swatches?id=eq.${enc(SW)}&select=id`)) === 0, 'count via anon key');
+  check('hidden color is invisible to anonymous', (await pubHas(SW)) === 0, 'via public_catalog');
   check('hidden color is still visible to the admin', (await cnt(admin.hdr, `/rest/v1/swatches?id=eq.${enc(SW)}&select=id`)) === 1, 'count via admin key');
   r = await call('POST', '/rest/v1/rpc/swatch_display_names', anon, { ids: [SW] });
   check('anonymous can look up the display name of a hidden color (old saved orders)', Array.isArray(r.body) && r.body[0]?.display_name === 'Zzqx Renamed Color', short(r) + ' ' + JSON.stringify(r.body));
@@ -86,7 +88,7 @@ try {
 
   r = await call('PATCH', `/rest/v1/fabrics?id=eq.${enc(FAB)}`, { ...admin.hdr, ...REP }, { active: false });
   check('admin: can hide a collection', r.status === 200 && r.body[0]?.active === false, short(r));
-  check('colors of a hidden collection are invisible to anonymous', (await cnt(anon, `/rest/v1/swatches?id=eq.${enc(SW)}&select=id`)) === 0, 'count via anon key');
+  check('colors of a hidden collection are invisible to anonymous', (await pubHas(SW)) === 0, 'via public_catalog');
   await call('PATCH', `/rest/v1/fabrics?id=eq.${enc(FAB)}`, { ...admin.hdr, ...REP }, { active: true });
 
   // audit log

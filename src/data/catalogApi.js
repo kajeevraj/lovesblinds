@@ -15,28 +15,21 @@ export function mapRows(rows) {
   const swatches = [];
   for (const r of rows) {
     const shownIn = r.shown_in || [r.product_line];
+    // r.id is an opaque key: the price group's name and id never reach the browser
     fabrics.push({
-      id: r.id, line: r.product_line, lines: shownIn, family: r.family || undefined, fabric: r.collection_name,
+      id: r.id, line: r.product_line, lines: shownIn, family: r.family || undefined,
       specs: compact({
         width: nn(r.width), composition: nn(r.composition), weight: nn(r.weight), thickness: nn(r.thickness),
         openness: nn(r.openness), opacity: nn(r.opacity), use: nn(r.use_area), ...(r.extra_specs || {}),
       }),
     });
-    // own swatches, then swatches linked into this collection (they carry this collection's name for them);
-    // a hidden linked swatch comes back as null from Row Level Security and is skipped
-    const own = (r.swatches || []).map(s => ({ s, link: null }));
-    const linked = (r.swatch_links || []).filter(l => l.swatch).map(l => ({ s: l.swatch, link: l }));
-    const all = [...own, ...linked].sort((a, b) => (a.link ? a.link.sort_order : a.s.sort_order) - (b.link ? b.link.sort_order : b.s.sort_order));
-    for (const { s: base, link } of all) {
-      const s = link ? { ...base, fabric_id: r.id, product_line: r.product_line, shown_in: shownIn, family: r.family || link.family || null, display_name: link.display_name } : base;
+    for (const s of r.swatches || []) {
       swatches.push({
         key: `${s.id}@${r.id}`,
         id: s.id, fabricId: s.fabric_id, line: s.product_line, lines: s.shown_in || shownIn, family: s.family || undefined,
-        fabric: r.collection_name,                                   // supplier collection: internal only
-        code: s.supplier_code, colorName: s.supplier_color_name ?? undefined,   // supplier color name: internal only
+        code: s.supplier_code,
         displayName: s.display_name, colorFamily: s.color_family,
         image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), imageKind: s.image_kind,
-        grade: s.grade ?? undefined,                                 // never shown to customers
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,
         styles: s.styles ? s.styles.map(st => ({ style: st.style, code: st.code, image: storageUrl(BASE, st.image_path), thumb: storageUrl(BASE, st.thumb_path) })) : undefined,
@@ -58,12 +51,8 @@ async function getJson(url) {
 
 const usable = (rows) => Array.isArray(rows) && rows.some(r => (r.swatches || []).length);
 
-// Straight from Supabase. The key rides in the URL so this is a plain GET: no CORS preflight round trip.
-// If the extended query fails (the links table is not in the database yet), the plain one still works.
-const fetchDirect = async (lineKey) => {
-  try { return await getJson(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`); }
-  catch { return getJson(`${BASE}${catalogPath(lineKey, { links: false })}&apikey=${KEY}`); }
-};
+// Straight from Supabase (the public_catalog function). The key rides in the URL so this is a plain GET: no CORS preflight round trip.
+const fetchDirect = (lineKey) => getJson(`${BASE}${catalogPath(lineKey)}&apikey=${KEY}`);
 
 // Our edge-cached function first; if it is down, answers badly, or is missing (local dev), Supabase directly.
 async function fetchRows(lineKey) {

@@ -27,6 +27,8 @@ export const deleteRow = async (table, id) => {
   const data = must(await supabase.from(table).delete().eq('id', id).select());
   if (!data.length) throw new Error('Nothing was deleted. You may have been signed out, or the row no longer exists.');
 };
+// Ticks and unticks the product lines of one color in a single step (see migration 10). Returns { main, added, removed, lines }.
+export const setSwatchLines = async (swatchId, lines) => must(await supabase.rpc('set_swatch_lines', { p_swatch: swatchId, p_lines: lines }));
 export const swatchOrderCount = async (id) => must(await supabase.rpc('swatch_order_count', { p_id: id }));
 // withLinks: also the link/unlink events of a swatch (audit rows of swatch_links whose row carries this swatch id)
 export const loadHistory = async (table, rowId, limit = 10, withLinks = false) => {

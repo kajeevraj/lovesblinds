@@ -17,7 +17,7 @@ export default function Markups({ data, catalog, reload }) {
   };
   const addOverride = async () => {
     const v = Number(ovPct); setErr(''); setMsg('');
-    if (!ovFabric || !Number.isFinite(v) || v < 0) { setErr('Choose a collection and a percentage.'); return; }
+    if (!ovFabric || !Number.isFinite(v) || v < 0) { setErr('Choose a price group and a percentage.'); return; }
     try { await upsertMarkup(ovFabric, v / 100); setMsg(`${nameOf(ovFabric)?.collection_name}: markup override ${v}%.`); setOvPct(''); reload(); } catch (e) { setErr(explain(e)); }
   };
   return (
@@ -39,18 +39,18 @@ export default function Markups({ data, catalog, reload }) {
         </tbody></table>
       </div>
       <div className="adm-card">
-        <h2>Overrides per collection</h2>
-        <p className="adm-muted">A collection with an override uses it instead of its line's markup.</p>
+        <h2>Overrides per price group</h2>
+        <p className="adm-muted">A price group with an override uses it instead of its line's markup.</p>
         {data.markups.length > 0 && (
-          <table className="adm-table"><thead><tr><th>Collection</th><th>Line</th><th>Markup</th><th /></tr></thead><tbody>
+          <table className="adm-table"><thead><tr><th>Price group</th><th>Line</th><th>Markup</th><th /></tr></thead><tbody>
             {data.markups.map((m) => { const f = nameOf(m.fabric_id); return (
-              <tr key={m.fabric_id}><td data-label="Collection">{f?.collection_name || m.fabric_id}</td><td data-label="Line">{f?.product_line}</td><td data-label="Markup">{pct(m.markup)}</td>
+              <tr key={m.fabric_id}><td data-label="Price group">{f?.collection_name || m.fabric_id}</td><td data-label="Line">{f?.product_line}</td><td data-label="Markup">{pct(m.markup)}</td>
                 <td className="adm-actions"><button className="adm-btn adm-btn-sm" onClick={async () => { try { await removeMarkup(m.fabric_id); reload(); } catch (e) { setErr(explain(e)); } }}>Remove</button></td></tr>); })}
           </tbody></table>
         )}
         <div className="adm-grid3">
           <label className="adm-field"><span>Line</span><select value={ovLine} onChange={(e) => { setOvLine(e.target.value); setOvFabric(''); }}>{data.lines.filter((l) => l.id !== 'woven-wood').map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
-          <label className="adm-field"><span>Collection</span><select value={ovFabric} onChange={(e) => setOvFabric(e.target.value)}><option value="">Choose…</option>{fabrics.map((f) => <option key={f.id} value={f.id}>{f.collection_name}{f.family ? ` (${f.family})` : ''}</option>)}</select></label>
+          <label className="adm-field"><span>Price group</span><select value={ovFabric} onChange={(e) => setOvFabric(e.target.value)}><option value="">Choose…</option>{fabrics.map((f) => <option key={f.id} value={f.id}>{f.collection_name}{f.family ? ` (${f.family})` : ''}</option>)}</select></label>
           <label className="adm-field"><span>Markup %</span><input type="number" step="0.1" min="0" value={ovPct} onChange={(e) => setOvPct(e.target.value)} /></label>
         </div>
         <button className="adm-btn adm-btn-primary" onClick={addOverride}>Set override</button>
