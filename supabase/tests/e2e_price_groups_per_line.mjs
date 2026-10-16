@@ -32,7 +32,8 @@ try {
   browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok)]);
-  const page = await ctx.newPage(); page.setDefaultTimeout(30000); page.on('dialog', (d) => d.accept());
+  const page = await ctx.newPage(); page.setDefaultTimeout(30000); let warned = '', dismissNext = false;
+  page.on('dialog', (d) => { if (dismissNext) { warned = d.message(); dismissNext = false; d.dismiss(); } else d.accept(); });
   const purges = []; page.on('request', (r) => { if (/\/api\/catalog-purge/.test(r.url())) purges.push(r.postData()); });
   const open = async () => { await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor(); await page.getByLabel('Search name or code').fill(code); await page.getByRole('button', { name }).first().click(); await page.getByRole('heading', { name }).waitFor(); await page.locator('summary', { hasText: 'Pricing details' }).click(); };
   const row = (l) => page.locator(`details.adm-details [data-line="${l}"]`);
@@ -47,12 +48,19 @@ try {
   check('ticking Shangri-La adds its own row: current group shown, marked standard, "new line", with its own dropdown', /Currently using/.test(t1) && /standard/.test(t1) && /new line/.test(t1) && (await row('shangri-la').locator('select').count()) === 1, t1.replace(/\s+/g, ' ').slice(0, 200));
   check('the original line keeps its own separate row and dropdown', (await row('zebra').locator('select').count()) === 1 && (await page.locator('details.adm-details [data-line]').count()) === 2);
 
+  // every row has its own "Edit this price group" button, for that line's group
+  check('each line\'s row has an "Edit this price group" button, including the line just added', (await row('zebra').getByRole('button', { name: /Edit this price group/ }).count()) === 1 && (await row('shangri-la').getByRole('button', { name: /Edit this price group/ }).count()) === 1);
   // a line with a single price group is plain text
   await page.getByRole('group', { name: 'Product lines' }).getByLabel('Cellular').check();
   await row('cellular').waitFor();
   const tc = await row('cellular').innerText();
   check('a line with only one price group shows it as plain text, not a dropdown', /the only one in this line/.test(tc) && (await row('cellular').locator('select').count()) === 1 /* the family select only */ && !(await row('cellular').locator('label:has-text("Price group for")').count()), tc.replace(/\s+/g, ' ').slice(0, 200));
   await page.getByRole('group', { name: 'Product lines' }).getByLabel('Cellular').uncheck();
+
+  // the added line's button opens THAT line's price group (not the original line's); unsaved ticks are protected by a warning
+  dismissNext = true;
+  await row('shangri-la').getByRole('button', { name: /Edit this price group/ }).click();
+  check('with unsaved changes the button warns before leaving (and Cancel keeps the editor as it was)', /unsaved/.test(warned) && (await row('shangri-la').count()) === 1, warned);
 
   // change the Shangri-La group and save
   await row('shangri-la').locator('select').selectOption(g2.id);
@@ -70,6 +78,12 @@ try {
   // reopen: both rows show the saved groups; change the group again and look at the history
   await open();
   check('reopened: both lines show their saved groups', /Currently using/.test(await row('shangri-la').innerText()) && (await row('shangri-la').locator('select').inputValue()) === g2.id && (await page.locator('details.adm-details [data-line]').count()) === 2);
+  await row('shangri-la').getByRole('button', { name: /Edit this price group/ }).click();
+  await page.getByRole('heading', { name: g2.collection_name, exact: true }).waitFor();
+  check('on a saved color the Shangri-La row\'s button opens the Shangri-La price group (the one it uses there)', true, `opened "${g2.collection_name}"`);
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('heading', { name }).waitFor();
+  await page.locator('summary', { hasText: 'Pricing details' }).click();
   await row('shangri-la').locator('select').selectOption(g1.id);
   check('changing a saved line marks its row "changed, saved with the Save button"', /changed, saved with the Save button/.test(await row('shangri-la').innerText()));
   await page.getByRole('button', { name: 'Save changes' }).click();

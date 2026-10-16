@@ -352,7 +352,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
                   <select value={cellFamily} onChange={(e) => setCellFamily(e.target.value)}>{familyNeeded('cellular').map((f) => <option key={f} value={f}>{FAMILY_LABELS[f]}</option>)}</select>
                 </label>
               )}
-              {cur && !(isNew && creatingColl && l === mainLine) && <p><button type="button" className="adm-link" onClick={() => onEditCollection(cur.id)}>Edit this price group’s name and specs</button> <span className="adm-muted adm-small">(its markup and price tables are under Pricing)</span></p>}
+              {cur && !(isNew && creatingColl && l === mainLine) && <p><button type="button" className="adm-link" onClick={() => { if ((!isNew && linesChanged()) || (isNew && (trimmedName || code.trim()))) { if (!window.confirm('You have unsaved changes on this color. Opening the price group now will discard them. Continue?')) return; } onEditCollection(cur.id); }}>Edit this price group’s name and specs</button> <span className="adm-muted adm-small">(its markup and price tables are under Pricing)</span></p>}
             </div>
           );
         })}
