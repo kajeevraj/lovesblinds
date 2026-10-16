@@ -107,7 +107,7 @@ try {
   await page.getByRole('heading', { name: 'Add color' }).waitFor();
   await page.getByRole('group', { name: 'Product lines' }).getByLabel('Zebra').check();
   await page.locator('summary', { hasText: 'Pricing details' }).click();
-  const collName = await page.locator('label.adm-field:has(> span:text-is("Price group")) select').evaluate((s) => s.selectedOptions[0].textContent);
+  const collName = await page.locator('label.adm-field:has(> span:has-text("Price group for")) select').evaluate((s) => s.selectedOptions[0].textContent);
   await page.getByLabel(/^Display name/).fill('Neptune Trial');       // contains the collection name? (only if the first zebra collection is Neptune)
   const nameMsg = await page.locator('.adm-field-error').first().textContent().catch(() => '');
   check('typing a name containing the collection name is flagged immediately', new RegExp(collName.trim().split(' ')[0], 'i').test('Neptune Trial') ? /price group name/.test(nameMsg) : true, nameMsg || `(first zebra collection is "${collName}")`);
@@ -173,7 +173,7 @@ try {
   await page.getByRole('button', { name: 'Add color' }).click();
   await page.getByRole('group', { name: 'Product lines' }).getByLabel('Drapery & Roman').check();
   await page.locator('summary', { hasText: 'Pricing details' }).click();
-  await page.locator('label.adm-field:has(> span:text-is("Price group")) select').selectOption('__new__');
+  await page.locator('label.adm-field:has(> span:has-text("Price group for")) select').selectOption('__new__');
   await page.getByLabel(/^Price group name/).fill('Zzcoll');
   await page.getByLabel('Width', { exact: true }).first().fill('118 in');
   await page.getByLabel(/^Display name/).fill('Zzqx Drape Test');

@@ -17,17 +17,20 @@ function describe(e) {
     const where = LINE_LABELS[r.product_line] || r.product_line || 'another line';
     if (e.action === 'INSERT') return `Added to ${where}`;
     if (e.action === 'DELETE') return `Removed from ${where}`;
-    return `Price group changed in ${where}`;
+    return e.old_row?.fabric_id !== e.new_row?.fabric_id ? `Price group changed in ${where}` : `Link in ${where} updated`;
   }
   if (e.action === 'INSERT') return 'Created';
   if (e.action === 'DELETE') return 'Deleted';
   const o = e.old_row || {}, n = e.new_row || {};
   const parts = Object.keys(n).filter((k) => !SKIP.has(k) && JSON.stringify(o[k]) !== JSON.stringify(n[k])).map((k) => {
     if (k === 'active') return n[k] ? 'Shown' : 'Hidden';
+    if (k === 'fabric_id') return 'price group changed';
+    if (k === 'shown_in') return null;
     const label = k.replace(/_/g, ' ');
     return typeof n[k] === 'object' && n[k] !== null || typeof o[k] === 'object' && o[k] !== null ? `${label} changed` : `${label}: ${short(o[k])} → ${short(n[k])}`;
   });
-  return parts.length ? parts.join('; ') : 'Saved';
+  const shown = parts.filter(Boolean);
+  return shown.length ? shown.join('; ') : 'Saved';
 }
 
 export default function History({ table, rowId, reloadKey = 0, withLinks = false }) {

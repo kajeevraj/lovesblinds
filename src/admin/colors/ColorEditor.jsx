@@ -322,22 +322,37 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         {lineOrdered.map((l) => {
           const groups = data.fabrics.filter((f) => f.product_line === l).sort(byOrder);
           const std = defaultGroup(l);
+          const cur = groupSel[l] === NEW ? null : fabricById.get(groupOf(l)) || null;
+          const saved = exPlacements.find((p) => p.line === l);
+          const isNewLine = !isNew && !saved;
+          const changed = !!saved && !!cur && saved.fabricId !== cur.id;
+          const only = groups.length === 1;
           return (
-            <div key={l} className="adm-subcard">
+            <div key={l} className="adm-subcard" data-line={l}>
               <strong>{LINE_LABELS[l]}</strong>
-              <label className="adm-field"><span>Price group</span>
-                <select value={groupSel[l] === NEW ? NEW : groupOf(l)} onChange={(e) => setGroupSel((g) => ({ ...g, [l]: e.target.value }))}>
-                  {!groupOf(l) && groupSel[l] !== NEW && <option value="">Choose a price group…</option>}
-                  {groups.map((f) => <option key={f.id} value={f.id}>{groupLabel(f)}{f.id === std && !existing ? ' — standard' : ''}</option>)}
-                  {isNew && l === mainLine && <option value={NEW}>＋ New price group…</option>}
-                </select>
-              </label>
+              <p className="adm-small" data-testid="current-group">
+                Currently using: <strong>{cur ? groupLabel(cur) : groupSel[l] === NEW ? 'a new price group (below)' : 'no price group yet'}</strong>
+                {cur && cur.id === std && <span className="adm-badge is-active"> standard</span>}
+                {isNewLine && <span className="adm-muted"> · new line, starting on {cur && cur.id === std ? 'its standard group' : 'the group you chose'}</span>}
+                {changed && <span className="adm-warn"> · changed, saved with the Save button</span>}
+              </p>
+              {only ? (
+                <p className="adm-muted adm-small">Price group: {groupLabel(groups[0])} (the only one in this line)</p>
+              ) : (
+                <label className="adm-field"><span>Price group for {LINE_LABELS[l]}</span>
+                  <select value={groupSel[l] === NEW ? NEW : groupOf(l)} onChange={(e) => setGroupSel((g) => ({ ...g, [l]: e.target.value }))}>
+                    {!groupOf(l) && groupSel[l] !== NEW && <option value="">Choose a price group…</option>}
+                    {groups.map((f) => <option key={f.id} value={f.id}>{groupLabel(f)}{f.id === std ? ' — standard' : ''}</option>)}
+                    {isNew && l === mainLine && <option value={NEW}>＋ New price group…</option>}
+                  </select>
+                </label>
+              )}
               {l === 'cellular' && (
                 <label className="adm-field"><span>Family</span>
                   <select value={cellFamily} onChange={(e) => setCellFamily(e.target.value)}>{familyNeeded('cellular').map((f) => <option key={f} value={f}>{FAMILY_LABELS[f]}</option>)}</select>
                 </label>
               )}
-              {l === mainLine && !creatingColl && mainFabric && <p><button type="button" className="adm-link" onClick={() => onEditCollection(mainFabric.id)}>Edit this price group’s specs</button></p>}
+              {cur && !(isNew && creatingColl && l === mainLine) && <p><button type="button" className="adm-link" onClick={() => onEditCollection(cur.id)}>Edit this price group’s specs</button></p>}
             </div>
           );
         })}

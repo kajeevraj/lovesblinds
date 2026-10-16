@@ -95,6 +95,32 @@ try {
   r = await setLines(admin.hdr, A, [{ product_line: 'drapery' }, { product_line: 'zebra', fabric_id: df[0].id }]);
   check('a price group from another line is refused', r.status >= 400, short(r));
 
+  console.log('=== A DIFFERENT PRICE GROUP IN THE SECOND LINE CHANGES THAT LINE\'S PRICE ONLY');
+  // find two Shangri-La price groups whose customer prices differ at one size (their grids are per group)
+  const sf = (await call('GET', '/rest/v1/fabrics?select=id&product_line=eq.shangri-la&active=eq.true&order=sort_order', svc)).body;
+  const OPT = { control: 'matter' }, SZ = { p_width: 50, p_height: 70 };
+  const priceOf = async (fab) => (await est(admin.hdr, 'estimate_price_debug', { p_line: 'shangri-la', p_fabric_id: fab, p_options: OPT, ...SZ })).body;
+  const priced = []; for (const f of sf) { const b = await priceOf(f.id); if (b.status === 'ok') priced.push({ id: f.id, price: b.price }); }
+  const g1 = priced[0], g2 = priced.find((x) => x.price !== g1.price);
+  check('found two Shangri-La price groups with different prices at 50 x 70', !!g1 && !!g2, g1 && g2 ? `${g1.price} vs ${g2.price}` : `${priced.length} priced groups`);
+  const D = `zebra:ZZLD${stamp}`;
+  r = await call('POST', '/rest/v1/swatches', { ...admin.hdr, ...REP }, mkRow(D, zf, 'zebra', zf.shown_in, `Zzl Third ${tag}`, `ZZLD${stamp}`));
+  if (r.status < 300) cleanup.push(() => call('DELETE', `/rest/v1/swatches?id=eq.${enc(D)}`, svc));
+  const zebraPrice = async () => (await est(anon, 'estimate_price_for_swatch', { p_line: 'zebra', p_swatch_id: D, p_options: { control: 'chain' }, p_width: 50, p_height: 70 })).body.price;
+  const shangriPrice = async () => (await est(anon, 'estimate_price_for_swatch', { p_line: 'shangri-la', p_swatch_id: D, p_options: OPT, ...SZ })).body.price;
+  const zBefore = await zebraPrice();
+  r = await setLines(admin.hdr, D, [{ product_line: 'zebra' }, { product_line: 'shangri-la', fabric_id: g1.id }]);
+  const s1 = await shangriPrice();
+  check('linked to a second line on its first price group: that line prices from that group (customer price = the group\'s price)', r.status === 200 && s1 === g1.price, `Shangri-La $${s1}, group price $${g1.price}`);
+  r = await setLines(admin.hdr, D, [{ product_line: 'zebra' }, { product_line: 'shangri-la', fabric_id: g2.id }]);
+  const s2 = await shangriPrice(), zAfter = await zebraPrice();
+  check('changing the price group in the second line changes that line\'s customer price', r.status === 200 && s2 === g2.price && s2 !== s1, `Shangri-La $${s1} -> $${s2} (group price $${g2.price})`);
+  check('and the original line\'s customer price does not change', zBefore === zAfter && zAfter != null, `Zebra $${zBefore} -> $${zAfter}`);
+  const lnk = await lines(D);
+  check('the link now points at the new group', lnk.length === 1 && lnk[0].fabric_id === g2.id, JSON.stringify(lnk));
+  const upd = await call('GET', `/rest/v1/audit_log?select=action,old_row,new_row&table_name=eq.swatch_links&action=eq.UPDATE&order=id.desc&limit=50`, admin.hdr);
+  check('the change is in the audit log (old and new price group)', (upd.body || []).some((e) => e.new_row?.swatch_id === D && e.old_row?.fabric_id === g1.id && e.new_row?.fabric_id === g2.id), `${(upd.body || []).length} link updates read`);
+
   console.log('=== HIDE AND DELETE');
   await setLines(admin.hdr, A, [{ product_line: 'drapery' }, { product_line: 'zebra' }]);
   const both = (await inCatalog(['roman', 'zebra'], A)).length;
