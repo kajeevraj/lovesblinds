@@ -136,7 +136,9 @@ export async function lookupSwatches(ids, env = process.env) {
   const url = env.SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key || ids.length === 0) return null;
   const list = ids.map(id => `"${String(id).replace(/"/g, '')}"`).join(',');
-  const select = 'id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics(collection_name)';
+  // A color can be in several lines (migration 9/10): same name and code everywhere, one price group per line. The `!fabric_id`
+  // hint keeps PostgREST from reading the two paths between swatches and fabrics as one ambiguous relationship.
+  const select = 'id,product_line,family,display_name,supplier_code,supplier_color_name,styles,fabrics:fabrics!fabric_id(collection_name),swatch_links(product_line,family,fabrics(collection_name))';
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
   try {
@@ -149,35 +151,48 @@ export async function lookupSwatches(ids, env = process.env) {
   } finally { clearTimeout(timer); }
 }
 
+// The price group (supplier collection) and family a pick sits in: the color's own line, or the line it is linked into.
+const placementOf = (r, line) => {
+  const link = line && line !== r.product_line ? (r.swatch_links || []).find(l => l.product_line === line) : null;
+  return link
+    ? { line: link.product_line, family: link.family || null, group: link.fabrics?.collection_name }
+    : { line: r.product_line, family: r.family || null, group: r.fabrics?.collection_name };
+};
+
 // One order line, with every pick it can find in the catalog replaced by the catalog's values, and the text built
 // from the picks rebuilt with the same code the browser uses. Returns the line unchanged when there is nothing to do.
+// Supplier data (price group, supplier color name) goes to the internal email and spreadsheet only: it is never put back
+// into `selection`, which is customer-visible.
 export function applyCatalog(line, rows) {
   const picks = line?.selection?.picks;
   if (!rows || !Array.isArray(picks) || picks.length === 0 || !line.productName) return { line, found: 0, total: picks?.length || 0, diffs: [] };
   const diffs = [];
   let found = 0;
-  const fresh = picks.map(p => {
+  const pub = [];        // customer-safe picks
+  const internal = [];   // the same picks with the supplier's price group and color name
+  for (const p of picks) {
     const r = rows.get(p.swatchId);
-    if (!r) return p;
+    if (!r) { pub.push(p); internal.push(p); continue; }
+    const where = placementOf(r, p.line);
     const styleCode = p.style ? (r.styles || []).find(st => st.style === p.style)?.code : null;
     const next = {
       ...p,
-      line: r.product_line,
-      family: r.family || null,
-      fabric: r.fabrics?.collection_name ?? p.fabric,
-      colorName: r.supplier_color_name ?? null,
+      line: where.line,
+      family: where.family,
       displayName: r.display_name,
       code: styleCode || (p.style ? p.code : r.supplier_code),
     };
     found++;
-    for (const k of ['code', 'displayName', 'colorName', 'fabric']) {
+    for (const k of ['code', 'displayName']) {
       if ((p[k] ?? null) !== (next[k] ?? null)) diffs.push(`${p.swatchId}.${k}: sent ${JSON.stringify(p[k] ?? null)}, catalog ${JSON.stringify(next[k] ?? null)}`);
     }
-    return next;
-  });
+    pub.push(next);
+    internal.push({ ...next, fabric: where.group ?? p.fabric, colorName: r.supplier_color_name ?? null });
+  }
   if (found === 0) return { line, found, total: picks.length, diffs };
-  const selection = { ...line.selection, picks: fresh };
+  const selection = { ...line.selection, picks: pub };
   const item = { product: { name: line.productName }, selection };
+  const internalItem = { product: { name: line.productName }, selection: { ...line.selection, picks: internal } };
   const sum = summarize(item);
   return {
     found, total: picks.length, diffs,
@@ -188,8 +203,8 @@ export function applyCatalog(line, rows) {
       codes: sum.codes,
       colorName: sum.colorText || line.colorName,
       description: describeItem(item),
-      internalDescription: describeInternal(item),
-      internalPicks: fresh.map(p => ({ line: p.line, role: p.role, code: p.code, displayName: displayNameOf(p), supplierColor: p.colorName ?? null, collection: p.fabric, style: p.style })),
+      internalDescription: describeInternal(internalItem),
+      internalPicks: internal.map(p => ({ line: p.line, role: p.role, code: p.code, displayName: displayNameOf(p), supplierColor: p.colorName ?? null, collection: p.fabric ?? null, style: p.style })),
       details: sum.parts,
     },
   };

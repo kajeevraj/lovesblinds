@@ -27,6 +27,8 @@ const mk = async (label) => {
   return { id: cu.body.id, email, session: tok.body, hdr: H(ANON, tok.body.access_token) };
 };
 const stored = async (path) => { const i = path.lastIndexOf('/'); const x = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: path.slice(0, i), search: path.slice(i + 1), limit: 5 }); return Array.isArray(x.body) && x.body.some(o => o.name === path.slice(i + 1)); };
+// is this color in what the public site reads? (public_catalog; the public no longer reads the tables)
+const anonHas = async (code) => { const r = await api('POST', '/rest/v1/rpc/public_catalog', H(ANON), { p_scope: ['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'drapery', 'dream-curtains'] }); return (r.body || []).some((g) => g.swatches.some((x) => x.supplier_code === code || (x.styles || []).some((st) => st.code === code))); };
 const row = async (code) => (await api('GET', `/rest/v1/swatches?supplier_code=eq.${code}&select=*`, svc)).body[0];
 
 let browser;
@@ -103,12 +105,12 @@ try {
   // ---------- add a Zebra color
   await page.getByRole('button', { name: 'Add color' }).click();
   await page.getByRole('heading', { name: 'Add color' }).waitFor();
-  await page.getByLabel('Product line').selectOption('zebra');
-  await page.locator('label.adm-field:has(> span:text-is("Collection")) select').selectOption({ index: 1 });
-  const collName = await page.locator('label.adm-field:has(> span:text-is("Collection")) select').evaluate((s) => s.selectedOptions[0].textContent);
+  await page.getByRole('group', { name: 'Product lines' }).getByLabel('Zebra').check();
+  await page.locator('summary', { hasText: 'Pricing details' }).click();
+  const collName = await page.locator('label.adm-field:has(> span:has-text("Price group for")) select').evaluate((s) => s.selectedOptions[0].textContent);
   await page.getByLabel(/^Display name/).fill('Neptune Trial');       // contains the collection name? (only if the first zebra collection is Neptune)
   const nameMsg = await page.locator('.adm-field-error').first().textContent().catch(() => '');
-  check('typing a name containing the collection name is flagged immediately', new RegExp(collName.trim().split(' ')[0], 'i').test('Neptune Trial') ? /collection name/.test(nameMsg) : true, nameMsg || `(first zebra collection is "${collName}")`);
+  check('typing a name containing the collection name is flagged immediately', new RegExp(collName.trim().split(' ')[0], 'i').test('Neptune Trial') ? /price group name/.test(nameMsg) : true, nameMsg || `(first zebra collection is "${collName}")`);
   await page.getByLabel(/^Display name/).fill('Cloud 9');
   check('a name with a digit is flagged immediately', /numbers/.test(await page.locator('.adm-field-error').first().textContent()));
   const existingZebra = (await api('GET', '/rest/v1/swatches?product_line=eq.zebra&select=display_name&limit=1', svc)).body[0].display_name;
@@ -129,15 +131,14 @@ try {
   await page.getByRole('button', { name: 'Add color' }).click();
   await page.getByText(/Added “Zzqx Browser Test”/).waitFor();
   const msg = await page.locator('.adm-notice').textContent();
-  check('after saving it says the live site updates within about a minute', /about a minute/.test(msg), msg.trim());
+  check('after saving it says when the live site updates (right away on Vercel, within about a minute elsewhere)', /about a minute|updated now/.test(msg), msg.trim());
   let r1 = await row('ZZE2E1');
   check('the new color is in the database', !!r1 && r1.display_name === 'Zzqx Browser Test' && r1.color_family === 'Blue' && r1.active === true, r1 && `${r1.id} / ${r1.image_path} / ${r1.thumb_path}`);
   check('the images have unique file names, WebP thumbnail', /^full\/zebra\/zze2e1-[a-z0-9]{6,}\.jpg$/.test(r1.image_path) && /^thumb\/zebra\/zze2e1-[a-z0-9]{6,}\.webp$/.test(r1.thumb_path));
   const t = await fetch(`${URL_}/storage/v1/object/public/swatches/${r1.thumb_path}`);
   const ti = await sharp(Buffer.from(await t.arrayBuffer())).metadata(); const fi = await sharp(Buffer.from(await (await fetch(`${URL_}/storage/v1/object/public/swatches/${r1.image_path}`)).arrayBuffer())).metadata();
   check('thumbnail is 320 px WebP, full image is a resized JPEG, both cached 24 h', ti.width === 320 && ti.height === 320 && ti.format === 'webp' && fi.format === 'jpeg' && /max-age=86400/.test(t.headers.get('cache-control')), `thumb ${ti.width}x${ti.height} ${ti.format}, full ${fi.width}x${fi.height} ${fi.format}, ${t.headers.get('cache-control')}`);
-  const anonSees = (await api('GET', `/rest/v1/swatches?supplier_code=eq.ZZE2E1&select=id`, H(ANON))).body.length;
-  check('the new color is visible to the public', anonSees === 1);
+  check('the new color is visible to the public (public_catalog)', await anonHas('ZZE2E1'));
 
   // ---------- edit: rename + replace photo
   await page.getByLabel('Search name or code').fill('ZZE2E1');
@@ -161,18 +162,19 @@ try {
   // ---------- hide / show
   await page.getByRole('button', { name: 'Hide this color' }).click();
   await page.getByText(/is now hidden/).waitFor();
-  check('Hide makes the color invisible to the public', (await api('GET', `/rest/v1/swatches?supplier_code=eq.ZZE2E1&select=id`, H(ANON))).body.length === 0);
+  check('Hide makes the color invisible to the public', !(await anonHas('ZZE2E1')));
   await page.getByLabel('Status').selectOption('hidden');
   check('Hidden filter lists it', /Zzqx Browser Renamed/.test(await page.locator('.adm-table').textContent()));
   await page.getByRole('button', { name: 'Show', exact: true }).first().click();
   await page.getByText(/is now visible/).waitFor();
-  check('Show brings it back to the public', (await api('GET', `/rest/v1/swatches?supplier_code=eq.ZZE2E1&select=id`, H(ANON))).body.length === 1);
+  check('Show brings it back to the public', (await anonHas('ZZE2E1')));
 
   // ---------- Drapery color in a NEW collection, with Roman styles
   await page.getByRole('button', { name: 'Add color' }).click();
-  await page.getByLabel('Product line').selectOption('drapery');
-  await page.locator('label.adm-field:has(> span:text-is("Collection")) select').selectOption('__new__');
-  await page.getByLabel(/^Collection name/).fill('Zzcoll');
+  await page.getByRole('group', { name: 'Product lines' }).getByLabel('Drapery & Roman').check();
+  await page.locator('summary', { hasText: 'Pricing details' }).click();
+  await page.locator('label.adm-field:has(> span:has-text("Price group for")) select').selectOption('__new__');
+  await page.getByLabel(/^Price group name/).fill('Zzcoll');
   await page.getByLabel('Width', { exact: true }).first().fill('118 in');
   await page.getByLabel(/^Display name/).fill('Zzqx Drape Test');
   await page.getByLabel('Supplier code').fill('ZZE2E2');
@@ -189,15 +191,14 @@ try {
   await page.getByText(/Added “Zzqx Drape Test”/).waitFor();
   const r2 = await row('ZZE2E2');
   const f2 = (await api('GET', `/rest/v1/fabrics?id=eq.${encodeURIComponent(r2.fabric_id)}&select=*`, svc)).body[0];
-  check('new collection created with its specs, listed under Roman and Drapery', f2.collection_name === 'Zzcoll' && f2.width === '118 in' && JSON.stringify(f2.shown_in) === '["roman","drapery"]' && f2.product_line === 'drapery', JSON.stringify(f2));
+  check('new price group created with its specs, listed under Roman and Drapery', f2.collection_name === 'Zzcoll' && f2.width === '118 in' && JSON.stringify(f2.shown_in) === '["roman","drapery"]' && f2.product_line === 'drapery', JSON.stringify(f2));
   check('Roman style availability saved per swatch', r2.roman_styles.relax.available && r2.roman_styles.relax.linings.join() === 'light-filtering' && r2.roman_styles.flat.available && r2.roman_styles.flat.linings.join() === 'blackout' && !r2.roman_styles.hobble.available && r2.grade === 'C', JSON.stringify(r2.roman_styles));
   check('drapery color id follows the existing pattern', r2.id === 'drapery:ZZE2E2', r2.id);
 
   // ---------- Dream Curtains with Style B
   await page.getByLabel('Search name or code').fill('ZZE2E2');
   await page.getByRole('button', { name: 'Add color' }).click();
-  await page.getByLabel('Product line').selectOption('dream-curtains');
-  await page.locator('label.adm-field:has(> span:text-is("Collection")) select').selectOption({ index: 1 });
+  await page.getByRole('group', { name: 'Product lines' }).getByLabel('Dream Curtains').check();
   await page.getByLabel(/^Display name/).fill('Zzqx Dream Test');
   await page.getByLabel('Supplier code (Style A)').fill('ZZE2E3');
   await page.getByLabel('Style B supplier code').fill('ZZE2E3B');
@@ -216,17 +217,17 @@ try {
   check('uploading a Style B photo gives Style B its own files', r3b.styles[1].image_path !== r3b.styles[0].image_path && await stored(r3b.styles[1].image_path) && r3b.styles[0].image_path === r3b.image_path, JSON.stringify(r3b.styles.map(s => s.image_path)));
 
   // ---------- collections tab, specs and collection-level Hide
-  await page.getByRole('tab', { name: /^Collections/ }).click();
+  await page.getByRole('tab', { name: /^Price groups/ }).click();
   await page.getByRole('button', { name: 'Zzcoll' }).click();
   await page.getByLabel('Weight', { exact: true }).fill('200 g/m²');
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await page.getByText(/Collection “Zzcoll” saved/).waitFor();
+  await page.getByText(/Price group “Zzcoll” saved/).waitFor();
   check('collection specs can be edited', (await api('GET', `/rest/v1/fabrics?id=eq.${encodeURIComponent(f2.id)}&select=weight`, svc)).body[0].weight === '200 g/m²');
-  await page.getByRole('tab', { name: /^Collections/ }).click();
+  await page.getByRole('tab', { name: /^Price groups/ }).click();
   await page.getByRole('button', { name: 'Zzcoll' }).click();
-  await page.getByRole('button', { name: 'Hide collection' }).click();
-  await page.getByText(/Collection “Zzcoll” is now hidden/).waitFor();
-  check('collection-level Hide removes its colors from the public site', (await api('GET', `/rest/v1/swatches?supplier_code=eq.ZZE2E2&select=id`, H(ANON))).body.length === 0 && (await api('GET', `/rest/v1/swatches?supplier_code=eq.ZZE2E2&select=id`, admin.hdr)).body.length === 1);
+  await page.getByRole('button', { name: 'Hide price group' }).click();
+  await page.getByText(/Price group “Zzcoll” is now hidden/).waitFor();
+  check('hiding a price group removes its colors from the public site', !(await anonHas('ZZE2E2')));
   await noOverflow(page, 'collections');
 
   // ---------- delete: blocked when in a saved order, allowed otherwise

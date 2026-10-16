@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { LINE_LABELS, LINE_ORDER, ROLLER_FAMILIES, FAMILY_LABELS, LIVE_NOTE } from '../lib/constants.js';
+import { LINE_LABELS, LINE_ORDER, ROLLER_FAMILIES, FAMILY_LABELS } from '../lib/constants.js';
 import { collectionToForm, emptyCollection, formToCollection, newCollectionRow, diffPatch } from '../lib/collections.js';
 import { insertRow, updateRow } from '../lib/db.js';
+import { linesForFabric, publishToSite } from '../lib/livecache.js';
 import { explain } from '../lib/errors.js';
 import CollectionFields from './CollectionFields.jsx';
 import History from './History.jsx';
@@ -20,7 +21,7 @@ export default function CollectionEditor({ fabricId, data, onDone, onCancel }) {
 
   const nameClash = form.name.trim() && data.fabrics.some((f) => f.id !== fabric?.id && f.product_line === line
     && (f.family || null) === (line === 'roller' ? family : null) && f.collection_name.toLowerCase() === form.name.trim().toLowerCase());
-  const nameProblem = nameClash ? `A collection called “${form.name.trim()}” already exists in ${LINE_LABELS[line]}.` : '';
+  const nameProblem = nameClash ? `A price group called “${form.name.trim()}” already exists in ${LINE_LABELS[line]}.` : '';
   const ok = form.name.trim() && !nameProblem;
 
   const save = async () => {
@@ -28,30 +29,30 @@ export default function CollectionEditor({ fabricId, data, onDone, onCancel }) {
     try {
       if (isNew) {
         await insertRow('fabrics', newCollectionRow(form, line, family, data.fabrics));
-        onDone(`Collection “${form.name.trim()}” added. You can add colors to it now. ${LIVE_NOTE}`);
+        onDone(`Price group “${form.name.trim()}” added. You can add colors to it now.`);
       } else {
         const patch = diffPatch(fabric, formToCollection(form, fabric.extra_specs));
         if (!Object.keys(patch).length) { onDone('Nothing to save: no changes.'); return; }
         await updateRow('fabrics', fabric.id, patch);
-        onDone(`Collection “${form.name.trim()}” saved. ${LIVE_NOTE}`);
+        onDone(`Price group “${form.name.trim()}” saved. ${await publishToSite(linesForFabric(data, fabric.id))}`);
       }
     } catch (e) { setError(explain(e, { line, family })); setBusy(false); }
   };
 
   const toggle = async () => {
     const hide = fabric.active;
-    if (hide && !window.confirm(`Hide the collection “${fabric.collection_name}”? All ${colors.filter((c) => c.active).length} of its active colors disappear from the live site until you show it again.`)) return;
+    if (hide && !window.confirm(`Hide the price group “${fabric.collection_name}”? All ${colors.filter((c) => c.active).length} of its active colors disappear from the live site until you show it again.`)) return;
     setBusy(true); setError('');
     try {
       await updateRow('fabrics', fabric.id, { active: !fabric.active });
-      onDone(`Collection “${fabric.collection_name}” is now ${hide ? 'hidden' : 'visible'}. ${LIVE_NOTE}`);
+      onDone(`Price group “${fabric.collection_name}” is now ${hide ? 'hidden' : 'visible'}. ${await publishToSite(linesForFabric(data, fabric.id))}`);
     } catch (e) { setError(explain(e)); setBusy(false); }
   };
 
   return (
     <div className="adm-editor">
       <div className="adm-head">
-        <h1>{isNew ? 'Add collection' : fabric.collection_name}</h1>
+        <h1>{isNew ? 'Add price group' : fabric.collection_name}</h1>
         <button className="adm-btn" onClick={onCancel}>Back</button>
       </div>
       {error && <p className="adm-error" role="alert">{error}</p>}
@@ -68,18 +69,18 @@ export default function CollectionEditor({ fabricId, data, onDone, onCancel }) {
         ) : (
           <p className="adm-muted">{LINE_LABELS[line]}{fabric.family ? ` · ${FAMILY_LABELS[fabric.family]}` : ''} · {colors.length} colors</p>
         )}
-        <label className="adm-field"><span>Collection name <small>(supplier’s name, never shown to customers)</small></span>
+        <label className="adm-field"><span>Price group name <small>(supplier’s name, never shown to customers)</small></span>
           <input value={form.name} onChange={(e) => set({ name: e.target.value })} aria-invalid={!!nameProblem} />
           {nameProblem && <em className="adm-field-error">{nameProblem}</em>}
         </label>
         <h2>Specs <small className="adm-muted">Leave blank to not show a spec.</small></h2>
         <CollectionFields value={form} onChange={set} line={line} family={family} />
         <div className="adm-bar">
-          <button className="adm-btn adm-btn-primary" disabled={busy || !ok} onClick={save}>{busy ? 'Saving…' : isNew ? 'Add collection' : 'Save changes'}</button>
-          {!isNew && <button className="adm-btn" disabled={busy} onClick={toggle}>{fabric.active ? 'Hide collection' : 'Show collection'}</button>}
+          <button className="adm-btn adm-btn-primary" disabled={busy || !ok} onClick={save}>{busy ? 'Saving…' : isNew ? 'Add price group' : 'Save changes'}</button>
+          {!isNew && <button className="adm-btn" disabled={busy} onClick={toggle}>{fabric.active ? 'Hide price group' : 'Show price group'}</button>}
           <button className="adm-btn adm-btn-quiet" onClick={onCancel}>Cancel</button>
         </div>
-        {!isNew && !fabric.active && <p className="adm-muted">This collection is hidden, so none of its colors show on the site.</p>}
+        {!isNew && !fabric.active && <p className="adm-muted">This price group is hidden, so none of its colors show on the site.</p>}
       </div>
       {!isNew && <History table="fabrics" rowId={fabric.id} reloadKey={histKey} />}
     </div>

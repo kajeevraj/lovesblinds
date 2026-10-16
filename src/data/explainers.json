@@ -208,11 +208,5 @@
   "svg": true,
   "width": 240,
   "height": 180
- },
- "shangri-la/vertical": {
-  "src": "/explainers/shangri-la/vertical.svg",
-  "svg": true,
-  "width": 240,
-  "height": 180
  }
 }

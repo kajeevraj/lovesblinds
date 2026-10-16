@@ -16,8 +16,11 @@ export function registerCatalog({ fabrics: newFabrics, swatches: newSwatches }) 
     fabricIndex.set(f.id, f); fabrics.push(f);
   }
   for (const s of newSwatches) {
-    if (swatchIndex.has(s.id)) continue;
-    swatchIndex.set(s.id, s); swatches.push(s);
+    // one swatch record can sit in several lines (migration 9): a placement is identified by swatch id + collection
+    const key = s.key || s.id;
+    if (swatchIndex.has(key)) continue;
+    swatchIndex.set(key, s); swatches.push(s);
+    if (!swatchIndex.has(s.id)) swatchIndex.set(s.id, s);       // lookups by plain id find the first placement
     if (!swatchesByFabric.has(s.fabricId)) swatchesByFabric.set(s.fabricId, []);
     swatchesByFabric.get(s.fabricId).push(s);
   }
@@ -32,7 +35,8 @@ export const fabricsFor = (lineKey, family = null) =>
 
 export const swatchesForFabric = (fabricId) => swatchesByFabric.get(fabricId) || [];
 export const getFabric = (id) => fabricIndex.get(id) || null;
-export const getSwatch = (id) => swatchIndex.get(id) || null;
+// With the collection id it finds that line's placement (its own display name); without, the first one registered.
+export const getSwatch = (id, fabricId = null) => (fabricId && swatchIndex.get(`${id}@${fabricId}`)) || swatchIndex.get(id) || null;
 
 // Cellular has one fabric per family; its colors are what the customer picks.
 export const swatchesFor = (lineKey, family = null) =>

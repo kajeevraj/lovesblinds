@@ -3,21 +3,22 @@ import { getActiveLine, getMechanism, MOUNTS } from './data/lines.js';
 import { fabricsFor, getSwatch } from './data/swatchData.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
 import {
-  FAMILY_LABELS, CELLULAR_TYPES, SHANGRI_FORMATS, ROMAN_STYLES, LINING_LABELS, PLEATS,
+  FAMILY_LABELS, CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS,
   romanStyleOptions, summarize,
 } from './lib/selection.js';
 import {
-  CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, SHANGRI_FORMAT_INFO, CELLULAR_TYPE_INFO,
-  ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO,
+  CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, CELLULAR_TYPE_INFO,
+  ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO, ROLLER_FAMILY_INFO, ROLLER_PRIVACY_NOTE,
 } from './data/optionInfo.js';
 import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
 import { OptionCards } from './components/ExplainerImg.jsx';
 import SwatchPicker from './components/SwatchPicker.jsx';
+import { priceRequest, usePrice } from './lib/estimate.js';
 import { Footer } from './customer.jsx';
 import { ArrowRight } from './icons.jsx';
 
 // A compact row of buttons for simple choices that need no picture (fabric family).
-function Choice({ label, options, value, onChange }) {
+function Choice({ label, options, value, onChange, hint }) {
   return (
     <div className="config-group">
       <div className="label">{label}</div>
@@ -28,6 +29,7 @@ function Choice({ label, options, value, onChange }) {
           </button>
         ))}
       </div>
+      {hint && <div className="choice-note">{hint}</div>}
     </div>
   );
 }
@@ -37,7 +39,7 @@ function Choice({ label, options, value, onChange }) {
 // ---------------------------------------------------------------------------
 const INITIAL = {
   mode: "single", frontFamily: "screen-view", backFamily: "screen-view", front: null, back: null,
-  pick: null, format: "horizontal-shade", cellFamily: "light-filtering", type: "standard", day: null, night: null,
+  pick: null, cellFamily: "light-filtering", type: "standard", day: null, night: null,
   romanStyle: null, lining: null, pleat: null, section: "curtains", dream: null,
 };
 
@@ -64,7 +66,6 @@ function buildSelection(line, c) {
       if (c.pick) sel.picks = [c.pick];
       break;
     case "shangri-la":
-      sel.format = c.format;
       need(c.pick, "a fabric and color");
       if (c.pick) sel.picks = [c.pick];
       break;
@@ -126,16 +127,17 @@ function Configurator({ line, addToQuote }) {
   const [dreamOpened, setDreamOpened] = useState(false);   // the Dream Curtains grid is not built until that section is opened
 
   const { selection, missing } = buildSelection(line, c);
+  const price = usePrice(priceRequest(line, c, mech, width, height));
   const ready = missing.length === 0;
 
   // Roman: the style/lining a swatch allows, straight from its romanStyles data
-  const romanSwatch = c.pick ? getSwatch(c.pick.swatchId) : null;
+  const romanSwatch = c.pick ? getSwatch(c.pick.swatchId, c.pick.fabricId) : null;
   const romanOpts = romanStyleOptions(romanSwatch);
   const liningsForStyle = c.romanStyle ? romanOpts.find(o => o.id === c.romanStyle)?.linings || [] : [];
 
   const onRomanPick = (pick) => {
     if (!pick) return set({ pick: null, romanStyle: null, lining: null });
-    const opts = romanStyleOptions(getSwatch(pick.swatchId));
+    const opts = romanStyleOptions(getSwatch(pick.swatchId, pick.fabricId));
     const stillOk = opts.find(o => o.id === c.romanStyle)?.available;
     const lins = opts.find(o => o.id === c.romanStyle)?.linings || [];
     set({
@@ -196,16 +198,17 @@ function Configurator({ line, addToQuote }) {
       {line.id === "roller" && (
         <>
           <OptionCards label="Single or double-stack" value={c.mode} onChange={(mode) => set({ mode, front: null, back: null })}
-            options={line.modes.map(m => ({ id: m, label: m === "single" ? "Single" : "Double-stack", desc: ROLLER_MODE_INFO[m].desc, img: ROLLER_MODE_INFO[m].img }))}
-            note="At night with lights on, people outside can see through Screen View and see-through Solar fabrics, so choose Blackout or a double-stack for night privacy." />
+            options={line.modes.map(m => ({ id: m, label: m === "single" ? "Single" : "Double-stack", desc: ROLLER_MODE_INFO[m].desc, img: ROLLER_MODE_INFO[m].img }))} />
           {(c.mode === "single" ? [["front", "frontFamily", null]] : [["front", "frontFamily", "Front shade"], ["back", "backFamily", "Back shade"]]).map(([k, fk, role]) => (
             <div key={k + c.mode} className="picker-wrap">
               <Choice label={role ? `${role}: fabric family` : "Fabric family"} value={c[fk]}
                 options={line.families.map(f => ({ id: f, label: FAMILY_LABELS[f] }))}
+                hint={ROLLER_FAMILY_INFO[c[fk]]}
                 onChange={(f) => set({ [fk]: f, [k]: null })} />
               <SwatchPicker key={`${k}-${c[fk]}`} heading={role} role={role} family={c[fk]} fabrics={fabricsFor("roller", c[fk])} onChange={(p) => set({ [k]: p })} />
             </div>
           ))}
+          <div className="choice-note">{ROLLER_PRIVACY_NOTE}</div>
         </>
       )}
 
@@ -214,11 +217,7 @@ function Configurator({ line, addToQuote }) {
 
       {/* ---- Shangri-La ---- */}
       {line.id === "shangri-la" && (
-        <>
-          <OptionCards label="Format" value={c.format} onChange={(format) => set({ format })}
-            options={SHANGRI_FORMATS.map(f => ({ ...f, desc: SHANGRI_FORMAT_INFO[f.id].desc, img: SHANGRI_FORMAT_INFO[f.id].img }))} />
-          <SwatchPicker fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
-        </>
+        <SwatchPicker fabrics={fabricsFor("shangri-la")} onChange={(p) => set({ pick: p })} />
       )}
 
       {/* ---- Cellular ---- */}
@@ -320,6 +319,13 @@ function Configurator({ line, addToQuote }) {
           {mechObj?.name} · {mountObj?.name}
           {width && height ? ` · ${width}"W × ${height}"H` : ""} · Qty {parseInt(windows, 10) || 1}
         </div>
+        {price && (
+          <div className="order-price" aria-live="polite">
+            {price.price != null
+              ? <><span className="order-price-amount serif">${Number(price.price).toLocaleString("en-US")}</span> <small>{(parseInt(windows, 10) || 1) > 1 ? "per window" : "for this window"}</small></>
+              : <span className="order-price-note">{price.custom_size ? "This size needs a custom quote. " : ""}Send us your order and we’ll reply with a price.</span>}
+          </div>
+        )}
         {!ready && <div className="order-summary-missing">Still to choose: {missing.join(", ")}.</div>}
         <div className="config-actions">
           <button className="btn btn-sage" onClick={handleAdd} disabled={!ready}>
@@ -354,12 +360,12 @@ export default function LinePage({ slug, navigate, addToQuote }) {
       <div className="container line-body">
         <Configurator key={line.id} line={line} addToQuote={addToQuote} />
 
-        <section className="line-good" aria-labelledby="good-title">
+        {line.goodToKnow.length > 0 && <section className="line-good" aria-labelledby="good-title">
           <h2 id="good-title" className="eyebrow">Good to know</h2>
           <ul className="good-list">
             {line.goodToKnow.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
-        </section>
+        </section>}
 
         {photos.length > 0 && (
           <section className="line-gallery" aria-label={`${line.name} in a home`}>

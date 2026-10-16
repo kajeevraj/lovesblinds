@@ -8,3 +8,6 @@ chats/
 reports/
 public/explainers-opt/
 public/images/swatches-opt/
+
+# Supplier cost workbooks (private, never committed)
+private/
