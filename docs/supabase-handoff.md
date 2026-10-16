@@ -1,3 +1,5 @@
+> **Current state and how to continue: read `docs/project-handoff.md` first.** This file is the history of the catalog move and Stage 1; where it says "not merged" or "to confirm", that is out of date (Stage 1 is merged and migrations 1 to 11 are applied).
+
 # Catalog to Supabase: handoff
 
 Branch: `claude/modest-meitner-r3crhf`. `main` is untouched.

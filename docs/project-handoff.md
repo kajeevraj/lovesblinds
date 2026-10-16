@@ -1,0 +1,121 @@
+# Love's Blinds: project handoff (read this first)
+
+State as of the merge of Stage 1 (`main` at or after `7bfab3f`; migrations 1 to 11 all applied to the live Supabase project). A fresh session should be able to continue from this file alone. Older detail lives in `docs/supabase-handoff.md` (history of the catalog move and Stage 1), `docs/pricing-stage1-plan.md` (the original Stage 1 plan; superseded where it disagrees with this file) and `docs/explainers-and-colors.md`.
+
+## 1. How the pieces fit
+
+| Piece | What it is |
+|---|---|
+| Site | Vite + React single-page app (`src/`), served by Vercel as static files. Routes: `/`, `/products`, `/products/<line>`, `/measure`, `/order`, `/review`, `/orders` (My Orders), `/contact`, `/admin`. Lines on the site: roller, zebra, shangri-la, cellular, roman, drapery (curtains plus a Dream Curtains section). Woven wood exists in pricing only and is hidden. |
+| Supabase | One project is both the live site's and the test database (there is no separate staging project). Postgres + Auth (Google sign-in) + Storage (public buckets `swatches` and `option-images`). Everything customers or admins can do is enforced by the database (RLS, triggers, `is_admin()`); the browser only holds the anon key. |
+| Vercel | Static site plus serverless functions in `api/`: `catalog.js` (edge-cached catalog per line, 60 s, tagged `catalog-<line>`), `catalog-purge.js` (admin-only; clears those tags right after an admin save), `quote.js` (order emails + spreadsheet; looks swatches up with the service role). Preview deployments need the same environment variables as Production. |
+| Admin | `/admin` (no link from the site, `noindex`). Google sign-in; only emails in the `admins` table, bound to a user on first sign-in (`loveblindswindows@gmail.com`). Sections: **Colors** (colors, product lines, price groups), **Products** (lines, option groups and values, size rules), **Pricing** (price checker, markups, grids, adders and flags, re-import). Orders, Suppliers and Analytics are placeholders. Idle sign-out after 30 minutes. Lazy-loaded, so customers never download it. |
+
+Environment variables (Vercel Production and Preview; also the cloud session for scripts and tests):
+
+| Name | Used by |
+|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | the site build (public) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | `api/quote.js`, `api/catalog*.js`, scripts, tests (server side only; never `VITE_`) |
+| `RESEND_API_KEY`, `SEND_CUSTOMER_CONFIRMATION` | order emails (customer confirmation only when the flag is set) |
+| `SUPABASE_DB_URL` (optional) | lets a cloud session run migrations with `psql`; usually **not** set, so migrations are pasted into the Supabase SQL Editor by the owner |
+
+Data flow for a customer: line page → `/api/catalog?line=x` (edge) → `public_catalog()` in the database → colors. A picked color + size → `estimate_price_for_swatch()` in the database → one price. Order → `/api/quote` → internal email (with supplier price group and color name looked up server side) and customer email (no supplier data).
+
+Repo map: `src/linepage.jsx` (configurator, live price), `src/lib/estimate.js` (price request), `src/data/` (`catalogQuery.js`, `catalogApi.js`, `swatchData.js`, `lines.js`), `src/admin/**`, `src/lib/pricing/parseSupplier.js` (workbook parser for import), `api/`, `scripts/` (seed, import, one-time loaders), `supabase/migrations`, `supabase/tests`, `archive/` (old JSON catalog and generators; not used).
+
+## 2. Migrations (all applied; run in the SQL Editor, in order; each is safe to re-run)
+
+| # | File | What it does |
+|---|---|---|
+| 1 | `20261011000001_catalog_schema.sql` | `fabrics` (supplier collections = now "price groups"), `swatches` (colors), `admins`, naming rules and triggers |
+| 2 | `..._000002_catalog_security.sql` | RLS, `is_admin()`, `swatches` storage bucket, first admin row |
+| 3 | `..._000003_service_role_grants.sql` | service role grants (project created in the SQL Editor does not give them) |
+| 4 | `20261012000004_audit_log.sql` | `audit_log` + triggers (fabrics, swatches; later swatch_links, pricing tables) |
+| 5 | `..._000005_admin_support.sql` | `swatch_order_count()`, delete guard for colors in saved orders, `swatch_display_names()` |
+| 6 | `20261013000006_pricing_and_options.sql` | product lines, option groups/values, size rules, pricing lines, markups, grids, adders, flags, import log, `option-images` bucket |
+| 7 | `..._000007_price_functions.sql` | `price_single`, `price_breakdown`, `estimate_price`, `estimate_price_debug`, `price_import_apply` |
+| 8 | `20261014000008_pricing_flag_resolutions.sql` | adder status `from_supplier`, flag `resolution_note`, the six supplier answers |
+| 9 | `..._000009_swatch_links.sql` | `swatch_links` (one color in several lines); superseded in part by 10 |
+| 10 | `20261015000010_one_color_many_lines.sql` | links lose their own names; name/code uniqueness per line across colors and links; `line_clash`, `set_swatch_lines`, `default_price_group`; `swatches.extra_cost`; `fabrics.public_key`; `public_catalog()`; `estimate_price_for_swatch()`, `estimate_price_debug_for_swatch()`, `price_for_swatch()`, `swatch_placement()`; `estimate_price()` becomes admin-only |
+| 11 | `..._000011_close_public_table_reads.sql` | the public (anon) can no longer read `fabrics`, `swatches`, `swatch_links` directly |
+
+Applied status: **1 to 11 all applied** (11 was run after Stage 1 was deployed to production and verified). Never run test stubs (`00_local_supabase_stubs.sql`) against the real project.
+
+## 3. Data model in one paragraph
+
+`fabrics` rows are **price groups** (supplier collections, e.g. "Purity"): they hold specs (width, openness, opacity, ...) and are the unit price grids and markup overrides attach to. `fabrics.collection_name` and ids like `roller:screen-view:purity` are **supplier data and admin-only**; customers get an opaque `public_key`. A `swatches` row is one **color**: one display name, one supplier code, one image, `color_family`, `extra_cost`, optional Roman styles / Dream Curtains styles / grade. Its own line is `swatches.product_line` + `fabric_id` (price group in that line). `swatch_links(swatch_id, fabric_id, product_line, family)` places the same color in further lines (one placement per line); the link's price group is that line's price group for the color. Catalog `product_line` values: roller, zebra, shangri-la, cellular, drapery (shown as both **Roman** and **Drapery**), dream-curtains. Pricing line ids (`pricing_lines`): roller, zebra, shangri-la, roman, cellular, drapery, dream-curtains, woven-wood; `roman` and `drapery` both map to catalog line `drapery`. Names are unique per line (per family for Roller and Cellular), counting every color's own line and its links; the database refuses a clash and the message names the other color. `set_swatch_lines()` is how the admin ticks and unticks lines (unticking the main line promotes another; at least one line stays). A new line starts on that line's default price group = the first group by sort order (Roller: the color's family, else Solar).
+
+## 4. How pricing works
+
+Supplier workbooks (git-ignored, in `private/supplier-sheets/`; never commit) were imported by `scripts/import-pricing.mjs` into `price_grids` (about 138 grids, 164,000 cost cells). Grids are per line, system (cord, cordless, motor, manual), variant and lining, either per price group (`scope = fabric`, via `grid_fabrics`) or for the whole line (`scope = line`: Roman, Cellular, Dream Curtains, Drapery).
+
+1. **Axes.** Roller, Zebra, Roman, Shangri-La, woven wood: rows = width, columns = drop. Cellular and Dream Curtains: rows = height, columns = width (follows the sheets' own labels; confirmed by the owner).
+2. **Lookup.** Round width and height **up** to the next axis value. A blank cell, a size past the grid, a size over the price group's roll width (smaller of the sheet's and our catalog's) or over a supplier "Max Length" (Shangri-La) means **custom size**.
+3. **Cost** = grid cell × multiplier (Zebra special-size grids ×1.1, used only when the standard grid has no price: Uranus and Venus, motor).
+4. **Adders and deductions apply to cost, before the markup** (`price_adders`: Matter +$40 on Roller, Shangri-La Matter +$140 and **Remote wand +$100** (control code `remote_wand`), cellular motors, Roman motor already in the grid, Dream Curtains motor **+$90** (from supplier) on top of the motor grid, "no fabric wrap" −$3 cassette / bottom rail, woven wood coating −$0.46 per sq ft). Per-sq-ft adders use the rounded-up size.
+5. **Markup** = 50% per line (`pricing_lines.markup`), with optional per-price-group override (`collection_markups`). Exact price = (cost + adders − deductions) × (1 + markup).
+6. **Rounded** to whole dollars, then **extra cost** (`swatches.extra_cost`, default $0, same in every line) is added **after the markup** and the total is rounded to whole dollars.
+7. **Double-stack Roller** = front price + back price (each from its own color's price group). **Cellular Day & Night** is priced from the block of the **second** (night) color; the sheer is always white; blocks are not added. Both colors' extra costs are added in both cases.
+8. Known example: Roller, Purity (`XSS000105`), Continuous chain, 40×60 → rounded to 40×64 → `Roller shades-cord!AT225` → **$158**. Roller cord "no fabric wrap on the cassette" gives $154 (−$4 on the customer price).
+9. Pansy and Violet are priced from the Taurus block; "Gare" was renamed "Gaea"; Roman has no per-group pricing (one grid per system and lining), so changing a Roman price group changes the price only if that group has a markup override.
+
+Flags (Pricing → Adders and flags): the six supplier questions (axis, Dream motor, Day & Night, double-stack, Zebra special sizes, Shangri-La remote wand) are resolved with notes. Left open on purpose, not questions: Dream Curtains price drop at 115 in (kept as printed; a taller curtain can cost slightly less), Roller/Zebra cent-level decreases and 118.2 axis labels (as printed), plus info notes.
+
+**Privacy rules (enforced in the database, tested):** supplier cost, grids, adders, markup, price group names/ids, supplier color names, grades and extra costs are admin-only. The customer database surface is exactly `public_catalog()` (display fields only) and `estimate_price_for_swatch()` (returns only `{price, custom_size, price_on_request}`), plus `swatch_display_names()` for old saved orders. `estimate_price()` (price-group route) and the debug functions are admin-only.
+
+## 5. Customer price rules
+
+- No price anywhere on swatches, tags, filters or cards.
+- No price until a **color is picked and a size entered** (width and height). Roller double-stack needs both colors; Day & Night needs both colors; Roman needs a lining. One price is then shown, **with no breakdown**, already including the color's price group and extra cost, and it updates live when color, options or size change. Calculated in the database; the browser never receives costs, grids or price group names.
+- A size outside the grids: "This size needs a custom quote. Send us your order and we'll reply with a price."
+- **Drapery curtains are price on request:** "Send us your order and we'll reply with a price." (no dollar amount, no size needed).
+- **Price groups ("collections") are never shown to customers** anywhere: not on product pages, filters, the estimate, the customer email or the saved order picks. The internal order email and spreadsheet to us do include the price group and supplier color name (looked up server side in `api/quote.js`) so we know what to order.
+- The live price is not yet carried into the order, the review page or the emails (`item.price` is `null`); that is Stage 2 work.
+
+## 6. Running every test
+
+One-time: `npm ci` (Node 22), the three env vars `SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in the shell. Every live test creates temporary users and colors against the **real** project and deletes them afterwards (check "leftovers: none" in the output; if a run crashes, look for `zz-*` admins and `ZZ*` colors and delete them with the service role).
+
+| Test | How | What it covers |
+|---|---|---|
+| `live_tests.mjs` (25) | `node supabase/tests/live_tests.mjs` | constraints; anonymous and non-admin can read the catalog only through `public_catalog()` and cannot write |
+| `live_admin_tests.mjs` (56) | `node supabase/tests/live_admin_tests.mjs` | temporary admin and non-admin: color/collection lifecycle, audit log, saved-order delete guard |
+| `live_pricing_tests.mjs` (46) | `node supabase/tests/live_pricing_tests.mjs` | cost privacy, estimate answers, known prices (roller 121, shangri-la 390, dream curtains 421), markup, extra cost, privacy of the public catalog |
+| `live_links_tests.mjs` (28) | `node supabase/tests/live_links_tests.mjs` | one color in several lines: ticking/unticking, one name everywhere, name clashes naming the other color, main-line promotion, audit, price group change in a second line moves only that line's price |
+| `pricing_spotcheck.py` (21 prices) | `python3 supabase/tests/pricing_spotcheck.py` | compares prices with the supplier workbooks by independent lookup. **Needs `private/supplier-sheets/` and `openpyxl`**; not runnable in the cloud sandbox without the workbooks |
+| `e2e_customer_price.mjs` (11) | start a preview first (below), then `node supabase/tests/e2e_customer_price.mjs` | customer side at 390 px: no price before color + size, live price equals the database, quote text, no price group names in page or responses |
+| `e2e_admin_browser.mjs` (48) | preview first | admin colors at 390 px: add/edit/hide/delete, product lines, price groups, history, idle sign-out |
+| `e2e_admin_pricing_browser.mjs` (35) | preview first | Products and Pricing screens. 3 re-import checks fail without the workbooks ("workbook missing"); that is expected there |
+| `e2e_price_groups_per_line.mjs` (17) | preview first | Pricing details rows per line, edit button on every row, save, history, cache clear request |
+| `12_one_color_many_lines_tests.sql` | local throwaway Postgres (below) | the migration 10 rules and functions, with no network |
+| `10_catalog_tests.sql` | same local database | the original catalog constraint tests |
+
+Preview for the browser tests: `npm run build && npx vite preview --port 4173` (leave it running; `BASE_URL` overrides the address). Browser tests use Playwright from `/opt/node22/lib/node_modules/playwright` (override with `PLAYWRIGHT_MODULE`) and `sharp`. Add `REQUIRE_CLOSED=1` to `live_tests.mjs` / `live_pricing_tests.mjs` to also assert migration 11 (it is applied, so this should always pass now).
+
+Local database (no network): `pg_ctlcluster 16 main start`; as the postgres user create a database, create a stub `public.orders (id uuid, items jsonb)`, then run in order: `supabase/tests/00_local_supabase_stubs.sql`, migrations 1 to 7, 9, 10, 11 (each twice to prove they re-run), then the `.sql` tests. Never use the stubs on the real project.
+
+Also: Lighthouse baseline (mobile, within 1 point per page) is in `docs/supabase-handoff.md`; it was accepted with a known LCP regression on swatch images (see below).
+
+## 7. Known bugs and open items
+
+- **Price group controls for an added line (reported, not reproduced).** Report: in the color editor's Pricing details, the added line (Roman) showed no "Edit this price group" button / dropdown like the original line. On the latest build (`2702992`, in `main`) a Roman row appears with its own dropdown and its own edit button, and a browser test (`e2e_price_groups_per_line.mjs`) checks both. If it still reproduces on a deployment that is on that commit, capture which color, whether Roman was ticked in the same session or already saved, and a screenshot. Earlier builds only offered the edit button on the color's original line. The edit button warns before leaving with unsaved changes.
+- Default price group for a newly ticked line is simply the first group by sort order; for Roller, Zebra and Shangri-La (per-group grids) the admin must check it, because the group changes the price.
+- Hiding a color's own price group no longer hides its placements in other lines (a placement shows when the color and that line's group are active). Hiding the color hides it everywhere.
+- Customer price is not yet in the order, review page or emails (Stage 2).
+- Re-import wizard and the 20-price spot check need the private workbooks (not in cloud sessions).
+- Dream Curtains styles only exist on the color record; a color linked into Dream Curtains from another line has no Style B unless set (edit it under the color).
+- LCP regression ~0.7 s from swatch images served from Supabase storage (accepted at merge); consider a same-origin cached thumbnail route during the redesign.
+- Old saved orders still point at `/images/swatches/...` thumbnails; keep `public/images/swatches/` until migrated. The old mock-admin CSS (`.admin-*` in `src/styles.css`) is unused and can be deleted.
+- `loveblindswindows@gmail.com` is the only admin; its row binds when that account first signs in (confirm it has).
+- Direct REST reads of `fabrics`/`swatches`/`swatch_links` are now closed to the public: any new customer feature must go through a database function like `public_catalog()`, never a table read.
+
+## 8. Roadmap
+
+Rules that carry across stages: Claude never merges to `main` without the owner's approval of the preview; new database objects go in a new numbered migration the owner pastes into the SQL Editor (state exactly what to paste, and which of two steps must wait for a deploy); keep customers away from supplier data; run the relevant tests after the owner applies a migration.
+
+- **Stage 1: supplier pricing (done, live).** Admin pricing, price groups, one color across lines, extra cost, live customer price after color and size.
+- **Stage 2: redesign with live estimates.** Redesign the customer site; carry the live estimate through the whole flow (line pages, order summary, review, My Orders, confirmation and internal emails); decide how prices and "price on request" appear in orders; keep the Lighthouse baseline (and consider the thumbnail route). Not designed yet: confirm scope with the owner first.
+- **Stage 3: venetian wood and woven wood.** Woven wood is already priced and hidden (workbook imported, size standards: min width 16, max 94.5 in); venetian wood needs its supplier sheets imported, option groups, size rules, and site pages.
+- **Stage 4: orders admin and analytics.** Fill the Orders and Analytics placeholders in the admin: order list and detail (the saved order picks carry swatch id, line, and an opaque group key), status, search, and reporting. The `orders` table is created outside the migrations; the service role has no privileges on it (tests create orders as a temporary customer).
+- **Stage 5: suppliers and live sync.** The Suppliers section: supplier records, replace the one-time workbook import with a repeatable import or live sync of costs (the import already diffs and previews through `price_import_apply`), purchase-order style output from the internal email data.
