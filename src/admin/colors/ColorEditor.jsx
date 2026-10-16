@@ -329,7 +329,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
           const only = groups.length === 1;
           return (
             <div key={l} className="adm-subcard" data-line={l}>
-              <strong>{LINE_LABELS[l]}</strong>
+              <strong>{LINE_LABELS[l]}</strong>{l === 'drapery' && <span className="adm-muted adm-small"> · this is the Roman shades line (Roman and Drapery share their price groups)</span>}
               <p className="adm-small" data-testid="current-group">
                 Currently using: <strong>{cur ? groupLabel(cur) : groupSel[l] === NEW ? 'a new price group (below)' : 'no price group yet'}</strong>
                 {cur && cur.id === std && <span className="adm-badge is-active"> standard</span>}
@@ -352,7 +352,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
                   <select value={cellFamily} onChange={(e) => setCellFamily(e.target.value)}>{familyNeeded('cellular').map((f) => <option key={f} value={f}>{FAMILY_LABELS[f]}</option>)}</select>
                 </label>
               )}
-              {cur && !(isNew && creatingColl && l === mainLine) && <p><button type="button" className="adm-link" onClick={() => onEditCollection(cur.id)}>Edit this price group’s specs</button></p>}
+              {cur && !(isNew && creatingColl && l === mainLine) && <p><button type="button" className="adm-link" onClick={() => onEditCollection(cur.id)}>Edit this price group’s name and specs</button> <span className="adm-muted adm-small">(its markup and price tables are under Pricing)</span></p>}
             </div>
           );
         })}
