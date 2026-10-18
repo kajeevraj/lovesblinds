@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage } from './customer.jsx';
+import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage, ProfilePage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
 import { useMissingNames } from './lib/selection.js';
@@ -175,8 +175,9 @@ export default function App() {
       )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {route === "quote"    && <OrderSummaryPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrder={activeOrder} user={user} />}
-      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} />}
+      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} user={user} />}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
+      {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
       </main>
     </div>
