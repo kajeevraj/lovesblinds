@@ -10,7 +10,6 @@ import {
   CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, ROLLER_MODE_INFO, CELLULAR_TYPE_INFO,
   ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO, ROLLER_FAMILY_INFO, ROLLER_PRIVACY_NOTE,
 } from './data/optionInfo.js';
-import { showcaseFor, ShowcasePhoto } from './components/Showcase.jsx';
 import { OptionCards } from './components/ExplainerImg.jsx';
 import SwatchPicker from './components/SwatchPicker.jsx';
 import { priceRequest, usePrice } from './lib/estimate.js';
@@ -341,7 +340,6 @@ function Configurator({ line, addToQuote }) {
 export default function LinePage({ slug, navigate, addToQuote }) {
   const line = getActiveLine(slug);
   if (!line) return null;
-  const photos = showcaseFor(line.slug);
 
   return (
     <div className="page-fade">
@@ -366,14 +364,6 @@ export default function LinePage({ slug, navigate, addToQuote }) {
             {line.goodToKnow.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
         </section>}
-
-        {photos.length > 0 && (
-          <section className="line-gallery" aria-label={`${line.name} in a home`}>
-            {photos.slice(0, 6).map(p => (
-              <ShowcasePhoto key={p.file} entry={p} lineName={line.name} sizes="(min-width: 900px) 33vw, 100vw" />
-            ))}
-          </section>
-        )}
 
         <div className="line-measure-link">
           <strong>Not sure how to measure?</strong> Our guide walks you through it.

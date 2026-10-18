@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
 import { SITE } from './data/site.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
-import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
+import { BrandPanel } from './components/Showcase.jsx';
+import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
@@ -15,60 +16,46 @@ const linkTo = (navigate, path) => (e) => {
 };
 
 export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
-  // Guests have no saved Orders list. OrdersPage shows them a
-  // "sign in to save your orders" prompt, which is the intended landing
-  // spot so they always have a path to save their cart, not just view it.
-  const goToMyOrders = () => navigate("orders");
+  const goHow = (e) => {
+    e.preventDefault();
+    if (route === "home") document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+    else { navigate("home"); setTimeout(() => document.getElementById("how")?.scrollIntoView(), 50); }
+  };
+  const goContact = (e) => { e.preventDefault(); navigate("contact"); };
   return (
-    <nav className="nav" aria-label="Main">
-      <div className="nav-inner">
-        <button className="wordmark" onClick={() => navigate("home")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-          <span className="w-loves">Love's</span><span className="w-blinds">Blinds</span>
-        </button>
-        <div className="nav-links">
-          <button className={`nav-link ${route === "home" ? "active" : ""}`} onClick={() => navigate("home")}>Home</button>
-          <button className={`nav-link ${route === "products" ? "active" : ""}`} onClick={() => navigate("products")}>Products</button>
-          <button className={`nav-link ${route === "measure" ? "active" : ""}`} onClick={() => navigate("measure")}>Measure Guide</button>
-          <button className={`nav-link ${(route === "quote" || route === "orders" || route === "review") ? "active" : ""}`} onClick={goToMyOrders}>
-            My Orders{quoteCount > 0 && <span className="nav-count">{quoteCount}</span>}
-          </button>
-          <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
+    <header className="s2-nav">
+      <nav className="s2-nav-inner" aria-label="Main">
+        <a className="s2-wordmark" href="/" onClick={linkTo(navigate, "/")}>Love's Blinds</a>
+        <div className="s2-nav-links">
+          <a className={route === "products" ? "active" : ""} href="/products" onClick={linkTo(navigate, "/products")}>Products</a>
+          <a className={route === "measure" ? "active" : ""} href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
+          <a href="/#how" onClick={goHow}>How it works</a>
+          <a className={route === "contact" ? "active" : ""} href="/contact" onClick={goContact}>Contact</a>
         </div>
-        {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
-      </div>
-    </nav>
+        <div className="s2-nav-right">
+          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
+            Your order{quoteCount > 0 ? ` (${quoteCount})` : ""}
+          </a>
+          {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
+        </div>
+      </nav>
+    </header>
   );
 }
 
 export function Footer({ navigate }) {
   return (
-    <footer>
-      <div className="footer">
-        <div className="footer-grid">
-          <div>
-            <div className="footer-wordmark"><em>Love's</em> Blinds</div>
-            <p className="footer-tag">Custom window treatments, made to your measurements and shipped to your door.</p>
-          </div>
-          <div>
-            <h3>Contact</h3>
-            <ul>
-              <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
-              <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3>Browse</h3>
-            <ul>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("products")}>All Products</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("measure")}>Measurement Guide</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Order Summary</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("contact")}>Contact</button></li>
-            </ul>
-          </div>
+    <footer id="contact" className="s2-footer">
+      <div className="s2-wrap s2-footer-inner">
+        <div className="s2-footer-brand">
+          <div className="s2-footer-name">Love's Blinds</div>
+          <div className="s2-footer-text">Custom made-to-measure window treatments, shipped worldwide.</div>
         </div>
-        <div className="footer-bottom">
-          <span>© 2026 Love's Blinds Studio LLC</span>
-          <span>Made-to-measure · Family run · Since 2000</span>
+        <div className="s2-footer-contact">
+          <div className="s2-footer-head">Questions?</div>
+          <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+          <a href={SITE.phoneHref}>{SITE.phone}</a>
         </div>
       </div>
     </footer>
@@ -86,20 +73,31 @@ export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
 
 // ---- Lineup tiles ----------------------------------------------------------
 
+// Photo, name and one-line description for each line on the home page and the Products page (copy from the approved mockup).
+const TILES = {
+  roller: { photo: "blackout", alt: "Charcoal blackout roller shade in a bedroom", name: "Roller Shades", text: "Clean and simple. Choose solar, screen view or full blackout fabric." },
+  zebra: { photo: "zebra-dining", alt: "Beige zebra shade in a dining room", name: "Zebra Shades", text: "Alternating sheer and solid stripes. Slide them to let light in or close for privacy." },
+  "shangri-la": { photo: "shangri-la", alt: "Shangri-La shade with soft fabric vanes between two sheers", name: "Shangri-La Shades", text: "Soft fabric vanes floating between two sheers. Tilt for gentle, even light." },
+  roman: { photo: "roman", alt: "Linen Roman shade half raised in a dining room", name: "Roman Shades", text: "Soft fabric folds that stack neatly when raised. Warm and tailored." },
+  cellular: { photo: "cellular", alt: "Grey cellular shade in a bedroom", name: "Cellular Shades", text: "Honeycomb cells trap air to help keep rooms comfortable. Top-down options available." },
+  drapery: { photo: "drapery", alt: "Floor-to-ceiling sheer curtains in a bedroom", name: "Drapery", text: "Custom curtains and Dream Curtains, the walk-through sheer for patio doors." },
+};
+const TILE_SIZES = "(min-width: 1100px) 400px, (min-width: 700px) 45vw, 92vw";
+
 function LineTile({ line, navigate }) {
   const path = `/products/${line.slug}`;
-  const photo = showcaseFor(line.slug)[0] || null;
+  const t = TILES[line.slug];
   return (
-    <a className="line-tile" href={path} onClick={linkTo(navigate, path)}>
-      <div className="line-tile-media">
-        {photo
-          ? <ShowcasePhoto entry={photo} lineName={line.name} sizes="(min-width: 900px) 33vw, 100vw" />
+    <a className="s2-tile" href={path} onClick={linkTo(navigate, path)}>
+      <div className="s2-tile-media">
+        {t
+          ? <SitePhoto name={t.photo} alt={t.alt} sizes={TILE_SIZES} />
           : <BrandPanel title={line.name} aspect="4 / 3" />}
       </div>
-      <div className="line-tile-body">
-        <h3 className="line-tile-name serif">{line.name}</h3>
-        <p className="line-tile-blurb">{line.blurb}</p>
-        <span className="line-tile-cta">Choose fabrics <ArrowRight size={14} /></span>
+      <div className="s2-tile-body">
+        <h3 className="s2-tile-name">{t?.name || line.name}</h3>
+        <p className="s2-tile-text">{t?.text || line.blurb}</p>
+        <span className="s2-tile-cta">Build yours →</span>
       </div>
     </a>
   );
@@ -107,7 +105,7 @@ function LineTile({ line, navigate }) {
 
 function LineupGrid({ lines, navigate }) {
   return (
-    <div className="line-grid">
+    <div className="s2-tiles">
       {lines.map(l => <LineTile key={l.id} line={l} navigate={navigate} />)}
     </div>
   );
@@ -115,107 +113,102 @@ function LineupGrid({ lines, navigate }) {
 
 // ---- Home ------------------------------------------------------------------
 
-const HERO_MS = 6000;
-
-function Hero() {
-  const slides = showcaseFor("hero");
-  const [i, setI] = useState(0);
-  const paused = useRef(false);
-  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-  useEffect(() => {
-    if (slides.length < 2 || reduce) return undefined;
-    const t = setInterval(() => { if (!paused.current) setI(n => (n + 1) % slides.length); }, HERO_MS);
-    return () => clearInterval(t);
-  }, [slides.length, reduce]);
-
-  return (
-    <section className="hero2" onMouseEnter={() => { paused.current = true; }} onMouseLeave={() => { paused.current = false; }}>
-      {slides.length > 0 && (
-        <div className="hero2-slides" aria-hidden="true">
-          {slides.map((s, n) => (
-            <div key={s.file} className={`hero2-slide${n === i ? " on" : ""}`}>
-              <ShowcasePhoto entry={s} lineName="Love's Blinds" eager={n === 0} sizes="100vw" />
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="hero2-overlay" />
-      <div className="hero2-inner">
-        <h1 className="serif">Six ways to <em>dress a window.</em></h1>
-        <p className="hero2-sub">Scroll down to explore our lineup</p>
-      </div>
-    </section>
-  );
-}
-
 const STEPS = [
-  ["Pick a style and fabric", "Choose from six lines and see every fabric as a real swatch."],
-  ["Enter your window sizes", "Our measuring guide walks you through it. You measure, we build to those sizes."],
-  ["Get a written quote", "We review every request and reply with clear pricing within 48 hours."],
-  ["We build it and ship it", "Made to your exact sizes and delivered to your door in two to three weeks."],
+  ["Pick a style", "Shades, sheers and curtains, made for your window."],
+  ["See your price", "Choose a color and enter your size. Your estimate updates as you go."],
+  ["Send your order", "We check every detail and confirm your final price within 48 hours."],
+  ["Delivered", "Made to your measurements and shipped in two to three weeks."],
 ];
-const ANSWERS = [
-  ["Made to Measure", "Every piece is built to your exact window sizes."],
-  ["Hundreds of Fabrics", "Textures and colors across every product line."],
-  ["Honest Guidance", "Straight advice on light, privacy and fit for each room."],
-  ["Shipped Anywhere", "Custom-built and delivered to your door, wherever you are."],
+const LIGHT = [
+  { photo: "shangri-la", slug: "shangri-la", title: "Soft, glowing light", text: "Shangri-La, Zebra and sheer curtains" },
+  { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and Screen View roller shades" },
+  { photo: "blackout", slug: "roller", title: "Dark for sleeping", text: "Blackout rollers and blackout cellular shades" },
+];
+const MEASURE = [
+  ["Choose inside or outside mount", "Inside sits within the window frame. Outside covers the frame from the wall."],
+  ["Measure the width in three places", "Top, middle and bottom. For inside mount, use the smallest number."],
+  ["Measure the height in three places", "Left, center and right. For inside mount, use the largest number."],
 ];
 
 export function HomePage({ navigate }) {
+  const scrollTo = (id) => (e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); };
   return (
-    <div className="page-fade home">
-      <Hero />
-
-      <section className="home-section cream" id="lineup" aria-labelledby="lineup-title">
-        <div className="container">
-          <div className="eyebrow">Our lineup</div>
-          <h2 id="lineup-title" className="serif section-title gold-rule">Choose your style</h2>
-          <LineupGrid lines={activeLines()} navigate={navigate} />
+    <div className="page-fade home s2">
+      <section className="s2-hero">
+        <SitePhoto name="hero-living" alt="Living room with three windows dressed in matching light-filtering roller shades" sizes="100vw" eager className="s2-hero-img" />
+        <div className="s2-hero-over">
+          <div className="s2-wrap">
+            <div className="s2-hero-card">
+              <p className="s2-eyebrow">Custom made to measure</p>
+              <h1>Six ways to dress a window.</h1>
+              <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
+              <div className="s2-btn-row">
+                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start your order</a>
+                <a className="s2-btn s2-btn-line" href="#measure" onClick={scrollTo("measure")}>How to measure</a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="home-section cream-2" aria-labelledby="how-title">
-        <div className="container">
-          <div className="eyebrow">How it works</div>
-          <h2 id="how-title" className="serif section-title gold-rule">Four steps from window to doorstep</h2>
-          <ol className="how-steps">
-            {STEPS.map(([t, d], n) => (
-              <li key={t} className="how-step">
-                <span className="how-num serif" aria-hidden="true">{n + 1}</span>
-                <h3 className="serif">{t}</h3>
-                <p>{d}</p>
+      <section id="how" className="s2-how" aria-label="How it works">
+        <ol className="s2-wrap s2-how-grid">
+          {STEPS.map(([t, d], n) => (
+            <li key={t} className="s2-how-step">
+              <span className="s2-how-num" aria-hidden="true">{n + 1}</span>
+              <div><div className="s2-how-title">{t}</div><div className="s2-how-text">{d}</div></div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="products" className="s2-wrap s2-products" aria-labelledby="lineup-title">
+        <div className="s2-sec-head">
+          <div>
+            <p className="s2-eyebrow">Our lineup</p>
+            <h2 id="lineup-title" className="s2-h2">Find your style</h2>
+          </div>
+          <p className="s2-sec-text">Every piece is cut to your exact size. Tap a style to choose colors and see your price.</p>
+        </div>
+        <LineupGrid lines={activeLines()} navigate={navigate} />
+      </section>
+
+      <section className="s2-wrap s2-light" aria-labelledby="light-title">
+        <div className="s2-sec-head">
+          <div>
+            <p className="s2-eyebrow">Not sure where to start?</p>
+            <h2 id="light-title" className="s2-h2">Shop by how much light you want</h2>
+          </div>
+        </div>
+        <div className="s2-light-grid">
+          {LIGHT.map((c) => (
+            <a key={c.title} className="s2-light-card" href={`/products/${c.slug}`} onClick={linkTo(navigate, `/products/${c.slug}`)}>
+              <SitePhoto name={c.photo} alt="" sizes={TILE_SIZES} />
+              <div className="s2-light-label">
+                <div className="s2-light-title">{c.title}</div>
+                <div className="s2-light-text">{c.text}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section id="measure" className="s2-measure" aria-labelledby="measure-title">
+        <div className="s2-wrap s2-measure-grid">
+          <div className="s2-measure-intro">
+            <p className="s2-eyebrow s2-eyebrow-light">Measure at home</p>
+            <h2 id="measure-title" className="s2-h2">Measuring takes about five minutes.</h2>
+            <p className="s2-measure-text">All you need is a steel tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
+            <a className="s2-btn s2-btn-sand" href="/measure" onClick={linkTo(navigate, "/measure")}>Read the full guide</a>
+          </div>
+          <ol className="s2-measure-steps">
+            {MEASURE.map(([t, d], n) => (
+              <li key={t} className="s2-measure-step">
+                <span className="s2-measure-num" aria-hidden="true">{n + 1}</span>
+                <div><div className="s2-measure-title">{t}</div><div className="s2-measure-body">{d}</div></div>
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      <section className="home-section cream" aria-labelledby="answers-title">
-        <div className="container">
-          <div className="eyebrow">Straight answers</div>
-          <h2 id="answers-title" className="serif section-title gold-rule">No email harvesting. No upsell. Just a quote.</h2>
-          <div className="answers-grid">
-            {ANSWERS.map(([t, d]) => (
-              <div key={t} className="answer">
-                <h3 className="serif">{t}</h3>
-                <p>{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section closing" aria-labelledby="closing-title">
-        <div className="container closing-inner">
-          <h2 id="closing-title" className="serif section-title gold-rule">Ready to dress your windows?</h2>
-          <p className="closing-text">Choose a fabric online, enter your window sizes, and we'll follow up with a clear, custom quote. Then we build your order to size and ship it to your door.</p>
-          <button className="btn btn-gold" onClick={() => navigate("products")}>Start your order <ArrowRight /></button>
-          <div className="closing-contact">
-            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
-            <span aria-hidden="true">·</span>
-            <a href={SITE.phoneHref}>{SITE.phone}</a>
-          </div>
         </div>
       </section>
 

@@ -69,7 +69,7 @@ try {
   check('the menu now shows the profile name', /Ada B\. Lovelace/.test(await page.locator('.profile-who').innerText()));
   await page.getByRole('menuitem', { name: 'Order history' }).click();
   check('Order history opens My Orders', new URL(page.url()).pathname === '/orders');
-  await page.getByRole('button', { name: /^My Orders/ }).first().waitFor();
+  await page.getByRole('heading', { name: 'My Orders' }).first().waitFor();
 
   // the order details form starts from the profile
   await page.goto(`${BASE}/products/zebra`); await page.locator('.sw-tile').first().waitFor();
