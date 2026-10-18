@@ -5,6 +5,8 @@ import { summarize, describeItem, describeInternal, displayNameOf } from './lib/
 import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
+import ProfileMenu from './components/ProfileMenu.jsx';
+import { profileOf, saveProfile } from './lib/profile.js';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -12,7 +14,7 @@ const linkTo = (navigate, path) => (e) => {
   navigate(path);
 };
 
-export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, authLoading }) {
+export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
   // Guests have no saved Orders list. OrdersPage shows them a
   // "sign in to save your orders" prompt, which is the intended landing
   // spot so they always have a path to save their cart, not just view it.
@@ -32,9 +34,7 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
           </button>
           <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
         </div>
-        {supabaseEnabled && !authLoading && !user && (
-          <button className="btn btn-ghost btn-sm nav-signin" onClick={signInWithGoogle}>Sign in</button>
-        )}
+        {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
       </div>
     </nav>
   );
@@ -397,7 +397,7 @@ function ReviewLine({ it, showCode }) {
   );
 }
 
-export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent, onSubmitted }) {
+export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent, onSubmitted, user }) {
   const items = quoteItems;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -411,6 +411,13 @@ export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSe
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  // start from the customer's saved profile (only fills fields they have not typed into)
+  useEffect(() => {
+    const p = profileOf(user);
+    if (!p) return;
+    setName(v => v || p.name); setEmail(v => v || p.email); setPhone(v => v || p.phone); setShipTo(v => v || p.shipTo);
+  }, [user]);
 
   const handleConfirmSend = async () => {
     setSubmitting(true);
@@ -945,6 +952,74 @@ export function ContactPage({ navigate, quoteCount }) {
           </aside>
         </div>
       </section>
+      <Footer navigate={navigate} />
+    </div>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Edit profile (opened from the profile menu)
+// ---------------------------------------------------------------------------
+export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, supabaseEnabled }) {
+  const p = profileOf(user);
+  const [name, setName] = useState(p?.name || "");
+  const [phone, setPhone] = useState(p?.phone || "");
+  const [shipTo, setShipTo] = useState(p?.shipTo || "");
+  const [status, setStatus] = useState(null);     // null | "saving" | "saved" | error text
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (p && !seeded.current) { seeded.current = true; setName(p.name); setPhone(p.phone); setShipTo(p.shipTo); }
+  }, [p]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setStatus("saving");
+    try { await saveProfile({ name, phone, shipTo }); setStatus("saved"); }
+    catch (err) { setStatus(err?.message || "Could not save your profile. Please try again."); }
+  };
+
+  return (
+    <div className="page-fade">
+      <header className="line-head"><div className="container line-head-inner"><h1 className="serif">Your profile</h1></div></header>
+      <div className="container-narrow" style={{ paddingBottom: 60 }}>
+        {!supabaseEnabled && <p>Profiles are not available right now.</p>}
+        {supabaseEnabled && !user && (
+          <div className="config-group">
+            <p style={{ color: "var(--ink-60)", marginBottom: 20 }}>{authLoading ? "One moment…" : "Sign in with Google to edit your profile."}</p>
+            {!authLoading && <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>}
+          </div>
+        )}
+        {user && (
+          <form onSubmit={save} className="profile-form">
+            <div className="profile-form-head">
+              {p.avatar ? <img src={p.avatar} alt="" width="56" height="56" referrerPolicy="no-referrer" className="profile-form-avatar" /> : <span className="profile-form-avatar profile-initials" aria-hidden="true">{p.initials}</span>}
+              <div><strong>{p.email}</strong><div style={{ color: "var(--ink-60)", fontSize: 14 }}>Your Google account. Your picture and email come from Google.</div></div>
+            </div>
+            <div className="config-group">
+              <label className="label" htmlFor="pf-name">Name</label>
+              <input id="pf-name" className="input" type="text" autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
+            </div>
+            <div className="config-group">
+              <label className="label" htmlFor="pf-phone">Phone</label>
+              <input id="pf-phone" className="input" type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" />
+            </div>
+            <div className="config-group">
+              <label className="label" htmlFor="pf-ship">Shipping address</label>
+              <input id="pf-ship" className="input" type="text" autoComplete="street-address" value={shipTo} onChange={e => setShipTo(e.target.value)} placeholder="123 Main St, City, State" />
+              <div className="choice-note">These fill in your order details automatically. You can still change them on each order.</div>
+            </div>
+            <div className="config-actions">
+              <button className="btn btn-sage" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
+              <button className="btn btn-outline" type="button" onClick={() => navigate("orders")}>Order history</button>
+            </div>
+            <div aria-live="polite" style={{ marginTop: 12, minHeight: 22 }}>
+              {status === "saved" && <span style={{ color: "var(--sage)" }}>Saved.</span>}
+              {status && status !== "saving" && status !== "saved" && <span role="alert" style={{ color: "#a33" }}>{status}</span>}
+            </div>
+          </form>
+        )}
+      </div>
       <Footer navigate={navigate} />
     </div>
   );

@@ -7,6 +7,7 @@ const ROUTE_PATHS = {
   quote: '/order',
   review: '/review',
   orders: '/orders',
+  profile: '/profile',
   contact: '/contact',
   admin: '/admin',
 };
