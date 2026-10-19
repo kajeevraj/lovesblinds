@@ -1,15 +1,10 @@
 import { useState } from 'react';
 import { FAMILY_LABELS } from './lib/selection.js';
 import { ROLLER_MODE_INFO, ROLLER_FAMILY_INFO, ROLLER_FAMILY_CARD, ROLLER_PRIVACY_NOTE } from './data/optionInfo.js';
-import { Cards, ColorStep } from './components/s2.jsx';
+import { Cards, ColorStep, TopCoverStep } from './components/s2.jsx';
 import LineShell, { PAGE } from './lineshell.jsx';
 
 const FAMILY_ORDER = ['solar', 'screen-view', 'blackout'];
-
-const COVERS = [
-  { id: 'wrapped', label: 'Fabric-wrapped cassette', desc: 'A neat cover over the roll, wrapped in your fabric.' },
-  { id: 'none', label: 'No fabric wrap', desc: 'The cassette stays plain instead of being wrapped in your fabric.' },
-];
 
 // Fabric type buttons, the explanation under them, and (for Solar and Screen View) the privacy note.
 function FabricType({ value, onChange, label }) {
@@ -63,7 +58,7 @@ export default function RollerPage({ line, navigate, addToQuote }) {
 
   const tailSteps = [{
     title: 'Top cover',
-    node: <Cards label="Top cover" min={220} value={wrap} onChange={setWrap} options={COVERS} />,
+    node: <TopCoverStep value={wrap} onChange={setWrap} />,
   }];
 
   return (

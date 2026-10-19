@@ -53,6 +53,15 @@ export const MOUNT_PICTURES = {
   ),
 };
 
+// Top cover choices, for Roller and Zebra ("No fabric wrap" is the supplier's deduction, applied to cost before the markup).
+export const COVERS = [
+  { id: "wrapped", label: "Fabric-wrapped cassette", desc: "A neat cover over the roll, wrapped in your fabric." },
+  { id: "none", label: "No fabric wrap", desc: "The cassette stays plain instead of being wrapped in your fabric." },
+];
+export function TopCoverStep({ value, onChange }) {
+  return <Cards label="Top cover" min={220} value={value} onChange={onChange} options={COVERS} />;
+}
+
 // ---- Color step ----------------------------------------------------------------------------------------------------
 
 const FIRST_SHOWN = 48;

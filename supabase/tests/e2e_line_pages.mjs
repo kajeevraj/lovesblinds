@@ -75,6 +75,11 @@ try {
   const zid = await swatchId('zebra', zt);
   const zdb = await dbPrice('zebra', zid, { control: 'chain' }, 40, 64);
   check('Zebra: the page price is the database price', (await pagePrice()) === zdb.price, `$${zdb.price}`);
+  const zWrapped = await pagePrice();
+  await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
+  await page.waitForFunction((old) => { const el = document.querySelector('.s2-estimate-price'); return el && Number(el.firstChild.textContent.replace(/\D/g, '')) !== old; }, zWrapped);
+  const zdbNo = await dbPrice('zebra', zid, { control: 'chain', wrap_cassette: 'none' }, 40, 64);
+  check('Zebra: the Top cover step ("Fabric-wrapped cassette" default, "No fabric wrap") uses the supplier deduction, exactly the database price', (await pagePrice()) === zdbNo.price && zdbNo.price < zdb.price, `$${zdb.price} -> $${zdbNo.price}`);
   check('Zebra: three photos to choose from', (await page.locator('.s2-gallery button').count()) === 3);
 
   // ---------- Shangri-La ----------

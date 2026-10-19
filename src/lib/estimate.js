@@ -17,7 +17,8 @@ export function priceRequest(line, c, mech, width, height) {
       if (c.mode === 'double-stack') r = c.front && c.back ? base(c.front, { mode: 'double-stack', back_swatch_id: c.back.swatchId, ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) }) : null;
       else r = base(c.front, { mode: 'single', ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) });
       break;
-    case 'zebra': case 'shangri-la': r = base(c.pick); break;
+    case 'zebra': r = base(c.pick, c.wrap === 'none' ? { wrap_cassette: 'none' } : {}); break;     // same supplier deduction as Roller
+    case 'shangri-la': r = base(c.pick); break;
     case 'cellular':
       // Day & Night is priced from the second (night) color's block; both colors' extra costs count
       r = c.type === 'day-night' ? (c.day && c.night ? base(c.night, { type: 'day-night', day_swatch_id: c.day.swatchId }) : null) : base(c.pick, { type: c.type });

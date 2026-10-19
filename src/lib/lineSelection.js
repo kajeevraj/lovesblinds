@@ -19,6 +19,7 @@ export function buildSelection(line, c) {
       }
       break;
     case "zebra":
+      if (c.wrap) sel.cover = c.wrap === "none" ? "none" : "wrapped";
       need(c.pick, "a fabric and color");
       if (c.pick) sel.picks = [c.pick];
       break;

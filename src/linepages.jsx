@@ -5,19 +5,21 @@ import { useState } from 'react';
 import { getSwatch } from './data/swatchData.js';
 import { CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS, FAMILY_LABELS, romanStyleOptions } from './lib/selection.js';
 import { CELLULAR_TYPE_INFO, ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO } from './data/optionInfo.js';
-import { Cards, ColorStep } from './components/s2.jsx';
+import { Cards, ColorStep, TopCoverStep } from './components/s2.jsx';
 import LineShell, { PAGE, PHOTOS } from './lineshell.jsx';
 
 const NOTE = 'Photo shows the style. Your color is shown in the swatch.';
 
 export function ZebraPage({ line, navigate, addToQuote }) {
   const [pick, setPick] = useState(null);
+  const [wrap, setWrap] = useState('wrapped');
   const [photo, setPhoto] = useState(PHOTOS.zebra[0].name);
   const cur = PHOTOS.zebra.find((p) => p.name === photo);
   return (
     <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.zebra.title} intro={PAGE.zebra.intro}
       photo={cur} gallery={PHOTOS.zebra} onGallery={setPhoto} photoNote={NOTE} chip={pick}
-      c={{ pick }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
+      c={{ pick, wrap }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
+      tailSteps={[{ title: 'Top cover', node: <TopCoverStep value={wrap} onChange={setWrap} /> }]}
       leadSteps={[{ title: 'Color', node: <ColorStep id="c-zebra" lineKey="zebra" value={pick} onChange={setPick} /> }]} />
   );
 }
