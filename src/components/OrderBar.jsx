@@ -107,7 +107,7 @@ export function OrderPanel({ navigate }) {
               return (
                 <li key={it.id} className="s2-panel-item">
                   <a className="s2-panel-main" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); go(() => cart.goEdit(it)); }}>
-                    <SitePhoto name={ph.name} alt="" sizes="64px" className="s2-panel-photo" />
+                    <SitePhoto name={ph.name} alt="" sizes="64px" loading="eager" className="s2-panel-photo" />
                     <span className="s2-panel-body">
                       <span className="s2-panel-title">{d.title}</span>
                       <span className="s2-panel-line">{d.colorText}</span>
@@ -115,7 +115,10 @@ export function OrderPanel({ navigate }) {
                       <span className="s2-panel-price">{p.kind === 'price' ? <><strong>{money(p.price * q)}</strong>{q > 1 && <small> {money(p.price)} each</small>}</> : p.kind === 'loading' ? 'Calculating…' : 'Price sent by email'}</span>
                     </span>
                   </a>
-                  <button type="button" className="s2-link s2-panel-remove" aria-label={`Remove ${d.title}`} onClick={() => cart.removeItem(it.id)}>Remove</button>
+                  <div className="s2-panel-actions">
+                    <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} aria-label={`Edit ${d.title}`} onClick={(e) => { e.preventDefault(); go(() => cart.goEdit(it)); }}>Edit</a>
+                    <button type="button" className="s2-link" aria-label={`Remove ${d.title}`} onClick={() => cart.removeItem(it.id)}>Remove</button>
+                  </div>
                 </li>
               );
             })}

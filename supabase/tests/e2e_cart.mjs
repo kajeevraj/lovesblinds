@@ -58,14 +58,14 @@ try {
     const box = await page.locator('.s2-panel').boundingBox();
     check(T(w < 760 ? 'the panel is a bottom sheet on phones' : 'the panel is a side panel on desktop'), w < 760 ? (box.width >= w - 1 && Math.abs(box.y + box.height - h) < 2) : (box.x + box.width >= w - 1 && box.width < w / 2 && box.height >= h - 2), JSON.stringify(box));
     const panel = await page.locator('.s2-panel').innerText();
-    check(T('the panel lists each item (product, color and code, size, blinds, price), the estimated total and the review button'), /Roller Shades/.test(panel) && /40" wide × 64" high · 3 blinds/.test(panel) && new RegExp(`\\$${unit * 3}`).test(panel) && /Zebra/.test(panel) && /\([A-Z0-9-]+\)/.test(panel) && new RegExp(`Estimated total\\s*\\$${unit * 3 + zebraUnit}`).test(panel) && /Review and send order/.test(panel) && (await page.getByRole('button', { name: /^Remove/ }).count()) === 2);
+    check(T('the panel lists each item (product, color and code, size, blinds, price), the estimated total and the review button'), /Roller Shades/.test(panel) && /40" wide × 64" high · 3 blinds/.test(panel) && new RegExp(`\\$${unit * 3}`).test(panel) && /Zebra/.test(panel) && /\([A-Z0-9-]+\)/.test(panel) && new RegExp(`Estimated total\\s*\\$${unit * 3 + zebraUnit}`).test(panel) && /Review and send order/.test(panel) && (await page.getByRole('button', { name: /^Remove/ }).count()) === 2 && (await page.getByRole('link', { name: /^Edit / }).count()) === 2);
     check(T('option names in the panel and on the page are in sentence case'), !TITLE_CASE.test(panel + await page.locator('main').innerText()));
     await page.keyboard.press('Escape');
     check(T('Escape closes the panel'), (await page.locator('.s2-panel').count()) === 0);
 
-    // edit from the panel
+    // edit from the panel (the Edit link and clicking the item do the same)
     await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
-    await page.locator('.s2-panel-main').first().click();
+    await page.getByRole('link', { name: /^Edit Roller/ }).click();
     await page.waitForFunction(() => /\?edit=/.test(location.search));
     await page.locator('#s2-w').waitFor();
     check(T('clicking an item in the panel opens its page with every choice filled in and a "Save changes" button and Cancel link'), (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-h').inputValue()) === '64' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room' && (await page.locator('.s2-sw.on').count()) === 1 && (await page.getByRole('link', { name: 'Cancel' }).count()) >= 1);

@@ -33,7 +33,7 @@ function ItemCard({ it, p, cart }) {
   return (
     <li className="s2-item" onClick={edit}>
       <div className="s2-item-main">
-        <SitePhoto name={ph.name} alt="" sizes="96px" className="s2-item-photo" />
+        <SitePhoto name={ph.name} alt="" sizes="96px" loading="eager" className="s2-item-photo" />
         <div className="s2-item-body">
           <div className="s2-item-head">
             <a className="s2-item-title" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Change ${d.title}`}>{d.title}</a>
@@ -45,6 +45,7 @@ function ItemCard({ it, p, cart }) {
           {p.kind === 'request' && <div className="s2-item-note">{REQUEST_TEXT}</div>}
           {p.kind === 'custom' && <div className="s2-item-note">{CUSTOM_TEXT}</div>}
           <div className="s2-item-actions">
+            <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Edit ${d.title}`}>Edit</a>
             <button type="button" className="s2-link" onClick={(e) => { e.stopPropagation(); cart.removeItem(it.id); }}>Remove</button>
           </div>
         </div>

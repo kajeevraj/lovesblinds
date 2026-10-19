@@ -992,7 +992,7 @@ a:focus-visible,
 /* the button is always exactly as tall as the price block beside it (48 px, or taller when the price wraps on a phone) */
 
 .s2-input + .s2-step-hint { margin: var(--sp-1) 0 0; }
-.s2-item-actions { gap: var(--sp-3); margin-top: var(--sp-1); }
+.s2-item-actions { gap: var(--sp-3); margin-top: var(--sp-1); display: flex; }
 .s2-item-actions .s2-link { padding: 0; }
 .s2-total-row { align-items: center; line-height: 1.1; }
 .s2-total-note { margin: var(--sp-2) 0 0; }
@@ -1058,7 +1058,9 @@ a:focus-visible,
 .s2-panel-price { font-size: 14px; margin-top: 4px; }
 .s2-panel-price strong { font-family: "Playfair Display", serif; font-size: 20px; font-weight: 500; }
 .s2-panel-price small { color: var(--s2-muted); font-size: 13px; }
-.s2-panel-remove { align-self: flex-start; padding: 0; margin-left: 80px; }
+.s2-panel-actions { display: flex; gap: var(--sp-3); margin-left: 80px; }
+.s2-panel-actions .s2-link { padding: 0; }
+.s2-photo-missing { display: block; background: #E9E1D3; border-radius: 4px; }
 .s2-panel-empty { padding: var(--sp-4); flex: 1; }
 .s2-panel-foot { padding: var(--sp-3) var(--sp-4) var(--sp-4); border-top: 1px solid var(--s2-line); background: var(--s2-card); }
 .s2-panel-foot .s2-total-row { margin-bottom: var(--sp-1); }
@@ -1080,3 +1082,4 @@ a:focus-visible,
 .s2-item-title:hover { color: var(--s2-brass); }
 .s2-item-qty { margin-top: var(--sp-1); font-size: 13px; font-weight: 600; color: var(--s2-brass-text); }
 .s2-estimate-each { margin: calc(-1 * var(--sp-1)) 0 var(--sp-3); font-size: 14px; color: var(--s2-muted); }
+a.s2-link, button.s2-link { display: inline-flex; align-items: center; }

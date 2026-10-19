@@ -61,7 +61,7 @@ try {
   await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => !/Calculating/.test(document.querySelector('.s2-items').innerText), null, { timeout: 30000 });
   const items = page.locator('.s2-item');
-  check('three items are listed, each with Remove and no separate Edit button, and "+ Add more blinds"', (await items.count()) === 3 && (await page.getByRole('button', { name: 'Edit' }).count()) === 0 && (await page.getByRole('button', { name: 'Remove' }).count()) === 3 && (await page.getByText('+ Add more blinds').count()) === 1);
+  check('three items are listed, each with an Edit link next to Remove (no inline editor), and "+ Add more blinds"', (await items.count()) === 3 && (await page.getByRole('link', { name: /^Edit / }).count()) === 3 && (await page.getByRole('button', { name: 'Edit' }).count()) === 0 && (await page.getByRole('button', { name: 'Remove' }).count()) === 3 && (await page.getByText('+ Add more blinds').count()) === 1);
   const rollerText = await items.nth(0).innerText();
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
@@ -73,6 +73,11 @@ try {
   const totalText = await page.locator('.s2-total').innerText();
   check('estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence', num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm details and final price\./.test(totalText), totalText.replace(/\s+/g, ' '));
 
+  // the Edit link opens the same page as clicking the item
+  await items.nth(2).getByRole('link', { name: /^Edit / }).click();
+  await page.locator('#s2-w').waitFor(); await page.locator('.s2-color-style .s2-card.on').waitFor();
+  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
+  await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   // clicking an item opens its product page with every choice filled in; Save changes updates the same item
   await items.nth(0).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
