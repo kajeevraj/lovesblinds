@@ -11,14 +11,13 @@ const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { meth
 const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_name`, { headers: H(SVC) })).json();
 const suppNames = (await (await fetch(`${URL_}/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null&limit=2000`, { headers: H(SVC) })).json()).map((x) => x.supplier_color_name).filter((n) => n.length > 5);
 // "Cordless spring" and "Softens sun and glare" are our own wording on the page, not a price group: ordinary words in our own copy are not leaks
-const leak = (raw) => { const text = raw.replace(/Cordless spring|Softens sun and glare/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
+const leak = (raw) => { const text = raw.replace(/Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
 const browser = await chromium.launch();
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   const bodies = [];
   page.on('response', async (r) => { const u = r.url(); if (/rpc\/(public_catalog|estimate_price_for_swatch)|\/api\/catalog/.test(u)) { try { bodies.push([u, await r.text()]); } catch { /* ignore */ } } });
-  const tiles = () => page.locator('.sw-tile');                 // the old picker (Drapery, until its page is redesigned)
   const rtiles = () => page.locator('.s2-sw');                  // the new Roller page
 
   await page.goto(`${BASE}/products/roller`); await rtiles().first().waitFor();
@@ -70,10 +69,12 @@ try {
   check('no sideways scroll at 390 px', sw <= 390, `${sw} px`);
 
   // curtains: price on request
-  await page.goto(`${BASE}/products/drapery`); await tiles().first().waitFor();
-  await tiles().first().click(); await page.locator('dialog[open] button.btn-sage').click();
-  await page.getByText(/send us your order and we.ll reply with a price/i).waitFor();
-  check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.order-price').innerText()), await page.locator('.order-price').innerText());
+  await page.goto(`${BASE}/products/drapery`); await rtiles().first().waitFor();
+  await rtiles().first().click();
+  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
+  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await page.getByText(/send us your order and we.ll reply with a price/i).first().waitFor();
+  check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
   check('the Drapery page has no price group names either', leak(await page.content()).length === 0, 'checked');
 
   // every catalog response of the session

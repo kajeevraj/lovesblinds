@@ -72,9 +72,10 @@ try {
   await page.getByRole('heading', { name: 'My Orders' }).first().waitFor();
 
   // the order details form starts from the profile
-  await page.goto(`${BASE}/products/zebra`); await page.locator('.sw-tile').first().waitFor();
-  await page.locator('.sw-tile').first().click(); await page.locator('dialog[open] button.btn-sage').click();
-  await page.getByRole('button', { name: 'Add to Order' }).click(); await page.getByRole('button', { name: 'Added to your order' }).waitFor(); await page.waitForTimeout(1500);   // saved to their order
+  await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
+  await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+  await page.getByRole('button', { name: 'Add to order' }).click(); await page.getByRole('button', { name: 'Added to your order' }).waitFor(); await page.waitForTimeout(1500);   // saved to their order
   await page.goto(`${BASE}/review`); await page.locator('input.input').first().waitFor(); await page.waitForTimeout(800);
   const filled = await page.locator('input.input').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile (name, email, phone, address)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way, London'].every((v) => filled.includes(v)), filled.join(' | '));

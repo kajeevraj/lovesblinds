@@ -7,6 +7,7 @@ export function buildSelection(line, c) {
   switch (line.id) {
     case "roller":
       sel.mode = c.mode;
+      if (c.wrap) sel.cover = c.wrap === "none" ? "none" : "wrapped";
       if (c.mode === "single") {
         need(c.front, "a fabric and color");
         if (c.front) sel.picks = [{ ...c.front, role: null }];

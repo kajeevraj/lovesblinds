@@ -1,10 +1,11 @@
 // Shared building blocks of the redesigned product pages (Stage 2): numbered steps, choice cards, the color step,
 // the size step, mount pictures, the estimate card and the sticky price bar.
 import { useMemo, useState } from 'react';
-import { entriesFor, COLOR_FAMILY_ORDER, tileSrc, tileFallbacks } from '../data/swatchData.js';
+import { entriesFor, fabricsFor, COLOR_FAMILY_ORDER, tileSrc, tileFallbacks } from '../data/swatchData.js';
 import { ExplainerImg, hasExplainer } from './ExplainerImg.jsx';
 import { SwatchImg, SwatchDialog, makePick, labelOf, altOf } from './SwatchPicker.jsx';
 import { useCatalogStatus } from '../lib/useCatalog.js';
+import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { FRACTIONS, toInches } from '../lib/inches.js';
 
 // ---- Steps -------------------------------------------------------------------------------------------------------
@@ -59,19 +60,24 @@ const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 // One search box (name or code), color-family filters, and swatches showing name and code only.
 // `fabrics` are the price groups to list (the customer never sees them); `family` limits Roller/Cellular fabric types.
-export function ColorStep({ id, fabrics, family = null, role = null, value, onChange }) {
+export function ColorStep({ id, lineKey, family = null, role = null, value, onChange }) {
   const catalog = useCatalogStatus();
-  const entries = useMemo(() => entriesFor(fabrics, family), [fabrics, family]);
+  // read after the catalog has loaded (the status in the context changes when it arrives)
+  const entries = useMemo(() => (catalog.status === "ready" ? entriesFor(fabricsFor(lineKey), family) : []), [catalog.status, lineKey, family]);
   const [query, setQuery] = useState("");
   const [color, setColor] = useState(null);
   const [all, setAll] = useState(false);
   const [view, setView] = useState(null);
+  const [pendingId, setPendingId] = useState(null);       // a Dream Curtains color waiting for its style (A or B)
 
   const families = COLOR_FAMILY_ORDER.filter((f) => entries.some((e) => e.color === f));
   const q = norm(query);
   const results = entries.filter((e) => (!color || e.color === color) && (!q || norm(e.swatch.displayName).includes(q) || norm(e.swatch.code).includes(q)));
   const shown = all || q || color ? results : results.slice(0, FIRST_SHOWN);
-  const picked = value ? entries.find((e) => e.swatch.id === value.swatchId) : null;
+  const activeId = pendingId ?? value?.swatchId ?? null;
+  const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
+  const styles = picked?.swatch.styles || [];
+  const codeOf = (s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
 
   if (catalog.status !== "ready") {
     return catalog.status === "loading" ? (
@@ -83,7 +89,12 @@ export function ColorStep({ id, fabrics, family = null, role = null, value, onCh
     );
   }
 
-  const choose = (e) => onChange(makePick(e.swatch, role, null));
+  const choose = (e) => {
+    if (e.swatch.styles?.length) { setPendingId(e.swatch.id); onChange(null); return; }
+    setPendingId(null);
+    onChange(makePick(e.swatch, role, null));
+  };
+  const chooseStyle = (st) => onChange(makePick(picked.swatch, role, styles.find((x) => x.style === st)));
   return (
     <div className="s2-color">
       <div className="s2-color-tools">
@@ -105,12 +116,12 @@ export function ColorStep({ id, fabrics, family = null, role = null, value, onCh
         <div className="s2-swatches" role="group" aria-label="Colors">
           {shown.map((e) => {
             const s = e.swatch;
-            const on = value?.swatchId === s.id;
+            const on = activeId === s.id;
             return (
-              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={altOf(e)} onClick={() => choose(e)}>
+              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={altOf(e, codeOf(s))} onClick={() => choose(e)}>
                 <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                 <span className="s2-sw-name">{labelOf(e)}</span>
-                <span className="s2-sw-code">{s.code}</span>
+                <span className="s2-sw-code">{codeOf(s)}</span>
               </button>
             );
           })}
@@ -122,8 +133,15 @@ export function ColorStep({ id, fabrics, family = null, role = null, value, onCh
 
       {picked && (
         <div className="s2-picked" aria-live="polite">
-          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({picked.swatch.code})</span>
+          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({value?.code || codeOf(picked.swatch)})</span>
           <button type="button" className="s2-link" onClick={() => setView(picked)}>View larger</button>
+        </div>
+      )}
+      {picked && styles.length > 0 && (
+        <div className="s2-color-style">
+          <p className="s2-step-hint">Choose a style for this color.</p>
+          <Cards label="Style" value={value?.style || null} onChange={chooseStyle}
+            options={styles.map((st) => ({ id: st.style, label: `Style ${st.style}`, desc: `${DREAM_STYLE_INFO[st.style]?.desc || ""} Code ${st.code}`.trim(), img: DREAM_STYLE_INFO[st.style]?.img }))} />
         </div>
       )}
       <SwatchDialog entry={view} role={role} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
@@ -178,13 +196,33 @@ export const CUSTOM_TEXT = "This size is larger than our standard range. Add it 
 export const REQUEST_TEXT = "Send us your order and we'll reply with a price.";
 export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm details and final price.";
 
-export function EstimateCard({ view, checks, summary }) {
+// "$226 each · $678 for 3" (just "$226" for one window)
+export const priceLine = (price, qty) => (qty > 1 ? `${money(price)} each · ${money(price * qty)} for ${qty}` : money(price));
+
+// How many windows this size? A whole number, 1 or more.
+export function QtyField({ qty, onChange }) {
+  const n = Math.max(1, parseInt(qty, 10) || 1);
+  return (
+    <div className="s2-qty">
+      <label className="s2-label" htmlFor="s2-qty">How many windows this size?</label>
+      <div className="s2-qty-row">
+        <button type="button" className="s2-qty-btn" aria-label="One fewer window" disabled={n <= 1} onClick={() => onChange(String(n - 1))}>−</button>
+        <input id="s2-qty" className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" step="1" value={qty}
+          onChange={(e) => onChange(e.target.value)} onBlur={() => onChange(String(n))} />
+        <button type="button" className="s2-qty-btn" aria-label="One more window" onClick={() => onChange(String(n + 1))}>+</button>
+      </div>
+    </div>
+  );
+}
+
+export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }) {
   return (
     <section className="s2-estimate" aria-live="polite">
       {view.kind === "price" && (
         <>
           <div className="s2-eyebrow">Your estimate</div>
-          <div className="s2-estimate-price">{money(view.price)}</div>
+          <div className="s2-estimate-price">{qty > 1 ? <>{money(view.price)} <span className="s2-estimate-each">each</span></> : money(view.price)}</div>
+          {qty > 1 && <div className="s2-estimate-total">{money(view.price * qty)} for {qty} windows</div>}
           <p className="s2-estimate-text">{ESTIMATE_TEXT}</p>
           {summary && <div className="s2-estimate-summary">{summary.map((l, i) => <div key={i}>{l}</div>)}</div>}
         </>
@@ -196,20 +234,21 @@ export function EstimateCard({ view, checks, summary }) {
       {view.kind === "waiting" && (
         <>
           <div className="s2-estimate-title">Your price</div>
-          <p className="s2-estimate-text">{checks.every((c) => c.done) ? "Calculating your estimate…" : "Pick your color and enter your size to see your price."}</p>
+          <p className="s2-estimate-text">{checks.every((c) => c.done) ? "Calculating your estimate…" : "Pick your options and enter your size to see your price."}</p>
           <ul className="s2-checks">
             {checks.map((c) => <li key={c.label} className={c.done ? "done" : ""}><span aria-hidden="true">{c.done ? "✓" : "○"}</span> {c.label}</li>)}
           </ul>
         </>
       )}
+      {qtyField}
     </section>
   );
 }
 
 // Sticky bottom bar: the price (or what is still needed) and the Add to order button.
-export function PriceBar({ title, view, needs, canAdd, added, onAdd }) {
+export function PriceBar({ title, view, needs, canAdd, added, onAdd, qty = 1 }) {
   let label = title, value = needs;
-  if (view.kind === "price") { label = "Your estimate"; value = money(view.price); }
+  if (view.kind === "price") { label = qty > 1 ? `Your estimate · ${qty} windows` : "Your estimate"; value = priceLine(view.price, qty); }
   else if (view.kind === "custom") { label = "Custom size"; value = "Price sent by email"; }
   else if (view.kind === "request") { label = "Price on request"; value = "Price sent by email"; }
   else if (view.kind === "loading") { label = "Your estimate"; value = "Calculating…"; }

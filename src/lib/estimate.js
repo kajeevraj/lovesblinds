@@ -13,8 +13,9 @@ export function priceRequest(line, c, mech, width, height) {
   let r = null;
   switch (line.id) {
     case 'roller':
-      if (c.mode === 'double-stack') r = c.front && c.back ? base(c.front, { mode: 'double-stack', back_swatch_id: c.back.swatchId }) : null;
-      else r = base(c.front, { mode: 'single' });
+      // "No fabric wrap" is the supplier's deduction, applied to cost before the markup by the database
+      if (c.mode === 'double-stack') r = c.front && c.back ? base(c.front, { mode: 'double-stack', back_swatch_id: c.back.swatchId, ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) }) : null;
+      else r = base(c.front, { mode: 'single', ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) });
       break;
     case 'zebra': case 'shangri-la': r = base(c.pick); break;
     case 'cellular':

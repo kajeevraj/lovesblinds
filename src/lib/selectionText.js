@@ -3,7 +3,7 @@
 // selection.js, which adds the fallback names for picks saved before display names existed.
 //
 // selection = {
-//   lineId, section?, mode?, type?, format?, style?, pleat?, lining?,
+//   lineId, section?, mode?, type?, format?, style?, pleat?, lining?, cover? ("wrapped" | "none", Roller top cover),
 //   picks: [{ role, swatchId, line, family, fabric, fabricId, code, colorName, style, thumb }]
 // }
 // `code` is exactly the stored code (for Dream Curtains with a style, that style's own code).
@@ -59,6 +59,7 @@ export function summarize(item) {
   if (sel.style) parts.push(`${label(ROMAN_STYLES, sel.style)} style`);
   if (sel.pleat) parts.push(sel.pleat);
   if (sel.lining) parts.push(LINING_LABELS[sel.lining]);
+  if (sel.cover) parts.push(sel.cover === "none" ? "No fabric wrap on the cassette" : "Fabric-wrapped cassette");
   const multi = sel.picks.length > 1;
   const pickLines = sel.picks.map(p => {
     const fam = p.family ? `${FAMILY_LABELS[p.family]} · ` : "";
