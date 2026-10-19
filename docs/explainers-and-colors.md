@@ -14,7 +14,7 @@ dropped in as `public/explainers/mount/inside.jpg` replaces `inside.svg` with no
 | `mount/` | Inside vs outside mount (SVG, brand palette) |
 | `roller/` | Single vs double-stack (SVG) |
 | `shangri-la/` | `horizontal.svg` (no longer used: Shangri-La has no format step) |
-| `dream-curtains/` | Style A vs Style B (SVG; A 41 cm = 12.5/16/12.5, B 33 cm = 10/13/10) |
+| `dream-curtains/` | (empty: Dream styles show the color photos; the supplier widths are the strip laid flat, so no measurements go to customers) |
 | `measure/` | Measure Guide diagrams (OM = outside mount, IM = inside mount, W = width, H = height) |
 
 Not used: `roman-styles/valance-options`, `double`, `2-in-1`, `top-down-bottom-up` (no matching option in the order flow), `control/roman-chain` (Roman has no chain control).

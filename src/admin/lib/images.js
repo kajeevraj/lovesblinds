@@ -1,10 +1,11 @@
 // Photo handling in the browser: one upload becomes a full image (longest side 1000 px, JPEG) and a 320 px square
-// WebP thumbnail (cropped to fill, like the thumbnails already on the site). Both go to the "swatches" bucket under
-// unique names, so a replacement never shows a stale copy from the 24-hour cache.
+// WebP thumbnail (cropped to fill, like the thumbnails already on the site), plus a 200 px WebP tile picture for the
+// product pages. All go to the "swatches" bucket under unique names (thumb200/<line>/<name>.webp sits next to thumb/ and
+// full/, found by the naming rule, no database column), so a replacement never shows a stale copy from the 24-hour cache.
 import { supabase } from '../../lib/supabase.js';
 
 export const BUCKET = 'swatches';
-const FULL_MAX = 1000, FULL_QUALITY = 0.88, THUMB_PX = 320, THUMB_QUALITY = 0.62;
+const FULL_MAX = 1000, FULL_QUALITY = 0.88, THUMB_PX = 320, THUMB_QUALITY = 0.62, TILE_PX = 200, TILE_QUALITY = 0.6;
 const MAX_INPUT_BYTES = 25 * 1024 * 1024;
 
 const toBlob = (canvas, type, q) => new Promise((resolve, reject) =>
@@ -38,9 +39,20 @@ export async function prepareImage(file) {
   tx.drawImage(bmp, (w - side) / 2, (h - side) / 2, side, side, 0, 0, THUMB_PX, THUMB_PX);
   let thumb = await toBlob(tc, 'image/webp', THUMB_QUALITY);
   if (thumb.type !== 'image/webp') thumb = await toBlob(tc, 'image/jpeg', 0.8);     // very old browsers cannot encode WebP
+  // tile: 200 px square for the swatch grids (a failure here only means the pages fall back to the 320 px thumbnail)
+  let tile = null;
+  try {
+    const sc = document.createElement('canvas');
+    sc.width = TILE_PX; sc.height = TILE_PX;
+    const sx = sc.getContext('2d');
+    sx.fillStyle = '#fff'; sx.fillRect(0, 0, TILE_PX, TILE_PX);
+    sx.drawImage(bmp, (w - side) / 2, (h - side) / 2, side, side, 0, 0, TILE_PX, TILE_PX);
+    const t = await toBlob(sc, 'image/webp', TILE_QUALITY);
+    if (t.type === 'image/webp') tile = t;
+  } catch { tile = null; }
   bmp.close?.();
   const px = tx.getImageData(0, 0, THUMB_PX, THUMB_PX);
-  return { full, thumb, previewUrl: URL.createObjectURL(thumb), pixels: { data: px.data, width: THUMB_PX, height: THUMB_PX } };
+  return { full, thumb, tile, previewUrl: URL.createObjectURL(thumb), pixels: { data: px.data, width: THUMB_PX, height: THUMB_PX } };
 }
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'color';
@@ -57,12 +69,17 @@ export async function uploadPrepared(line, code, prepared) {
   if (a.error) throw a.error;
   const b = await supabase.storage.from(BUCKET).upload(thumbPath, prepared.thumb, opts(prepared.thumb));
   if (b.error) { await removePaths([imagePath]); throw b.error; }
+  if (prepared.tile) await supabase.storage.from(BUCKET).upload(tilePathOf(thumbPath), prepared.tile, opts(prepared.tile));   // best effort
   return { image_path: imagePath, thumb_path: thumbPath };
 }
 
-// Best effort: a leftover file is harmless, so failures are only logged.
+// thumb/<line>/<name>.<ext> -> thumb200/<line>/<name>.webp (same rule as the product pages)
+export const tilePathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp');
+
+// Best effort: a leftover file is harmless, so failures are only logged. Removing a thumbnail also removes its 200 px tile.
 export async function removePaths(paths) {
-  const list = [...new Set(paths.filter(Boolean))];
+  const base = paths.filter(Boolean);
+  const list = [...new Set([...base, ...base.filter((p) => p.startsWith('thumb/')).map(tilePathOf)])];
   if (!list.length) return;
   const { error } = await supabase.storage.from(BUCKET).remove(list);
   if (error) console.warn('[admin] could not remove old images', list, error.message);

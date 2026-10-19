@@ -119,18 +119,6 @@
   "width": 276,
   "height": 262
  },
- "dream-curtains/style-a": {
-  "src": "/explainers/dream-curtains/style-a.svg",
-  "svg": true,
-  "width": 240,
-  "height": 180
- },
- "dream-curtains/style-b": {
-  "src": "/explainers/dream-curtains/style-b.svg",
-  "svg": true,
-  "width": 240,
-  "height": 180
- },
  "measure/drapery-measure-diagram": {
   "src": "/explainers/measure/drapery-measure-diagram.png",
   "webp": "/explainers-opt/measure/drapery-measure-diagram.webp",

@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
 import { SITE } from './data/site.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
-import { showcaseFor, ShowcasePhoto, BrandPanel } from './components/Showcase.jsx';
+import { BrandPanel } from './components/Showcase.jsx';
+import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
 import { profileOf, saveProfile } from './lib/profile.js';
+import { sentEstimate } from './lib/orders.js';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -15,60 +17,46 @@ const linkTo = (navigate, path) => (e) => {
 };
 
 export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
-  // Guests have no saved Orders list. OrdersPage shows them a
-  // "sign in to save your orders" prompt, which is the intended landing
-  // spot so they always have a path to save their cart, not just view it.
-  const goToMyOrders = () => navigate("orders");
+  const goHow = (e) => {
+    e.preventDefault();
+    if (route === "home") document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+    else { navigate("home"); setTimeout(() => document.getElementById("how")?.scrollIntoView(), 50); }
+  };
+  const goContact = (e) => { e.preventDefault(); navigate("contact"); };
   return (
-    <nav className="nav" aria-label="Main">
-      <div className="nav-inner">
-        <button className="wordmark" onClick={() => navigate("home")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-          <span className="w-loves">Love's</span><span className="w-blinds">Blinds</span>
-        </button>
-        <div className="nav-links">
-          <button className={`nav-link ${route === "home" ? "active" : ""}`} onClick={() => navigate("home")}>Home</button>
-          <button className={`nav-link ${route === "products" ? "active" : ""}`} onClick={() => navigate("products")}>Products</button>
-          <button className={`nav-link ${route === "measure" ? "active" : ""}`} onClick={() => navigate("measure")}>Measure Guide</button>
-          <button className={`nav-link ${(route === "quote" || route === "orders" || route === "review") ? "active" : ""}`} onClick={goToMyOrders}>
-            My Orders{quoteCount > 0 && <span className="nav-count">{quoteCount}</span>}
-          </button>
-          <button className={`nav-link ${route === "contact" ? "active" : ""}`} onClick={() => navigate("contact")}>Contact</button>
+    <header className="s2-nav">
+      <nav className="s2-nav-inner" aria-label="Main">
+        <a className="s2-wordmark" href="/" onClick={linkTo(navigate, "/")}>Love's Blinds</a>
+        <div className="s2-nav-links">
+          <a className={route === "products" ? "active" : ""} href="/products" onClick={linkTo(navigate, "/products")}>Products</a>
+          <a className={route === "measure" ? "active" : ""} href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
+          <a href="/#how" onClick={goHow}>How it works</a>
+          <a className={route === "contact" ? "active" : ""} href="/contact" onClick={goContact}>Contact</a>
         </div>
-        {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
-      </div>
-    </nav>
+        <div className="s2-nav-right">
+          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
+            Your order{quoteCount > 0 ? ` (${quoteCount})` : ""}
+          </a>
+          {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
+        </div>
+      </nav>
+    </header>
   );
 }
 
 export function Footer({ navigate }) {
   return (
-    <footer>
-      <div className="footer">
-        <div className="footer-grid">
-          <div>
-            <div className="footer-wordmark"><em>Love's</em> Blinds</div>
-            <p className="footer-tag">Custom window treatments, made to your measurements and shipped to your door.</p>
-          </div>
-          <div>
-            <h3>Contact</h3>
-            <ul>
-              <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
-              <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3>Browse</h3>
-            <ul>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("products")}>All Products</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("measure")}>Measurement Guide</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("quote")}>Order Summary</button></li>
-              <li><button className="nav-link" style={{ padding: 0, fontSize: 13, letterSpacing: 0 }} onClick={() => navigate("contact")}>Contact</button></li>
-            </ul>
-          </div>
+    <footer id="contact" className="s2-footer">
+      <div className="s2-wrap s2-footer-inner">
+        <div className="s2-footer-brand">
+          <div className="s2-footer-name">Love's Blinds</div>
+          <div className="s2-footer-text">Custom made-to-measure window treatments, shipped worldwide.</div>
         </div>
-        <div className="footer-bottom">
-          <span>© 2026 Love's Blinds Studio LLC</span>
-          <span>Made-to-measure · Family run · Since 2000</span>
+        <div className="s2-footer-contact">
+          <div className="s2-footer-head">Questions?</div>
+          <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+          <a href={SITE.phoneHref}>{SITE.phone}</a>
         </div>
       </div>
     </footer>
@@ -86,20 +74,31 @@ export function PhotoPH({ label, sub, aspect, className = "", style = {} }) {
 
 // ---- Lineup tiles ----------------------------------------------------------
 
+// Photo, name and one-line description for each line on the home page and the Products page (copy from the approved mockup).
+const TILES = {
+  roller: { photo: "blackout", alt: "Charcoal blackout roller shade in a bedroom", name: "Roller Shades", text: "Clean and simple. Choose solar, screen view or full blackout fabric." },
+  zebra: { photo: "zebra-dining", alt: "Beige zebra shade in a dining room", name: "Zebra Shades", text: "Alternating sheer and solid stripes. Slide them to let light in or close for privacy." },
+  "shangri-la": { photo: "shangri-la", alt: "Shangri-La shade with soft fabric vanes between two sheers", name: "Shangri-La Shades", text: "Soft fabric vanes floating between two sheers. Tilt for gentle, even light." },
+  roman: { photo: "roman", alt: "Linen Roman shade half raised in a dining room", name: "Roman Shades", text: "Soft fabric folds that stack neatly when raised. Warm and tailored." },
+  cellular: { photo: "cellular", alt: "Grey cellular shade in a bedroom", name: "Cellular Shades", text: "Honeycomb cells trap air to help keep rooms comfortable. Top-down options available." },
+  drapery: { photo: "drapery", alt: "Floor-to-ceiling sheer curtains in a bedroom", name: "Drapery", text: "Custom curtains and Dream Curtains, the walk-through sheer for patio doors." },
+};
+const TILE_SIZES = "(min-width: 1100px) 400px, (min-width: 700px) 45vw, 92vw";
+
 function LineTile({ line, navigate }) {
   const path = `/products/${line.slug}`;
-  const photo = showcaseFor(line.slug)[0] || null;
+  const t = TILES[line.slug];
   return (
-    <a className="line-tile" href={path} onClick={linkTo(navigate, path)}>
-      <div className="line-tile-media">
-        {photo
-          ? <ShowcasePhoto entry={photo} lineName={line.name} sizes="(min-width: 900px) 33vw, 100vw" />
+    <a className="s2-tile" href={path} onClick={linkTo(navigate, path)}>
+      <div className="s2-tile-media">
+        {t
+          ? <SitePhoto name={t.photo} alt={t.alt} sizes={TILE_SIZES} />
           : <BrandPanel title={line.name} aspect="4 / 3" />}
       </div>
-      <div className="line-tile-body">
-        <h3 className="line-tile-name serif">{line.name}</h3>
-        <p className="line-tile-blurb">{line.blurb}</p>
-        <span className="line-tile-cta">Choose fabrics <ArrowRight size={14} /></span>
+      <div className="s2-tile-body">
+        <h3 className="s2-tile-name">{t?.name || line.name}</h3>
+        <p className="s2-tile-text">{t?.text || line.blurb}</p>
+        <span className="s2-tile-cta">Build yours →</span>
       </div>
     </a>
   );
@@ -107,7 +106,7 @@ function LineTile({ line, navigate }) {
 
 function LineupGrid({ lines, navigate }) {
   return (
-    <div className="line-grid">
+    <div className="s2-tiles">
       {lines.map(l => <LineTile key={l.id} line={l} navigate={navigate} />)}
     </div>
   );
@@ -115,107 +114,102 @@ function LineupGrid({ lines, navigate }) {
 
 // ---- Home ------------------------------------------------------------------
 
-const HERO_MS = 6000;
-
-function Hero() {
-  const slides = showcaseFor("hero");
-  const [i, setI] = useState(0);
-  const paused = useRef(false);
-  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-  useEffect(() => {
-    if (slides.length < 2 || reduce) return undefined;
-    const t = setInterval(() => { if (!paused.current) setI(n => (n + 1) % slides.length); }, HERO_MS);
-    return () => clearInterval(t);
-  }, [slides.length, reduce]);
-
-  return (
-    <section className="hero2" onMouseEnter={() => { paused.current = true; }} onMouseLeave={() => { paused.current = false; }}>
-      {slides.length > 0 && (
-        <div className="hero2-slides" aria-hidden="true">
-          {slides.map((s, n) => (
-            <div key={s.file} className={`hero2-slide${n === i ? " on" : ""}`}>
-              <ShowcasePhoto entry={s} lineName="Love's Blinds" eager={n === 0} sizes="100vw" />
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="hero2-overlay" />
-      <div className="hero2-inner">
-        <h1 className="serif">Six ways to <em>dress a window.</em></h1>
-        <p className="hero2-sub">Scroll down to explore our lineup</p>
-      </div>
-    </section>
-  );
-}
-
 const STEPS = [
-  ["Pick a style and fabric", "Choose from six lines and see every fabric as a real swatch."],
-  ["Enter your window sizes", "Our measuring guide walks you through it. You measure, we build to those sizes."],
-  ["Get a written quote", "We review every request and reply with clear pricing within 48 hours."],
-  ["We build it and ship it", "Made to your exact sizes and delivered to your door in two to three weeks."],
+  ["Pick a style", "Shades, sheers and curtains, made for your window."],
+  ["See your price", "Choose a color and enter your size. Your estimate updates as you go."],
+  ["Send your order", "We check every detail and confirm your final price within 48 hours."],
+  ["Delivered", "Made to your measurements and shipped in two to three weeks."],
 ];
-const ANSWERS = [
-  ["Made to Measure", "Every piece is built to your exact window sizes."],
-  ["Hundreds of Fabrics", "Textures and colors across every product line."],
-  ["Honest Guidance", "Straight advice on light, privacy and fit for each room."],
-  ["Shipped Anywhere", "Custom-built and delivered to your door, wherever you are."],
+const LIGHT = [
+  { photo: "shangri-la", slug: "shangri-la", title: "Soft, glowing light", text: "Shangri-La, Zebra and sheer curtains" },
+  { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and screen view roller shades" },
+  { photo: "blackout", slug: "roller", title: "Dark for sleeping", text: "Blackout rollers and blackout cellular shades" },
+];
+const MEASURE = [
+  ["Choose inside or outside mount", "Inside sits within the window frame. Outside covers the frame from the wall."],
+  ["Measure the width in three places", "Top, middle and bottom. For inside mount, use the smallest number."],
+  ["Measure the height in three places", "Left, center and right. For inside mount, use the largest number."],
 ];
 
 export function HomePage({ navigate }) {
+  const scrollTo = (id) => (e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); };
   return (
-    <div className="page-fade home">
-      <Hero />
-
-      <section className="home-section cream" id="lineup" aria-labelledby="lineup-title">
-        <div className="container">
-          <div className="eyebrow">Our lineup</div>
-          <h2 id="lineup-title" className="serif section-title gold-rule">Choose your style</h2>
-          <LineupGrid lines={activeLines()} navigate={navigate} />
+    <div className="page-fade home s2">
+      <section className="s2-hero">
+        <SitePhoto name="hero-living" alt="Living room with three windows dressed in matching light-filtering roller shades" sizes="100vw" eager className="s2-hero-img" />
+        <div className="s2-hero-over">
+          <div className="s2-wrap">
+            <div className="s2-hero-card">
+              <p className="s2-eyebrow">Custom made to measure</p>
+              <h1>Six ways to dress a window.</h1>
+              <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
+              <div className="s2-btn-row">
+                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start your order</a>
+                <a className="s2-btn s2-btn-line" href="#measure" onClick={scrollTo("measure")}>How to measure</a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="home-section cream-2" aria-labelledby="how-title">
-        <div className="container">
-          <div className="eyebrow">How it works</div>
-          <h2 id="how-title" className="serif section-title gold-rule">Four steps from window to doorstep</h2>
-          <ol className="how-steps">
-            {STEPS.map(([t, d], n) => (
-              <li key={t} className="how-step">
-                <span className="how-num serif" aria-hidden="true">{n + 1}</span>
-                <h3 className="serif">{t}</h3>
-                <p>{d}</p>
+      <section id="how" className="s2-how" aria-label="How it works">
+        <ol className="s2-wrap s2-how-grid">
+          {STEPS.map(([t, d], n) => (
+            <li key={t} className="s2-how-step">
+              <span className="s2-how-num" aria-hidden="true">{n + 1}</span>
+              <div><div className="s2-how-title">{t}</div><div className="s2-how-text">{d}</div></div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="products" className="s2-wrap s2-products" aria-labelledby="lineup-title">
+        <div className="s2-sec-head">
+          <div>
+            <p className="s2-eyebrow">Our lineup</p>
+            <h2 id="lineup-title" className="s2-h2">Find your style</h2>
+          </div>
+          <p className="s2-sec-text">Every piece is cut to your exact size. Tap a style to choose colors and see your price.</p>
+        </div>
+        <LineupGrid lines={activeLines()} navigate={navigate} />
+      </section>
+
+      <section className="s2-wrap s2-light" aria-labelledby="light-title">
+        <div className="s2-sec-head">
+          <div>
+            <p className="s2-eyebrow">Not sure where to start?</p>
+            <h2 id="light-title" className="s2-h2">Shop by how much light you want</h2>
+          </div>
+        </div>
+        <div className="s2-light-grid">
+          {LIGHT.map((c) => (
+            <a key={c.title} className="s2-light-card" href={`/products/${c.slug}`} onClick={linkTo(navigate, `/products/${c.slug}`)}>
+              <SitePhoto name={c.photo} alt="" sizes={TILE_SIZES} />
+              <div className="s2-light-label">
+                <div className="s2-light-title">{c.title}</div>
+                <div className="s2-light-text">{c.text}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section id="measure" className="s2-measure" aria-labelledby="measure-title">
+        <div className="s2-wrap s2-measure-grid">
+          <div className="s2-measure-intro">
+            <p className="s2-eyebrow s2-eyebrow-light">Measure at home</p>
+            <h2 id="measure-title" className="s2-h2">Measuring takes about five minutes.</h2>
+            <p className="s2-measure-text">All you need is a steel tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
+            <a className="s2-btn s2-btn-sand" href="/measure" onClick={linkTo(navigate, "/measure")}>Read the full guide</a>
+          </div>
+          <ol className="s2-measure-steps">
+            {MEASURE.map(([t, d], n) => (
+              <li key={t} className="s2-measure-step">
+                <span className="s2-measure-num" aria-hidden="true">{n + 1}</span>
+                <div><div className="s2-measure-title">{t}</div><div className="s2-measure-body">{d}</div></div>
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      <section className="home-section cream" aria-labelledby="answers-title">
-        <div className="container">
-          <div className="eyebrow">Straight answers</div>
-          <h2 id="answers-title" className="serif section-title gold-rule">No email harvesting. No upsell. Just a quote.</h2>
-          <div className="answers-grid">
-            {ANSWERS.map(([t, d]) => (
-              <div key={t} className="answer">
-                <h3 className="serif">{t}</h3>
-                <p>{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section closing" aria-labelledby="closing-title">
-        <div className="container closing-inner">
-          <h2 id="closing-title" className="serif section-title gold-rule">Ready to dress your windows?</h2>
-          <p className="closing-text">Choose a fabric online, enter your window sizes, and we'll follow up with a clear, custom quote. Then we build your order to size and ship it to your door.</p>
-          <button className="btn btn-gold" onClick={() => navigate("products")}>Start your order <ArrowRight /></button>
-          <div className="closing-contact">
-            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
-            <span aria-hidden="true">·</span>
-            <a href={SITE.phoneHref}>{SITE.phone}</a>
-          </div>
         </div>
       </section>
 
@@ -254,377 +248,6 @@ export function ProductsPage({ navigate, location, setLocation }) {
       </section>
       <section className="container products-grid-wrap">
         <LineupGrid lines={lines} navigate={navigate} />
-      </section>
-      <Footer navigate={navigate} />
-    </div>
-  );
-}
-
-export function OrderSummaryPage({ navigate, quoteItems, removeFromQuote, updateItem, activeOrder, user }) {
-  return (
-    <div className="page-fade">
-      <section className="quote-page container-narrow">
-        <div className="order-breadcrumb">
-          <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("orders")}>← My Orders</button>
-          {user && activeOrder && (
-            <>
-              <span className="order-breadcrumb-sep">·</span>
-              <span className="order-breadcrumb-name">{activeOrder.name}</span>
-            </>
-          )}
-        </div>
-
-        <div className="section-eyebrow" style={{ marginTop: 12 }}>Order Summary</div>
-        <h1 className="serif section-title">Your order.</h1>
-        <p className="section-sub">Adjust controls, dimensions, and rooms right here, then continue to send us your contact details.</p>
-
-        {quoteItems.length === 0 ? (
-          <div className="empty-state">
-            <h3 className="serif">Nothing in your order yet.</h3>
-            <p>Browse our products and use "Add to Order" to build your list.</p>
-            <button className="btn btn-outline" onClick={() => navigate("products")} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
-          </div>
-        ) : (
-          <>
-            <div className="quote-list">
-              {quoteItems.map((it, idx) => (
-                <QuoteRow key={idx} item={it} idx={idx} updateItem={updateItem} removeFromQuote={removeFromQuote} />
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 28 }}>
-              <button className="btn btn-sage" onClick={() => navigate("review")} style={{ padding: "14px 28px" }}>
-                Continue to Review <ArrowRight />
-              </button>
-            </div>
-          </>
-        )}
-
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 32, padding: "14px 18px", background: "var(--pale-sand)", borderLeft: "3px solid var(--sand)" }}>
-          <div style={{ fontSize: 13, color: "var(--charcoal)", flex: 1 }}>
-            <strong>Not sure how to measure?</strong> Our step-by-step guide covers inside &amp; outside mount, with tolerance tips.
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate("measure")}>Open Guide <ArrowRight size={14} /></button>
-        </div>
-      </section>
-      <Footer navigate={navigate} />
-    </div>
-  );
-}
-
-function ItemThumb({ item }) {
-  const [failed, setFailed] = useState(false);
-  const pick = item.selection?.picks?.[0];
-  if (pick?.thumb && !failed) {
-    return <img className="quote-thumb" src={pick.thumb} alt={`${displayNameOf(pick)}, ${pick.code}`} width="72" height="72" loading="lazy" onError={() => setFailed(true)} />;
-  }
-  const Icon = CATEGORY_ICONS[item.product.icon];
-  return <div className="quote-thumb quote-thumb-fallback" role="img" aria-label={item.product.name}>{pick?.code || (Icon ? <Icon /> : item.product.name)}</div>;
-}
-
-function QuoteRow({ item: it, idx, updateItem, removeFromQuote }) {
-  const sum = summarize(it);
-  const mechs = it.product.mechanisms;
-  const mechKnown = mechs.some(m => m.id === it.mech);
-  const mounts = it.product.mounts;
-
-  const handleWidthChange = (v) => updateItem(idx, { width: v === "" ? null : parseFloat(v) });
-  const handleLengthChange = (v) => updateItem(idx, { length: v === "" ? null : parseFloat(v) });
-
-  return (
-    <div className="quote-line">
-      <ItemThumb item={it} />
-      <div>
-        <div className="quote-line-title">{sum.title}</div>
-        <ul className="quote-line-parts">
-          {sum.parts.map((p, i) => <li key={i}>{p}</li>)}
-        </ul>
-        <div className="quote-line-controls">
-          <select className="select" aria-label="Control" value={it.mech} onChange={e => updateItem(idx, { mech: e.target.value })}>
-            {!mechKnown && <option value={it.mech}>{it.mech}</option>}
-            {mechs.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-          <select className="select" aria-label="Mount type" value={it.mount} onChange={e => updateItem(idx, { mount: e.target.value })}>
-            {!mounts.includes(it.mount) && <option value={it.mount}>{it.mount}</option>}
-            {mounts.map(mid => {
-              const m = MOUNTS.find(x => x.id === mid);
-              return <option key={mid} value={mid}>{m.name}</option>;
-            })}
-          </select>
-          <input className="input" type="number" aria-label="Width (in)" placeholder="Width (in)" value={it.width ?? ""} onChange={e => handleWidthChange(e.target.value)} />
-          <input className="input" type="number" aria-label="Length (in)" placeholder="Length (in)" value={it.length ?? ""} onChange={e => handleLengthChange(e.target.value)} />
-          <input
-            className="input"
-            type="text"
-            aria-label="Room"
-            value={it.roomLabel || ""}
-            onChange={e => updateItem(idx, { roomLabel: e.target.value })}
-            placeholder="Room (optional)" />
-        </div>
-      </div>
-      <div className="qty-stepper">
-        <button aria-label="Decrease quantity" onClick={() => updateItem(idx, { qty: Math.max(1, it.qty - 1) })}>−</button>
-        <span>{it.qty}</span>
-        <button aria-label="Increase quantity" onClick={() => updateItem(idx, { qty: it.qty + 1 })}>+</button>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button className="quote-line-rm" onClick={() => removeFromQuote(idx)} title="Remove" aria-label="Remove item"><XIcon /></button>
-      </div>
-    </div>
-  );
-}
-
-function ReviewLine({ it, showCode }) {
-  const sum = summarize(it);
-  const itemMech = getMechanism(it.product, it.mech);
-  return (
-    <div className="quote-line">
-      <ItemThumb item={it} />
-      <div>
-        <div className="quote-line-title">{sum.title}</div>
-        <ul className="quote-line-parts">
-          {sum.parts.map((p, i) => <li key={i}>{p}</li>)}
-        </ul>
-        <div className="quote-line-meta">
-          {itemMech?.name || it.mech} · {MOUNTS.find(m => m.id === it.mount)?.name || it.mount}
-          {it.width && ` · ${it.width}"W × ${it.length || it.height}"H`}
-          {it.roomLabel && <span style={{ marginLeft: 8, color: "var(--sage-dark)", fontSize: 12 }}>{it.roomLabel}</span>}
-        </div>
-      </div>
-      <div className="qty-stepper" style={{ pointerEvents: "none" }}>
-        <button tabIndex={-1}>−</button><span>{it.qty}</span><button tabIndex={-1}>+</button>
-      </div>
-    </div>
-  );
-}
-
-export function ReviewOrderPage({ navigate, quoteItems, activeOrderId, onOrderSent, onSubmitted, user }) {
-  const items = quoteItems;
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [shipTo, setShipTo] = useState("");
-  const [callTime, setCallTime] = useState("Anytime");
-  const [measureMethod, setMeasureMethod] = useState("I'll measure myself");
-  const [notes, setNotes] = useState("");
-  const [errors, setErrors] = useState({});
-  const [review, setReview] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-
-  // start from the customer's saved profile (only fills fields they have not typed into)
-  useEffect(() => {
-    const p = profileOf(user);
-    if (!p) return;
-    setName(v => v || p.name); setEmail(v => v || p.email); setPhone(v => v || p.phone); setShipTo(v => v || p.shipTo);
-  }, [user]);
-
-  const handleConfirmSend = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const payload = {
-        customer: {
-          name: review.name,
-          email: review.email,
-          phone: review.phone,
-          shipTo: review.shipTo,
-          callTime: review.callTime,
-          measureMethod: review.measureMethod,
-        },
-        lines: items.map(it => {
-          const sum = summarize(it);
-          return {
-            code: sum.codes.length ? sum.codes.join(", ") : (it.code || null),
-            codes: sum.codes,
-            colorName: sum.colorText || it.colorName || it.variant,     // customer wording: display name and code
-            category: it.category || it.product.id,
-            productName: it.product.name,                                 // lets the server rebuild the text from catalog data
-            section: it.selection?.section || null,
-            description: describeItem(it),                                // customer wording, used in the customer email
-            internalDescription: describeInternal(it),                    // supplier collection, color name and code, for us only
-            internalPicks: (it.selection?.picks || []).map(p => ({ line: p.line, role: p.role, code: p.code, displayName: displayNameOf(p), supplierColor: p.colorName ?? null, collection: p.fabric, style: p.style })),
-            details: sum.parts,
-            selection: it.selection || null,
-            mechId: it.mech,
-            mechName: getMechanism(it.product, it.mech)?.name || it.mech,
-            mountId: it.mount,
-            width: it.width || null,
-            length: it.length || it.height || null,
-            qty: it.qty,
-            location: it.location || it.product.location,
-            roomLabel: it.roomLabel || '',
-          };
-        }),
-        notes: review.notes,
-      };
-
-      const res = await fetch('/api/quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Server error (${res.status})`);
-      }
-
-      setSubmitted(true);
-      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId);
-      onSubmitted?.();
-    } catch (err) {
-      setSubmitError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="page-fade">
-        <section className="quote-page container-narrow">
-          <div className="success-banner">
-            <h3 className="serif">Order request sent.</h3>
-            <p>We'll reply to <strong>{review.email}</strong> with your quote within 48 hours. If you don't see it, check your junk folder or call {SITE.phone}.</p>
-          </div>
-          <button className="btn btn-outline" style={{ marginTop: 24 }} onClick={() => navigate("home")}>Back to Home</button>
-        </section>
-        <Footer navigate={navigate} />
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="page-fade">
-        <section className="quote-page container-narrow">
-          <div className="empty-state">
-            <h3 className="serif">Nothing to review yet.</h3>
-            <p>Add items to your order first.</p>
-            <button className="btn btn-outline" onClick={() => navigate("products")} style={{ marginTop: 20 }}>Browse Products <ArrowRight /></button>
-          </div>
-        </section>
-        <Footer navigate={navigate} />
-      </div>
-    );
-  }
-
-  if (review) {
-    const customer = review;
-    return (
-      <div className="page-fade">
-        <section className="quote-page container-narrow">
-          <div className="order-breadcrumb">
-            <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => { setReview(null); setSubmitError(null); }}>← Edit details</button>
-          </div>
-
-          <div className="success-banner" style={{ marginTop: 20, marginBottom: 32 }}>
-            <h3 className="serif">Review your order.</h3>
-            <p style={{ margin: 0 }}>Check everything below, then confirm to send.</p>
-          </div>
-
-          <h4 className="serif" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h4>
-          <div className="review-grid">
-            <div><span className="label">Name</span><div>{customer.name}</div></div>
-            <div><span className="label">Email</span><div>{customer.email}</div></div>
-            {customer.phone && <div><span className="label">Phone</span><div>{customer.phone}</div></div>}
-            {customer.shipTo && <div><span className="label">Ship to</span><div>{customer.shipTo}</div></div>}
-            <div><span className="label">Best time to call</span><div>{customer.callTime}</div></div>
-            <div><span className="label">Measurement</span><div>{customer.measureMethod}</div></div>
-            {customer.notes && <div className="full"><span className="label">Notes</span><div>{customer.notes}</div></div>}
-          </div>
-
-          <h4 className="serif" style={{ fontSize: 20, margin: "32px 0 14px" }}>Items ({items.length})</h4>
-          <div className="quote-list">
-            {items.map((it, idx) => <ReviewLine key={idx} it={it} showCode />)}
-          </div>
-
-          {submitError && (
-            <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(168,81,63,0.08)", border: "1px solid rgba(168,81,63,0.3)", borderRadius: 4, color: "#a8513f", fontSize: 14 }}>
-              {submitError}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-            <button className="btn btn-outline" onClick={() => { setReview(null); setSubmitError(null); }} disabled={submitting}>
-              ← Edit
-            </button>
-            <button className="btn btn-sage" onClick={handleConfirmSend} disabled={submitting} style={{ padding: "14px 28px" }}>
-              {submitting ? "Sending…" : "Send Order"} {!submitting && <ArrowRight />}
-            </button>
-          </div>
-        </section>
-        <Footer navigate={navigate} />
-      </div>
-    );
-  }
-
-  const handleSubmit = () => {
-    const errs = {};
-    if (!name.trim()) errs.name = "Required";
-    if (!email.trim()) errs.email = "Required";
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-    setReview({ name: name.trim(), email: email.trim(), phone: phone.trim(), shipTo: shipTo.trim(), callTime, measureMethod, notes: notes.trim() });
-  };
-
-  return (
-    <div className="page-fade">
-      <section className="quote-page container-narrow">
-        <div className="order-breadcrumb">
-          <button className="nav-link" style={{ padding: 0, fontSize: 13 }} onClick={() => navigate("quote")}>← Back to Order Summary</button>
-        </div>
-
-        <div className="section-eyebrow" style={{ marginTop: 12 }}>Review Your Order</div>
-        <h1 className="serif section-title">Where should we send your quote?</h1>
-        <p className="section-sub">We'll never share your contact information.</p>
-
-        <h4 className="serif" style={{ fontSize: 20, margin: "24px 0 14px" }}>Items ({items.length})</h4>
-        <div className="quote-list">
-          {items.map((it, idx) => <ReviewLine key={idx} it={it} />)}
-        </div>
-
-        <div className="quote-form" style={{ marginTop: 32 }}>
-          <div>
-            <div className="label">Name{errors.name && <span className="field-error">: {errors.name}</span>}</div>
-            <input className={`input${errors.name ? " input-error" : ""}`} placeholder="Full name" value={name} onChange={e => { setName(e.target.value); setErrors(v => ({ ...v, name: "" })); }} />
-          </div>
-          <div>
-            <div className="label">Email{errors.email && <span className="field-error">: {errors.email}</span>}</div>
-            <input className={`input${errors.email ? " input-error" : ""}`} type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); setErrors(v => ({ ...v, email: "" })); }} />
-          </div>
-          <div>
-            <div className="label">Phone</div>
-            <input className="input" placeholder="(555) 555-5555" value={phone} onChange={e => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <div className="label">Ship to address</div>
-            <input className="input" placeholder="123 Main St, City, State" value={shipTo} onChange={e => setShipTo(e.target.value)} />
-          </div>
-          <div>
-            <div className="label">Best time to call</div>
-            <select className="select" value={callTime} onChange={e => setCallTime(e.target.value)}>
-              <option>Anytime</option><option>Mornings</option><option>Afternoons</option><option>Evenings</option>
-            </select>
-          </div>
-          <div className="full">
-            <div className="label">Measurement method</div>
-            <div className="config-options">
-              {["I'll measure myself", "Not sure yet"].map(opt => (
-                <button key={opt} className={`opt-btn${measureMethod === opt ? " selected" : ""}`} onClick={() => setMeasureMethod(opt)}>{opt}</button>
-              ))}
-            </div>
-          </div>
-          <div className="full">
-            <div className="label">Notes: rooms, timing, anything we should know</div>
-            <textarea className="textarea" placeholder="e.g. Bay window in the living room, master bedroom needs full blackout." value={notes} onChange={e => setNotes(e.target.value)} />
-          </div>
-          <div className="full">
-            <button className="btn btn-sage" onClick={handleSubmit} style={{ padding: "14px 28px" }}>Review & Send <ArrowRight /></button>
-          </div>
-        </div>
       </section>
       <Footer navigate={navigate} />
     </div>
@@ -721,7 +344,8 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <div className="orders-grid">
             {orders.map(order => {
               const isActive = order.id === activeOrderId;
-              const itemCount = isActive ? quoteCount : (order.items?.length ?? 0);
+              const blinds = (order.items || []).reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
+              const itemCount = blinds;
               return (
                 <div
                   key={order.id}
@@ -757,10 +381,11 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
                     </div>
                   </div>
                   <div className="order-card-meta">
-                    {itemCount} item{itemCount !== 1 ? 's' : ''}
+                    {itemCount} blind{itemCount !== 1 ? 's' : ''}
                     {' · '}
                     {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
+                  {sentEstimate(order) && <div className="order-card-meta order-card-est">{sentEstimate(order)}</div>}
                   <div className="order-card-pills">
                     {order.status === 'sent'
                       ? <span className="order-pill order-pill-sent">Sent</span>
@@ -853,11 +478,11 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
               <div className="mount-toggle">
                 <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
-                  <div className="mount-tab-name">Inside Mount</div>
+                  <div className="mount-tab-name">Inside mount</div>
                   <div className="mount-tab-desc">Recessed in the frame. Needs ≥ 2" depth.</div>
                 </button>
                 <button className={`mount-tab ${mountType === "outside" ? "active" : ""}`} onClick={() => setMountType("outside")}>
-                  <div className="mount-tab-name">Outside Mount</div>
+                  <div className="mount-tab-name">Outside mount</div>
                   <div className="mount-tab-desc">Covers the trim. Best for light control.</div>
                 </button>
               </div>

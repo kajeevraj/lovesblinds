@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roller Shades: build yours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&amp;family=Montserrat:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F2EA}
+a{color:#1E1A16}a:hover{color:#7A5C2E}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid #7A5C2E;outline-offset:2px}
+.btn-dark:hover{background:#5F4622 !important;color:#FFFFFF !important}
+</style>
+</helmet>
+<div style="font-family: Montserrat, sans-serif; color: #1E1A16; background: #F7F2EA; min-height: 100vh">
+
+<header style="background: #F7F2EA; border-bottom: 1px solid #E4DACB">
+<nav style="max-width: 1280px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Main.dc.html" style="font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; text-decoration: none; color: #1E1A16">Love's Blinds</a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px; font-weight: 500">
+<a href="Main.dc.html#products" style="text-decoration: none">Products</a>
+<a href="Main.dc.html#measure" style="text-decoration: none">How to measure</a>
+<a href="Review.dc.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #1E1A16; border-radius: 999px; padding: 10px 18px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+Your order (1)</a>
+</div>
+</nav>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px 24px 120px; box-sizing: border-box">
+<div style="font-size: 13px; color: #5E554B; margin-bottom: 20px"><a href="Main.dc.html" style="color: #5E554B">Home</a> / <a href="Main.dc.html#products" style="color: #5E554B">Products</a> / Roller Shades</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
+
+<div style="flex: 1 1 480px; min-width: 0; position: sticky; top: 16px">
+<img src="{{heroImg}}" alt="{{heroAlt}}" style="display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 4px; background: #E9E1D3">
+<div style="display: flex; gap: 10px; margin-top: 12px; font-size: 13px; color: #5E554B; align-items: center">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+Photo shows {{fabricName}} fabric. Your color is shown in the swatch.
+</div>
+</div>
+
+<div style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 36px">
+
+<div>
+<h1 style="margin: 0 0 10px; font-family: 'Playfair Display', serif; font-weight: 500; font-size: 48px; line-height: 1.05">Roller Shades</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4A423A">A single roll of fabric that rolls up neatly out of sight. Made to your exact size.</p>
+</div>
+
+<section aria-labelledby="s1">
+<h2 id="s1" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">1</span>Fabric type</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+<sc-for list="{{fabrics}}" as="f" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="text-align: left; padding: 16px; min-height: 84px; border-radius: 4px; border: {{f.border}}; background: {{f.bg}}; color: #1E1A16; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 16px">{{f.name}}</span>
+<span style="font-size: 13px; color: #5E554B">{{f.tag}}</span>
+</button>
+</sc-for>
+</div>
+<div style="margin-top: 14px; padding: 18px 20px; background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px">
+<div style="font-weight: 600; font-size: 15px; margin-bottom: 6px">{{fabricName}}</div>
+<div style="font-size: 14px; line-height: 1.6; color: #4A423A">{{fabricBody}}</div>
+<sc-if value="{{showPrivacy}}" hint-placeholder-val="{{ true }}">
+<div style="font-size: 13px; line-height: 1.55; color: #5E554B; margin-top: 10px; padding-top: 10px; border-top: 1px solid #E4DACB">With Solar or Screen View, people can see in at night when your lights are on. For nighttime privacy, choose Blackout.</div>
+</sc-if>
+</div>
+</section>
+
+<section aria-labelledby="s2">
+<h2 id="s2" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">2</span>Color</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px">
+<label for="csearch" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search colors by name or code</label>
+<input id="csearch" type="search" placeholder="Search name or code" value="{{query}}" onChange="{{onQuery}}" style="flex: 1 1 220px; min-height: 44px; padding: 0 14px; font-size: 15px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{families}}" as="fam" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{fam.pressed}}" onClick="{{fam.pick}}" style="min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 500; border: {{fam.border}}; background: {{fam.bg}}; color: {{fam.fg}}">{{fam.name}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px">
+<sc-for list="{{colors}}" as="c" hint-placeholder-count="8">
+<button type="button" aria-pressed="{{c.pressed}}" aria-label="{{c.label}}" onClick="{{c.pick}}" style="padding: 0; border: none; background: none; text-align: left; color: #1E1A16">
+<span style="display: block; aspect-ratio: 1 / 1; border-radius: 4px; background: {{c.hex}}; box-shadow: {{c.ring}}"></span>
+<span style="display: block; font-size: 14px; font-weight: 600; margin-top: 8px">{{c.name}}</span>
+<span style="display: block; font-size: 12px; color: #5E554B">{{c.code}}</span>
+</button>
+</sc-for>
+</div>
+<sc-if value="{{noColors}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 14px; color: #5E554B; padding: 16px 0">No colors match. Try another name or code.</div>
+</sc-if>
+</section>
+
+<section aria-labelledby="s3">
+<h2 id="s3" style="margin: 0 0 6px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">3</span>Size</h2>
+<p style="margin: 0 0 14px; font-size: 14px; color: #5E554B">In inches. Not sure? <a href="Main.dc.html#measure">See how to measure</a>.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px">
+<label for="w" style="font-size: 14px; font-weight: 600">Width</label>
+<div style="display: flex; gap: 8px">
+<input id="w" type="number" inputmode="numeric" min="12" placeholder="e.g. 40" value="{{width}}" onChange="{{onWidth}}" style="flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<label for="wf" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Width fraction</label>
+<select id="wf" value="{{widthFrac}}" onChange="{{onWidthFrac}}" style="min-height: 48px; padding: 0 10px; font-size: 15px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<option value="0">0</option><option value="0.125">1/8</option><option value="0.25">1/4</option><option value="0.375">3/8</option><option value="0.5">1/2</option><option value="0.625">5/8</option><option value="0.75">3/4</option><option value="0.875">7/8</option>
+</select>
+</div>
+</div>
+<div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px">
+<label for="h" style="font-size: 14px; font-weight: 600">Height</label>
+<div style="display: flex; gap: 8px">
+<input id="h" type="number" inputmode="numeric" min="12" placeholder="e.g. 64" value="{{height}}" onChange="{{onHeight}}" style="flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<label for="hf" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Height fraction</label>
+<select id="hf" value="{{heightFrac}}" onChange="{{onHeightFrac}}" style="min-height: 48px; padding: 0 10px; font-size: 15px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<option value="0">0</option><option value="0.125">1/8</option><option value="0.25">1/4</option><option value="0.375">3/8</option><option value="0.5">1/2</option><option value="0.625">5/8</option><option value="0.75">3/4</option><option value="0.875">7/8</option>
+</select>
+</div>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="s4">
+<h2 id="s4" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">4</span>Mount</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px">
+<sc-for list="{{mounts}}" as="m" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="text-align: left; padding: 16px; border-radius: 4px; border: {{m.border}}; background: {{m.bg}}; color: #1E1A16; display: flex; gap: 16px; align-items: center">
+<sc-if value="{{m.inside}}" hint-placeholder-val="{{ true }}">
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="8" y="6" width="48" height="52" stroke="#5E554B" stroke-width="3"></rect><rect x="13" y="11" width="38" height="26" fill="#CDBFA6"></rect><rect x="13" y="11" width="38" height="4" fill="#7A5C2E"></rect></svg>
+</sc-if>
+<sc-if value="{{m.outside}}" hint-placeholder-val="{{ false }}">
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="12" y="12" width="40" height="46" stroke="#5E554B" stroke-width="3"></rect><rect x="4" y="4" width="56" height="34" fill="#CDBFA6"></rect><rect x="4" y="4" width="56" height="4" fill="#7A5C2E"></rect></svg>
+</sc-if>
+<span style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 16px">{{m.name}}</span>
+<span style="font-size: 13px; line-height: 1.5; color: #5E554B">{{m.body}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="s5">
+<h2 id="s5" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">5</span>How you raise and lower it</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+<sc-for list="{{controls}}" as="k" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{k.pressed}}" onClick="{{k.pick}}" style="text-align: left; padding: 16px; min-height: 96px; border-radius: 4px; border: {{k.border}}; background: {{k.bg}}; color: #1E1A16; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 16px">{{k.name}}</span>
+<span style="font-size: 13px; line-height: 1.5; color: #5E554B">{{k.body}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="s6">
+<h2 id="s6" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">6</span>Top cover</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px">
+<sc-for list="{{tops}}" as="t" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="text-align: left; padding: 16px; border-radius: 4px; border: {{t.border}}; background: {{t.bg}}; color: #1E1A16; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 16px">{{t.name}}</span>
+<span style="font-size: 13px; line-height: 1.5; color: #5E554B">{{t.body}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="s7">
+<h2 id="s7" style="margin: 0 0 14px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Playfair Display', serif; color: #7A5C2E; font-size: 22px">7</span>Which room is this for?</h2>
+<label for="room" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Room name</label>
+<input id="room" type="text" placeholder="e.g. Primary bedroom, left window" value="{{room}}" onChange="{{onRoom}}" style="width: 100%; box-sizing: border-box; min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFDF9; color: #1E1A16">
+<p style="margin: 8px 0 0; font-size: 13px; color: #5E554B">Helps you keep track when you order several windows.</p>
+</section>
+
+<section aria-live="polite" style="background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 28px">
+<sc-if value="{{waiting}}" hint-placeholder-val="{{ true }}">
+<div style="font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 8px">Your price</div>
+<p style="margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: #4A423A">Pick a color and enter your size to see your price.</p>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<div style="display: flex; gap: 8px; align-items: center; color: {{colorCheckFg}}">{{colorCheck}} Color</div>
+<div style="display: flex; gap: 8px; align-items: center; color: {{sizeCheckFg}}">{{sizeCheck}} Width and height</div>
+</div>
+</sc-if>
+<sc-if value="{{custom}}" hint-placeholder-val="{{ false }}">
+<div style="font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 8px">Custom size</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #4A423A">This size is larger than our standard range. Add it to your order and we'll reply with a price.</p>
+</sc-if>
+<sc-if value="{{hasPrice}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6B4F24; margin-bottom: 6px">Your estimate</div>
+<div style="font-family: 'Playfair Display', serif; font-size: 52px; line-height: 1; margin-bottom: 12px">{{priceText}}</div>
+<p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6; color: #4A423A">Here's your estimate. Send it and we'll confirm details and final price.</p>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #4A423A; border-top: 1px solid #E4DACB; padding-top: 14px">
+<div>{{fabricName}} · {{colorName}} ({{colorCode}})</div>
+<div>{{sizeText}} · {{mountName}}</div>
+<div>{{controlName}} · {{topName}}</div>
+</div>
+</sc-if>
+</section>
+
+</div>
+</div>
+</main>
+
+<div style="position: sticky; bottom: 0; background: #1E1A16; color: #F7F2EA; border-top: 1px solid #4A423A">
+<div style="max-width: 1280px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; color: #D8D0C4">{{barLabel}}</span>
+<span style="font-family: 'Playfair Display', serif; font-size: 26px">{{barValue}}</span>
+</div>
+<sc-if value="{{canAdd}}" hint-placeholder-val="{{ false }}">
+<a class="btn-dark" href="Review.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 28px; background: #D9BE8C; color: #1E1A16; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 999px">Add to order</a>
+</sc-if>
+<sc-if value="{{cantAdd}}" hint-placeholder-val="{{ true }}">
+<span style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 28px; background: #4A423A; color: #D8D0C4; font-weight: 600; font-size: 15px; border-radius: 999px">Add to order</span>
+</sc-if>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+var IMG = {
+  solar: '../photos/solar.jpg',
+  screen: '../photos/screen-view.jpg',
+  blackout: '../photos/blackout.jpg'
+};
+var ALT = {
+  solar: 'Light grey solar roller shades in a home office',
+  screen: 'Grey screen view roller shade with the garden visible through it',
+  blackout: 'Charcoal blackout roller shade in a bedroom'
+};
+var FABRICS = [
+  { id: 'solar', name: 'Solar', tag: 'Softens sun and glare', body: 'A soft fabric that filters sunlight and cuts glare, with a softened view of the outside. Good for living rooms and bedrooms where you want gentle light and some daytime privacy.' },
+  { id: 'screen', name: 'Screen View', tag: 'Clear view, less heat', body: 'A tighter, tougher screen weave (as little as 3% openness) that blocks glare and heat while keeping a clear view outside. Good for rooms with a view, offices, TV rooms and patios.' },
+  { id: 'blackout', name: 'Blackout', tag: 'Darkest option', body: 'A solid fabric that stops light coming through. Good for bedrooms, nurseries and media rooms.' }
+];
+var COLORS = {
+  solar: [
+    ['Chalk', 'SL-101', '#EEEBE4', 'White'], ['Linen', 'SL-102', '#E2D8C6', 'Neutral'], ['Oat', 'SL-103', '#CDBFA6', 'Neutral'], ['Dove', 'SL-104', '#C9C7C2', 'Grey'],
+    ['Stone', 'SL-105', '#A9A39A', 'Grey'], ['Slate', 'SL-106', '#6E6C69', 'Grey'], ['Mocha', 'SL-107', '#7A6656', 'Dark'], ['Ink', 'SL-108', '#2F2E2C', 'Dark']
+  ],
+  screen: [
+    ['Frost', 'SV-201', '#ECEDEB', 'White'], ['Sand', 'SV-202', '#D6CBB6', 'Neutral'], ['Pebble', 'SV-203', '#B9B2A6', 'Neutral'], ['Mist', 'SV-204', '#BFC1C2', 'Grey'],
+    ['Graphite', 'SV-205', '#5D5F61', 'Grey'], ['Bronze', 'SV-206', '#6A5A48', 'Dark'], ['Charcoal', 'SV-207', '#3A3A3A', 'Dark']
+  ],
+  blackout: [
+    ['Snow', 'BO-301', '#F2F0EB', 'White'], ['Ivory', 'BO-302', '#E8E0CF', 'Neutral'], ['Taupe', 'BO-303', '#B5A794', 'Neutral'], ['Fog', 'BO-304', '#C3C3C1', 'Grey'],
+    ['Steel', 'BO-305', '#85878A', 'Grey'], ['Night', 'BO-306', '#3F4144', 'Dark'], ['Espresso', 'BO-307', '#4A3A30', 'Dark'], ['Onyx', 'BO-308', '#232323', 'Dark']
+  ]
+};
+var FAMILIES = ['All', 'White', 'Neutral', 'Grey', 'Dark'];
+var MOUNTS = [
+  { id: 'inside', name: 'Inside mount', body: 'Sits inside the window frame for a clean, built-in look.' },
+  { id: 'outside', name: 'Outside mount', body: 'Mounts on the wall above the frame and covers it. Blocks more light at the edges.' }
+];
+var CONTROLS = [
+  { id: 'cordless', name: 'Cordless', body: 'Lift or pull the bottom bar by hand. No cords.' },
+  { id: 'chain', name: 'Chain', body: 'A loop of beaded chain on one side.' },
+  { id: 'motor', name: 'Motorized', body: 'Raise and lower with a remote or app.' }
+];
+var TOPS = [
+  { id: 'cassette', name: 'Fabric-wrapped cassette', body: 'A neat cover over the roll, wrapped in your fabric.' },
+  { id: 'open', name: 'Open roll', body: 'No cover. A simple, minimal look.' }
+];
+var SEL_BORDER = '2px solid #1E1A16';
+var BORDER = '1px solid #CFC3B0';
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { fabric: 'solar', colorCode: null, query: '', family: 'All', width: '', widthFrac: '0', height: '', heightFrac: '0', mount: 'inside', control: 'cordless', top: 'cassette', room: '' };
+  }
+  renderVals() {
+    var s = this.state;
+    var self = this;
+    var set = function (patch) { return function () { self.setState(patch); }; };
+    var fab = FABRICS.filter(function (f) { return f.id === s.fabric; })[0];
+    var q = s.query.trim().toLowerCase();
+    var list = COLORS[s.fabric].map(function (c) { return { name: c[0], code: c[1], hex: c[2], fam: c[3] }; });
+    var shown = list.filter(function (c) {
+      var famOk = s.family === 'All' || c.fam === s.family;
+      var qOk = !q || c.name.toLowerCase().indexOf(q) >= 0 || c.code.toLowerCase().indexOf(q) >= 0;
+      return famOk && qOk;
+    });
+    var color = list.filter(function (c) { return c.code === s.colorCode; })[0] || null;
+    var w = parseFloat(s.width) + parseFloat(s.widthFrac);
+    var h = parseFloat(s.height) + parseFloat(s.heightFrac);
+    var sizeOk = w >= 12 && h >= 12;
+    var custom = sizeOk && (w > 120 || h > 120);
+    var price = null;
+    if (color && sizeOk && !custom) {
+      var area = (w * h) / 144;
+      var base = { solar: 55, screen: 62, blackout: 68 }[s.fabric];
+      var rate = { solar: 7.5, screen: 8.5, blackout: 9 }[s.fabric];
+      var ctrl = { cordless: 20, chain: 0, motor: 135 }[s.control];
+      var topAdd = s.top === 'cassette' ? 18 : 0;
+      price = Math.round(base + area * rate + ctrl + topAdd);
+    }
+    var frac = function (v) { var m = { '0': '', '0.125': ' 1/8', '0.25': ' 1/4', '0.375': ' 3/8', '0.5': ' 1/2', '0.625': ' 5/8', '0.75': ' 3/4', '0.875': ' 7/8' }; return m[v] || ''; };
+    var mount = MOUNTS.filter(function (m) { return m.id === s.mount; })[0];
+    var control = CONTROLS.filter(function (k) { return k.id === s.control; })[0];
+    var top = TOPS.filter(function (t) { return t.id === s.top; })[0];
+    var hasPrice = price !== null;
+    var canAdd = hasPrice || (custom && !!color);
+    return {
+      heroImg: IMG[s.fabric],
+      heroAlt: ALT[s.fabric],
+      fabricName: fab.name,
+      fabricBody: fab.body,
+      showPrivacy: s.fabric !== 'blackout',
+      fabrics: FABRICS.map(function (f) {
+        var on = f.id === s.fabric;
+        return { name: f.name, tag: f.tag, pressed: on, border: on ? SEL_BORDER : BORDER, bg: on ? '#FFFDF9' : '#F7F2EA', pick: set({ fabric: f.id, colorCode: null }) };
+      }),
+      query: s.query,
+      onQuery: function (e) { self.setState({ query: e.target.value }); },
+      families: FAMILIES.map(function (n) {
+        var on = n === s.family;
+        return { name: n, pressed: on, border: on ? '1px solid #1E1A16' : BORDER, bg: on ? '#1E1A16' : '#FFFDF9', fg: on ? '#FFFFFF' : '#1E1A16', pick: set({ family: n }) };
+      }),
+      colors: shown.map(function (c) {
+        var on = color && c.code === color.code;
+        return { name: c.name, code: c.code, hex: c.hex, label: c.name + ', code ' + c.code, pressed: !!on, ring: on ? '0 0 0 3px #F7F2EA, 0 0 0 5px #1E1A16' : 'inset 0 0 0 1px rgba(30,26,22,0.15)', pick: set({ colorCode: c.code }) };
+      }),
+      noColors: shown.length === 0,
+      width: s.width, widthFrac: s.widthFrac, height: s.height, heightFrac: s.heightFrac,
+      onWidth: function (e) { self.setState({ width: e.target.value }); },
+      onHeight: function (e) { self.setState({ height: e.target.value }); },
+      onWidthFrac: function (e) { self.setState({ widthFrac: e.target.value }); },
+      onHeightFrac: function (e) { self.setState({ heightFrac: e.target.value }); },
+      mounts: MOUNTS.map(function (m) {
+        var on = m.id === s.mount;
+        return { name: m.name, body: m.body, inside: m.id === 'inside', outside: m.id === 'outside', pressed: on, border: on ? SEL_BORDER : BORDER, bg: on ? '#FFFDF9' : '#F7F2EA', pick: set({ mount: m.id }) };
+      }),
+      controls: CONTROLS.map(function (k) {
+        var on = k.id === s.control;
+        return { name: k.name, body: k.body, pressed: on, border: on ? SEL_BORDER : BORDER, bg: on ? '#FFFDF9' : '#F7F2EA', pick: set({ control: k.id }) };
+      }),
+      tops: TOPS.map(function (t) {
+        var on = t.id === s.top;
+        return { name: t.name, body: t.body, pressed: on, border: on ? SEL_BORDER : BORDER, bg: on ? '#FFFDF9' : '#F7F2EA', pick: set({ top: t.id }) };
+      }),
+      room: s.room,
+      onRoom: function (e) { self.setState({ room: e.target.value }); },
+      waiting: !hasPrice && !custom,
+      custom: custom,
+      hasPrice: hasPrice,
+      colorCheck: color ? '✓' : '○',
+      colorCheckFg: color ? '#2F6B3A' : '#5E554B',
+      sizeCheck: sizeOk ? '✓' : '○',
+      sizeCheckFg: sizeOk ? '#2F6B3A' : '#5E554B',
+      priceText: hasPrice ? '$' + price : '',
+      colorName: color ? color.name : '',
+      colorCode: color ? color.code : '',
+      sizeText: sizeOk ? s.width + frac(s.widthFrac) + '" wide × ' + s.height + frac(s.heightFrac) + '" high' : '',
+      mountName: mount.name,
+      controlName: control.name,
+      topName: top.name,
+      barLabel: hasPrice ? 'Your estimate' : (custom ? 'Custom size' : 'Roller Shades'),
+      barValue: hasPrice ? '$' + price : (custom ? 'Price sent by email' : 'Pick a color and size'),
+      canAdd: canAdd,
+      cantAdd: !canAdd
+    };
+  }
+}
+</script>
+</body>
+</html>

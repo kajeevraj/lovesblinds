@@ -116,5 +116,6 @@ export function entriesFor(fabricList, family = null) {
   return out;
 }
 
-// Small grid tile: the 320 px WebP stored next to the full image; the full image is the fallback.
-export const tileSrc = (s) => s.thumb;
+// Small grid tile: the 200 px WebP, then the 320 px thumbnail, then the full image (each used only when the one before is missing).
+export const tileSrc = (s) => s.tile || s.thumb;
+export const tileFallbacks = (s) => [s.thumb, s.image].filter((u) => u && u !== tileSrc(s));

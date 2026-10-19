@@ -138,6 +138,9 @@ try {
   const t = await fetch(`${URL_}/storage/v1/object/public/swatches/${r1.thumb_path}`);
   const ti = await sharp(Buffer.from(await t.arrayBuffer())).metadata(); const fi = await sharp(Buffer.from(await (await fetch(`${URL_}/storage/v1/object/public/swatches/${r1.image_path}`)).arrayBuffer())).metadata();
   check('thumbnail is 320 px WebP, full image is a resized JPEG, both cached 24 h', ti.width === 320 && ti.height === 320 && ti.format === 'webp' && fi.format === 'jpeg' && /max-age=86400/.test(t.headers.get('cache-control')), `thumb ${ti.width}x${ti.height} ${ti.format}, full ${fi.width}x${fi.height} ${fi.format}, ${t.headers.get('cache-control')}`);
+  const tile = await fetch(`${URL_}/storage/v1/object/public/swatches/${r1.thumb_path.replace(/^thumb\//, 'thumb200/')}`);
+  const tm = tile.ok ? await sharp(Buffer.from(await tile.arrayBuffer())).metadata() : null;
+  check('an upload also makes a 200 px WebP tile at thumb200/ (naming rule, no database column)', !!tm && tm.width === 200 && tm.height === 200 && tm.format === 'webp', tm ? `${tm.width}x${tm.height} ${tm.format}` : `HTTP ${tile.status}`);
   check('the new color is visible to the public (public_catalog)', await anonHas('ZZE2E1'));
 
   // ---------- edit: rename + replace photo
@@ -282,7 +285,7 @@ try {
     }
   }
   await api('DELETE', `/rest/v1/fabrics?collection_name=eq.Zzcoll`, svc);
-  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains']) {
+  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains']) {
     const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 });
     const names = (Array.isArray(l.body) ? l.body : []).map(o => `${sub}/${o.name}`);
     if (names.length) await api('DELETE', '/storage/v1/object/swatches', svc, { prefixes: names });
@@ -297,7 +300,7 @@ try {
     admins: (await api('GET', '/rest/v1/admins?email=like.zz-*&select=id', svc)).body.length,
   };
   let files = 0;
-  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains']) {
+  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains']) {
     const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 }); files += Array.isArray(l.body) ? l.body.length : 0;
   }
   console.log(`\nclean-up: ${JSON.stringify(left)}, leftover image files ${files}`);

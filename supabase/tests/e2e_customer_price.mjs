@@ -10,52 +10,71 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); console.l
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_name`, { headers: H(SVC) })).json();
 const suppNames = (await (await fetch(`${URL_}/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null&limit=2000`, { headers: H(SVC) })).json()).map((x) => x.supplier_color_name).filter((n) => n.length > 5);
-// "Cordless spring" is a control name on the page, not a price group: ordinary words in our own copy are not leaks
-const leak = (raw) => { const text = raw.replace(/Cordless spring/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
+// "Cordless spring" and "Softens sun and glare" are our own wording on the page, not a price group: ordinary words in our own copy are not leaks
+const leak = (raw) => { const text = raw.replace(/Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
 const browser = await chromium.launch();
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   const bodies = [];
   page.on('response', async (r) => { const u = r.url(); if (/rpc\/(public_catalog|estimate_price_for_swatch)|\/api\/catalog/.test(u)) { try { bodies.push([u, await r.text()]); } catch { /* ignore */ } } });
-  const tiles = () => page.locator('.sw-tile');
+  const rtiles = () => page.locator('.s2-sw');                  // the new Roller page
 
-  await page.goto(`${BASE}/products/roller`); await tiles().first().waitFor();
+  await page.goto(`${BASE}/products/roller`); await rtiles().first().waitFor();
   const html = await page.content();
-  check('the Roller page shows no price on any swatch, tag or filter before a color is picked', !/\$\s?\d/.test(await page.locator('.sw-grid').first().innerText()) && !/\$\s?\d/.test(await page.locator('.order-summary-box').innerText()), 'no "$" in the grid or the summary');
+  check('the Roller page shows no price on any swatch, tag or filter before a color is picked', !/\$\s?\d/.test(await page.locator('.s2-swatches').first().innerText()) && (await page.locator('.s2-estimate-price').count()) === 0, 'no "$" in the grid, no estimate shown');
+  check('before a color and size the bar asks for them and Add to order is off', /Pick a color/.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isDisabled(), (await page.locator('.s2-bar').innerText()).replace(/\s+/g, ' '));
   check('the page and the catalog responses contain no price group names', leak(html + bodies.map((b) => b[1]).join('')).length === 0, leak(html + bodies.map((b) => b[1]).join('')).slice(0, 5).join(', ') || `${names.length} names checked`);
 
-  // pick the first color
-  const pickedLabel = (await tiles().first().locator('.sw-label').innerText()).trim();
-  await tiles().first().click();
-  await page.locator('dialog[open] button.btn-sage').click();
-  check('no price until a size is entered (a color alone is not enough)', (await page.locator('.order-price').count()) === 0, 'no price block');
-  await page.getByLabel('Width (in)').fill('40'); await page.getByLabel('Height (in)').fill('64');
-  await page.locator('.order-price-amount').waitFor();
-  const p1 = Number((await page.locator('.order-price-amount').innerText()).replace(/\D/g, ''));
+  // pick the first color (Solar is the first fabric type)
+  const pickedLabel = (await rtiles().first().locator('.s2-sw-name').innerText()).trim();
+  check('swatches show a name and a code only (no price, no collection)', /^[^$]+$/.test(await rtiles().first().innerText()) && (await rtiles().first().locator('.s2-sw-code').innerText()).length > 3);
+  await rtiles().first().click();
+  check('no price until a size is entered (a color alone is not enough)', (await page.locator('.s2-estimate-price').count()) === 0 && /Enter your size/.test(await page.locator('.s2-bar').innerText()), 'no estimate');
+  await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
+  await page.locator('.s2-estimate-price').waitFor();
+  const p1 = Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, ''));
   // what the database says for the picked color at that size (service role is only used to look the color up)
   const cat = await rpc('public_catalog', { p_scope: ['roller'] });
-  const firstSw = cat.flatMap((g) => g.swatches).find((x) => x.display_name === pickedLabel && x.family === 'screen-view');
+  const firstSw = cat.flatMap((g) => g.swatches).find((x) => x.display_name === pickedLabel && x.family === 'solar');
   const want = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 40, p_height: 64 });
   check('after a color and a size the page shows one price, the one the database calculates', p1 > 0 && p1 === want.price, `page $${p1}, database $${want.price} for ${firstSw.display_name}`);
-  const summary = await page.locator('.order-summary-box').innerText();
-  check('the price comes with no breakdown: no cost, markup, grid, group or extra wording', !/markup|cost|grid|group|extra|collection/i.test(summary.replace(/Still to choose.*/s, '')), summary.replace(/\s+/g, ' ').slice(0, 200));
-  await page.getByLabel('Width (in)').fill('60');
-  await page.waitForFunction((old) => { const el = document.querySelector('.order-price-amount'); return el && Number(el.textContent.replace(/\D/g, '')) !== old; }, p1);
-  const p2 = Number((await page.locator('.order-price-amount').innerText()).replace(/\D/g, ''));
+  check('the estimate carries the wording from the design', /Here's your estimate\. Send it and we'll confirm details and final price\./.test(await page.locator('.s2-estimate').innerText()));
+  check('the sticky bar shows the same price and Add to order is on', (await page.locator('.s2-bar-value').innerText()).replace(/\D/g, '') === String(p1) && await page.locator('.s2-bar-btn').isEnabled(), await page.locator('.s2-bar').innerText());
+  const summary = await page.locator('.s2-estimate').innerText();
+  check('the price comes with no breakdown: no cost, markup, grid, group or extra wording', !/markup|cost|grid|group|extra|collection/i.test(summary), summary.replace(/\s+/g, ' ').slice(0, 200));
+  await page.locator('#s2-w').fill('60');
+  await page.waitForFunction((old) => { const el = document.querySelector('.s2-estimate-price'); return el && Number(el.textContent.replace(/\D/g, '')) !== old; }, p1);
+  const p2 = Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, ''));
   const want2 = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 60, p_height: 64 });
   check('the price updates live when the size changes', p2 === want2.price && p2 !== p1, `$${p1} -> $${p2}`);
-  await page.getByLabel('Width (in)').fill('500');
-  await page.getByText(/needs a custom quote/).waitFor();
-  check('a size past the grid says it needs a quote, with no price', (await page.locator('.order-price-amount').count()) === 0, await page.locator('.order-price').innerText());
+  await page.locator('#s2-wf').selectOption('0.5');
+  await page.waitForFunction(() => /60 1\/2/.test(document.querySelector('.s2-estimate')?.innerText || ''));
+  check('a 1/8-inch fraction is part of the size ("60 1/2")', true);
+  await page.locator('#s2-w').fill('500');
+  await page.getByText(/larger than our standard range/).first().waitFor();
+  check('an oversize window says it is larger than our standard range, with no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Add it to your order and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()), await page.locator('.s2-estimate').innerText());
+  check('an oversize window can still be added to the order', await page.locator('.s2-bar-btn').isEnabled());
+
+  // double-stack needs two colors before any price shows
+  await page.locator('.s2-card', { hasText: 'Double-stack' }).click();
+  check('double-stack says it needs two colors', /two colors/i.test(await page.locator('.s2-step-hint.s2-need').innerText()));
+  await page.locator('#s2-w').fill('40');
+  await rtiles().first().click();
+  check('double-stack with only the front color shows no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Pick a front and a back color|front and a back/i.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isDisabled(), (await page.locator('.s2-bar').innerText()).replace(/\s+/g, ' '));
+  await page.locator('.s2-color').nth(1).locator('.s2-sw').first().click();
+  await page.locator('.s2-estimate-price').waitFor();
+  check('double-stack shows a price once both colors are picked', Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, '')) > 0);
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   check('no sideways scroll at 390 px', sw <= 390, `${sw} px`);
 
   // curtains: price on request
-  await page.goto(`${BASE}/products/drapery`); await tiles().first().waitFor();
-  await tiles().first().click(); await page.locator('dialog[open] button.btn-sage').click();
-  await page.getByText(/send us your order and we.ll reply with a price/i).waitFor();
-  check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.order-price').innerText()), await page.locator('.order-price').innerText());
+  await page.goto(`${BASE}/products/drapery`); await rtiles().first().waitFor();
+  await rtiles().first().click();
+  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
+  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await page.getByText(/send us your order and we.ll reply with a price/i).first().waitFor();
+  check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
   check('the Drapery page has no price group names either', leak(await page.content()).length === 0, 'checked');
 
   // every catalog response of the session

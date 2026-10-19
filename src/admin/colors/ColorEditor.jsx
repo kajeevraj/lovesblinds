@@ -285,7 +285,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
             <label className="adm-field"><span>{dream ? 'Photo (Style A)' : 'Photo'}{isNew ? '' : ' — choose a file to replace it'}</span>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={choosePhoto('A')} />
             </label>
-            <p className="adm-muted adm-small">Resized here to a full image plus a 320 px thumbnail, then uploaded with a new file name.</p>
+            <p className="adm-muted adm-small">Resized here to a full image, a 320 px thumbnail and a 200 px tile, then uploaded with a new file name.</p>
             {photoErr && <p className="adm-error" role="alert">{photoErr}</p>}
           </div>
         </div>

@@ -1,6 +1,8 @@
 import XLSX from 'xlsx';
 import { Resend } from 'resend';
-import { summarize, describeItem, describeInternal, displayNameOf } from '../src/lib/selectionText.js';
+import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
+import { priceRequestFromItem } from '../src/lib/priceRequest.js';
+import { addressLine } from '../src/data/countries.js';
 
 const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
 const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
@@ -28,12 +30,72 @@ function supplierColorCell(line) {
 }
 function nameCell(line) {
   const picks = line.internalPicks || [];
-  return picks.map(p => `${rolePrefix(p, picks.length > 1)}${p.displayName}${p.style ? ` (Style ${p.style})` : ''}`).join(' / ');
+  return picks.map(p => `${rolePrefix(p, picks.length > 1)}${p.displayName}${p.style ? ` (${DREAM_STYLE_NAMES[p.style] || 'Style'} / Style ${p.style})` : ''}`).join(' / ');
 }
+
+// ── estimates ─────────────────────────────────────────────────────────────────
+// The browser says what estimate the customer saw, but we work every estimate out again here, with the same database function
+// and the same rules the product pages use, so what goes into the emails and the sheet is never just what a browser claimed.
+// If the lookup fails, the estimate the customer saw is used and marked as unchecked.
+
+const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+export const EMAIL_PRICE = 'Price sent by email';
+export const ESTIMATE_NOTE = "This is an estimate. We'll confirm details and your final price within 48 hours.";
+
+const kindOf = (res) => {
+  if (!res || res.error) return 'email';
+  if (res.price_on_request) return 'request';
+  if (res.price != null) return 'price';
+  if (res.custom_size) return 'custom';
+  return 'email';
+};
+
+export async function estimateLine(line, env = process.env) {
+  const sent = line.estimate && line.estimate.kind === 'price' && Number(line.estimate.unit) > 0 ? { kind: 'price', unit: Number(line.estimate.unit) } : { kind: line.estimate?.kind === 'loading' ? 'email' : (line.estimate?.kind || 'email'), unit: null };
+  // the same public function the product pages call (it answers only price / custom size / price on request), so the public key is enough
+  const url = env.SUPABASE_URL, key = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  const req = priceRequestFromItem({ id: line.category }, { selection: line.selection, mech: line.mechId, width: line.width, length: line.length });
+  if (!req || !url || !key) return { ...sent, checked: false };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/estimate_price_for_swatch`, {
+      method: 'POST', signal: ctl.signal,
+      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_line: req.line, p_swatch_id: req.swatchId, p_options: req.options, p_width: req.width, p_height: req.height }),
+    });
+    if (!res.ok) throw new Error(`estimate lookup failed (${res.status})`);
+    const r = await res.json();
+    const kind = kindOf(r);
+    return { kind, unit: kind === 'price' ? r.price : null, checked: true, browserUnit: sent.unit };
+  } catch (err) {
+    console.error('[api/quote] estimate lookup failed, using what the customer saw:', err?.message || err);
+    return { ...sent, checked: false };
+  } finally { clearTimeout(timer); }
+}
+
+// Returns the lines with `.price = { kind, unit, checked }` and the totals.
+export async function withEstimates(lines, env = process.env) {
+  const priced = await Promise.all(lines.map(async (l) => ({ ...l, price: await estimateLine(l, env) })));
+  let total = 0, byEmail = 0;
+  for (const l of priced) {
+    if (l.price.kind === 'price') total += l.price.unit * Math.max(1, Number(l.qty) || 1);
+    else byEmail += 1;
+  }
+  return { lines: priced, total, byEmail };
+}
+
+// "$226 each · $678 for 3", "$226", or "Price sent by email"
+export function priceText(l) {
+  const q = Math.max(1, Number(l.qty) || 1);
+  if (l.price?.kind !== 'price') return EMAIL_PRICE;
+  return q > 1 ? `${money(l.price.unit)} each · ${money(l.price.unit * q)} for ${q} blinds` : money(l.price.unit);
+}
+export const totalText = (t) => (t.total > 0 ? money(t.total) : EMAIL_PRICE);
 
 // ── xlsx ─────────────────────────────────────────────────────────────────────
 
-export function buildWorkbook(customer, lines, notes) {
+export function buildWorkbook(customer, lines, notes, totals = null) {
   const rows = [];
 
   // Header block — all four lines always present
@@ -43,7 +105,7 @@ export function buildWorkbook(customer, lines, notes) {
   rows.push([BUSINESS_EMAIL]);
   rows.push([
     `Customer: ${customer.name}` +
-    (customer.shipTo ? `    Ship to: ${customer.shipTo}` : ''),
+    ((addressLine(customer.address) || customer.shipTo) ? `    Ship to: ${addressLine(customer.address) || customer.shipTo}` : ''),
   ]);
   rows.push([]); // blank separator
 
@@ -64,8 +126,8 @@ export function buildWorkbook(customer, lines, notes) {
       line.length || '',
       line.mechName || '',
       line.roomLabel || '',
-      '', // Price per unit: Stage 2 fills
-      '', // Total: Stage 2 fills
+      line.price?.kind === 'price' ? line.price.unit : (line.price ? EMAIL_PRICE : ''),                       // Price per unit: the estimate the customer saw
+      line.price?.kind === 'price' ? line.price.unit * Math.max(1, Number(line.qty) || 1) : '',               // Total for the quantity
       codeCell(line),
       nameCell(line),
     ]);
@@ -74,7 +136,8 @@ export function buildWorkbook(customer, lines, notes) {
   rows.push([]); // blank before totals
 
   // Totals block
-  rows.push(['Subtotal', '', '', '', '', '', '', '', '']);
+  rows.push(['Subtotal (estimate)', '', '', '', '', '', '', '', totals && totals.total > 0 ? totals.total : '']);
+  if (totals && totals.byEmail > 0) rows.push([`Plus ${totals.byEmail} item${totals.byEmail === 1 ? '' : 's'} priced by email`]);
   rows.push(['Tax',      '', '', '', '', '', '', '', '']);
   rows.push(['Total',    '', '', '', '', '', '', '', '']);
 
@@ -113,16 +176,72 @@ export function buildWorkbook(customer, lines, notes) {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const sizeText = (l) => (l.width ? `${esc(l.width)}"W × ${esc(l.length)}"H` : '');
+
 // Customer email: description (display name + code). Internal email: internalDescription (supplier data too).
+// Each item ends with its estimate for one window and the total for all of them.
 export function lineListHtml(lines, internal = false) {
-  return lines.map(l =>
-    `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
-    `, qty ${esc(l.qty)}` +
-    (l.width ? `, ${esc(l.width)}"W × ${esc(l.length)}"H` : '') +
-    (l.mechName ? `, ${esc(l.mechName)}` : '') +
-    (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
-    `</li>`
-  ).join('');
+  return lines.map(l => {
+    const q = Math.max(1, Number(l.qty) || 1);
+    const unchecked = internal && l.price && !l.price.checked && l.price.kind === 'price' ? ' (estimate as shown in the browser; could not be re-checked)' : '';
+    const differs = internal && l.price?.checked && l.price.browserUnit && l.price.kind === 'price' && l.price.browserUnit !== l.price.unit ? ` (customer's browser showed ${esc(money(l.price.browserUnit))})` : '';
+    return `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
+      `, ${esc(q)} blind${q === 1 ? '' : 's'}` +
+      (l.width ? `, ${sizeText(l)}` : '') +
+      (l.mechName ? `, ${esc(l.mechName)}` : '') +
+      (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
+      (l.price ? ` &mdash; <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
+      `</li>`;
+  }).join('');
+}
+
+// The whole shipping address, one part per line. Older orders (and old browsers) send one line in `shipTo`.
+function addressHtml(customer) {
+  const a = customer.address;
+  if (!a) return customer.shipTo ? esc(customer.shipTo) : '';
+  const cityLine = [a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  return [a.street, a.apt, cityLine, a.country].filter(Boolean).map(esc).join('<br>');
+}
+
+function totalsHtml(totals, withNote) {
+  if (!totals) return '';
+  return `<p style="margin:12px 0 0"><strong>Estimated total: ${esc(totalText(totals))}</strong>` +
+    (totals.total > 0 && totals.byEmail > 0 ? `<br>Plus ${totals.byEmail} item${totals.byEmail === 1 ? '' : 's'} priced by email` : '') +
+    `</p>` + (withNote ? `<p style="color:#4a423a">${esc(ESTIMATE_NOTE)}</p>` : '');
+}
+
+export function internalEmailHtml(customer, lines, notes, totals) {
+  return `
+        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New Quote Request</h2>
+        <p>
+          <strong>Name:</strong> ${esc(customer.name)}<br>
+          <strong>Email:</strong> ${esc(customer.email)}<br>
+          ${customer.phone       ? `<strong>Phone:</strong> ${esc(customer.phone)}<br>` : ''}
+          ${addressHtml(customer) ? `<strong>Ship to:</strong><br>${addressHtml(customer)}<br>` : ''}
+          ${customer.callTime    ? `<strong>Best time to call:</strong> ${esc(customer.callTime)}<br>` : ''}
+          ${customer.measureMethod ? `<strong>Measurement:</strong> ${esc(customer.measureMethod)}` : ''}
+        </p>
+        <h3 style="font-family:Georgia,serif;color:#2c2c2a">Items (${lines.length})</h3>
+        <ul>${lineListHtml(lines, true)}</ul>
+        ${totalsHtml(totals, false)}
+        ${notes ? `<p><strong>Notes:</strong> ${esc(notes)}</p>` : ''}
+        <p style="color:#666;font-size:13px">Full order sheet attached as Excel. Estimates are what the customer was shown, worked out again on our server.</p>
+      `;
+}
+
+export function customerEmailHtml(customer, lines, notes, totals) {
+  return `
+          <h2 style="font-family:Georgia,serif;color:#2c2c2a">Thanks, ${esc(customer.name)}!</h2>
+          <p>We've received your quote request and will send a written proposal to
+          <strong>${esc(customer.email)}</strong> within 48 hours.</p>
+          ${addressHtml(customer) ? `<p><strong>Shipping to:</strong><br>${addressHtml(customer)}</p>` : ''}
+          <h3 style="font-family:Georgia,serif;color:#2c2c2a">What you requested</h3>
+          <ul>${lineListHtml(lines)}</ul>
+          ${totalsHtml(totals, true)}
+          ${notes ? `<p><strong>Notes:</strong> ${esc(notes)}</p>` : ''}
+          <p>Questions in the meantime? Call us at ${BUSINESS_PHONE} or reply to this email.</p>
+          <p style="color:#888;font-size:12px">${BUSINESS_NAME}</p>
+        `;
 }
 
 // ── catalog lookup ────────────────────────────────────────────────────────────
@@ -249,59 +368,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { lines, source } = await withCatalog(sentLines);
-    console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}`);
-    const wb = buildWorkbook(customer, lines, notes || '');
+    const { lines: catalogLines, source } = await withCatalog(sentLines);
+    const { lines, total, byEmail } = await withEstimates(catalogLines);
+    const totals = { total, byEmail };
+    console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}, estimates ${lines.map(l => l.price.checked ? 'checked' : 'unchecked').join('/')}`);
+    const wb = buildWorkbook(customer, lines, notes || '', totals);
     const xlsxBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const date = new Date().toISOString().slice(0, 10);
-    const safeName = customer.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const safeName = String(customer.name || 'customer').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
     const filename = `quote-${safeName}-${date}.xlsx`;
 
-    // Internal email — xlsx attached
+    // Internal email: xlsx attached, supplier price groups, color names and codes
     await resend.emails.send({
       from: "Love's Blinds <quotes@lovesblinds.com>",
       to: INTERNAL_TO,
       subject: `New quote request — ${customer.name}`,
-      html: `
-        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New Quote Request</h2>
-        <p>
-          <strong>Name:</strong> ${customer.name}<br>
-          <strong>Email:</strong> ${customer.email}<br>
-          ${customer.phone       ? `<strong>Phone:</strong> ${customer.phone}<br>` : ''}
-          ${customer.shipTo      ? `<strong>Ship to:</strong> ${customer.shipTo}<br>` : ''}
-          ${customer.callTime    ? `<strong>Best time to call:</strong> ${customer.callTime}<br>` : ''}
-          ${customer.measureMethod ? `<strong>Measurement:</strong> ${customer.measureMethod}` : ''}
-        </p>
-        <h3 style="font-family:Georgia,serif;color:#2c2c2a">Items (${lines.length})</h3>
-        <ul>${lineListHtml(lines, true)}</ul>
-        ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-        <p style="color:#666;font-size:13px">Full order sheet attached as Excel.</p>
-      `,
+      html: internalEmailHtml(customer, lines, notes, totals),
       attachments: [{ filename, content: xlsxBuffer }],
     });
 
-    // Customer confirmation — no xlsx, gated behind env var
-    if (process.env.SEND_CUSTOMER_CONFIRMATION === 'true') {
+    // Customer confirmation: no xlsx, no supplier data, gated behind an env var
+    const customerCopy = process.env.SEND_CUSTOMER_CONFIRMATION === 'true';
+    if (customerCopy) {
       await resend.emails.send({
         from: "Love's Blinds <quotes@lovesblinds.com>",
         to: customer.email,
         subject: "Your quote request — Love's Blinds",
-        html: `
-          <h2 style="font-family:Georgia,serif;color:#2c2c2a">Thanks, ${customer.name}!</h2>
-          <p>We've received your quote request and will send a written proposal to
-          <strong>${customer.email}</strong> within 48 hours.</p>
-          <h3 style="font-family:Georgia,serif;color:#2c2c2a">What you requested</h3>
-          <ul>${lineListHtml(lines)}</ul>
-          ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-          <p>Questions in the meantime? Call us at ${BUSINESS_PHONE} or reply to this email.</p>
-          <p style="color:#888;font-size:12px">${BUSINESS_NAME}</p>
-        `,
+        html: customerEmailHtml(customer, lines, notes, totals),
       });
     }
 
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, customerCopy });
   } catch (err) {
     console.error('[api/quote]', err);
     return res.status(500).json({

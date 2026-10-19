@@ -33,3 +33,7 @@ export const edgePath = (lineKey) => `/api/catalog?line=${encodeURIComponent(lin
 
 // Where a stored image path is served from (the public "swatches" bucket).
 export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swatches/${path.split('/').map(encodeURIComponent).join('/')}`;
+
+// Small tile picture, by naming rule: thumb/<line>/<name>.webp has a 200 px sibling at thumb200/<line>/<name>.webp
+// (made when a color is uploaded in the admin, and for older colors by scripts/backfill-thumbs.mjs). No database column.
+export const thumb200Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp') : null);

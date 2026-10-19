@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&amp;family=Montserrat:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F2EA}
+a{color:#1E1A16}a:hover{color:#7A5C2E}
+button{font-family:inherit;cursor:pointer}
+input,textarea{font-family:inherit}
+input:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid #7A5C2E;outline-offset:2px}
+.btn-dark:hover{background:#5F4622 !important}
+</style>
+</helmet>
+<div style="font-family: Montserrat, sans-serif; color: #1E1A16; background: #F7F2EA; min-height: 100vh">
+
+<header style="background: #F7F2EA; border-bottom: 1px solid #E4DACB">
+<nav style="max-width: 1280px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="Main.dc.html" style="font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; text-decoration: none; color: #1E1A16">Love's Blinds</a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px; font-weight: 500">
+<a href="Main.dc.html#products" style="text-decoration: none">Products</a>
+<a href="Main.dc.html#measure" style="text-decoration: none">How to measure</a>
+</div>
+</nav>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 40px 24px 96px; box-sizing: border-box">
+
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div style="max-width: 640px; margin: 40px auto; text-align: center; background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 56px 32px">
+<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#2F6B3A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Sent"><circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6.5"></path></svg>
+<h1 style="margin: 18px 0 12px; font-family: 'Playfair Display', serif; font-weight: 500; font-size: 40px">Your order is on its way to us</h1>
+<p style="margin: 0 0 8px; font-size: 16px; line-height: 1.6; color: #4A423A">We'll check every detail and email you your final price within 48 hours. Nothing is charged until you approve it.</p>
+<p style="margin: 0 0 28px; font-size: 14px; color: #5E554B">A copy of your order was sent to your email.</p>
+<a class="btn-dark" href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 28px; background: #7A5C2E; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 999px">Back to home</a>
+</div>
+</sc-if>
+
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<h1 style="margin: 0 0 8px; font-family: 'Playfair Display', serif; font-weight: 500; font-size: 48px">Your order</h1>
+<p style="margin: 0 0 32px; font-size: 16px; color: #4A423A">Check your windows, add your details, and send. No payment is taken now.</p>
+
+<div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="2">
+<article style="background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px">
+<img src="{{it.img}}" alt="" style="width: 160px; height: 120px; object-fit: cover; border-radius: 4px; flex: 0 0 auto">
+<div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline">
+<h2 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 500; font-size: 24px">{{it.product}}</h2>
+<span style="font-family: 'Playfair Display', serif; font-size: 24px">{{it.price}}</span>
+</div>
+<div style="font-size: 14px; font-weight: 600; color: #6B4F24">{{it.room}}</div>
+<div style="font-size: 14px; line-height: 1.6; color: #4A423A">{{it.details}}</div>
+<sc-if value="{{it.onRequest}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 14px; line-height: 1.55; color: #4A423A; background: #F3EBDD; border-radius: 4px; padding: 10px 12px; margin-top: 4px">Send us your order and we'll reply with a price.</div>
+</sc-if>
+<div style="display: flex; gap: 20px; margin-top: 6px; font-size: 14px">
+<a href="Product.dc.html" style="font-weight: 600">Edit</a>
+<button type="button" onClick="{{it.remove}}" style="padding: 0; border: none; background: none; color: #1E1A16; font-size: 14px; font-weight: 600; text-decoration: underline; min-height: 24px">Remove</button>
+</div>
+</div>
+</article>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 32px; font-size: 15px; color: #4A423A">Your order is empty. <a href="Main.dc.html#products">Choose a style</a> to get started.</div>
+</sc-if>
+<a href="Main.dc.html#products" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; border: 1px solid #1E1A16; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15px">+ Add another window</a>
+</div>
+
+<aside style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<section style="background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 28px">
+<div style="font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6B4F24; margin-bottom: 6px">Estimated total</div>
+<div style="font-family: 'Playfair Display', serif; font-size: 52px; line-height: 1; margin-bottom: 10px">{{total}}</div>
+<sc-if value="{{hasOnRequest}}" hint-placeholder-val="{{ true }}">
+<div style="font-size: 14px; color: #4A423A; margin-bottom: 10px">Plus {{onRequestCount}} item priced by email</div>
+</sc-if>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #4A423A">Here's your estimate. Send it and we'll confirm details and final price.</p>
+</section>
+
+<section style="background: #FFFDF9; border: 1px solid #E4DACB; border-radius: 4px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600">Your details</h2>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="nm" style="font-size: 14px; font-weight: 600">Full name</label>
+<input id="nm" type="text" autocomplete="name" style="min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFFFF; color: #1E1A16">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="em" style="font-size: 14px; font-weight: 600">Email</label>
+<input id="em" type="email" autocomplete="email" style="min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFFFF; color: #1E1A16">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ph" style="font-size: 14px; font-weight: 600">Phone</label>
+<input id="ph" type="tel" autocomplete="tel" style="min-height: 48px; padding: 0 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFFFF; color: #1E1A16">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ad" style="font-size: 14px; font-weight: 600">Shipping address</label>
+<textarea id="ad" rows="3" autocomplete="street-address" style="padding: 12px 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFFFF; color: #1E1A16; resize: vertical"></textarea>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="nt" style="font-size: 14px; font-weight: 600">Anything we should know? (optional)</label>
+<textarea id="nt" rows="3" style="padding: 12px 14px; font-size: 16px; border: 1px solid #CFC3B0; border-radius: 4px; background: #FFFFFF; color: #1E1A16; resize: vertical"></textarea>
+</div>
+<button type="button" class="btn-dark" onClick="{{send}}" style="min-height: 52px; border: none; border-radius: 999px; background: #7A5C2E; color: #FFFFFF; font-size: 16px; font-weight: 600; margin-top: 6px">Send my order</button>
+<p style="margin: 0; font-size: 13px; line-height: 1.55; color: #5E554B; text-align: center">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>
+</section>
+</aside>
+
+</div>
+</sc-if>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+var ITEMS = [
+  { id: 'a', product: 'Roller Shades', room: 'Living room, left window', img: '../photos/solar.jpg', details: 'Solar · Linen (SL-102) · 40" wide × 64" high · Inside mount · Cordless · Fabric-wrapped cassette', price: 226 },
+  { id: 'b', product: 'Curtains', room: 'Primary bedroom', img: '../photos/drapery.jpg', details: 'Sheer · Ivory · 120" wide × 96" high · Ripple fold · Opens to both sides', price: null }
+];
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { removed: {}, sent: false };
+  }
+  renderVals() {
+    var s = this.state;
+    var self = this;
+    var live = ITEMS.filter(function (it) { return !s.removed[it.id]; });
+    var total = live.reduce(function (sum, it) { return sum + (it.price || 0); }, 0);
+    var onReq = live.filter(function (it) { return it.price === null; }).length;
+    return {
+      sent: s.sent,
+      notSent: !s.sent,
+      items: live.map(function (it) {
+        return {
+          product: it.product, room: it.room, img: it.img, details: it.details,
+          price: it.price === null ? 'Price on request' : '$' + it.price,
+          onRequest: it.price === null,
+          remove: function () { var r = Object.assign({}, s.removed); r[it.id] = true; self.setState({ removed: r }); }
+        };
+      }),
+      empty: live.length === 0,
+      total: '$' + total,
+      hasOnRequest: onReq > 0,
+      onRequestCount: onReq,
+      send: function () { self.setState({ sent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

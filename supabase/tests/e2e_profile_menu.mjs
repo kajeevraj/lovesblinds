@@ -69,16 +69,35 @@ try {
   check('the menu now shows the profile name', /Ada B\. Lovelace/.test(await page.locator('.profile-who').innerText()));
   await page.getByRole('menuitem', { name: 'Order history' }).click();
   check('Order history opens My Orders', new URL(page.url()).pathname === '/orders');
-  await page.getByRole('button', { name: /^My Orders/ }).first().waitFor();
+  await page.getByRole('heading', { name: 'My Orders' }).first().waitFor();
 
   // the order details form starts from the profile
-  await page.goto(`${BASE}/products/zebra`); await page.locator('.sw-tile').first().waitFor();
-  await page.locator('.sw-tile').first().click(); await page.locator('dialog[open] button.btn-sage').click();
-  await page.getByRole('button', { name: 'Add to Order' }).click(); await page.getByRole('button', { name: 'Added to your order' }).waitFor(); await page.waitForTimeout(1500);   // saved to their order
-  await page.goto(`${BASE}/review`); await page.locator('input.input').first().waitFor(); await page.waitForTimeout(800);
-  const filled = await page.locator('input.input').evaluateAll((els) => els.map((e) => e.value));
+  await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
+  await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+  await page.getByRole('button', { name: 'Add to order' }).click(); await page.locator('.s2-flash').waitFor(); await page.waitForTimeout(1500);   // saved to their order
+  await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
+  const filled = await page.locator('.s2-form input').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile (name, email, phone, address)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way, London'].every((v) => filled.includes(v)), filled.join(' | '));
 
+  // signed in: an edit link survives a refresh (the saved order has to load before the item can be found)
+  await page.locator('.s2-item').first().click();
+  await page.locator('#s2-w').waitFor(); const editUrl = page.url();
+  await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
+  check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
+  await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
+  await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1 1AA');
+  // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
+  await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));
+  await page.getByRole('button', { name: 'Send my order' }).click();
+  await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor(); await page.waitForTimeout(2500);
+  const ordRes = await api('GET', `/rest/v1/orders?select=id,status,items,customer&user_id=eq.${userId}`, H(ANON, token.access_token));
+  const hasCustomerColumn = ordRes.status === 200;
+  const ord = hasCustomerColumn ? ordRes.body : (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
+  const sentOrder = ord.find((x) => x.status === 'sent');
+  check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
+  check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way, London' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United States' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
+  check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
   check('Sign out returns the circle to the signed-out icon', (await page.locator('.profile-btn.is-signed-in').count()) === 0 && (await page.locator('.profile-btn svg').count()) === 1);

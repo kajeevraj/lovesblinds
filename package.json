@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/build_photo_manifest.js && node scripts/build_showcase_manifest.js && node scripts/build_explainers.js",
+    "prebuild": "node scripts/build_site_photos.js && node scripts/build_explainers.js",
     "build": "vite build",
     "preview": "vite preview"
   },

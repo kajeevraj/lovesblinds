@@ -1,0 +1,119 @@
+{
+ "blackout": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "cellular-tdbu": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "cellular": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "drapery": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "dream-curtains": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "hero-living": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "roman": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "screen-view": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "shangri-la": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "solar": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "zebra-dining": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "zebra-grey": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ },
+ "zebra-kitchen": {
+  "width": 1248,
+  "height": 832,
+  "widths": [
+   480,
+   800,
+   1248
+  ]
+ }
+}
