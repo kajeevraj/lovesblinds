@@ -29,6 +29,9 @@ export const PLEATS = [
   "French Pleat 2", "French Pleat 3", "Euro Pleat 2", "Euro Pleat 3",
   "Pinch Pleat 1", "Inverted Pleat", "Goblet", "Ripple Fold",
 ];
+// Dream Curtains styles in plain words (the supplier calls them Style A and Style B). Customers see the names; our own email and sheet show both.
+export const DREAM_STYLE_NAMES = { A: "Classic", B: "Slim" };
+const dreamStyle = (style, internal = false) => (DREAM_STYLE_NAMES[style] ? (internal ? `${DREAM_STYLE_NAMES[style]} (Style ${style})` : DREAM_STYLE_NAMES[style]) : `Style ${style}`);
 export const SECTION_LABELS = { curtains: "Curtains", "dream-curtains": "Dream Curtains" };
 
 const label = (list, id) => list.find(x => x.id === id)?.label || id;
@@ -38,7 +41,8 @@ const label = (list, id) => list.find(x => x.id === id)?.label || id;
 let nameFallback = null;
 export const setNameFallback = (fn) => { nameFallback = fn; };
 export const displayNameOf = (p) => p.displayName || nameFallback?.(p.swatchId) || p.code;
-export const pickText = (p) => `${displayNameOf(p)} (${p.code})`;
+// Dream Curtains codes (ZDS30xx / ZDS39xx) are for our internal email and sheet only, so customers see the name alone.
+export const pickText = (p) => (p.line === "dream-curtains" ? displayNameOf(p) : `${displayNameOf(p)} (${p.code})`);
 
 // Internal only (order email to us, spreadsheet): supplier collection, supplier color name and code.
 export const internalPickText = (p) =>
@@ -63,7 +67,7 @@ export function summarize(item) {
   const multi = sel.picks.length > 1;
   const pickLines = sel.picks.map(p => {
     const fam = p.family ? `${FAMILY_LABELS[p.family]} · ` : "";
-    const sty = p.style ? ` · Style ${p.style}` : "";
+    const sty = p.style ? ` · ${dreamStyle(p.style)}` : "";
     return `${multi && p.role ? `${p.role}: ` : ""}${fam}${pickText(p)}${sty}`;
   });
   return {
@@ -80,7 +84,7 @@ export function describeInternal(item) {
   if (!sel) return describeItem(item);
   const s = summarize(item);
   const multi = sel.picks.length > 1;
-  const lines = sel.picks.map(p => `${multi && p.role ? `${p.role}: ` : ""}${p.family ? `${FAMILY_LABELS[p.family]} · ` : ""}${internalPickText(p)}${p.style ? ` · Style ${p.style}` : ""}`);
+  const lines = sel.picks.map(p => `${multi && p.role ? `${p.role}: ` : ""}${p.family ? `${FAMILY_LABELS[p.family]} · ` : ""}${internalPickText(p)}${p.style ? ` · ${dreamStyle(p.style, true)}` : ""}`);
   const opts = s.parts.slice(sel.picks.length);
   return [s.title, ...lines, ...opts].join(" · ");
 }

@@ -134,11 +134,14 @@ export function useAuth() {
     else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, name } : o));
   };
 
-  const markOrderSent = async (orderId) => {
+  // Marks the order sent. `items` (with the estimates and quantities as sent) are saved in the same update.
+  const markOrderSent = async (orderId, items = null) => {
     if (!supabase || !orderId) return;
-    const { error } = await supabase.from('orders').update({ status: 'sent' }).eq('id', orderId);
+    clearTimeout(saveTimer.current);                       // a pending edit save must not overwrite what was sent
+    const patch = items ? { status: 'sent', items: items.map(serializeItem) } : { status: 'sent' };
+    const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
     if (error) console.error('[markOrderSent]', error);
-    else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'sent' } : o));
+    else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...patch } : o));
   };
 
   const deleteOrder = async (orderId) => {

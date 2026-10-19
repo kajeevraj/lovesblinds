@@ -63,9 +63,11 @@ export const PLEAT_INFO = {
   "Ripple Fold": { desc: "Continuous, even waves from end to end.", img: "drapery-pleats/ripple-fold" },
 };
 
+// Dream Curtains styles in plain words. The supplier calls them Style A and Style B (A: heavier 85 g fabric, B: lighter 65 g fabric).
+// No measurements are shown to customers: the supplier's widths are the strip laid flat before folding, not what hangs in the window.
 export const DREAM_STYLE_INFO = {
-  A: { desc: "41 cm per vane, with 12.5 / 16 / 12.5 cm sections.", img: "dream-curtains/style-a" },
-  B: { desc: "33 cm per vane, with 10 / 13 / 10 cm sections.", img: "dream-curtains/style-b" },
+  A: { name: "Classic", desc: "Fuller vanes in a heavier fabric." },
+  B: { name: "Slim", desc: "Slimmer vanes in a lighter, airier fabric." },
 };
 
 // Shown under the Roller fabric-family buttons, for the family that is selected.

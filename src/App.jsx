@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Nav, HomePage, ProductsPage, OrderSummaryPage, ReviewOrderPage, ContactPage, MeasureGuidePage, OrdersPage, ProfilePage } from './customer.jsx';
+import { Nav, HomePage, ProductsPage, ContactPage, MeasureGuidePage, OrdersPage, ProfilePage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem } from './lib/orders.js';
 import { useMissingNames } from './lib/selection.js';
@@ -8,6 +8,7 @@ import { resolvePath, routeFor, pathFor } from './lib/router.js';
 // Code-split: the line page pulls in the swatch data. The admin area is its own chunk (with its own CSS), fetched only
 // when someone opens /admin, so customers never download it. What an admin may do is decided by the database, not here.
 const LinePage = lazy(() => import('./linepage.jsx'));
+const OrderPage = lazy(() => import('./orderpage.jsx'));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
@@ -75,6 +76,15 @@ export default function App() {
     }
     // Both empty → leave quote alone.
   }, [activeOrderId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After an order is sent, the next window goes into a fresh order, so the sent one keeps exactly what was sent.
+  const [justSent, setJustSent] = useState(false);
+  const handleOrderSent = async (orderId, items) => { await markOrderSent(orderId, items); setJustSent(true); };
+  useEffect(() => {
+    if (!justSent || quote.length > 0) return;
+    setJustSent(false);
+    if (user) createOrder(`Order ${orders.length + 1}`);
+  }, [justSent, quote.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncToSupabase = useCallback((items) => {
     if (user && activeOrderId) saveItems(activeOrderId, items);
@@ -174,8 +184,7 @@ export default function App() {
         </Suspense>
       )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
-      {route === "quote"    && <OrderSummaryPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrder={activeOrder} user={user} />}
-      {route === "review"   && <ReviewOrderPage navigate={navigate} quoteItems={quote} activeOrderId={activeOrderId} onOrderSent={markOrderSent} onSubmitted={clearQuote} user={user} />}
+      {(route === "quote" || route === "review") && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}

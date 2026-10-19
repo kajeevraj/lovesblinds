@@ -159,7 +159,7 @@ export function DraperyPage({ line, navigate, addToQuote }) {
   );
   return (
     <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.drapery.title}
-      intro={curtains ? 'Custom curtains in pleat styles from French pleat to ripple fold. Made to your exact size.' : 'Dream Curtains are soft vertical panels on a track that pull fully aside, so you can walk through them.'}
+      intro={curtains ? 'Custom curtains in pleat styles from French pleat to ripple fold. Made to your exact size.' : 'Every vane hangs on its own, so you can walk through anywhere, with no opening or closing needed. Great for patio and balcony doors.'}
       header={tabs}
       photo={PHOTOS[section][0]} photoNote={NOTE} chip={curtains ? pick : dream} hideMount controlTitle="How it opens and closes"
       c={{ section, pick, pleat, lining, dream }}

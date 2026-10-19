@@ -76,10 +76,18 @@ try {
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
   await page.getByRole('button', { name: 'Add to order' }).click(); await page.getByRole('button', { name: 'Added to your order' }).waitFor(); await page.waitForTimeout(1500);   // saved to their order
-  await page.goto(`${BASE}/review`); await page.locator('input.input').first().waitFor(); await page.waitForTimeout(800);
-  const filled = await page.locator('input.input').evaluateAll((els) => els.map((e) => e.value));
+  await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
+  const filled = await page.locator('.s2-form input').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile (name, email, phone, address)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way, London'].every((v) => filled.includes(v)), filled.join(' | '));
 
+  // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
+  await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));
+  await page.getByRole('button', { name: 'Send my order' }).click();
+  await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor(); await page.waitForTimeout(2500);
+  const ord = (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
+  const sentOrder = ord.find((x) => x.status === 'sent');
+  check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
+  check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
   check('Sign out returns the circle to the signed-out icon', (await page.locator('.profile-btn.is-signed-in').count()) === 0 && (await page.locator('.profile-btn svg').count()) === 1);

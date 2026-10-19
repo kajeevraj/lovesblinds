@@ -104,7 +104,7 @@ export default function LineShell({
                 {chip && (
                   <span className="s2-photo-chip">
                     <img src={chip.thumb} alt="" width="36" height="36" />
-                    {chip.displayName} ({chip.code})
+                    {chip.displayName}{chip.line === 'dream-curtains' ? '' : ` (${chip.code})`}
                   </span>
                 )}
               </div>

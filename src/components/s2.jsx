@@ -86,7 +86,10 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
   const activeId = pendingId ?? value?.swatchId ?? null;
   const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
   const styles = picked?.swatch.styles || [];
-  const codeOf = (s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
+  const stylePhotos = styles.length > 1 && !!styles[0].image && styles[0].image !== styles[1].image;
+  // Dream Curtains codes (ZDS30xx / ZDS39xx) are for our internal email only; customers see the name
+  const hideCodes = lineKey === "dream-curtains";
+  const codeOf = (s) => (hideCodes ? "" : s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
 
   if (catalog.status !== "ready") {
     return catalog.status === "loading" ? (
@@ -127,7 +130,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             const s = e.swatch;
             const on = activeId === s.id;
             return (
-              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={altOf(e, codeOf(s))} onClick={() => choose(e)}>
+              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={hideCodes ? labelOf(e) : altOf(e, codeOf(s))} onClick={() => choose(e)}>
                 <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                 <span className="s2-sw-name">{labelOf(e)}</span>
                 <span className="s2-sw-code">{codeOf(s)}</span>
@@ -142,7 +145,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
 
       {picked && (
         <div className="s2-picked" aria-live="polite">
-          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({value?.code || codeOf(picked.swatch)})</span>
+          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong>{hideCodes ? "" : ` (${value?.code || codeOf(picked.swatch)})`}</span>
           <button type="button" className="s2-link" onClick={() => setView(picked)}>View larger</button>
         </div>
       )}
@@ -150,10 +153,14 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
         <div className="s2-color-style">
           <p className="s2-step-hint">Choose a style for this color.</p>
           <Cards label="Style" value={value?.style || null} onChange={chooseStyle}
-            options={styles.map((st) => ({ id: st.style, label: `Style ${st.style}`, desc: `${DREAM_STYLE_INFO[st.style]?.desc || ""} Code ${st.code}`.trim(), img: DREAM_STYLE_INFO[st.style]?.img }))} />
+            options={styles.map((st) => ({
+              id: st.style, label: DREAM_STYLE_INFO[st.style]?.name || `Style ${st.style}`, desc: DREAM_STYLE_INFO[st.style]?.desc,
+              // a picture only when the two styles of this color have their own photos
+              picture: stylePhotos ? <SwatchImg src={st.thumb} fallback={st.image} alt="" code="" size={64} /> : null,
+            }))} />
         </div>
       )}
-      <SwatchDialog entry={view} role={role} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
+      <SwatchDialog entry={view} role={role} hideCode={hideCodes} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
     </div>
   );
 }
@@ -161,15 +168,15 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
 // ---- Size step -----------------------------------------------------------------------------------------------------
 
 // Whole inches plus a 1/8 fraction for each side. `size` is { w, wf, h, hf } strings; onChange gets the next one.
-export function SizeFields({ size, onChange }) {
+export function SizeFields({ size, onChange, idp = "s2" }) {
   const set = (k) => (e) => onChange({ ...size, [k]: e.target.value });
-  const Field = ({ label, k, f, ph }) => (
-    <div className="s2-field">
-      <label className="s2-label" htmlFor={`s2-${k}`}>{label}</label>
+  const field = ({ label, k, f, ph }) => (
+    <div className="s2-field" key={k}>
+      <label className="s2-label" htmlFor={`${idp}-${k}`}>{label}</label>
       <div className="s2-field-row">
-        <input id={`s2-${k}`} className="s2-input" type="number" inputMode="numeric" min="0" step="1" placeholder={ph} value={size[k]} onChange={set(k)} />
-        <label className="s2-sr" htmlFor={`s2-${f}`}>{label} fraction</label>
-        <select id={`s2-${f}`} className="s2-input s2-frac" value={size[f]} onChange={set(f)}>
+        <input id={`${idp}-${k}`} className="s2-input" type="number" inputMode="numeric" min="0" step="1" placeholder={ph} value={size[k]} onChange={set(k)} />
+        <label className="s2-sr" htmlFor={`${idp}-${f}`}>{label} fraction</label>
+        <select id={`${idp}-${f}`} className="s2-input s2-frac" value={size[f]} onChange={set(f)}>
           {FRACTIONS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </select>
       </div>
@@ -177,8 +184,8 @@ export function SizeFields({ size, onChange }) {
   );
   return (
     <div className="s2-size">
-      <Field label="Width" k="w" f="wf" ph="e.g. 40" />
-      <Field label="Height" k="h" f="hf" ph="e.g. 64" />
+      {field({ label: "Width", k: "w", f: "wf", ph: "e.g. 40" })}
+      {field({ label: "Height", k: "h", f: "hf", ph: "e.g. 64" })}
     </div>
   );
 }
@@ -209,14 +216,14 @@ export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm de
 export const priceLine = (price, qty) => (qty > 1 ? `${money(price)} each · ${money(price * qty)} for ${qty}` : money(price));
 
 // How many windows this size? A whole number, 1 or more.
-export function QtyField({ qty, onChange }) {
+export function QtyField({ qty, onChange, id = "s2-qty" }) {
   const n = Math.max(1, parseInt(qty, 10) || 1);
   return (
     <div className="s2-qty">
-      <label className="s2-label" htmlFor="s2-qty">How many windows this size?</label>
+      <label className="s2-label" htmlFor={id}>How many windows this size?</label>
       <div className="s2-qty-row">
         <button type="button" className="s2-qty-btn" aria-label="One fewer window" disabled={n <= 1} onClick={() => onChange(String(n - 1))}>−</button>
-        <input id="s2-qty" className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" step="1" value={qty}
+        <input id={id} className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" step="1" value={qty}
           onChange={(e) => onChange(e.target.value)} onBlur={() => onChange(String(n))} />
         <button type="button" className="s2-qty-btn" aria-label="One more window" onClick={() => onChange(String(n + 1))}>+</button>
       </div>
