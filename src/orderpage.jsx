@@ -50,12 +50,12 @@ function PriceCell({ it, p }) {
     return (
       <div className="s2-item-price">
         <div className="s2-item-amount">{money(p.price * q)}</div>
-        {q > 1 && <div className="s2-item-each">{money(p.price)} each · {q} windows</div>}
+        {q > 1 && <div className="s2-item-each">{money(p.price)} each · {q} blinds</div>}
       </div>
     );
   }
   if (p.kind === 'loading') return <div className="s2-item-price"><div className="s2-item-each">Calculating…</div></div>;
-  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">{p.kind === 'custom' ? 'Price by email' : 'Price on request'}</div>{q > 1 && <div className="s2-item-each">{q} windows</div>}</div>;
+  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">{p.kind === 'custom' ? 'Price by email' : 'Price on request'}</div>{q > 1 && <div className="s2-item-each">{q} blinds</div>}</div>;
 }
 
 function EditPanel({ it, idx, updateItem, onDone }) {
@@ -66,7 +66,7 @@ function EditPanel({ it, idx, updateItem, onDone }) {
   const applySize = (s) => { setSize(s); updateItem(idx, fromSize(s)); };
   const idp = `ed${idx}`;
   return (
-    <div className="s2-edit" role="group" aria-label="Edit this window">
+    <div className="s2-edit" role="group" aria-label="Edit this blind">
       <SizeFields idp={idp} size={size} onChange={applySize} />
       <div className="s2-edit-row">
         {it.product.mounts.length > 1 && (
@@ -95,7 +95,7 @@ function EditPanel({ it, idx, updateItem, onDone }) {
         </label>
       </div>
       <QtyField id={`${idp}-qty`} qty={String(it.qty || 1)} onChange={(v) => updateItem(idx, { qty: Math.max(1, parseInt(v, 10) || 1) })} />
-      <p className="s2-step-hint">To change the color or style, remove this window and add it again.</p>
+      <p className="s2-step-hint">To change the color or style, remove this blind and add it again.</p>
       <button type="button" className="s2-btn s2-btn-brass s2-edit-done" onClick={onDone}>Done</button>
     </div>
   );
@@ -225,7 +225,7 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
     <div className="page-fade s2 s2-order">
       <section className="s2-wrap s2-order-wrap">
         <h1 className="s2-order-title">Your order</h1>
-        <p className="s2-order-sub">Check your windows, add your details, and send. No payment is taken now.</p>
+        <p className="s2-order-sub">Check your blinds, add your details, and send. No payment is taken now.</p>
 
         {items.length === 0 ? (
           <div className="s2-empty-order">
@@ -239,7 +239,7 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
                 <ItemCard key={i} it={it} idx={i} p={prices[i]} editing={editing === i} setEditing={setEditing} updateItem={updateItem} removeFromQuote={(idx) => { setEditing(null); removeFromQuote(idx); }} />
               ))}
             </ul>
-            <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add another window</a>
+            <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>
 
             <section className="s2-total" aria-live="polite">
               {total > 0 || (!loading && byEmail === 0) ? (

@@ -88,7 +88,7 @@ export async function withEstimates(lines, env = process.env) {
 export function priceText(l) {
   const q = Math.max(1, Number(l.qty) || 1);
   if (l.price?.kind !== 'price') return EMAIL_PRICE;
-  return q > 1 ? `${money(l.price.unit)} each · ${money(l.price.unit * q)} for ${q}` : money(l.price.unit);
+  return q > 1 ? `${money(l.price.unit)} each · ${money(l.price.unit * q)} for ${q} blinds` : money(l.price.unit);
 }
 export const totalText = (t) => (t.total > 0 ? money(t.total) : EMAIL_PRICE);
 
@@ -185,7 +185,7 @@ export function lineListHtml(lines, internal = false) {
     const unchecked = internal && l.price && !l.price.checked && l.price.kind === 'price' ? ' (estimate as shown in the browser; could not be re-checked)' : '';
     const differs = internal && l.price?.checked && l.price.browserUnit && l.price.kind === 'price' && l.price.browserUnit !== l.price.unit ? ` (customer's browser showed ${esc(money(l.price.browserUnit))})` : '';
     return `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
-      `, qty ${esc(q)}` +
+      `, ${esc(q)} blind${q === 1 ? '' : 's'}` +
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
       (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +

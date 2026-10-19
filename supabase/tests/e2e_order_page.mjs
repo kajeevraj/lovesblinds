@@ -36,7 +36,7 @@ try {
   await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
   await page.locator('#s2-room').fill('Living room, left window');
   await page.locator('#s2-qty').fill('3');
-  await page.getByText(/for 3 windows/).first().waitFor();
+  await page.getByText(/for 3 blinds/).first().waitFor();
   const unit = num((await page.locator('.s2-bar-value').innerText()).split('each')[0]);
   await add();
   // window 2: curtains, 2 windows
@@ -51,8 +51,10 @@ try {
   check('Dream Curtains page: the walk-through explanation is at the top', /Every vane hangs on its own, so you can walk through anywhere, with no opening or closing needed\. Great for patio and balcony doors\./.test(await page.locator('.s2-line-intro').innerText()));
   await page.locator('.s2-color-tools input').fill('Angel White'); await page.locator('.s2-sw').first().click();
   const styleCards = await page.locator('.s2-color-style .s2-card').allInnerTexts();
-  check('Dream Curtains styles are called Classic and Slim, with the one-liners, and show no measurements or codes', styleCards.length === 2 && /Classic[\s\S]*Fuller vanes in a heavier fabric\./.test(styleCards[0]) && /Slim[\s\S]*Slimmer vanes in a lighter, airier fabric\./.test(styleCards[1]) && !/\d\s?(cm|in\b|inch)|ZDS|Style [AB]/i.test(styleCards.join(' ') + await page.locator('.s2-color').innerText()), styleCards.map((c) => c.replace(/\s+/g, ' ')).join(' | '));
+  check('Dream Curtains styles are called Classic and Slim, with the one-liners, and show no measurements or "Style A/B"', styleCards.length === 2 && /Classic[\s\S]*Fuller vanes in a heavier fabric\./.test(styleCards[0]) && /Slim[\s\S]*Slimmer vanes in a lighter, airier fabric\./.test(styleCards[1]) && !/\d\s?(cm|in\b|inch)|Style [AB]/i.test(styleCards.join(' ') + await page.locator('.s2-color').innerText()), styleCards.map((c) => c.replace(/\s+/g, ' ')).join(' | '));
+  check('before a style is picked the color shows both codes; after picking Slim it shows the Slim code', /ZDS30\d+-\d+ \/ ZDS39\d+-\d+/.test(await page.locator('.s2-color').innerText()));
   await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click();
+  check('the picked style\'s code is shown (Slim = ZDS39xx)', /Angel White\s*\(ZDS3902-1\)/.test(await page.locator('.s2-picked').innerText()), await page.locator('.s2-picked').innerText());
   await size(60, 84); await page.locator('#s2-qty').fill('2'); await add();
 
   // the order page
@@ -61,13 +63,13 @@ try {
   const items = page.locator('.s2-item');
   check('three windows are listed, each with Edit and Remove', (await items.count()) === 3 && (await page.getByRole('button', { name: 'Edit' }).count()) === 3 && (await page.getByRole('button', { name: 'Remove' }).count()) === 3);
   const rollerText = await items.nth(0).innerText();
-  check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 windows`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
+  check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
   const curtainText = await items.nth(1).innerText();
-  check('Curtains: "Price on request" and the reply-with-a-price sentence, 2 windows', /Price on request/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  check('Curtains: "Price on request" and the reply-with-a-price sentence, 2 blinds', /Price on request/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
   const dreamCard = await items.nth(2).innerText();
   const dreamPrice = num(dreamCard.match(/\$[\d,]+/)?.[0]);
-  check('Dream Curtains window: a live price, the style name, no code or supplier style letter', dreamPrice > 0 && /Slim/.test(dreamCard) && !/ZDS|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));
+  check('Dream Curtains window: a live price, the style name and the picked style\'s code (ZDS3902-1), no "Style B"', dreamPrice > 0 && /Slim/.test(dreamCard) && /ZDS3902-1/.test(dreamCard) && !/ZDS3002|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));
   const totalText = await page.locator('.s2-total').innerText();
   check('estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence', num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm details and final price\./.test(totalText), totalText.replace(/\s+/g, ' '));
 
@@ -76,9 +78,9 @@ try {
   const w = page.locator('#ed0-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size in Edit keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#ed0-qty').fill('4');
-  await page.waitForFunction((u) => /4 windows/.test(document.querySelector('.s2-item').innerText) && !/\$\d+ each · 3/.test(document.querySelector('.s2-item').innerText), unit);
+  await page.waitForFunction((u) => /4 blinds/.test(document.querySelector('.s2-item').innerText) && !/\$\d+ each · 3/.test(document.querySelector('.s2-item').innerText), unit);
   const edited = await items.nth(0).innerText();
-  check('Edit changes the size and the quantity, and the estimate follows', /44" wide × 64" high/.test(edited) && /4 windows/.test(edited), edited.replace(/\s+/g, ' '));
+  check('Edit changes the size and the quantity, and the estimate follows', /44" wide × 64" high/.test(edited) && /4 blinds/.test(edited), edited.replace(/\s+/g, ' '));
   await items.nth(0).getByRole('button', { name: 'Done' }).click();
 
   // Remove
@@ -103,7 +105,7 @@ try {
   const conf = await page.locator('main').innerText();
   check('the confirmation says what happens next, and says nothing about an email copy when none was sent', /email you your final price within 48 hours\. Nothing is charged until you approve it\./.test(conf) && !/copy of your order/.test(conf));
   check('what is sent: details, notes, two windows with quantity and the estimate the customer saw', sentBody.customer.email === 'ada@example.com' && sentBody.customer.shipTo.startsWith('1 Analytical') && sentBody.notes === 'Ring first' && sentBody.lines.length === 2 && sentBody.lines[0].qty === 4 && sentBody.lines[0].estimate.kind === 'price' && sentBody.lines[0].estimate.unit > 0 && sentBody.lines[1].estimate.kind === 'price' && sentBody.lines[1].qty === 2 && !('callTime' in sentBody.customer), JSON.stringify(sentBody.lines.map((l) => [l.qty, l.estimate])));
-  check('the customer wording sent for Dream Curtains has the style name and no ZDS code', /Slim/.test(sentBody.lines[1].description) && !/ZDS/.test(sentBody.lines[1].description) && /ZDS/.test(sentBody.lines[1].internalDescription));
+  check('the customer wording sent for Dream Curtains has the style name and the picked code; ours also has the style letter', /Slim/.test(sentBody.lines[1].description) && /ZDS3902-1/.test(sentBody.lines[1].description) && !/Style B/.test(sentBody.lines[1].description) && /Style B/.test(sentBody.lines[1].internalDescription));
   check('the cart is empty after sending', (await page.evaluate(() => localStorage.getItem('lb_guest_quote'))) === '[]' || (await page.evaluate(() => localStorage.getItem('lb_guest_quote'))) === null);
   await page.getByRole('link', { name: 'Back to home' }).click();
   check('Back to home goes to the homepage', new URL(page.url()).pathname === '/');

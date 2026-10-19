@@ -1462,7 +1462,7 @@ a { color: inherit; }
 
 /* ===== Stage 2 product page ===== */
 .s2-line { padding-bottom: 0; }
-.s2-line .s2-wrap { padding-top: 0; }
+
 .s2-crumbs { padding: 20px 0; font-size: 13px; color: var(--s2-muted); }
 .s2-crumbs a { color: var(--s2-muted); }
 .s2-crumbs a:hover { color: var(--s2-brass); }
@@ -1624,3 +1624,42 @@ a { color: inherit; }
 @media (max-width: 520px) { .s2-item-photo { width: 72px; height: 56px; } .s2-item-main { gap: 12px; } }
 .s2-card-pic .swatch-fallback, .s2-card-pic img[crossorigin] { border-radius: 4px; outline: 1px solid rgba(30, 26, 22, 0.18); outline-offset: -1px; width: 64px; height: 64px; object-fit: cover; }
 @media (max-width: 520px) { .s2-item-head { flex-direction: column; } .s2-item-price { text-align: left; } }
+
+/* ===== one spacing scale (4 / 8 / 12 / 16 / 24 / 32 / 48) and one control height (48; pills 44) ===== */
+:root { --sp-1: 8px; --sp-2: 12px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --ctl: 48px; --pill: 44px; }
+.s2-bar-inner { align-items: center; flex-wrap: nowrap; gap: var(--sp-3); padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+.s2-bar-text { flex: 1 1 auto; justify-content: center; min-height: var(--ctl); gap: 0; }
+.s2-bar-label { font-size: 13px; line-height: 16px; }
+.s2-bar-value { font-size: 24px; line-height: 30px; }
+.s2-bar-btn { flex: none; height: var(--ctl); min-height: var(--ctl); padding: 0 var(--sp-4); display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+@media (max-width: 520px) { .s2-bar-inner { gap: var(--sp-2); } .s2-bar-value { font-size: 18px; line-height: 22px; } .s2-bar-btn { padding: 0 var(--sp-3); } }
+.s2-qty-row { align-items: stretch; }
+.s2-qty-btn, .s2-qty-input { height: var(--ctl); min-height: var(--ctl); }
+.s2-input { height: var(--ctl); min-height: var(--ctl); }
+.s2-search, .s2-chip { height: var(--pill); min-height: var(--pill); }
+.s2-textarea { height: auto; }
+.s2-estimate { padding: var(--sp-4); }
+.s2-item { padding: var(--sp-3); }
+.s2-total { padding: var(--sp-4); }
+.s2-card { min-height: 84px; padding: var(--sp-3); gap: var(--sp-3); }
+.s2-card.on { padding: calc(var(--sp-3) - 1px); }
+.s2-field-row { gap: var(--sp-1); align-items: stretch; }
+.s2-field-row .s2-input { height: var(--ctl); }
+.s2-line-steps { gap: var(--sp-5); }
+.s2-step-title { margin-bottom: var(--sp-3); }
+/* the button is always exactly as tall as the price block beside it (48 px, or taller when the price wraps on a phone) */
+.s2-bar-inner { align-items: stretch; }
+.s2-bar-btn { height: auto; min-height: var(--ctl); }
+.s2-bar-text { padding: 0; }
+.s2-input + .s2-step-hint { margin: var(--sp-1) 0 0; }
+.s2-item-actions { gap: var(--sp-3); margin-top: var(--sp-1); }
+.s2-item-actions .s2-link { padding: 0; }
+.s2-total-row { align-items: center; line-height: 1.1; }
+.s2-total-note { margin: var(--sp-2) 0 0; }
+.s2-total { display: flex; flex-direction: column; gap: 0; }
+@media (max-width: 520px) {
+  .s2-nav-inner { padding: var(--sp-1) var(--sp-3); gap: 0 var(--sp-2); flex-wrap: wrap; }
+  .s2-wordmark { font-size: 22px; }
+  .s2-order-pill { padding: 0 var(--sp-2); font-size: 14px; gap: 6px; }
+  .s2-nav-right { gap: var(--sp-1); }
+}

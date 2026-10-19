@@ -50,11 +50,11 @@ try {
 
   // quantity
   check('the quantity starts at 1 and the bar shows one price', (await page.locator('#s2-qty').inputValue()) === '1' && !/each/.test(await page.locator('.s2-bar').innerText()));
-  check('the quantity cannot go below 1', await page.getByRole('button', { name: 'One fewer window' }).isDisabled());
+  check('the quantity question says "How many blinds this size?" and cannot go below 1', /How many blinds this size\?/.test(await page.locator('.s2-qty').innerText()) && await page.getByRole('button', { name: 'One fewer blind' }).isDisabled());
   await page.locator('#s2-qty').fill('3');
-  await page.getByText(/for 3 windows/).first().waitFor();
+  await page.getByText(/for 3 blinds/).first().waitFor();
   const barText = (await page.locator('.s2-bar-value').innerText()).replace(/\s+/g, ' ');
-  check('with 3 windows the estimate and the bar show the price for one and the total for all', barText === `$${noWrap} each · $${noWrap * 3} for 3` && new RegExp(`\\$${noWrap * 3} for 3 windows`).test(await page.locator('.s2-estimate').innerText()), barText);
+  check('with 3 windows the estimate and the bar show the price for one and the total for all', barText === `$${noWrap} each · $${noWrap * 3} for 3 blinds` && new RegExp(`\\$${noWrap * 3} for 3 blinds`).test(await page.locator('.s2-estimate').innerText()), barText);
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
   await page.locator('#s2-qty').fill('3');

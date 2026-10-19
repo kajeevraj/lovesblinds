@@ -41,16 +41,18 @@ check('the server works the Roller estimate out again, with the No fabric wrap d
 check('curtains have no dollar estimate (price sent by email)', lines[1].price.kind === 'request' && priceText(lines[1]) === 'Price sent by email');
 check('Dream Curtains are priced again on the server too', lines[2].price.unit === wantDream.price, `$${wantDream.price} (browser claimed $5)`);
 check('the estimated total is the sum of price x quantity for priced windows, and one item is priced by email', total === wantRoller.price * 3 + wantDream.price && byEmail === 1, `$${total}, plus ${byEmail}`);
-check('"$X each · $Y for 3" for quantity 3', priceText(lines[0]) === `$${wantRoller.price} each · $${wantRoller.price * 3} for 3`, priceText(lines[0]));
+check('"$X each · $Y for 3" for quantity 3', priceText(lines[0]) === `$${wantRoller.price} each · $${wantRoller.price * 3} for 3 blinds`, priceText(lines[0]));
 const req = priceRequestFromItem({ id: 'roller' }, { selection: sent[0].selection, mech: 'chain', width: 40, length: 64 });
 check('the price request carries the supplier "no wrap" option and nothing else secret', req.options.wrap_cassette === 'none' && !JSON.stringify(req).match(/cost|grid|group|markup/i));
 
 const cust = customerEmailHtml(customer, lines, 'a note', totals);
 const intl = internalEmailHtml(customer, lines, 'a note', totals);
 check('customer email: each item has its estimate, the total, "Plus 1 item priced by email" and the estimate sentence', cust.includes(`$${wantRoller.price} each`) && cust.includes('Price sent by email') && cust.includes('Estimated total') && /Plus 1 item priced by email/.test(cust) && cust.includes(ESTIMATE_NOTE));
-check('customer email: Dream Curtains show the style name, never a ZDS code or "Style B"', /Slim/.test(cust) && !/ZDS\d/.test(cust) && !/Style [AB]/.test(cust));
+const dcode = dream.styles.find((x) => x.style === 'B').code, acode = dream.styles.find((x) => x.style === 'A').code;
+check('customer email: Dream Curtains show the style name and the picked style\'s code like any other line, not the other style\'s code or "Style B"', /Slim/.test(cust) && cust.includes(dcode) && !cust.includes(acode) && !/Style [AB]/.test(cust), dcode);
+check('customer email counts blinds ("3 blinds")', /, 3 blinds/.test(cust) && !/qty/.test(cust));
 check('customer email: no price group names and no cost, markup, grid or deduction wording', leak(cust).length === 0 && !/markup|cost\b|grid|deduction|price group|collection/i.test(cust), leak(cust).join(', '));
-check('internal email: supplier codes (ZDS) and the style name with its letter', /ZDS\d/.test(intl) && /Slim \(Style B\)/.test(intl));
+check('internal email: the style name with its letter', /ZDS\d/.test(intl) && /Slim \(Style B\)/.test(intl));
 check('internal email: the price group (supplier collection) for the Roller window', groups.some((g) => intl.includes(g)));
 check('internal email says the browser figure differed from the recalculated one', /customer's browser showed \$1/.test(intl));
 check('names and rooms are escaped in the emails', !/<b>Lovelace/.test(cust + intl) && /&lt;room&gt;/.test(cust));

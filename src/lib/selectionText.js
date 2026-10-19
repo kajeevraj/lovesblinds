@@ -41,8 +41,7 @@ const label = (list, id) => list.find(x => x.id === id)?.label || id;
 let nameFallback = null;
 export const setNameFallback = (fn) => { nameFallback = fn; };
 export const displayNameOf = (p) => p.displayName || nameFallback?.(p.swatchId) || p.code;
-// Dream Curtains codes (ZDS30xx / ZDS39xx) are for our internal email and sheet only, so customers see the name alone.
-export const pickText = (p) => (p.line === "dream-curtains" ? displayNameOf(p) : `${displayNameOf(p)} (${p.code})`);
+export const pickText = (p) => `${displayNameOf(p)} (${p.code})`;
 
 // Internal only (order email to us, spreadsheet): supplier collection, supplier color name and code.
 export const internalPickText = (p) =>

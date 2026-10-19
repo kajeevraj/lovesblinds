@@ -87,9 +87,8 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
   const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
   const styles = picked?.swatch.styles || [];
   const stylePhotos = styles.length > 1 && !!styles[0].image && styles[0].image !== styles[1].image;
-  // Dream Curtains codes (ZDS30xx / ZDS39xx) are for our internal email only; customers see the name
-  const hideCodes = lineKey === "dream-curtains";
-  const codeOf = (s) => (hideCodes ? "" : s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
+  // a color with Classic and Slim has two codes until a style is picked; then the picked style's code is shown
+  const codeOf = (s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
 
   if (catalog.status !== "ready") {
     return catalog.status === "loading" ? (
@@ -130,7 +129,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             const s = e.swatch;
             const on = activeId === s.id;
             return (
-              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={hideCodes ? labelOf(e) : altOf(e, codeOf(s))} onClick={() => choose(e)}>
+              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={altOf(e, codeOf(s))} onClick={() => choose(e)}>
                 <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                 <span className="s2-sw-name">{labelOf(e)}</span>
                 <span className="s2-sw-code">{codeOf(s)}</span>
@@ -145,7 +144,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
 
       {picked && (
         <div className="s2-picked" aria-live="polite">
-          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong>{hideCodes ? "" : ` (${value?.code || codeOf(picked.swatch)})`}</span>
+          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({value?.code || codeOf(picked.swatch)})</span>
           <button type="button" className="s2-link" onClick={() => setView(picked)}>View larger</button>
         </div>
       )}
@@ -160,7 +159,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             }))} />
         </div>
       )}
-      <SwatchDialog entry={view} role={role} hideCode={hideCodes} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
+      <SwatchDialog entry={view} role={role} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
     </div>
   );
 }
@@ -212,20 +211,20 @@ export const CUSTOM_TEXT = "This size is larger than our standard range. Add it 
 export const REQUEST_TEXT = "Send us your order and we'll reply with a price.";
 export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm details and final price.";
 
-// "$226 each · $678 for 3" (just "$226" for one window)
-export const priceLine = (price, qty) => (qty > 1 ? `${money(price)} each · ${money(price * qty)} for ${qty}` : money(price));
+// "$226 each · $678 for 3 blinds" (just "$226" for one blind)
+export const priceLine = (price, qty) => (qty > 1 ? `${money(price)} each · ${money(price * qty)} for ${qty} blinds` : money(price));
 
-// How many windows this size? A whole number, 1 or more.
+// How many blinds this size? A whole number, 1 or more.
 export function QtyField({ qty, onChange, id = "s2-qty" }) {
   const n = Math.max(1, parseInt(qty, 10) || 1);
   return (
     <div className="s2-qty">
-      <label className="s2-label" htmlFor={id}>How many windows this size?</label>
+      <label className="s2-label" htmlFor={id}>How many blinds this size?</label>
       <div className="s2-qty-row">
-        <button type="button" className="s2-qty-btn" aria-label="One fewer window" disabled={n <= 1} onClick={() => onChange(String(n - 1))}>−</button>
+        <button type="button" className="s2-qty-btn" aria-label="One fewer blind" disabled={n <= 1} onClick={() => onChange(String(n - 1))}>−</button>
         <input id={id} className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" step="1" value={qty}
           onChange={(e) => onChange(e.target.value)} onBlur={() => onChange(String(n))} />
-        <button type="button" className="s2-qty-btn" aria-label="One more window" onClick={() => onChange(String(n + 1))}>+</button>
+        <button type="button" className="s2-qty-btn" aria-label="One more blind" onClick={() => onChange(String(n + 1))}>+</button>
       </div>
     </div>
   );
@@ -238,7 +237,7 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
         <>
           <div className="s2-eyebrow">Your estimate</div>
           <div className="s2-estimate-price">{qty > 1 ? <>{money(view.price)} <span className="s2-estimate-each">each</span></> : money(view.price)}</div>
-          {qty > 1 && <div className="s2-estimate-total">{money(view.price * qty)} for {qty} windows</div>}
+          {qty > 1 && <div className="s2-estimate-total">{money(view.price * qty)} for {qty} blinds</div>}
           <p className="s2-estimate-text">{ESTIMATE_TEXT}</p>
           {summary && <div className="s2-estimate-summary">{summary.map((l, i) => <div key={i}>{l}</div>)}</div>}
         </>
@@ -264,7 +263,7 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
 // Sticky bottom bar: the price (or what is still needed) and the Add to order button.
 export function PriceBar({ title, view, needs, canAdd, added, onAdd, qty = 1 }) {
   let label = title, value = needs;
-  if (view.kind === "price") { label = qty > 1 ? `Your estimate · ${qty} windows` : "Your estimate"; value = priceLine(view.price, qty); }
+  if (view.kind === "price") { label = qty > 1 ? `Your estimate · ${qty} blinds` : "Your estimate"; value = priceLine(view.price, qty); }
   else if (view.kind === "custom") { label = "Custom size"; value = "Price sent by email"; }
   else if (view.kind === "request") { label = "Price on request"; value = "Price sent by email"; }
   else if (view.kind === "loading") { label = "Your estimate"; value = "Calculating…"; }

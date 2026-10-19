@@ -104,7 +104,7 @@ export default function LineShell({
                 {chip && (
                   <span className="s2-photo-chip">
                     <img src={chip.thumb} alt="" width="36" height="36" />
-                    {chip.displayName}{chip.line === 'dream-curtains' ? '' : ` (${chip.code})`}
+                    {chip.displayName} ({chip.code})
                   </span>
                 )}
               </div>
@@ -153,7 +153,7 @@ export default function LineShell({
               <Step n={++k} title="Which room is this for?">
                 <label className="s2-sr" htmlFor="s2-room">Room name</label>
                 <input id="s2-room" className="s2-input" type="text" placeholder="e.g. Primary bedroom, left window" value={room} onChange={(e) => setRoom(e.target.value)} />
-                <p className="s2-step-hint">Helps you keep track when you order several windows.</p>
+                <p className="s2-step-hint">Helps you keep track when you order several blinds.</p>
               </Step>
 
               <EstimateCard view={view} qty={n} summary={summary}

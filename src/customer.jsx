@@ -344,7 +344,8 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
           <div className="orders-grid">
             {orders.map(order => {
               const isActive = order.id === activeOrderId;
-              const itemCount = isActive ? quoteCount : (order.items?.length ?? 0);
+              const blinds = (order.items || []).reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
+              const itemCount = blinds;
               return (
                 <div
                   key={order.id}
@@ -380,7 +381,7 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
                     </div>
                   </div>
                   <div className="order-card-meta">
-                    {itemCount} item{itemCount !== 1 ? 's' : ''}
+                    {itemCount} blind{itemCount !== 1 ? 's' : ''}
                     {' · '}
                     {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
