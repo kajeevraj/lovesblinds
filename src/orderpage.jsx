@@ -1,48 +1,15 @@
-// The order page (Stage 2): every window with its estimate, Edit and Remove, the estimated total, your details, Send my order,
-// and the confirmation screen. It replaces the old Order Summary and Review pages.
+// The order page (Stage 2): every blind with its estimate (click one to change it), the estimated total, your details and
+// shipping address, Send my order, and the confirmation screen. It replaces the old Order Summary and Review pages.
 import { useEffect, useState } from 'react';
-import { MOUNTS, getMechanism } from './data/lines.js';
+import { getMechanism } from './data/lines.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
-import { useItemPrices, totalsOf } from './lib/itemPrice.js';
-import { formatInches, FRACTIONS } from './lib/inches.js';
+import { useCart } from './lib/cart.js';
+import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
 import { profileOf } from './lib/profile.js';
-import { SizeFields, QtyField, priceLine, CUSTOM_TEXT, REQUEST_TEXT, ESTIMATE_TEXT } from './components/s2.jsx';
+import { COUNTRIES, DEFAULT_COUNTRY, addressLine } from './data/countries.js';
+import { CUSTOM_TEXT, REQUEST_TEXT, ESTIMATE_TEXT } from './components/s2.jsx';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
-
-const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
-
-// The room photo that goes with a window in the order (same photos as the product pages).
-export function photoFor(it) {
-  const p0 = it.selection?.picks?.[0];
-  switch (it.product.id) {
-    case 'roller': return { name: ['solar', 'screen-view', 'blackout'].includes(p0?.family) ? p0.family : 'solar', alt: 'Roller shade' };
-    case 'zebra': return { name: 'zebra-dining', alt: 'Zebra shade' };
-    case 'shangri-la': return { name: 'shangri-la', alt: 'Shangri-La shade' };
-    case 'roman': return { name: 'roman', alt: 'Roman shade' };
-    case 'cellular': return { name: it.selection?.type === 'top-down-bottom-up' ? 'cellular-tdbu' : 'cellular', alt: 'Cellular shade' };
-    default: return { name: it.selection?.section === 'dream-curtains' ? 'dream-curtains' : 'drapery', alt: 'Drapery' };
-  }
-}
-
-// "Solar · Linen (SL-102) · 40" wide × 64" high · Inside mount · Cordless · Fabric-wrapped cassette"
-function detailsOf(it) {
-  const sum = summarize(it);
-  const mech = getMechanism(it.product, it.mech)?.name || it.mech;
-  const mount = it.product.mounts.length > 1 ? (MOUNTS.find((m) => m.id === it.mount)?.name || it.mount) : null;
-  const size = it.width ? `${formatInches(it.width)}" wide × ${formatInches(it.length || it.height)}" high` : null;
-  return { title: sum.title, parts: [...sum.parts, size, mount, mech].filter(Boolean) };
-}
-
-const toSize = (it) => {
-  const split = (v) => { const n = parseFloat(v) || 0; const w = Math.floor(n); const f = FRACTIONS.find(([d]) => Math.abs(parseFloat(d) - (n - w)) < 0.001); return [n ? String(w) : '', f ? f[0] : '0']; };
-  const [w, wf] = split(it.width); const [h, hf] = split(it.length || it.height);
-  return { w, wf, h, hf };
-};
-const fromSize = (s) => {
-  const num = (a, f) => (a === '' ? null : (parseFloat(a) || 0) + (parseFloat(f) || 0) || null);
-  return { width: num(s.w, s.wf), length: num(s.h, s.hf) };
-};
 
 function PriceCell({ it, p }) {
   const q = Math.max(1, it.qty || 1);
@@ -50,80 +17,38 @@ function PriceCell({ it, p }) {
     return (
       <div className="s2-item-price">
         <div className="s2-item-amount">{money(p.price * q)}</div>
-        {q > 1 && <div className="s2-item-each">{money(p.price)} each · {q} blinds</div>}
+        {q > 1 && <div className="s2-item-each">{money(p.price)} each · {blinds(q)}</div>}
       </div>
     );
   }
   if (p.kind === 'loading') return <div className="s2-item-price"><div className="s2-item-each">Calculating…</div></div>;
-  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">{p.kind === 'custom' ? 'Price by email' : 'Price on request'}</div>{q > 1 && <div className="s2-item-each">{q} blinds</div>}</div>;
+  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">{p.kind === 'custom' ? 'Price sent by email' : 'Price on request'}</div>{q > 1 && <div className="s2-item-each">{blinds(q)}</div>}</div>;
 }
 
-function EditPanel({ it, idx, updateItem, onDone }) {
-  const [size, setSize] = useState(() => toSize(it));
-  const mechs = it.product.mechanisms;
-  const cover = it.selection?.cover;
-  const hasCover = it.product.id === 'roller' || it.product.id === 'zebra';
-  const applySize = (s) => { setSize(s); updateItem(idx, fromSize(s)); };
-  const idp = `ed${idx}`;
-  return (
-    <div className="s2-edit" role="group" aria-label="Edit this blind">
-      <SizeFields idp={idp} size={size} onChange={applySize} />
-      <div className="s2-edit-row">
-        {it.product.mounts.length > 1 && (
-          <label className="s2-field"><span className="s2-label">Mount</span>
-            <select className="s2-input" value={it.mount} onChange={(e) => updateItem(idx, { mount: e.target.value })}>
-              {it.product.mounts.map((id) => <option key={id} value={id}>{MOUNTS.find((m) => m.id === id)?.name}</option>)}
-            </select>
-          </label>
-        )}
-        <label className="s2-field"><span className="s2-label">Control</span>
-          <select className="s2-input" value={it.mech} onChange={(e) => updateItem(idx, { mech: e.target.value })}>
-            {!mechs.some((m) => m.id === it.mech) && <option value={it.mech}>{it.mech}</option>}
-            {mechs.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-        </label>
-        {hasCover && cover && (
-          <label className="s2-field"><span className="s2-label">Top cover</span>
-            <select className="s2-input" value={cover} onChange={(e) => updateItem(idx, { selection: { ...it.selection, cover: e.target.value } })}>
-              <option value="wrapped">Fabric-wrapped cassette</option>
-              <option value="none">No fabric wrap</option>
-            </select>
-          </label>
-        )}
-        <label className="s2-field"><span className="s2-label">Room</span>
-          <input className="s2-input" type="text" value={it.roomLabel || ''} onChange={(e) => updateItem(idx, { roomLabel: e.target.value })} placeholder="e.g. Primary bedroom" />
-        </label>
-      </div>
-      <QtyField id={`${idp}-qty`} qty={String(it.qty || 1)} onChange={(v) => updateItem(idx, { qty: Math.max(1, parseInt(v, 10) || 1) })} />
-      <p className="s2-step-hint">To change the color or style, remove this blind and add it again.</p>
-      <button type="button" className="s2-btn s2-btn-brass s2-edit-done" onClick={onDone}>Done</button>
-    </div>
-  );
-}
-
-function ItemCard({ it, idx, p, editing, setEditing, updateItem, removeFromQuote }) {
+// The whole card opens the product page with every choice filled in; Remove is the only other control.
+function ItemCard({ it, p, cart }) {
   const d = detailsOf(it);
   const ph = photoFor(it);
+  const edit = () => cart.goEdit(it);
   return (
-    <li className="s2-item">
+    <li className="s2-item" onClick={edit}>
       <div className="s2-item-main">
         <SitePhoto name={ph.name} alt="" sizes="96px" className="s2-item-photo" />
         <div className="s2-item-body">
           <div className="s2-item-head">
-            <div className="s2-item-title">{d.title}</div>
+            <a className="s2-item-title" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Change ${d.title}`}>{d.title}</a>
             <PriceCell it={it} p={p} />
           </div>
           {it.roomLabel && <div className="s2-item-room">{it.roomLabel}</div>}
-          <div className="s2-item-details">{d.parts.join(' · ')}</div>
+          <div className="s2-item-details">{d.parts.join(' · ')}{!d.parts.length ? '' : ''}</div>
+          <div className="s2-item-qty">{blinds(Math.max(1, it.qty || 1))}</div>
           {p.kind === 'request' && <div className="s2-item-note">{REQUEST_TEXT}</div>}
           {p.kind === 'custom' && <div className="s2-item-note">{CUSTOM_TEXT}</div>}
           <div className="s2-item-actions">
-            <button type="button" className="s2-link" aria-expanded={editing} onClick={() => setEditing(editing ? null : idx)}>Edit</button>
-            <button type="button" className="s2-link" onClick={() => removeFromQuote(idx)}>Remove</button>
+            <button type="button" className="s2-link" onClick={(e) => { e.stopPropagation(); cart.removeItem(it.id); }}>Remove</button>
           </div>
         </div>
       </div>
-      {editing && <EditPanel it={it} idx={idx} updateItem={updateItem} onDone={() => setEditing(null)} />}
     </li>
   );
 }
@@ -155,12 +80,11 @@ function quoteLine(it, p) {
   };
 }
 
-export default function OrderPage({ navigate, quoteItems, removeFromQuote, updateItem, activeOrderId, onOrderSent, onSubmitted, user }) {
-  const items = quoteItems;
-  const prices = useItemPrices(items);
-  const { total, byEmail, loading } = totalsOf(items, prices);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', shipTo: '', notes: '' });
+export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubmitted, user }) {
+  const cart = useCart();
+  const { items, prices } = cart;
+  const { total, byEmail, loading } = cart.totals;
+  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '' });
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -170,7 +94,7 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
   useEffect(() => {
     const pr = profileOf(user);
     if (!pr) return;
-    setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, shipTo: f.shipTo || pr.shipTo }));
+    setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, street: f.street || pr.shipTo }));
   }, [user]);
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: '' })); };
 
@@ -179,15 +103,20 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
     if (!form.name.trim()) errs.name = 'Please enter your name';
     if (!form.email.trim()) errs.email = 'Please enter your email';
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter a valid email';
+    if (!form.street.trim()) errs.street = 'Please enter your street address';
+    if (!form.city.trim()) errs.city = 'Please enter your city';
+    if (!form.state.trim()) errs.state = 'Please enter your state or province';
+    if (!form.zip.trim()) errs.zip = 'Please enter your ZIP or postal code';
     setErrors(errs);
     if (Object.keys(errs).length) return;
     if (loading) { setError('One moment, we are still working out your estimates.'); return; }
+    const address = { street: form.street.trim(), apt: form.apt.trim(), city: form.city.trim(), state: form.state.trim(), zip: form.zip.trim(), country: form.country };
     setSending(true); setError(null);
     try {
       const res = await fetch('/api/quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), shipTo: form.shipTo.trim() },
+          customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, shipTo: addressLine(address) },
           lines: items.map((it, i) => quoteLine(it, prices[i])),
           notes: form.notes.trim(),
         }),
@@ -196,7 +125,7 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
       const data = await res.json().catch(() => ({}));
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
-      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId, withPrices);
+      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() });
       onSubmitted?.();
       setSent({ copySent: !!data.customerCopy });
     } catch (err) {
@@ -236,7 +165,7 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
           <>
             <ul className="s2-items">
               {items.map((it, i) => (
-                <ItemCard key={i} it={it} idx={i} p={prices[i]} editing={editing === i} setEditing={setEditing} updateItem={updateItem} removeFromQuote={(idx) => { setEditing(null); removeFromQuote(idx); }} />
+                <ItemCard key={it.id} it={it} p={prices[i]} cart={cart} />
               ))}
             </ul>
             <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>
@@ -267,8 +196,24 @@ export default function OrderPage({ navigate, quoteItems, removeFromQuote, updat
                   {errors.email && <span className="s2-error" role="alert">{errors.email}</span>}</div>
                 <div className="s2-field"><label className="s2-label" htmlFor="o-phone">Phone</label>
                   <input id="o-phone" className="s2-input" type="tel" autoComplete="tel" value={form.phone} onChange={set('phone')} /></div>
-                <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-ship">Shipping address</label>
-                  <input id="o-ship" className="s2-input" autoComplete="street-address" value={form.shipTo} onChange={set('shipTo')} /></div>
+                <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-street">Street address</label>
+                  <input id="o-street" className="s2-input" autoComplete="address-line1" value={form.street} onChange={set('street')} aria-invalid={!!errors.street} />
+                  {errors.street && <span className="s2-error" role="alert">{errors.street}</span>}</div>
+                <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-apt">Apartment, suite, etc. (optional)</label>
+                  <input id="o-apt" className="s2-input" autoComplete="address-line2" value={form.apt} onChange={set('apt')} /></div>
+                <div className="s2-field"><label className="s2-label" htmlFor="o-city">City</label>
+                  <input id="o-city" className="s2-input" autoComplete="address-level2" value={form.city} onChange={set('city')} aria-invalid={!!errors.city} />
+                  {errors.city && <span className="s2-error" role="alert">{errors.city}</span>}</div>
+                <div className="s2-field"><label className="s2-label" htmlFor="o-state">State / province</label>
+                  <input id="o-state" className="s2-input" autoComplete="address-level1" value={form.state} onChange={set('state')} aria-invalid={!!errors.state} />
+                  {errors.state && <span className="s2-error" role="alert">{errors.state}</span>}</div>
+                <div className="s2-field"><label className="s2-label" htmlFor="o-zip">ZIP / postal code</label>
+                  <input id="o-zip" className="s2-input" autoComplete="postal-code" value={form.zip} onChange={set('zip')} aria-invalid={!!errors.zip} />
+                  {errors.zip && <span className="s2-error" role="alert">{errors.zip}</span>}</div>
+                <div className="s2-field"><label className="s2-label" htmlFor="o-country">Country</label>
+                  <select id="o-country" className="s2-input" autoComplete="country-name" value={form.country} onChange={set('country')}>
+                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select></div>
                 <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-notes">Anything we should know? (optional)</label>
                   <textarea id="o-notes" className="s2-input s2-textarea" rows={3} value={form.notes} onChange={set('notes')} /></div>
               </div>

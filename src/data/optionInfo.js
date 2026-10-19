@@ -83,4 +83,4 @@ export const ROLLER_FAMILY_CARD = {
   "screen-view": { tag: "Clear view, less heat", photo: "screen-view", alt: "Grey screen view roller shade with the garden visible through it" },
   blackout: { tag: "Darkest option", photo: "blackout", alt: "Charcoal blackout roller shade in a bedroom" },
 };
-export const ROLLER_PRIVACY_NOTE = "With Solar or Screen View, people can see in at night when your lights are on. For nighttime privacy, choose Blackout.";
+export const ROLLER_PRIVACY_NOTE = "With Solar or screen view, people can see in at night when your lights are on. For nighttime privacy, choose Blackout.";

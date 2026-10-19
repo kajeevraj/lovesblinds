@@ -52,14 +52,16 @@ try {
   check('the quantity starts at 1 and the bar shows one price', (await page.locator('#s2-qty').inputValue()) === '1' && !/each/.test(await page.locator('.s2-bar').innerText()));
   check('the quantity question says "How many blinds this size?" and cannot go below 1', /How many blinds this size\?/.test(await page.locator('.s2-qty').innerText()) && await page.getByRole('button', { name: 'One fewer blind' }).isDisabled());
   await page.locator('#s2-qty').fill('3');
-  await page.getByText(/for 3 blinds/).first().waitFor();
-  const barText = (await page.locator('.s2-bar-value').innerText()).replace(/\s+/g, ' ');
-  check('with 3 windows the estimate and the bar show the price for one and the total for all', barText === `$${noWrap} each · $${noWrap * 3} for 3 blinds` && new RegExp(`\\$${noWrap * 3} for 3 blinds`).test(await page.locator('.s2-estimate').innerText()), barText);
+  await page.getByText(/each · 3 blinds/).first().waitFor();
+  const barTotal = (await page.locator('.s2-bar-value').innerText()).trim(), barSub = (await page.locator('.s2-bar-sub').innerText()).trim();
+  const estText = await page.locator('.s2-estimate').innerText();
+  check('with 3 blinds the total is the big number, with "$X each · 3 blinds" small under it (once per block)', barTotal === `$${noWrap * 3}` && barSub === `$${noWrap} each · 3 blinds` && new RegExp(`^YOUR ESTIMATE\\s*\\$${noWrap * 3}\\s*\\$${noWrap} each · 3 blinds`, 'i').test(estText.replace(/\n+/g, ' ')) && (estText.match(/3 blinds/g) || []).length === 1 && (await page.locator('.s2-bar-text').innerText()).match(/3 blinds/g).length === 1, `${barTotal} / ${barSub}`);
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
   await page.locator('#s2-qty').fill('3');
   await page.locator('#s2-room').fill('Test room');
   await page.locator('.s2-bar-btn').click();
+  await page.waitForTimeout(300);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('lb_guest_quote') || '[]'));
   check('Add to order keeps the quantity, the size, the room and the top cover choice', saved.length === 1 && saved[0].qty === 3 && saved[0].width === 40 && saved[0].length === 64 && saved[0].roomLabel === 'Test room' && saved[0].selection?.cover === 'none', JSON.stringify({ qty: saved[0]?.qty, cover: saved[0]?.selection?.cover }));
 
@@ -112,7 +114,7 @@ try {
   const cid = await swatchId('cellular', ct, 'light-filtering');
   const cdb = await dbPrice('cellular', cid, { control: 'cordless', type: 'standard' }, 40, 64);
   check('Cellular: the standard price is the database price', (await pagePrice()) === cdb.price, `$${cdb.price}`);
-  await page.locator('.s2-card', { hasText: 'Day & Night' }).click();
+  await page.locator('.s2-card', { hasText: 'Day & night' }).click();
   check('Cellular Day & Night says it needs two colors and shows no price yet', /two colors/i.test(await page.locator('.s2-step-hint.s2-need').innerText()) && (await estimate().count()) === 0);
   await page.locator('.s2-color').nth(0).locator('.s2-sw').first().click();
   check('Cellular Day & Night with only the day color shows no price', (await estimate().count()) === 0 && /day and a night/.test(await page.locator('.s2-bar').innerText()));

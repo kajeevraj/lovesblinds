@@ -29,7 +29,8 @@ export function useItemPrices(items) {
       .then(() => { if (live) bump((n) => n + 1); });
     return () => { live = false; };
   }, [keys]);
-  return keys.map((k) => (!k ? { kind: 'email' } : cache.has(k) ? kindOf(cache.get(k)) : { kind: 'loading' }));
+  // until the database answers, a window that was added with an estimate shows that estimate (so the bar does not flicker on a refresh)
+  return keys.map((k, i) => (!k ? { kind: 'email' } : cache.has(k) ? kindOf(cache.get(k)) : (items[i].priceKind === 'estimate' && items[i].price > 0 ? { kind: 'price', price: items[i].price, provisional: true } : { kind: 'loading' })));
 }
 
 // The estimated total and how many items have no estimate. Quantity multiplies the price of one window.

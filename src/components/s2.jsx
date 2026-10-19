@@ -7,6 +7,7 @@ import { SwatchImg, SwatchDialog, makePick, labelOf, altOf } from './SwatchPicke
 import { useCatalogStatus } from '../lib/useCatalog.js';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { FRACTIONS, toInches } from '../lib/inches.js';
+import { blinds } from '../lib/itemView.js';
 
 // ---- Steps -------------------------------------------------------------------------------------------------------
 
@@ -211,9 +212,6 @@ export const CUSTOM_TEXT = "This size is larger than our standard range. Add it 
 export const REQUEST_TEXT = "Send us your order and we'll reply with a price.";
 export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm details and final price.";
 
-// "$226 each · $678 for 3 blinds" (just "$226" for one blind)
-export const priceLine = (price, qty) => (qty > 1 ? `${money(price)} each · ${money(price * qty)} for ${qty} blinds` : money(price));
-
 // How many blinds this size? A whole number, 1 or more.
 export function QtyField({ qty, onChange, id = "s2-qty" }) {
   const n = Math.max(1, parseInt(qty, 10) || 1);
@@ -236,8 +234,8 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
       {view.kind === "price" && (
         <>
           <div className="s2-eyebrow">Your estimate</div>
-          <div className="s2-estimate-price">{qty > 1 ? <>{money(view.price)} <span className="s2-estimate-each">each</span></> : money(view.price)}</div>
-          {qty > 1 && <div className="s2-estimate-total">{money(view.price * qty)} for {qty} blinds</div>}
+          <div className="s2-estimate-price">{money(view.price * qty)}</div>
+          {qty > 1 && <div className="s2-estimate-each">{money(view.price)} each · {blinds(qty)}</div>}
           <p className="s2-estimate-text">{ESTIMATE_TEXT}</p>
           {summary && <div className="s2-estimate-summary">{summary.map((l, i) => <div key={i}>{l}</div>)}</div>}
         </>
@@ -257,23 +255,5 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
       )}
       {qtyField}
     </section>
-  );
-}
-
-// Sticky bottom bar: the price (or what is still needed) and the Add to order button.
-export function PriceBar({ title, view, needs, canAdd, added, onAdd, qty = 1 }) {
-  let label = title, value = needs;
-  if (view.kind === "price") { label = qty > 1 ? `Your estimate · ${qty} blinds` : "Your estimate"; value = priceLine(view.price, qty); }
-  else if (view.kind === "custom") { label = "Custom size"; value = "Price sent by email"; }
-  else if (view.kind === "request") { label = "Price on request"; value = "Price sent by email"; }
-  else if (view.kind === "loading") { label = "Your estimate"; value = "Calculating…"; }
-  else if (view.kind === "error") { label = "Your estimate"; value = "Price sent by email"; }
-  return (
-    <div className="s2-bar">
-      <div className="s2-wrap s2-bar-inner">
-        <div className="s2-bar-text"><span className="s2-bar-label">{label}</span><span className="s2-bar-value">{value}</span></div>
-        <button type="button" className="s2-bar-btn" disabled={!canAdd} onClick={onAdd}>{added ? "Added to your order" : "Add to order"}</button>
-      </div>
-    </div>
   );
 }

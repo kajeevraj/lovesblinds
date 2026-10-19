@@ -9,19 +9,19 @@
 // `code` is exactly the stored code (for Dream Curtains with a style, that style's own code).
 
 export const FAMILY_LABELS = {
-  "screen-view": "Screen View", solar: "Solar", blackout: "Blackout", "light-filtering": "Light Filtering",
+  "screen-view": "Screen view", solar: "Solar", blackout: "Blackout", "light-filtering": "Light filtering",
 };
 export const MODE_LABELS = { single: "Single", "double-stack": "Double-stack" };
 export const CELLULAR_TYPES = [
   { id: "standard", label: "Standard" },
-  { id: "top-down-bottom-up", label: "Top-Down/Bottom-Up" },
-  { id: "day-night", label: "Day & Night" },
+  { id: "top-down-bottom-up", label: "Top-down/bottom-up" },
+  { id: "day-night", label: "Day & night" },
 ];
 // Shangri-La only comes as a horizontal shade, so there is no format step any more. Orders saved while a format was offered
 // still carry it, and keep reading the way they were saved.
 const SAVED_SHANGRI_FORMATS = { "horizontal-shade": "Horizontal shade", "sheer-vertical": "Sheer vertical blind" };
 export const ROMAN_STYLES = [
-  { id: "relax", label: "Relax" }, { id: "flat", label: "Flat" }, { id: "plain-fold", label: "Plain Fold" },
+  { id: "relax", label: "Relax" }, { id: "flat", label: "Flat" }, { id: "plain-fold", label: "Plain fold" },
   { id: "ribble", label: "Ribble" }, { id: "hobble", label: "Hobble" },
 ];
 export const LINING_LABELS = { blackout: "Blackout lining", "light-filtering": "Light-filtering lining", none: "No lining" };
@@ -32,6 +32,8 @@ export const PLEATS = [
 // Dream Curtains styles in plain words (the supplier calls them Style A and Style B). Customers see the names; our own email and sheet show both.
 export const DREAM_STYLE_NAMES = { A: "Classic", B: "Slim" };
 const dreamStyle = (style, internal = false) => (DREAM_STYLE_NAMES[style] ? (internal ? `${DREAM_STYLE_NAMES[style]} (Style ${style})` : DREAM_STYLE_NAMES[style]) : `Style ${style}`);
+// "French Pleat 2" (as saved) reads "French pleat 2": option names are in sentence case everywhere customers see them.
+export const sentence = (s) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : s);
 export const SECTION_LABELS = { curtains: "Curtains", "dream-curtains": "Dream Curtains" };
 
 const label = (list, id) => list.find(x => x.id === id)?.label || id;
@@ -60,7 +62,7 @@ export function summarize(item) {
   if (sel.format) parts.push(SAVED_SHANGRI_FORMATS[sel.format] || String(sel.format));   // saved orders only
   if (sel.type) parts.push(label(CELLULAR_TYPES, sel.type));
   if (sel.style) parts.push(`${label(ROMAN_STYLES, sel.style)} style`);
-  if (sel.pleat) parts.push(sel.pleat);
+  if (sel.pleat) parts.push(sentence(sel.pleat));
   if (sel.lining) parts.push(LINING_LABELS[sel.lining]);
   if (sel.cover) parts.push(sel.cover === "none" ? "No fabric wrap on the cassette" : "Fabric-wrapped cassette");
   const multi = sel.picks.length > 1;

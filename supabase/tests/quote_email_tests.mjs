@@ -33,7 +33,7 @@ const sent = [
 const { lines: cat } = await withCatalog(sent);
 const { lines, total, byEmail } = await withEstimates(cat);
 const totals = { total, byEmail };
-const customer = { name: 'Ada <b>Lovelace</b>', email: 'ada@example.com', phone: '555', shipTo: '1 Way' };
+const customer = { name: 'Ada <b>Lovelace</b>', email: 'ada@example.com', phone: '555', address: { street: '1 Analytical Way', apt: 'Suite <2>', city: 'London', state: 'England', zip: 'N1 1AA', country: 'United Kingdom' }, shipTo: 'old one-line value' };
 
 const wantRoller = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: roller.id, p_options: { control: 'chain', mode: 'single', wrap_cassette: 'none' }, p_width: 40, p_height: 64 });
 const wantDream = await rpc('estimate_price_for_swatch', { p_line: 'dream-curtains', p_swatch_id: dream.id, p_options: { control: 'manual' }, p_width: 60, p_height: 84 });
@@ -71,6 +71,10 @@ check('totalText with nothing priced is "Price sent by email"', totalText({ tota
 
 check('My Orders: a sent order shows its estimated total and the items priced by email', sentEstimate({ status: 'sent', items: [{ price: 135, priceKind: 'estimate', qty: 3 }, { price: null, priceKind: 'email', qty: 2 }] }) === 'Estimated total $405 · plus 1 item priced by email');
 check('My Orders: orders saved before Stage 2 and orders not yet sent show no price line', sentEstimate({ status: 'sent', items: [{ qty: 1 }] }) === null && sentEstimate({ status: 'draft', items: [{ price: 5, priceKind: 'estimate', qty: 1 }] }) === null);
+
+check('both emails show the whole shipping address, a part per line, escaped', ['1 Analytical Way<br>Suite &lt;2&gt;<br>London, England N1 1AA<br>United Kingdom'].every((a) => cust.includes(a) && intl.includes(a)) && /Shipping to:/.test(cust) && /Ship to:/.test(intl));
+check('the order sheet header has the full address on one line', (() => { const ws = buildWorkbook(customer, lines, '', totals); const rows = XLSX.utils.sheet_to_json(ws.Sheets.Quote, { header: 1 }); return rows.some((r) => /Ship to: 1 Analytical Way, Suite <2>, London, England N1 1AA, United Kingdom/.test(r[0] || '')); })());
+check('an order from an older page that only has the one-line address still shows it', customerEmailHtml({ name: 'A', email: 'a@b.c', shipTo: '9 Old Rd' }, lines, '', totals).includes('9 Old Rd'));
 
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);

@@ -1,6 +1,10 @@
 import { getLine, resolveLineId } from '../data/lines.js';
 
+// A short random id for an order item, so a link like /products/roller?edit=<id> finds the same item after a refresh.
+export const newItemId = () => (globalThis.crypto?.randomUUID ? crypto.randomUUID().slice(0, 12) : Math.random().toString(36).slice(2, 14));
+
 export const serializeItem = (item) => ({
+  id:        item.id ?? null,
   productId: item.product.id,
   variant:   item.variant,
   mech:      item.mech,
@@ -19,10 +23,14 @@ export const serializeItem = (item) => ({
 
 // Saved orders may use older line ids (shangrila, drapes) or have no `selection`.
 // Archived lines still resolve here so old orders keep displaying.
-export const reconstructItem = (stored) => {
+// Items saved before ids existed get a stable one made from their content and position.
+const legacyId = (stored, i) => { const t = JSON.stringify(stored); let h = 0; for (let k = 0; k < t.length; k++) h = (h * 31 + t.charCodeAt(k)) | 0; return `old-${i}-${(h >>> 0).toString(36)}`; };
+
+export const reconstructItem = (stored, i = 0) => {
   const product = getLine(resolveLineId(stored.productId));
   if (!product) return null;
   return {
+    id:        stored.id || legacyId(stored, i),
     product,
     variant:   stored.variant,
     mech:      stored.mech,

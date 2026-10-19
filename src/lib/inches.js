@@ -19,3 +19,15 @@ export function formatInches(n) {
   const f = FRACTIONS.find(([d]) => Math.abs(parseFloat(d) - (v - whole)) < 0.001);
   return f && f[1] !== '0' ? `${whole} ${f[1]}` : String(whole === v ? whole : v);
 }
+
+// The size fields (whole inches + 1/8 fraction) for a saved width and height, so a window can be edited.
+export function sizeFromNumbers(width, height) {
+  const split = (v) => {
+    const n = parseFloat(v) || 0;
+    const whole = Math.floor(n);
+    const f = FRACTIONS.find(([d]) => Math.abs(parseFloat(d) - (n - whole)) < 0.001);
+    return [n ? String(whole) : '', f ? f[0] : '0'];
+  };
+  const [w, wf] = split(width); const [h, hf] = split(height);
+  return { w, wf, h, hf };
+}

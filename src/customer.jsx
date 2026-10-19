@@ -122,7 +122,7 @@ const STEPS = [
 ];
 const LIGHT = [
   { photo: "shangri-la", slug: "shangri-la", title: "Soft, glowing light", text: "Shangri-La, Zebra and sheer curtains" },
-  { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and Screen View roller shades" },
+  { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and screen view roller shades" },
   { photo: "blackout", slug: "roller", title: "Dark for sleeping", text: "Blackout rollers and blackout cellular shades" },
 ];
 const MEASURE = [
@@ -478,11 +478,11 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
               <div className="mount-toggle">
                 <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
-                  <div className="mount-tab-name">Inside Mount</div>
+                  <div className="mount-tab-name">Inside mount</div>
                   <div className="mount-tab-desc">Recessed in the frame. Needs ≥ 2" depth.</div>
                 </button>
                 <button className={`mount-tab ${mountType === "outside" ? "active" : ""}`} onClick={() => setMountType("outside")}>
-                  <div className="mount-tab-name">Outside Mount</div>
+                  <div className="mount-tab-name">Outside mount</div>
                   <div className="mount-tab-desc">Covers the trim. Best for light control.</div>
                 </button>
               </div>

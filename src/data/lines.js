@@ -5,8 +5,8 @@
 // goes through the helpers below, so re-enabling one is a single flag change.
 
 export const MOUNTS = [
-  { id: "inside",  name: "Inside Mount",  desc: "Sits within the window frame, a clean recessed look" },
-  { id: "outside", name: "Outside Mount", desc: "Mounted over the trim, better light control" },
+  { id: "inside",  name: "Inside mount",  desc: "Sits within the window frame, a clean recessed look" },
+  { id: "outside", name: "Outside mount", desc: "Mounted over the trim, better light control" },
 ];
 
 const MECH = {
@@ -82,7 +82,7 @@ export const LINES = [
     goodToKnow: [
       "Honeycomb cells trap a layer of air, so rooms stay warmer in winter and cooler in summer.",
       "Light-filtering or blackout.",
-      "Standard, Top-Down/Bottom-Up, or Day & Night (light-filtering by day, blackout by night).",
+      "Standard, top-down/bottom-up, or day & night (light-filtering by day, blackout by night).",
     ],
     mechanisms: mechs("cordless", "freestop", "remote", "matter", "motor"),
     mounts: ["inside", "outside"],

@@ -23,7 +23,7 @@ try {
   let sentBody = null, copy = false;
   await page.route('**/api/quote', async (route) => { sentBody = JSON.parse(route.request().postData()); await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: copy }) }); });
   const size = async (w, h) => { await page.locator('#s2-w').fill(String(w)); await page.locator('#s2-h').fill(String(h)); };
-  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.getByRole('button', { name: 'Added to your order' }).waitFor(); };
+  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor(); };
 
   // an empty order
   await page.goto(`${BASE}/order`);
@@ -36,8 +36,8 @@ try {
   await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
   await page.locator('#s2-room').fill('Living room, left window');
   await page.locator('#s2-qty').fill('3');
-  await page.getByText(/for 3 blinds/).first().waitFor();
-  const unit = num((await page.locator('.s2-bar-value').innerText()).split('each')[0]);
+  await page.getByText(/each · 3 blinds/).first().waitFor();
+  const unit = num((await page.locator('.s2-bar-sub').innerText()).split('each')[0]);
   await add();
   // window 2: curtains, 2 windows
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
@@ -61,7 +61,7 @@ try {
   await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => !/Calculating/.test(document.querySelector('.s2-items').innerText), null, { timeout: 30000 });
   const items = page.locator('.s2-item');
-  check('three windows are listed, each with Edit and Remove', (await items.count()) === 3 && (await page.getByRole('button', { name: 'Edit' }).count()) === 3 && (await page.getByRole('button', { name: 'Remove' }).count()) === 3);
+  check('three items are listed, each with Remove and no separate Edit button, and "+ Add more blinds"', (await items.count()) === 3 && (await page.getByRole('button', { name: 'Edit' }).count()) === 0 && (await page.getByRole('button', { name: 'Remove' }).count()) === 3 && (await page.getByText('+ Add more blinds').count()) === 1);
   const rollerText = await items.nth(0).innerText();
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
@@ -73,15 +73,20 @@ try {
   const totalText = await page.locator('.s2-total').innerText();
   check('estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence', num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm details and final price\./.test(totalText), totalText.replace(/\s+/g, ' '));
 
-  // Edit: typing keeps focus, the price follows
-  await items.nth(0).getByRole('button', { name: 'Edit' }).click();
-  const w = page.locator('#ed0-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
-  check('typing a size in Edit keeps focus (both digits arrive)', (await w.inputValue()) === '44');
-  await page.locator('#ed0-qty').fill('4');
-  await page.waitForFunction((u) => /4 blinds/.test(document.querySelector('.s2-item').innerText) && !/\$\d+ each · 3/.test(document.querySelector('.s2-item').innerText), unit);
+  // clicking an item opens its product page with every choice filled in; Save changes updates the same item
+  await items.nth(0).click();
+  await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
+  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-picked').innerText()).includes(rName));
+  const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
+  check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
+  await page.locator('#s2-qty').fill('4');
+  await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
+  await page.locator('.s2-bar-btn').click();
+  await page.waitForFunction(() => location.pathname === '/order');
+  await page.locator('.s2-item').first().waitFor();
+  await page.waitForFunction(() => /44" wide × 64" high/.test(document.querySelector('.s2-item').innerText) && !/Calculating/.test(document.querySelector('.s2-items').innerText));
   const edited = await items.nth(0).innerText();
-  check('Edit changes the size and the quantity, and the estimate follows', /44" wide × 64" high/.test(edited) && /4 blinds/.test(edited), edited.replace(/\s+/g, ' '));
-  await items.nth(0).getByRole('button', { name: 'Done' }).click();
+  check('Save changes updated the same item (still three items, size and quantity changed, estimate followed)', (await items.count()) === 3 && /44" wide × 64" high/.test(edited) && /4 blinds/.test(edited), edited.replace(/\s+/g, ' '));
 
   // Remove
   await items.nth(1).getByRole('button', { name: 'Remove' }).click();
@@ -89,8 +94,11 @@ try {
 
   // validation
   await page.getByRole('button', { name: 'Send my order' }).click();
-  check('Send my order without a name and email asks for them and sends nothing', (await page.locator('.s2-error').count()) === 2 && sentBody === null);
+  check('Send my order without a name, email or address asks for them and sends nothing', (await page.locator('.s2-error').count()) === 6 && sentBody === null);
   await page.locator('#o-name').fill('Ada Lovelace'); await page.locator('#o-email').fill('not-an-email');
+  await page.locator('#o-street').fill('1 Analytical Way'); await page.locator('#o-apt').fill('Suite 2'); await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1 1AA');
+  check('the country list defaults to United States and has more countries', (await page.locator('#o-country').inputValue()) === 'United States' && (await page.locator('#o-country option').count()) > 150);
+  await page.locator('#o-country').selectOption('United Kingdom');
   await page.getByRole('button', { name: 'Send my order' }).click();
   check('an invalid email is refused', /valid email/.test(await page.locator('.s2-error').innerText()) && sentBody === null);
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -99,12 +107,12 @@ try {
   check('order page: no price group names', leak(await page.content()).length === 0);
 
   // send
-  await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-phone').fill('555 010 2030'); await page.locator('#o-ship').fill('1 Analytical Way, London'); await page.locator('#o-notes').fill('Ring first');
+  await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-phone').fill('555 010 2030');  await page.locator('#o-notes').fill('Ring first');
   await page.getByRole('button', { name: 'Send my order' }).click();
   await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor();
   const conf = await page.locator('main').innerText();
   check('the confirmation says what happens next, and says nothing about an email copy when none was sent', /email you your final price within 48 hours\. Nothing is charged until you approve it\./.test(conf) && !/copy of your order/.test(conf));
-  check('what is sent: details, notes, two windows with quantity and the estimate the customer saw', sentBody.customer.email === 'ada@example.com' && sentBody.customer.shipTo.startsWith('1 Analytical') && sentBody.notes === 'Ring first' && sentBody.lines.length === 2 && sentBody.lines[0].qty === 4 && sentBody.lines[0].estimate.kind === 'price' && sentBody.lines[0].estimate.unit > 0 && sentBody.lines[1].estimate.kind === 'price' && sentBody.lines[1].qty === 2 && !('callTime' in sentBody.customer), JSON.stringify(sentBody.lines.map((l) => [l.qty, l.estimate])));
+  check('what is sent: details, notes, two windows with quantity and the estimate the customer saw', sentBody.customer.email === 'ada@example.com' && sentBody.customer.address.street === '1 Analytical Way' && sentBody.customer.address.apt === 'Suite 2' && sentBody.customer.address.city === 'London' && sentBody.customer.address.state === 'England' && sentBody.customer.address.zip === 'N1 1AA' && sentBody.customer.address.country === 'United Kingdom' && /1 Analytical Way, Suite 2, London, England N1 1AA, United Kingdom/.test(sentBody.customer.shipTo) && sentBody.notes === 'Ring first' && sentBody.lines.length === 2 && sentBody.lines[0].qty === 4 && sentBody.lines[0].estimate.kind === 'price' && sentBody.lines[0].estimate.unit > 0 && sentBody.lines[1].estimate.kind === 'price' && sentBody.lines[1].qty === 2 && !('callTime' in sentBody.customer), JSON.stringify(sentBody.lines.map((l) => [l.qty, l.estimate])));
   check('the customer wording sent for Dream Curtains has the style name and the picked code; ours also has the style letter', /Slim/.test(sentBody.lines[1].description) && /ZDS3902-1/.test(sentBody.lines[1].description) && !/Style B/.test(sentBody.lines[1].description) && /Style B/.test(sentBody.lines[1].internalDescription));
   check('the cart is empty after sending', (await page.evaluate(() => localStorage.getItem('lb_guest_quote'))) === '[]' || (await page.evaluate(() => localStorage.getItem('lb_guest_quote'))) === null);
   await page.getByRole('link', { name: 'Back to home' }).click();
@@ -114,7 +122,7 @@ try {
   copy = true;
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await size(40, 64); await add();
-  await page.goto(`${BASE}/order`); await page.locator('#o-name').fill('Ada'); await page.locator('#o-email').fill('ada@example.com');
+  await page.goto(`${BASE}/order`); await page.locator('#o-name').fill('Ada'); await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-street').fill('1 Way'); await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1');
   await page.getByRole('button', { name: 'Send my order' }).click();
   await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor();
   check('when an email copy was sent, the confirmation says "A copy of your order was sent to your email."', /A copy of your order was sent to your email\./.test(await page.locator('main').innerText()));

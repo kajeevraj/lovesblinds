@@ -3,20 +3,20 @@
 // estimate come from LineShell.
 import { useState } from 'react';
 import { getSwatch } from './data/swatchData.js';
-import { CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS, FAMILY_LABELS, romanStyleOptions } from './lib/selection.js';
+import { CELLULAR_TYPES, ROMAN_STYLES, LINING_LABELS, PLEATS, FAMILY_LABELS, romanStyleOptions, sentence } from './lib/selection.js';
 import { CELLULAR_TYPE_INFO, ROMAN_STYLE_INFO, LINING_INFO, PLEAT_INFO } from './data/optionInfo.js';
 import { Cards, ColorStep, TopCoverStep } from './components/s2.jsx';
 import LineShell, { PAGE, PHOTOS } from './lineshell.jsx';
 
 const NOTE = 'Photo shows the style. Your color is shown in the swatch.';
 
-export function ZebraPage({ line, navigate, addToQuote }) {
-  const [pick, setPick] = useState(null);
-  const [wrap, setWrap] = useState('wrapped');
+export function ZebraPage({ line, navigate, edit = null }) {
+  const [pick, setPick] = useState(edit?.selection?.picks?.[0] || null);
+  const [wrap, setWrap] = useState(edit?.selection?.cover || 'wrapped');
   const [photo, setPhoto] = useState(PHOTOS.zebra[0].name);
   const cur = PHOTOS.zebra.find((p) => p.name === photo);
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.zebra.title} intro={PAGE.zebra.intro}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.zebra.title} intro={PAGE.zebra.intro}
       photo={cur} gallery={PHOTOS.zebra} onGallery={setPhoto} photoNote={NOTE} chip={pick}
       c={{ pick, wrap }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
       tailSteps={[{ title: 'Top cover', node: <TopCoverStep value={wrap} onChange={setWrap} /> }]}
@@ -24,20 +24,20 @@ export function ZebraPage({ line, navigate, addToQuote }) {
   );
 }
 
-export function ShangriLaPage({ line, navigate, addToQuote }) {
-  const [pick, setPick] = useState(null);
+export function ShangriLaPage({ line, navigate, edit = null }) {
+  const [pick, setPick] = useState(edit?.selection?.picks?.[0] || null);
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE['shangri-la'].title} intro={PAGE['shangri-la'].intro}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE['shangri-la'].title} intro={PAGE['shangri-la'].intro}
       photo={PHOTOS['shangri-la'][0]} photoNote="Shangri-La shades are made as horizontal shades. Your color is shown in the swatch." chip={pick}
       c={{ pick }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
       leadSteps={[{ title: 'Color', node: <ColorStep id="c-shangrila" lineKey="shangri-la" value={pick} onChange={setPick} /> }]} />
   );
 }
 
-export function RomanPage({ line, navigate, addToQuote }) {
-  const [pick, setPick] = useState(null);
-  const [style, setStyle] = useState(null);
-  const [lining, setLining] = useState(null);
+export function RomanPage({ line, navigate, edit = null }) {
+  const [pick, setPick] = useState(edit?.selection?.picks?.[0] || null);
+  const [style, setStyle] = useState(edit?.selection?.style || null);
+  const [lining, setLining] = useState(edit?.selection?.lining || null);
   const swatch = pick ? getSwatch(pick.swatchId, pick.fabricId) : null;
   const opts = romanStyleOptions(swatch);
   const linings = style ? opts.find((o) => o.id === style)?.linings || [] : [];
@@ -71,7 +71,7 @@ export function RomanPage({ line, navigate, addToQuote }) {
     },
   ];
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.roman.title} intro={PAGE.roman.intro}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.roman.title} intro={PAGE.roman.intro}
       photo={PHOTOS.roman[0]} photoNote={NOTE} chip={pick}
       c={{ pick, romanStyle: style, lining }}
       colorNeeds={!pick ? 'Pick a color' : !style ? 'Pick a style' : 'Pick a lining'}
@@ -80,12 +80,13 @@ export function RomanPage({ line, navigate, addToQuote }) {
   );
 }
 
-export function CellularPage({ line, navigate, addToQuote }) {
-  const [type, setType] = useState('standard');
-  const [family, setFamily] = useState('light-filtering');
-  const [pick, setPick] = useState(null);
-  const [day, setDay] = useState(null);
-  const [night, setNight] = useState(null);
+export function CellularPage({ line, navigate, edit = null }) {
+  const sel = edit?.selection;
+  const [type, setType] = useState(sel?.type || 'standard');
+  const [family, setFamily] = useState((sel?.type !== 'day-night' && sel?.picks?.[0]?.family) || 'light-filtering');
+  const [pick, setPick] = useState(sel && sel.type !== 'day-night' ? sel.picks[0] : null);
+  const [day, setDay] = useState(sel?.type === 'day-night' ? sel.picks[0] : null);
+  const [night, setNight] = useState(sel?.type === 'day-night' ? sel.picks[1] : null);
   const dn = type === 'day-night';
   const photo = PHOTOS.cellular[type === 'top-down-bottom-up' ? 1 : 0];
 
@@ -117,7 +118,7 @@ export function CellularPage({ line, navigate, addToQuote }) {
       }]),
   ];
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.cellular.title} intro={PAGE.cellular.intro}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.cellular.title} intro={PAGE.cellular.intro}
       photo={photo} photoNote={NOTE} chip={dn ? night || day : pick}
       c={{ type, pick, day, night }}
       colorNeeds={dn ? 'Pick a day and a night color' : 'Pick a color'}
@@ -126,12 +127,13 @@ export function CellularPage({ line, navigate, addToQuote }) {
   );
 }
 
-export function DraperyPage({ line, navigate, addToQuote }) {
-  const [section, setSection] = useState('curtains');
-  const [pick, setPick] = useState(null);
-  const [pleat, setPleat] = useState(null);
-  const [lining, setLining] = useState(null);
-  const [dream, setDream] = useState(null);
+export function DraperyPage({ line, navigate, edit = null }) {
+  const sel = edit?.selection;
+  const [section, setSection] = useState(sel?.section || 'curtains');
+  const [pick, setPick] = useState(sel?.section === 'curtains' ? sel.picks[0] : null);
+  const [pleat, setPleat] = useState(sel?.pleat || null);
+  const [lining, setLining] = useState(sel?.lining || null);
+  const [dream, setDream] = useState(sel?.section === 'dream-curtains' ? sel.picks[0] : null);
   const curtains = section === 'curtains';
 
   const leadSteps = curtains
@@ -140,7 +142,7 @@ export function DraperyPage({ line, navigate, addToQuote }) {
       {
         title: 'Pleat style', hint: 'Availability is confirmed with your price.',
         node: <Cards label="Pleat style" min={200} value={pleat} onChange={setPleat}
-          options={PLEATS.map((p) => ({ id: p, label: p, desc: PLEAT_INFO[p].desc, img: PLEAT_INFO[p].img }))} />,
+          options={PLEATS.map((p) => ({ id: p, label: sentence(p), desc: PLEAT_INFO[p].desc, img: PLEAT_INFO[p].img }))} />,
       },
       {
         title: 'Lining',
@@ -158,7 +160,7 @@ export function DraperyPage({ line, navigate, addToQuote }) {
     </div>
   );
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.drapery.title}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.drapery.title}
       intro={curtains ? 'Custom curtains in pleat styles from French pleat to ripple fold. Made to your exact size.' : 'Every vane hangs on its own, so you can walk through anywhere, with no opening or closing needed. Great for patio and balcony doors.'}
       header={tabs}
       photo={PHOTOS[section][0]} photoNote={NOTE} chip={curtains ? pick : dream} hideMount controlTitle="How it opens and closes"

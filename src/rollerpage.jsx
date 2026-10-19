@@ -21,11 +21,13 @@ function FabricType({ value, onChange, label }) {
   );
 }
 
-export default function RollerPage({ line, navigate, addToQuote }) {
-  const [mode, setMode] = useState('single');
-  const [front, setFront] = useState({ family: 'solar', pick: null });
-  const [back, setBack] = useState({ family: 'solar', pick: null });
-  const [wrap, setWrap] = useState('wrapped');
+export default function RollerPage({ line, navigate, edit = null }) {
+  const sel = edit?.selection;
+  const shade = (pk) => ({ family: pk?.family || 'solar', pick: pk || null });
+  const [mode, setMode] = useState(sel?.mode || 'single');
+  const [front, setFront] = useState(shade(sel?.picks?.[0]));
+  const [back, setBack] = useState(shade(sel?.picks?.[1]));
+  const [wrap, setWrap] = useState(sel?.cover || 'wrapped');
   const double = mode === 'double-stack';
   const c = { mode, front: front.pick, back: back.pick, wrap };
 
@@ -62,7 +64,7 @@ export default function RollerPage({ line, navigate, addToQuote }) {
   }];
 
   return (
-    <LineShell line={line} navigate={navigate} addToQuote={addToQuote} title={PAGE.roller.title} intro={PAGE.roller.intro}
+    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.roller.title} intro={PAGE.roller.intro}
       photo={{ name: ROLLER_FAMILY_CARD[front.family].photo, alt: ROLLER_FAMILY_CARD[front.family].alt }}
       photoNote={`Photo shows ${FAMILY_LABELS[front.family]} fabric. Your color is shown in the swatch.`}
       chip={front.pick}

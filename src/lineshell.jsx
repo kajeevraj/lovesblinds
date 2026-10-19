@@ -6,10 +6,12 @@ import { MOUNTS, getMechanism } from './data/lines.js';
 import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO } from './data/optionInfo.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
 import { buildSelection } from './lib/lineSelection.js';
-import { formatInches } from './lib/inches.js';
+import { formatInches, sizeFromNumbers } from './lib/inches.js';
 import { summarize } from './lib/selection.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
-import { Step, Cards, MOUNT_PICTURES, SizeFields, EMPTY_SIZE, sizeNumbers, EstimateCard, PriceBar, QtyField, priceView } from './components/s2.jsx';
+import { Step, Cards, MOUNT_PICTURES, SizeFields, EMPTY_SIZE, sizeNumbers, EstimateCard, QtyField, priceView } from './components/s2.jsx';
+import { PriceBar } from './components/OrderBar.jsx';
+import { useCart } from './lib/cart.js';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
 
@@ -40,15 +42,17 @@ export const PHOTOS = {
 };
 
 export default function LineShell({
-  line, navigate, addToQuote, title, intro, photo, photoNote, gallery, onGallery, chip,
+  line, navigate, edit = null, title, intro, photo, photoNote, gallery, onGallery, chip,
   leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null,
 }) {
   const catalog = useLineCatalog(line.id);
-  const [mech, setMech] = useState(line.mechanisms[0].id);
-  const [mount, setMount] = useState(line.mounts[0]);
-  const [size, setSize] = useState(EMPTY_SIZE);
-  const [room, setRoom] = useState('');
-  const [qty, setQty] = useState('1');
+  const cart = useCart();
+  // editing an item: every choice starts as it was saved
+  const [mech, setMech] = useState(edit?.mech || line.mechanisms[0].id);
+  const [mount, setMount] = useState(edit?.mount || line.mounts[0]);
+  const [size, setSize] = useState(edit ? sizeFromNumbers(edit.width, edit.length) : EMPTY_SIZE);
+  const [room, setRoom] = useState(edit?.roomLabel || '');
+  const [qty, setQty] = useState(String(edit?.qty || 1));
   const [added, setAdded] = useState(false);
 
   const n = Math.max(1, parseInt(qty, 10) || 1);
@@ -67,7 +71,8 @@ export default function LineShell({
   const handleAdd = () => {
     if (!canAdd) return;
     const first = selection.picks[0];
-    addToQuote({
+    const item = {
+      id: edit?.id,
       product: line, variant: line.name, mech, mount, selection,
       code: first?.code ?? null,
       colorName: first ? first.displayName : line.name,
@@ -75,10 +80,12 @@ export default function LineShell({
       price: view.kind === 'price' ? view.price : null,          // the price for one window; the order multiplies by qty
       priceKind: view.kind === 'price' ? 'estimate' : 'email',
       width: parseFloat(width) || null, length: parseFloat(height) || null, qty: n,
-      roomLabel: room.trim(), addons: { blackout: false, install: false },
-    });
+      roomLabel: room.trim(), addons: edit?.addons || { blackout: false, install: false },
+    };
+    if (edit) { cart.saveItem(edit.id, item); navigate('quote'); return; }
+    cart.addItem(item);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
+    setTimeout(() => setAdded(false), 1800);
   };
 
   const sum = summarize({ product: line, selection });
@@ -121,6 +128,12 @@ export default function LineShell({
             </div>
 
             <div className="s2-line-steps">
+              {edit && (
+                <div className="s2-editing" role="status">
+                  <span>You are changing an item in your order.</span>
+                  <a className="s2-link" href="/order" onClick={(e) => { e.preventDefault(); navigate('quote'); }}>Cancel</a>
+                </div>
+              )}
               <div>
                 <h1 className="s2-line-title">{title}</h1>
                 <p className="s2-line-intro">{intro}</p>
@@ -159,11 +172,12 @@ export default function LineShell({
               <EstimateCard view={view} qty={n} summary={summary}
                 checks={[...checks, { label: 'Width and height', done: sized }]}
                 qtyField={<QtyField qty={qty} onChange={setQty} />} />
+              {edit && <a className="s2-link s2-cancel" href="/order" onClick={(e) => { e.preventDefault(); navigate('quote'); }}>Cancel</a>}
               {tail}
             </div>
           </div>
         </div>
-        <PriceBar title={title} view={view} needs={needs} qty={n} canAdd={canAdd} added={added} onAdd={handleAdd} />
+        <PriceBar title={title} view={view} needs={needs} qty={n} canAdd={canAdd} added={added} editing={!!edit} onAdd={handleAdd} />
         <Footer navigate={navigate} />
       </div>
     </CatalogStatusContext.Provider>

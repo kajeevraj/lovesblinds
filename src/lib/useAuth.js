@@ -134,12 +134,19 @@ export function useAuth() {
     else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, name } : o));
   };
 
-  // Marks the order sent. `items` (with the estimates and quantities as sent) are saved in the same update.
-  const markOrderSent = async (orderId, items = null) => {
+  // Marks the order sent. `items` (with the estimates and quantities as sent) and `customer` (name, email, phone, the full
+  // shipping address, notes) are saved in the same update. The customer column comes with migration 12; until it is applied
+  // the order is still saved and marked sent, without it.
+  const markOrderSent = async (orderId, items = null, customer = null) => {
     if (!supabase || !orderId) return;
     clearTimeout(saveTimer.current);                       // a pending edit save must not overwrite what was sent
-    const patch = items ? { status: 'sent', items: items.map(serializeItem) } : { status: 'sent' };
-    const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+    const base = items ? { status: 'sent', items: items.map(serializeItem) } : { status: 'sent' };
+    let patch = customer ? { ...base, customer } : base;
+    let { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+    if (error && customer && /customer/i.test(error.message || '')) {
+      patch = base;
+      ({ error } = await supabase.from('orders').update(patch).eq('id', orderId));
+    }
     if (error) console.error('[markOrderSent]', error);
     else setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...patch } : o));
   };

@@ -2,6 +2,7 @@ import XLSX from 'xlsx';
 import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
 import { priceRequestFromItem } from '../src/lib/priceRequest.js';
+import { addressLine } from '../src/data/countries.js';
 
 const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
 const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
@@ -104,7 +105,7 @@ export function buildWorkbook(customer, lines, notes, totals = null) {
   rows.push([BUSINESS_EMAIL]);
   rows.push([
     `Customer: ${customer.name}` +
-    (customer.shipTo ? `    Ship to: ${customer.shipTo}` : ''),
+    ((addressLine(customer.address) || customer.shipTo) ? `    Ship to: ${addressLine(customer.address) || customer.shipTo}` : ''),
   ]);
   rows.push([]); // blank separator
 
@@ -194,6 +195,14 @@ export function lineListHtml(lines, internal = false) {
   }).join('');
 }
 
+// The whole shipping address, one part per line. Older orders (and old browsers) send one line in `shipTo`.
+function addressHtml(customer) {
+  const a = customer.address;
+  if (!a) return customer.shipTo ? esc(customer.shipTo) : '';
+  const cityLine = [a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  return [a.street, a.apt, cityLine, a.country].filter(Boolean).map(esc).join('<br>');
+}
+
 function totalsHtml(totals, withNote) {
   if (!totals) return '';
   return `<p style="margin:12px 0 0"><strong>Estimated total: ${esc(totalText(totals))}</strong>` +
@@ -208,7 +217,7 @@ export function internalEmailHtml(customer, lines, notes, totals) {
           <strong>Name:</strong> ${esc(customer.name)}<br>
           <strong>Email:</strong> ${esc(customer.email)}<br>
           ${customer.phone       ? `<strong>Phone:</strong> ${esc(customer.phone)}<br>` : ''}
-          ${customer.shipTo      ? `<strong>Ship to:</strong> ${esc(customer.shipTo)}<br>` : ''}
+          ${addressHtml(customer) ? `<strong>Ship to:</strong><br>${addressHtml(customer)}<br>` : ''}
           ${customer.callTime    ? `<strong>Best time to call:</strong> ${esc(customer.callTime)}<br>` : ''}
           ${customer.measureMethod ? `<strong>Measurement:</strong> ${esc(customer.measureMethod)}` : ''}
         </p>
@@ -225,6 +234,7 @@ export function customerEmailHtml(customer, lines, notes, totals) {
           <h2 style="font-family:Georgia,serif;color:#2c2c2a">Thanks, ${esc(customer.name)}!</h2>
           <p>We've received your quote request and will send a written proposal to
           <strong>${esc(customer.email)}</strong> within 48 hours.</p>
+          ${addressHtml(customer) ? `<p><strong>Shipping to:</strong><br>${addressHtml(customer)}</p>` : ''}
           <h3 style="font-family:Georgia,serif;color:#2c2c2a">What you requested</h3>
           <ul>${lineListHtml(lines)}</ul>
           ${totalsHtml(totals, true)}

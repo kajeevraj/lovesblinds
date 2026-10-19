@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Nav, HomePage, ProductsPage, ContactPage, MeasureGuidePage, OrdersPage, ProfilePage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
-import { reconstructItem, serializeItem } from './lib/orders.js';
+import { reconstructItem, serializeItem, newItemId } from './lib/orders.js';
+import { CartContext } from './lib/cart.js';
+import { useItemPrices, totalsOf } from './lib/itemPrice.js';
+import { editPath } from './lib/itemView.js';
+import { OrderPanel, OrderOnlyBar } from './components/OrderBar.jsx';
 import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
 
@@ -20,11 +24,13 @@ export default function App() {
     if (r.redirect) window.history.replaceState({}, '', r.redirect + window.location.search);
     return r.redirect || window.location.pathname;
   });
+  const [search, setSearch] = useState(() => window.location.search);       // e.g. ?edit=<item id>
   useEffect(() => {
     const onPop = () => {
       const r = resolvePath(window.location.pathname);
       if (r.redirect) window.history.replaceState({}, '', r.redirect);
       setPath(r.redirect || window.location.pathname);
+      setSearch(r.redirect ? '' : window.location.search);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -37,7 +43,7 @@ export default function App() {
       const saved = localStorage.getItem(GUEST_QUOTE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const items = parsed.map(reconstructItem).filter(Boolean);
+        const items = parsed.map((st, i) => reconstructItem(st, i)).filter(Boolean);
         if (items.length > 0) return items;
       }
     } catch { /* ignore */ }
@@ -62,9 +68,11 @@ export default function App() {
 
   // Once logged in and order is ready, clear the guest localStorage backup and
   // migrate any guest items into the active order if the order is currently empty.
+  const [synced, setSynced] = useState(false);          // the saved order's items have been loaded into the cart
   useEffect(() => {
     if (!activeOrderId || !activeOrder) return;
-    const dbItems = activeOrder.items.map(reconstructItem).filter(Boolean);
+    setSynced(true);
+    const dbItems = activeOrder.items.map((st, i) => reconstructItem(st, i)).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
       localStorage.removeItem(GUEST_QUOTE_KEY);
@@ -79,7 +87,7 @@ export default function App() {
 
   // After an order is sent, the next window goes into a fresh order, so the sent one keeps exactly what was sent.
   const [justSent, setJustSent] = useState(false);
-  const handleOrderSent = async (orderId, items) => { await markOrderSent(orderId, items); setJustSent(true); };
+  const handleOrderSent = async (orderId, items, customer) => { await markOrderSent(orderId, items, customer); setJustSent(true); };
   useEffect(() => {
     if (!justSent || quote.length > 0) return;
     setJustSent(false);
@@ -100,28 +108,28 @@ export default function App() {
     if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
   };
 
+  const [flash, setFlash] = useState(null);                      // { msg, n }: "Added to your order" for a moment
+  const [panelOpen, setPanelOpen] = useState(false);
+  const flashTimer = useRef(null);
+  const showFlash = (msg) => {
+    clearTimeout(flashTimer.current);
+    setFlash({ msg, n: Date.now() });
+    flashTimer.current = setTimeout(() => setFlash(null), 2400);
+  };
+
+  const commit = (next) => { setQuote(next); syncToSupabase(next); persistGuestQuote(next); };   // no-op saves when not logged in / no order yet
+
   const addToQuote = (item) => {
-    const newItem = { ...item, qty: item.qty || 1 };
-    const next = [...quote, newItem];
-    setQuote(next);
-    syncToSupabase(next); // no-op if not logged in or no activeOrderId
-    persistGuestQuote(next);
-    showSnackbar(`${item.product.name} added to your order`, { label: 'View Order', onClick: () => navigate('quote') });
+    commit([...quote, { ...item, id: item.id || newItemId(), qty: item.qty || 1 }]);
+    showFlash('Added to your order');
   };
-
-  const removeFromQuote = (idx) => {
-    const next = quote.filter((_, i) => i !== idx);
-    setQuote(next);
-    syncToSupabase(next);
-    persistGuestQuote(next);
+  const saveItem = (id, item) => {
+    commit(quote.map((it) => (it.id === id ? { ...it, ...item, id } : it)));
+    showFlash('Changes saved');
   };
-
-  const updateItem = (idx, patch) => {
-    const next = quote.map((it, i) => i === idx ? { ...it, ...patch } : it);
-    setQuote(next);
-    syncToSupabase(next);
-    persistGuestQuote(next);
-  };
+  const removeItem = (id) => commit(quote.filter((it) => it.id !== id));
+  const removeFromQuote = (idx) => commit(quote.filter((_, i) => i !== idx));
+  const updateItem = (idx, patch) => commit(quote.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
   // Clear the local cart after a successful order submission so the empty
   // Order Summary / Review pages don't let the same order be resubmitted.
@@ -140,15 +148,27 @@ export default function App() {
 
   // Accepts a route name ("products"), or a path ("/products/roller").
   const navigate = (r) => {
-    const target = r.startsWith('/') ? r : pathFor(r);
-    if (target !== window.location.pathname) window.history.pushState({}, '', target);
+    const full = r.startsWith('/') ? r : pathFor(r);
+    const [target, query = ''] = full.split('?');
+    const nextSearch = query ? `?${query}` : '';
+    if (target !== window.location.pathname || nextSearch !== window.location.search) window.history.pushState({}, '', target + nextSearch);
     setPath(target);
+    setSearch(nextSearch);
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const openOrder = (orderId) => {
     setActiveOrderId(orderId);
     navigate("quote");
+  };
+
+  // the order in progress, shared with the order bar, the order panel, the product pages and the order page
+  const prices = useItemPrices(quote);
+  const totals = totalsOf(quote, prices);
+  const cart = {
+    items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
+    addItem: addToQuote, saveItem, removeItem, flash, showFlash, panelOpen, setPanelOpen,
+    goEdit: (it) => navigate(editPath(it)),
   };
 
   if (route === "admin") {
@@ -162,7 +182,12 @@ export default function App() {
   const q = quote.length;
   const authProps = { supabaseEnabled, user, signInWithGoogle: handleSignIn, signOut, orders, authLoading };
 
+  const onLinePage = route === "line";
+  const onOrderPage = route === "quote" || route === "review";
+  const editId = onLinePage ? new URLSearchParams(search).get('edit') : null;
+
   return (
+    <CartContext.Provider value={cart}>
     <div>
       <Nav route={route === 'line' ? 'products' : route} navigate={navigate} quoteCount={q} {...authProps} />
       {snackbar && (
@@ -180,15 +205,19 @@ export default function App() {
       {route === "products" && <ProductsPage navigate={navigate} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "line"     && (
         <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
-          <LinePage key={slug} slug={slug} navigate={navigate} addToQuote={addToQuote} />
+          <LinePage key={slug} slug={slug} navigate={navigate} editId={editId} />
         </Suspense>
       )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
-      {(route === "quote" || route === "review") && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage navigate={navigate} quoteItems={quote} removeFromQuote={removeFromQuote} updateItem={updateItem} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
+      {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
       {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
       </main>
+      {/* product pages have their own bar (the item being built plus the order); the other customer pages get the order part alone, never on the order page */}
+      {!onLinePage && !onOrderPage && <OrderOnlyBar />}
+      <OrderPanel navigate={navigate} />
     </div>
+    </CartContext.Provider>
   );
 }
