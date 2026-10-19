@@ -98,8 +98,18 @@ try {
   check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
   check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way, London' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United States' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
   check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
+  // an order in progress must not stay on screen after signing out
+  await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
+  await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
+  check('before signing out the bar shows the item in the order', /Your order: 1 item/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '1');
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
+  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your order: 1 item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
+  await page.goto(`${BASE}/order`); await page.waitForTimeout(800);
+  check('and the order page is empty after signing out', /Your order is empty/.test(await page.locator('main').innerText()));
+  await page.goto(`${BASE}/`); await page.waitForTimeout(500);
+  check('the home page shows no order bar after signing out', (await page.locator('.s2-bar').count()) === 0);
   check('Sign out returns the circle to the signed-out icon', (await page.locator('.profile-btn.is-signed-in').count()) === 0 && (await page.locator('.profile-btn svg').count()) === 1);
   await page.locator('.profile-btn').click();
   check('and the menu offers Sign in with Google again', (await page.getByRole('menuitem').allInnerTexts()).join('|') === 'Sign in with Google');
