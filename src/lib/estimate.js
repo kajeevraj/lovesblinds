@@ -56,3 +56,20 @@ export function usePrice(req) {
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   return state;
 }
+
+// Same request, but never shows an answer for an earlier request: { loading, result }.
+// `result` is { price, custom_size, price_on_request } once the answer for exactly this request is in.
+export function usePriceState(req) {
+  const [state, setState] = useState({ key: '', res: null });
+  const key = req ? JSON.stringify(req) : '';
+  useEffect(() => {
+    if (!req) return undefined;
+    const ctl = new AbortController();
+    const t = setTimeout(() => {
+      estimatePrice(req, ctl.signal).then((res) => setState({ key, res })).catch((e) => { if (e.name !== 'AbortError') setState({ key, res: { error: true } }); });
+    }, 250);
+    return () => { clearTimeout(t); ctl.abort(); };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!req) return { loading: false, result: null };
+  return state.key === key ? { loading: false, result: state.res } : { loading: true, result: null };
+}

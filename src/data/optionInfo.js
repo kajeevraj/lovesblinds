@@ -72,5 +72,13 @@ export const DREAM_STYLE_INFO = {
 export const ROLLER_FAMILY_INFO = {
   solar: "A soft fabric that filters sunlight and cuts glare, with a softened view of the outside. Good for living rooms and bedrooms where you want gentle light and some daytime privacy.",
   "screen-view": "A tighter, tougher screen weave (as little as 3% openness) that blocks glare and heat while keeping a clear view outside. Good for rooms with a view, offices, TV rooms and patios (can be used indoors or outdoors).",
+  blackout: "A solid fabric that stops light coming through. Good for bedrooms, nurseries and media rooms.",
 };
-export const ROLLER_PRIVACY_NOTE = "Note on privacy: With either one, people can see in at night when your lights are on. For nighttime privacy, choose blackout or a dual shade.";
+
+// The three Roller fabric types as the Stage 2 page shows them: a short tag under the name, and the photo that goes with each.
+export const ROLLER_FAMILY_CARD = {
+  solar: { tag: "Softens sun and glare", photo: "solar", alt: "Light grey solar roller shades in a home office" },
+  "screen-view": { tag: "Clear view, less heat", photo: "screen-view", alt: "Grey screen view roller shade with the garden visible through it" },
+  blackout: { tag: "Darkest option", photo: "blackout", alt: "Charcoal blackout roller shade in a bedroom" },
+};
+export const ROLLER_PRIVACY_NOTE = "With Solar or Screen View, people can see in at night when your lights are on. For nighttime privacy, choose Blackout.";

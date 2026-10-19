@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { entriesFor, specRows, COLOR_FAMILY_ORDER, tileSrc } from '../data/swatchData.js';
+import { entriesFor, specRows, COLOR_FAMILY_ORDER, tileSrc, tileFallbacks } from '../data/swatchData.js';
 import { OptionCards } from './ExplainerImg.jsx';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { useCatalogStatus } from '../lib/useCatalog.js';
@@ -9,22 +9,24 @@ import { useCatalogStatus } from '../lib/useCatalog.js';
 // crossOrigin="anonymous" (the bucket allows any origin) lets them reuse the connection the catalog request already opened.
 // ---------------------------------------------------------------------------
 export function SwatchImg({ src, fallback, srcSet, sizes, alt, code, size, className = "", eager = false }) {
-  const [stage, setStage] = useState(0);            // 0 = src, 1 = fallback file, 2 = code tile
-  const current = stage === 0 ? src : stage === 1 ? fallback : null;
+  // `fallback` is one url or a list: each is tried in turn when the one before fails, then the code tile.
+  const sources = [src, ...(Array.isArray(fallback) ? fallback : [fallback])].filter(Boolean);
+  const [stage, setStage] = useState(0);
+  const current = sources[stage] || null;
   if (!current) {
     return <span className={`swatch-fallback ${className}`} role="img" aria-label={alt}>{code}</span>;
   }
-  const next = () => setStage(s => (s === 0 && fallback ? 1 : 2));
+  const next = () => setStage(n => n + 1);
   return (
     <img className={className} crossOrigin="anonymous" src={current} srcSet={stage === 0 ? srcSet : undefined} sizes={stage === 0 ? sizes : undefined} alt={alt} width={size} height={size} loading={eager ? "eager" : "lazy"} fetchpriority={eager ? "high" : "low"} decoding="async" onError={next} />
   );
 }
 
 // Customers see the display name and the supplier code. The supplier's collection and color names are never shown.
-const labelOf = (e) => e.swatch.displayName;
-const altOf = (e, code = e.swatch.code) => `${labelOf(e)}, ${code}`;
+export const labelOf = (e) => e.swatch.displayName;
+export const altOf = (e, code = e.swatch.code) => `${labelOf(e)}, ${code}`;
 
-function makePick(swatch, role, styleObj) {
+export function makePick(swatch, role, styleObj) {
   const src = styleObj || swatch;
   return {
     role: role || null,
@@ -72,7 +74,7 @@ const facetUseful = (entries, facet) => new Set(entries.map(e => facet.get(e) ??
 // ---------------------------------------------------------------------------
 // Larger view
 // ---------------------------------------------------------------------------
-function SwatchDialog({ entry, role, onChoose, onClose, chosen }) {
+export function SwatchDialog({ entry, role, onChoose, onClose, chosen }) {
   const ref = useRef(null);
   useEffect(() => { if (entry && ref.current && !ref.current.open) ref.current.showModal(); }, [entry]);
   if (!entry) return null;
@@ -213,7 +215,7 @@ export default function SwatchPicker({ heading, step, fabrics, role, family = nu
               const eager = eagerFirst && tileCount.n++ < 4;
               return (
                 <button key={s.id} type="button" className={`sw-tile${selected ? " selected" : ""}`} aria-pressed={selected} onClick={() => setView(e)}>
-                  <SwatchImg src={tileSrc(s)} fallback={s.image} alt={altOf(e)} code={s.code} size={160} eager={eager} />
+                  <SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt={altOf(e)} code={s.code} size={160} eager={eager} />
                   <span className="sw-label">{labelOf(e)}</span>
                   <span className="sw-code">{s.styles?.length ? s.styles.map(x => x.code).join(" / ") : s.code}</span>
                   {e.light && <span className="sw-sub">{e.light.label}</span>}
