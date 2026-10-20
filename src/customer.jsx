@@ -422,13 +422,13 @@ const INSIDE_STEPS = [
   ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
 ];
 const OUTSIDE_STEPS = [
-  ["Measure the width of the window frame", "From the outside edge of the frame on one side to the outside edge on the other. Measure once, and use the widest number.", "Frame · outside edge to outside edge"],
+  ["Measure the width of the window frame", "From the outside edge of the frame on one side to the outside edge on the other. Measure at the top, middle and bottom, and use the widest number.", "Frame · outside edge to outside edge"],
   ["Measure the height of the frame", "From the top of the frame down to the bottom of the sill or frame. Measure at the left, middle and right, and use the longest number.", "Top of frame to bottom of sill or frame"],
   ["Note any obstructions", "Window cranks, handles, vents, or anything on the wall around the window, so we can talk through the options.", "Obstructions"],
 ];
 const CURTAIN_STEPS = [
-  ["Measure the width of the window or door", "From the outside edge of the frame on one side to the outside edge on the other. Measure once, and use the widest number.", "Window or door · outside edge to outside edge"],
-  ["Measure the height to the floor", "From the spot where the track or rod will go, straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track or rod to floor · height × 3"],
+  ["Measure the width of the window or door", "From the outside edge of the frame on one side to the outside edge on the other. Measure at the top, middle and bottom, and use the widest number.", "Window or door · outside edge to outside edge"],
+  ["Measure the height to the floor", "From the spot where the track or rod will go, straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track or rod to floor · measure in 3 places"],
   ["Note any obstructions", "Wall switches, vents, radiators, a baseboard heater or a door that swings into the space, so we can talk through the options.", "Obstructions"],
 ];
 function MeasureStep({ n, title, text, tag }) {
