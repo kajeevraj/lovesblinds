@@ -111,6 +111,8 @@ try {
   check('order page: no sideways scroll at 390 px and touch targets are at least 44 px', sw <= 390 && small === 0, `${sw} px, ${small} small targets`);
   check('order page: no price group names', leak(await page.content()).length === 0);
 
+  const trapOk = await page.evaluate(() => { const i = document.querySelector('input[name=zx_kv_q7]'); const r = i.getBoundingClientRect(); const cs = getComputedStyle(i), box = getComputedStyle(i.closest('.spam-trap')); return i.tabIndex === -1 && i.getAttribute('autocomplete') === 'off' && i.getAttribute('aria-hidden') === 'true' && r.right < 0 && cs.display !== 'none' && box.display !== 'none' && !i.value; });
+  check('order form: the spam-trap box has a meaningless name, autocomplete off, tabindex -1, aria-hidden, is off-screen (not display:none) and is empty', trapOk);
   // the order form follows the same rule: "on its way" only when the server says it worked
   await page.locator('#o-email').fill('ada@example.com');
   for (const [label, status, body] of [['an email error', 500, { error: 'We could not send your order just now. If it keeps happening, please call us at (262) 434-0949 or email loveblindswindows@gmail.com.' }], ['the rate limit', 429, { error: 'Too many orders were sent. Please call us at (262) 434-0949.' }], ['an empty answer', 200, {}]]) {

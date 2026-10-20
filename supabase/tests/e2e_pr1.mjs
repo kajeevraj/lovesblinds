@@ -117,9 +117,22 @@ try {
   let posted = null, mode = 'ok';
   await page.route('**/api/contact', async (route) => { posted = JSON.parse(route.request().postData()); if (mode === 'ok') await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, emailed: true, stored: true }) }); else await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }) }); });
   await page.goto(`${BASE}/contact`); await page.locator('#c-name').waitFor();
-  const unlabeled = await page.evaluate(() => [...document.querySelectorAll('main input:not([name=website]), main textarea, main select')].filter((e) => e.type !== 'radio' && !e.labels?.length).length);
+  const unlabeled = await page.evaluate(() => [...document.querySelectorAll('main input:not([name=zx_kv_q7]), main textarea, main select')].filter((e) => e.type !== 'radio' && !e.labels?.length).length);
   check('every box on the Contact page has a label (name, email, phone, subject, message), and the topics are a labelled group', unlabeled === 0 && (await page.locator('fieldset legend').count()) === 1 && (await page.locator('input[type=radio]').count()) === 3);
-  check('the spam-trap field is not visible and not reachable by keyboard', await page.evaluate(() => { const i = document.querySelector('input[name=website]'); const r = i.getBoundingClientRect(); return i.tabIndex === -1 && (r.right < 0 || r.width <= 1) && !!i.closest('[aria-hidden=true]'); }));
+  check('the spam-trap field is not visible and not reachable by keyboard', await page.evaluate(() => { const i = document.querySelector('input[name=zx_kv_q7]'); const r = i.getBoundingClientRect(); const cs = getComputedStyle(i), box = getComputedStyle(i.closest('.spam-trap')); return i.tabIndex === -1 && i.getAttribute('autocomplete') === 'off' && i.getAttribute('aria-hidden') === 'true' && r.right < 0 && cs.display !== 'none' && box.display !== 'none' && box.visibility !== 'hidden'; }));
+  // autofill-style filling: a browser fills boxes by their name / id / autocomplete / type. None of it may reach the trap.
+  const autofilled = await page.evaluate(() => {
+    const guess = { name: 'Ada Lovelace', 'given-name': 'Ada', 'family-name': 'Lovelace', email: 'ada@example.com', tel: '5550102030', url: 'https://example.com', organization: 'Example', 'street-address': '1 Main St' };
+    let hits = 0;
+    for (const el of document.querySelectorAll('input')) {
+      const hay = `${el.name} ${el.id} ${el.getAttribute('autocomplete') || ''} ${el.type} ${el.placeholder} ${el.labels?.[0]?.textContent || ''}`.toLowerCase();
+      if (el.getAttribute('autocomplete') === 'off') continue;                      // browsers leave these alone
+      for (const [k, v] of Object.entries(guess)) if (hay.includes(k) || (k === 'tel' && /phone/.test(hay)) || (k === 'url' && /website|site/.test(hay))) { el.value = v; hits++; break; }
+    }
+    return { hits, trap: document.querySelector('input[name=zx_kv_q7]').value };
+  });
+  check('autofill-style filling fills real boxes but never the spam-trap box', autofilled.hits >= 3 && autofilled.trap === '', JSON.stringify(autofilled));
+  await page.reload(); await page.locator('#c-name').waitFor();
   await page.getByRole('button', { name: /Send message/i }).click();
   check('an empty form shows what is missing and sends nothing', (await page.locator('.field-error').count()) === 3 && posted === null);
   check('...each missing box has its own clear message (name, email, message)', /enter your name/.test(await page.locator('#c-name + .field-error').innerText()) && /enter your email so we can reply/.test(await page.locator('#c-email + .field-error').innerText()) && /write your message/.test(await page.locator('#c-message + .field-error').innerText()));
@@ -154,7 +167,7 @@ try {
   check('...and what was typed is still there to try again', (await page.locator('#c-message').inputValue()) === 'Can you do 120 inch curtains?');
   mode = 'ok';
   await page.getByRole('button', { name: /Send message/i }).click(); await page.getByText('Message received.').waitFor();
-  check('when the send works: "Message received." is shown, and everything was sent (name, email, phone, topic, subject, message)', posted.name === 'Ada Lovelace' && posted.email === 'ada@example.com' && posted.phone === '555 010 2030' && posted.topic === 'Question about a quote' && posted.subject === 'About my order' && posted.message === 'Can you do 120 inch curtains?' && posted.website === '');
+  check('when the send works: "Message received." is shown, and everything was sent (name, email, phone, topic, subject, message)', posted.name === 'Ada Lovelace' && posted.email === 'ada@example.com' && posted.phone === '555 010 2030' && posted.topic === 'Question about a quote' && posted.subject === 'About my order' && posted.message === 'Can you do 120 inch curtains?' && posted.zx_kv_q7 === '');
   const narrow = await browser.newPage({ viewport: { width: 320, height: 640 } }); await narrow.goto(`${BASE}/contact`); await narrow.locator('#c-name').waitFor();
   check('the Contact page does not scroll sideways at 320 px', !(await narrow.evaluate(() => document.documentElement.scrollWidth > innerWidth)), String(await narrow.evaluate(() => document.documentElement.scrollWidth)));
   await narrow.close();

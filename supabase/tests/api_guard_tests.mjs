@@ -3,7 +3,7 @@
 // Reads the real catalog for one Roller color (SUPABASE_URL, VITE_SUPABASE_ANON_KEY) to build a realistic order.
 import { handleQuote, checkSizes } from '../../api/quote.js';
 import { handleContact, firstName, confirmationText, CONFIRMATION_SUBJECT } from '../../api/contact.js';
-import { rateLimit, validateOrder, digest, LIMITS } from '../../api/_guard.js';
+import { rateLimit, validateOrder, digest, LIMITS, SPAM_TRAP } from '../../api/_guard.js';
 
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
 const results = [];
@@ -25,7 +25,10 @@ const run = async (b, o = {}) => { const res = fakeRes(); const resend = o.resen
 // ---------- the order endpoint ----------
 let r = await run(body());
 check('a good order is sent (internal email and customer copy) and answers ok', r.res.code === 200 && r.res.body.ok && r.resend.sent.length === 2, `${r.res.code} ${JSON.stringify(r.res.body)}`);
-r = await run({ ...body(), website: 'http://spam.example' });
+r = await run({ ...body(), zx_kv_q7: 'http://spam.example' });
+import { readFileSync } from 'node:fs';
+check('the spam-trap field name is meaningless (not name, email, phone, website, url or address)', !/name|email|phone|website|url|address|mail|tel/i.test(SPAM_TRAP), SPAM_TRAP);
+check('both forms send the spam-trap field under the same name the server checks', ['src/customer.jsx', 'src/orderpage.jsx'].every((f) => readFileSync(f, 'utf8').includes(`name="${SPAM_TRAP}"`)));
 check('the hidden spam-trap field: nothing is sent and it is never answered "ok"', r.res.code === 400 && !r.res.body.ok && r.resend.sent.length === 0);
 r = await run(body(), { headers: { 'content-length': '999999' } });
 check('a request over the size cap is refused (413) and nothing is sent', r.res.code === 413 && r.resend.sent.length === 0);
@@ -88,7 +91,7 @@ let c = await crun(cbody());
 check('contact: a good message is emailed to us and stored, answered ok', c.res.code === 200 && c.res.body.ok && c.res.body.emailed && c.res.body.stored && c.resend.sent[0].to === 'loveblindswindows@gmail.com' && stores.at(-1).emailed === true && stores.at(-1).phone === '555', JSON.stringify(c.res.body));
 check('contact: replies go to the customer, the subject is one line, HTML is escaped', c.resend.sent[0].replyTo === 'ada@example.com' && !/[\r\n]/.test(c.resend.sent[0].subject) && c.resend.sent[0].html.includes('&lt;b&gt;there&lt;/b&gt;') && !c.resend.sent[0].html.includes('<b>there'));
 stores.length = 0;
-c = await crun(cbody({ website: 'x' })); check('contact: the spam-trap field sends and stores nothing and is never answered ok', c.res.code === 400 && !c.res.body.ok && c.resend.sent.length === 0 && stores.length === 0 && /loveblindswindows@gmail\.com/.test(c.res.body.error));
+c = await crun(cbody({ zx_kv_q7: 'x' })); check('contact: the spam-trap field sends and stores nothing and is never answered ok', c.res.code === 400 && !c.res.body.ok && c.resend.sent.length === 0 && stores.length === 0 && /loveblindswindows@gmail\.com/.test(c.res.body.error));
 // every refusal: an error, a message for the right field, nothing sent, nothing stored, never ok
 for (const [label, patch, field, re] of [
   ['no email', { email: '' }, 'email', /enter your email so we can reply/], ['a missing email field', { email: undefined }, 'email', /enter your email/],
@@ -105,17 +108,23 @@ c = await crun(cbody({ message: 'x'.repeat(5001) })); check('contact: a message 
 c = await crun(cbody(), { headers: { 'content-length': '50000' } }); check('contact: a request over the size cap is refused (413)', c.res.code === 413);
 c = await crun(cbody(), { rateLimit: async () => ({ limited: true }) }); check('contact: over the rate limit: 429 and nothing sent', c.res.code === 429 && c.resend.sent.length === 0);
 stores.length = 0; c = await crun(cbody(), { resend: mkResend({ error: true }) });
-check('contact: if the email to us fails, it is an error (even though it was saved), with our email and phone, and no confirmation', c.res.code === 502 && !c.res.body.ok && !c.res.body.emailed && /loveblindswindows@gmail\.com/.test(c.res.body.error) && /262-434-0949/.test(c.res.body.error) && c.resend.sent.length === 1);
+check('contact: if the email to us fails, it is an error with our email and phone and no confirmation (the message is still kept, marked not emailed)', c.res.code === 502 && !c.res.body.ok && !c.res.body.emailed && /loveblindswindows@gmail\.com/.test(c.res.body.error) && /262-434-0949/.test(c.res.body.error) && c.resend.sent.length === 1 && stores.length === 1 && stores[0].emailed === false);
 c = await crun(cbody(), { env: { ...env, RESEND_API_KEY: '', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } });
 check('contact: with no email service set up it is an error, not "received"', c.res.code === 502 && !c.res.body.ok);
 c = await crun(cbody(), { resend: { sent: [], emails: { send: async () => { throw new Error('network'); } } } });
 check('contact: if the email service throws, it is an error', c.res.code === 502 && !c.res.body.ok);
+// our email went out but saving fails: it reached us, so it IS received; the failure is logged and tried once more
+stores.length = 0; const logged = []; const realErr = console.error; console.error = (...a) => logged.push(a.join(' '));
 c = await crun(cbody(), { fetch: cfetch(false) });
-check('contact: if saving fails (database error) it is an error with our email and phone, never ok', c.res.code === 502 && !c.res.body.ok && /loveblindswindows@gmail\.com/.test(c.res.body.error) && /262-434-0949/.test(c.res.body.error), JSON.stringify(c.res.body));
-c = await crun(cbody(), { fetch: async () => { throw new Error('db down'); } });
-check('contact: if the database cannot be reached it is an error', c.res.code === 502 && !c.res.body.ok);
-c = await crun(cbody(), { env: { ...env, SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } });
-check('contact: with the database not set up it is an error', c.res.code === 502 && !c.res.body.ok);
+console.error = realErr;
+check('contact: email went out but saving failed (database error): "received" (ok), the confirmation still goes, the failure is logged, saving was tried twice', c.res.code === 200 && c.res.body.ok === true && c.res.body.emailed === true && c.res.body.stored === false && c.res.body.confirmation === true && c.resend.sent.length === 2 && stores.length === 2 && logged.filter((l) => /not stored/.test(l)).length === 2, JSON.stringify(c.res.body));
+let n = 0; stores.length = 0;
+c = await crun(cbody(), { fetch: async (u, o) => { n++; stores.push(JSON.parse(o.body)); return n === 1 ? { ok: false, status: 500 } : { ok: true, status: 201 }; } });
+check('contact: if the first save fails and the retry works, it is saved and ok', c.res.code === 200 && c.res.body.ok && c.res.body.stored === true && stores.length === 2);
+console.error = () => {}; c = await crun(cbody(), { fetch: async () => { throw new Error('db down'); } }); 
+check('contact: email went out but the database cannot be reached: still "received"', c.res.code === 200 && c.res.body.ok && c.res.body.emailed && !c.res.body.stored);
+c = await crun(cbody(), { env: { ...env, SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } }); console.error = realErr;
+check('contact: email went out but the database is not set up: still "received"', c.res.code === 200 && c.res.body.ok && c.res.body.emailed && !c.res.body.stored);
 c = await crun(cbody(), { resend: mkResend({ error: true }), fetch: cfetch(false) });
 check('contact: if both fail, it is an error with our email and phone', c.res.code === 502 && !c.res.body.ok && /loveblindswindows@gmail\.com/.test(c.res.body.error) && /262-434-0949/.test(c.res.body.error), c.res.body?.error);
 stores.length = 0; c = await crun(cbody({ name: 'Grace Hopper', email: 'grace@example.com' }));
@@ -140,7 +149,7 @@ check('contact confirmation: if our own copy failed, no confirmation goes to the
 c = await crun(cbody(), { resend: (() => { const sent = []; return { sent, emails: { send: async (m) => { sent.push(m); return sent.length === 2 ? { error: { message: 'boom' } } : { data: { id: 'x' } }; } } }; })() });
 check('contact confirmation: if only the confirmation fails, the message still counts as received', c.res.code === 200 && c.res.body.ok && c.res.body.emailed && c.res.body.confirmation === false);
 c = await crun(cbody(), { rateLimit: async () => ({ limited: true }) }); check('contact confirmation: the rate limits (IP and email) stand in front of it: nothing at all is sent when limited', c.res.code === 429 && c.resend.sent.length === 0);
-c = await crun({ ...cbody(), website: 'x' }); check('contact confirmation: the spam trap stops it too', c.resend.sent.length === 0);
+c = await crun({ ...cbody(), zx_kv_q7: 'x' }); check('contact confirmation: the spam trap stops it too', c.resend.sent.length === 0);
 c = await crun(cbody({ email: 'victim@example.com' })); check('contact confirmation: it goes only to the address in the form, once', c.resend.sent.filter((m) => m.to === 'victim@example.com').length === 1);
 
 const bad = results.filter((x) => !x.ok);

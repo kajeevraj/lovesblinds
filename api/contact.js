@@ -1,6 +1,7 @@
 // POST /api/contact: a message from the Contact page. It is emailed to us through Resend (the way orders are) and stored in the
-// `messages` table (migration 13; readable by admins only). It counts as received ONLY when both worked (our email went out and it
-// was saved); anything else is an error that gives our email and phone. Success is never faked. Same protection as the order form: a hidden spam-trap field, size
+// `messages` table (migration 13; readable by admins only). It counts as received ONLY when our email went out (a save that fails
+// is logged and tried once more, but the customer is not told it failed, since it reached us); if our email did not go out the
+// customer gets an error with our email and phone, even if a copy was saved. Success is never faked. Same protection as the order form: a hidden spam-trap field, size
 // limits and a rate limit per IP address and per email address.
 import { Resend } from 'resend';
 import { LIMITS, SPAM_TRAP, BUSINESS_EMAIL, BUSINESS_NAME, clientIp, digest, tooLarge, friendly, rateLimit, validEmail, oneLine } from './_guard.js';
@@ -121,9 +122,13 @@ export async function handleContact(req, res, deps = {}) {
       confirmation = true;
     } catch (err) { console.error('[api/contact] confirmation not sent:', err?.message || err); }       // we have the message; only the reply is missing
   }
-  try { await storeMessage(m, emailed, env, fetchFn); stored = true; } catch (err) { console.error('[api/contact] not stored:', err?.message || err); }
+  // saving (also when the email failed, so we still have the message): one more try if the first fails. If it still fails but our
+  // email went out, the message has reached us, so it counts as received
+  for (let attempt = 1; attempt <= 2 && !stored; attempt++) {
+    try { await storeMessage(m, emailed, env, fetchFn); stored = true; } catch (err) { console.error(`[api/contact] not stored (try ${attempt}; ${emailed ? 'it was emailed to us' : 'and the email failed too'}):`, err?.message || err); }
+  }
 
-  if (!emailed || !stored) return res.status(502).json({ error: FAILED });
+  if (!emailed) return res.status(502).json({ error: FAILED });
   return res.status(200).json({ ok: true, emailed, stored, confirmation });
 }
 

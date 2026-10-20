@@ -86,7 +86,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   const cart = useCart();
   const { items, prices } = cart;
   const { total, byEmail, loading } = cart.totals;
-  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '', website: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '', zx_kv_q7: '' });
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -121,7 +121,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
           customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, shipTo: addressLine(address) },
           lines: items.map((it, i) => quoteLine(it, prices[i])),
           notes: form.notes.trim(),
-          website: form.website,
+          zx_kv_q7: form.zx_kv_q7,
         }),
       });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || `Server error (${res.status})`); }
@@ -129,8 +129,9 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
       if (!data.ok) throw new Error('We could not send your order just now. Please email loveblindswindows@gmail.com or call 262-434-0949.');     // never show "sent" unless the server says so
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
-      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() });
-      onSubmitted?.();
+      // it reached us: a problem saving it to the customer's account is only logged and never turns the success into an error
+      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
+      catch (e) { console.error('[order] not saved to the account:', e); }
       setSent({ copySent: !!data.customerCopy });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again or call us.');
@@ -222,7 +223,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                   <textarea id="o-notes" className="s2-input s2-textarea" rows={3} value={form.notes} onChange={set('notes')} /></div>
               </div>
               {/* a field people never see; a bot that fills it in is ignored */}
-              <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label></div>
+              <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.zx_kv_q7} onChange={set('zx_kv_q7')} /></label></div>
               {error && <div className="s2-send-error" role="alert">{error}</div>}
               <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={sending} onClick={send}>{sending ? 'Sending…' : 'Send my order'}</button>
               <p className="s2-send-note">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>

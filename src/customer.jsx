@@ -546,7 +546,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 const CONTACT_TOPICS = ["General question", "Question about a quote", "Trade / wholesale"];
 
 export function ContactPage({ navigate }) {
-  const [f, setF] = useState({ name: "", email: "", phone: "", topic: CONTACT_TOPICS[0], subject: "", message: "", website: "" });
+  const [f, setF] = useState({ name: "", email: "", phone: "", topic: CONTACT_TOPICS[0], subject: "", message: "", zx_kv_q7: "" });
   const [status, setStatus] = useState("idle");        // idle | sending | sent | failed
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
@@ -609,7 +609,7 @@ export function ContactPage({ navigate }) {
                   <div className="full"><label className="label" htmlFor="c-subject">Subject (optional)</label><input id="c-subject" className="input" placeholder="Quick question about cellular shades…" value={f.subject} onChange={set("subject")} /></div>
                   <div className="full"><label className="label" htmlFor="c-message">Message</label><textarea id="c-message" className={`textarea${errors.message ? " input-error" : ""}`} rows="5" placeholder="Tell us a bit about your project." value={f.message} onChange={set("message")} aria-invalid={!!errors.message} />{errors.message && <span className="field-error" role="alert">{errors.message}</span>}</div>
                   {/* a field people never see; a bot that fills it in is ignored */}
-                  <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={set("website")} /></label></div>
+                  <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.zx_kv_q7} onChange={set("zx_kv_q7")} /></label></div>
                   {status === "failed" && <div className="full send-error" role="alert">{error}</div>}
                   <div className="full"><button type="submit" className="btn btn-sage" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>Send Message <ArrowRight /></>}</button></div>
                 </form>

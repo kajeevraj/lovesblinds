@@ -17,7 +17,9 @@ export const LIMITS = {
   orderPerIpHour: 5, orderPerEmailHour: 3, contactPerIpHour: 5, contactPerEmailHour: 3,
 };
 
-export const SPAM_TRAP = 'website';                       // a form field people never see; bots fill it in
+// A form field people never see; bots fill it in. Its name is deliberately meaningless (not name, email, phone or website) so a browser's
+// autofill has nothing to match. The two forms in src/ send it under this same name (a test checks they agree).
+export const SPAM_TRAP = 'zx_kv_q7';
 
 export const clientIp = (req) => String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || String(req.headers?.['x-real-ip'] || '') || req.socket?.remoteAddress || 'unknown';
 export const digest = (s) => createHash('sha256').update(String(s).trim().toLowerCase()).digest('hex').slice(0, 24);
