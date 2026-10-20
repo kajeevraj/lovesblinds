@@ -23,5 +23,7 @@ for (const file of readdirSync(SRC).filter((n) => /\.jpe?g$/i.test(n)).sort()) {
   }
   manifest[name] = { width, height, widths };
 }
+// the picture shown when a link to the site is shared: the homepage hero, cropped to 1200 x 630
+await sharp(join(SRC, 'hero-living.jpg')).rotate().resize({ width: 1200, height: 630, fit: 'cover', position: 'attention' }).jpeg({ quality: 82, mozjpeg: true }).toFile('public/og-image.jpg');
 writeFileSync('src/data/sitePhotos.json', JSON.stringify(manifest, null, 1) + '\n');
 console.log(`site photos: ${Object.keys(manifest).length} written`);

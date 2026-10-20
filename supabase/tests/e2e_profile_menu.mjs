@@ -54,22 +54,33 @@ try {
   check('arrow keys move through the menu items', (await page.evaluate(() => document.activeElement.textContent)) === 'Order history');
   await noOverflow(page, 'menu open');
 
+  // a profile saved before the address had separate boxes (one line of text) shows that line in the street box
+  await api('PUT', `/auth/v1/admin/users/${userId}`, H(SVC), { user_metadata: { profile_ship_to: '9 Old Road, Town', profile_address: null } });
+  {
+    const fresh = (await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password })).body;     // a new sign-in sees the account as it is now
+    const lc = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await lc.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(fresh)]);
+    const lp = await lc.newPage(); lp.setDefaultTimeout(20000); await lp.goto(`${BASE}/profile`); await lp.locator('#pf-street').waitFor(); await lp.waitForTimeout(1200);
+    check('an address saved the old way (one line) appears in the street box, so nothing is lost', (await lp.locator('#pf-street').inputValue()) === '9 Old Road, Town' && (await lp.locator('#pf-city').inputValue()) === '' && (await lp.locator('#pf-country').inputValue()) === 'United States');
+    await lc.close();
+  }
   await page.getByRole('menuitem', { name: 'Edit profile' }).click();
   await page.getByRole('heading', { name: 'Your profile' }).waitFor();
   check('Edit profile opens the profile page at /profile', new URL(page.url()).pathname === '/profile');
   check('the profile page starts with their Google name', (await page.getByLabel('Name').inputValue()) === 'Ada Lovelace');
-  await page.getByLabel('Name').fill('Ada B. Lovelace'); await page.getByLabel('Phone').fill('555 010 2030'); await page.getByLabel('Shipping address').fill('1 Analytical Way, London');
+  await page.getByLabel('Name').fill('Ada B. Lovelace'); await page.getByLabel('Phone').fill('555 010 2030'); await page.locator('#pf-street').fill('1 Analytical Way'); await page.locator('#pf-apt').fill('Flat 2'); await page.locator('#pf-city').fill('London'); await page.locator('#pf-state').fill('England'); await page.locator('#pf-zip').fill('N1 1AA'); await page.locator('#pf-country').selectOption('United Kingdom');
+  check('the profile address has the same fields as the order form (street, apartment optional, city, state / province, ZIP / postal code, country list)', (await page.locator('.profile-address label').allInnerTexts()).join('|') === 'Street address|Apartment, suite, etc. (optional)|City|State / province|ZIP / postal code|Country');
   await page.getByRole('button', { name: 'Save profile' }).click(); await page.getByText('Saved.').waitFor();
   const meta = (await api('GET', `/auth/v1/admin/users/${userId}`, H(SVC))).body.user_metadata;
-  check('Save profile stores the name, phone and address on the account (Google fields untouched)', meta.profile_name === 'Ada B. Lovelace' && meta.profile_phone === '555 010 2030' && meta.profile_ship_to === '1 Analytical Way, London' && meta.full_name === 'Ada Lovelace', JSON.stringify(meta));
+  check('Save profile stores the name, phone and address on the account (Google fields untouched)', meta.profile_name === 'Ada B. Lovelace' && meta.profile_phone === '555 010 2030' && meta.profile_address?.street === '1 Analytical Way' && meta.profile_address.apt === 'Flat 2' && meta.profile_address.city === 'London' && meta.profile_address.state === 'England' && meta.profile_address.zip === 'N1 1AA' && meta.profile_address.country === 'United Kingdom' && meta.profile_ship_to === '1 Analytical Way, Flat 2, London, England N1 1AA, United Kingdom' && meta.full_name === 'Ada Lovelace', JSON.stringify(meta));
   await noOverflow(page, 'profile page');
   await page.reload(); await page.getByLabel('Name').waitFor(); await page.waitForTimeout(600);
-  check('after a reload the saved details are there', (await page.getByLabel('Phone').inputValue()) === '555 010 2030' && (await page.getByLabel('Name').inputValue()) === 'Ada B. Lovelace');
+  check('after a reload the saved details are there', (await page.getByLabel('Phone').inputValue()) === '555 010 2030' && (await page.getByLabel('Name').inputValue()) === 'Ada B. Lovelace' && (await page.locator('#pf-street').inputValue()) === '1 Analytical Way' && (await page.locator('#pf-country').inputValue()) === 'United Kingdom' && (await page.locator('#pf-zip').inputValue()) === 'N1 1AA');
   await page.locator('.profile-btn').click();
   check('the menu now shows the profile name', /Ada B\. Lovelace/.test(await page.locator('.profile-who').innerText()));
   await page.getByRole('menuitem', { name: 'Order history' }).click();
   check('Order history opens My Orders', new URL(page.url()).pathname === '/orders');
-  await page.getByRole('heading', { name: 'My Orders' }).first().waitFor();
+  await page.getByRole('heading', { name: /My orders/i }).first().waitFor();
 
   // the order details form starts from the profile
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
@@ -77,8 +88,8 @@ try {
   await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
   await page.getByRole('button', { name: 'Add to order' }).click(); await page.locator('.s2-flash').waitFor(); await page.waitForTimeout(1500);   // saved to their order
   await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
-  const filled = await page.locator('.s2-form input').evaluateAll((els) => els.map((e) => e.value));
-  check('the order details form is pre-filled from the profile (name, email, phone, address)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way, London'].every((v) => filled.includes(v)), filled.join(' | '));
+  const filled = await page.locator('.s2-form input, .s2-form select').evaluateAll((els) => els.map((e) => e.value));
+  check('the order details form is pre-filled from the profile: name, email, phone and the whole address (street, apartment, city, state, ZIP, country)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way', 'Flat 2', 'London', 'England', 'N1 1AA', 'United Kingdom'].every((v) => filled.includes(v)), filled.join(' | '));
 
   // signed in: an edit link survives a refresh (the saved order has to load before the item can be found)
   await page.locator('.s2-item').first().click();
@@ -86,7 +97,6 @@ try {
   await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
   check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
   await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
-  await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1 1AA');
   // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
   await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));
   await page.getByRole('button', { name: 'Send my order' }).click();
@@ -96,7 +106,7 @@ try {
   const ord = hasCustomerColumn ? ordRes.body : (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
   const sentOrder = ord.find((x) => x.status === 'sent');
   check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
-  check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way, London' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United States' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
+  check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United Kingdom' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
   check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
   // a sent order opens to look at, never to change; "Order again" copies it into a new draft
   const beforeItems = JSON.stringify(sentOrder.items);

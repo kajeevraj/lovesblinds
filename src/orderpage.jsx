@@ -96,7 +96,8 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   useEffect(() => {
     const pr = profileOf(user);
     if (!pr) return;
-    setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, street: f.street || pr.shipTo }));
+    const a = pr.address;
+    setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, street: f.street || a.street, apt: f.apt || a.apt, city: f.city || a.city, state: f.state || a.state, zip: f.zip || a.zip, country: f.country === DEFAULT_COUNTRY ? a.country : f.country }));
   }, [user]);
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: '' })); };
 

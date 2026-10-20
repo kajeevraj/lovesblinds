@@ -1108,3 +1108,145 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .s2-step-hint a { display: inline-flex; align-items: center; min-height: var(--pill); }
 .contact-details a { overflow-wrap: anywhere; }
 @media (max-width: 400px) { .contact-details { padding: 24px 16px; } }
+
+/* ---- PR 2: the inner pages (Products list, Contact, Measuring guide, My Orders, Profile) in the new design ---------------------
+   They use the same cream page, Playfair headings, brass accents, 48px controls and 44px pills as the home and product pages. */
+.s2-inner { min-height: 60vh; }
+.s2-page-head { padding-top: 48px; padding-bottom: 8px; }
+.s2-page-title { margin: 0 0 12px; font-family: "Playfair Display", serif; font-weight: 500; font-size: clamp(34px, 6vw, 52px); line-height: 1.05; color: var(--s2-ink); max-width: 760px; }
+.s2-page-lede { margin: 0 0 24px; max-width: 620px; font-size: 16px; line-height: 1.6; color: #4A423A; }
+.s2-page-action { margin-top: 0; }
+.s2-page-body { padding-top: 24px; padding-bottom: 72px; }
+.s2-panel-box { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 32px; max-width: 560px; }
+.s2-panel-box .s2-page-lede { margin-bottom: 16px; }
+
+/* form controls */
+.s2-inner .label { display: block; margin: 0 0 8px; font-size: 14px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--s2-ink); }
+.s2-inner .input, .s2-inner .textarea { width: 100%; min-height: 48px; padding: 0 14px; font-size: 16px; font-family: inherit; color: var(--s2-ink); background: var(--s2-card); border: 1px solid #CFC3B0; border-radius: 4px; box-sizing: border-box; }
+.s2-inner .textarea { padding: 12px 14px; min-height: 140px; line-height: 1.5; }
+.s2-inner .input:focus, .s2-inner .textarea:focus { outline: 2px solid var(--s2-brass); outline-offset: 1px; border-color: var(--s2-brass); }
+.s2-inner .input.input-error, .s2-inner .textarea.input-error { border-color: #A8513F; }
+.s2-inner .field-error { display: block; margin-top: 6px; font-size: 13px; color: #A8513F; font-weight: 500; }
+.s2-inner .quote-form { margin-top: 0; gap: 24px 16px; }
+.s2-inner .send-error { background: #FBEFEB; border: 1px solid #E3B9AD; color: #7C2E1F; border-radius: 4px; padding: 12px 16px; font-size: 14px; line-height: 1.5; }
+.s2-inner .contact-topics .opt-btn, .s2-inner .opt-btn { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--s2-ink); background: transparent; color: var(--s2-ink); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.s2-inner .opt-btn:hover { background: #EFE6D6; }
+.s2-inner .opt-btn.selected { background: var(--s2-ink); color: #fff; border-color: var(--s2-ink); }
+.s2-inner .config-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.s2-inner .success-banner { background: var(--s2-card); border: 1px solid var(--s2-line); border-left: 4px solid var(--s2-brass); border-radius: 4px; padding: 24px; }
+.s2-inner .success-banner h3 { margin: 0 0 6px; font-family: "Playfair Display", serif; font-weight: 500; font-size: 26px; color: var(--s2-ink); }
+.s2-inner .success-banner p { margin: 0; font-size: 15px; color: #4A423A; }
+
+/* Contact */
+.s2-inner .contact-page { padding-top: 24px; padding-bottom: 72px; }
+.s2-inner .contact-grid { margin-top: 0; gap: 48px; grid-template-columns: 1.3fr 0.7fr; align-items: start; }
+.s2-inner .contact-details { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 28px 28px 12px; }
+.contact-details-title { margin: 0 0 8px; font-family: "Playfair Display", serif; font-weight: 500; font-size: 26px; }
+.s2-inner .contact-detail-row { padding: 16px 0; border-bottom: 1px solid var(--s2-line); }
+.s2-inner .contact-detail-row .label { color: var(--s2-muted); font-weight: 500; margin-bottom: 4px; }
+.s2-inner .contact-detail-row .val { font-family: "Montserrat", sans-serif; font-size: 17px; font-weight: 600; }
+.s2-inner .contact-detail-row .val a { color: var(--s2-ink); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.s2-inner .contact-detail-row .val a:hover { color: var(--s2-brass); }
+
+/* Measuring guide */
+.s2-inner .measure-content { padding-top: 24px; padding-bottom: 72px; }
+.s2-inner .measure-toc { top: 24px; }
+.s2-inner .measure-toc .label { color: var(--s2-muted); font-weight: 600; }
+.s2-inner .measure-toc-list a { color: var(--s2-ink); }
+.s2-inner .measure-toc-list a:hover { color: var(--s2-brass); }
+.s2-inner .measure-toc-callout { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 20px; }
+.s2-inner .measure-toc-callout p { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: #4A423A; }
+.s2-inner .measure-block h2 { font-family: "Playfair Display", serif; font-weight: 500; color: var(--s2-ink); }
+.s2-inner .measure-block p { color: #4A423A; }
+.s2-inner .tool-card { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 18px 20px; }
+.s2-inner .tool-card-name { font-family: "Playfair Display", serif; font-weight: 500; }
+.s2-inner .tool-card-desc { color: var(--s2-muted); font-size: 14px; }
+.s2-inner .measure-figure { background: #fff; border: 1px solid var(--s2-line); border-radius: 4px; }
+.s2-inner .mount-tab { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; min-height: 64px; cursor: pointer; text-align: left; font-family: inherit; color: var(--s2-ink); }
+.s2-inner .mount-tab:hover { border-color: var(--s2-brass); }
+.s2-inner .mount-tab.active { background: #F1E7D4; border-color: var(--s2-brass); box-shadow: inset 0 0 0 1px var(--s2-brass); }
+.s2-inner .mount-tab-name { font-family: "Playfair Display", serif; font-weight: 500; }
+.s2-inner .mount-tab-desc { color: var(--s2-muted); }
+.s2-inner .meas-step-num { color: var(--s2-brass-text); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.s2-inner .meas-step h3 { font-family: "Playfair Display", serif; font-weight: 500; color: var(--s2-ink); }
+.s2-inner .meas-step p { color: #4A423A !important; }
+.s2-inner .measure-tips li { color: #4A423A; }
+.s2-inner .measure-cta { background: var(--s2-ink); color: var(--s2-cream); border-radius: 4px; }
+.s2-inner .measure-cta h2 { color: var(--s2-cream); font-size: 32px; }
+.s2-inner .measure-cta p { color: #E5DACA !important; }
+
+/* My Orders */
+.s2-orders .orders-page-header { margin-bottom: 32px; align-items: flex-end; }
+.s2-orders .orders-page-header .s2-page-title { margin-bottom: 0; }
+.s2-orders .orders-page-header .s2-eyebrow { text-transform: none; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.s2-inner .orders-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.s2-inner .order-card { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 20px; gap: 6px; }
+.s2-inner .order-card:hover { border-color: var(--s2-brass); box-shadow: 0 2px 12px rgba(30,26,22,0.08); }
+.s2-inner .order-card:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 2px; }
+.s2-inner .order-card.active { background: #F1E7D4; border-color: var(--s2-brass); }
+.s2-inner .order-card-name { font-family: "Playfair Display", serif; font-weight: 500; font-size: 20px; color: var(--s2-ink); }
+.s2-inner .order-card-name-input { font-family: inherit; font-size: 16px; min-height: 44px; }
+.s2-inner .order-card-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; color: var(--s2-muted); }
+.s2-inner .order-card-btn:hover { color: var(--s2-ink); background: #EFE6D6; }
+.s2-inner .order-card-meta { font-size: 14px; color: var(--s2-muted); }
+.s2-inner .order-card-est { color: var(--s2-ink); font-weight: 600; }
+.s2-inner .order-pill { padding: 4px 12px; border-radius: 999px; font-size: 12px; }
+.s2-inner .order-pill-draft { background: #EFE6D6; color: var(--s2-ink); }
+.s2-inner .order-pill-sent { background: #E4EEDF; color: #2F5A2B; }
+.s2-inner .order-pill-active { background: var(--s2-brass); color: #fff; }
+.s2-inner .empty-state { background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 56px 24px; }
+.s2-empty-title { margin: 0 0 10px; font-family: "Playfair Display", serif; font-weight: 500; font-size: 28px; }
+.s2-inner .empty-state p { margin: 0 auto 24px; color: #4A423A; }
+.s2-inner .db-error-banner { background: #FBEFEB; border: 1px solid #E3B9AD; color: #7C2E1F; border-radius: 4px; }
+
+/* Profile */
+.s2-profile .profile-form { max-width: 560px; background: var(--s2-card); border: 1px solid var(--s2-line); border-radius: 4px; padding: 28px; }
+.s2-profile .profile-form-avatar { background: var(--s2-brass); color: #fff; }
+.profile-form-note { color: var(--s2-muted); font-size: 14px; line-height: 1.5; }
+.s2-profile .choice-note { color: var(--s2-muted); }
+.s2-profile .config-actions { gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.profile-status { margin-top: 12px; min-height: 22px; }
+.profile-saved { color: #2F5A2B; font-weight: 600; }
+.profile-error { color: #A8513F; }
+
+@media (max-width: 760px) {
+  .s2-page-head { padding-top: 32px; }
+  .s2-page-body { padding-bottom: 48px; }
+  .s2-inner .contact-grid { grid-template-columns: 1fr; gap: 32px; }
+  .s2-orders .orders-page-actions { width: 100%; }
+  .s2-orders .orders-page-actions .s2-btn { flex: 1 1 0; }
+  .s2-profile .profile-form, .s2-panel-box { padding: 20px; }
+}
+
+.s2-btn-line { background: transparent; }
+.s2-inner .measure-cta .s2-btn { flex: none; white-space: nowrap; }
+.s2-orders { padding-top: 48px; }
+.s2-profile .profile-form-head > div { min-width: 0; overflow-wrap: anywhere; }
+.s2-inner .contact-detail-row:last-child { border-bottom: none; }
+.profile-initials { background: var(--s2-brass); }
+.profile-btn.is-signed-in { border-color: var(--s2-brass); }
+.profile-btn:focus-visible { outline-color: var(--s2-brass); }
+
+/* measuring guide: step tags, lead text, diagrams that never stretch or stay blank */
+.measure-lead { margin: 0 0 8px; }
+.s2-inner .meas-step-tag { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px; background: #F1E7D4; color: var(--s2-brass-text); font-size: 12px; font-weight: 600; }
+.s2-inner .measure-figures { align-items: start; }
+.s2-inner .measure-figure { align-self: start; }
+.s2-inner .measure-figure img { width: 100%; height: auto; }
+
+/* top bar on a phone: all four links stay in view (they wrap onto a second line on the narrowest phones) */
+@media (max-width: 760px) {
+  .s2-nav-links { order: 3; flex: 1 0 100%; flex-wrap: wrap; overflow: visible; white-space: nowrap; gap: 0 2px; justify-content: space-between; font-size: 13px; }
+  .s2-nav-links a { padding: 0 4px; }
+}
+
+/* profile: the address uses the same fields as the order form */
+.s2-profile .profile-address { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
+.s2-profile .profile-address > legend { padding: 0; margin-bottom: 12px; font-weight: 600; }
+.s2-profile .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.s2-profile .profile-grid > * { min-width: 0; }
+.s2-profile .profile-grid .profile-wide { grid-column: 1 / -1; }
+.s2-profile .profile-form { max-width: 640px; }
+@media (max-width: 520px) { .s2-profile .profile-grid { grid-template-columns: 1fr; } }
+.s2-profile .profile-form-head { flex-wrap: wrap; }
+.s2-profile .profile-form-head > div { flex: 1 1 220px; }

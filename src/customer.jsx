@@ -7,7 +7,8 @@ import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
-import { profileOf, saveProfile } from './lib/profile.js';
+import { profileOf, saveProfile, EMPTY_ADDRESS } from './lib/profile.js';
+import { COUNTRIES } from './data/countries.js';
 import { sentEstimate } from './lib/orders.js';
 import SentOrderView from './orderview.jsx';
 
@@ -229,12 +230,12 @@ export function ProductsPage({ navigate, location, setLocation }) {
   const lines = locationStep ? (location ? activeLinesIn(location) : []) : activeLines();
 
   return (
-    <div className="page-fade">
-      <section className="products-hero2">
-        <div className="container">
-          <div className="eyebrow">Our lineup</div>
-          <h1 className="serif">Choose your style</h1>
-          <p className="section-sub">Pick a line to see every fabric as a real swatch and build your order.</p>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Our lineup</p>
+          <h1 className="s2-page-title">Choose your style</h1>
+          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your order.</p>
           {locationStep && (
             <div className="location-cards">
               {locations.map(loc => (
@@ -248,7 +249,7 @@ export function ProductsPage({ navigate, location, setLocation }) {
           )}
         </div>
       </section>
-      <section className="container products-grid-wrap">
+      <section className="s2-wrap s2-page-body">
         <LineupGrid lines={lines} navigate={navigate} level={2} />
       </section>
       <Footer navigate={navigate} />
@@ -263,10 +264,13 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
   if (!supabaseEnabled) {
     return (
-      <div className="page-fade">
-        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80 }}>
-          <h1 className="serif section-title">My Orders</h1>
-          <p style={{ color: "var(--ink-60)" }}>Account features are not yet configured for this site.</p>
+      <div className="page-fade s2 s2-inner">
+        <section className="s2-wrap s2-page-head">
+          <div>
+            <p className="s2-eyebrow">Your account</p>
+            <h1 className="s2-page-title">My orders</h1>
+            <p className="s2-page-lede">Account features are not yet configured for this site.</p>
+          </div>
         </section>
         <Footer navigate={navigate} />
       </div>
@@ -275,11 +279,14 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
   if (!user) {
     return (
-      <div className="page-fade">
-        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80, textAlign: "center" }}>
-          <h1 className="serif section-title">My Orders</h1>
-          <p style={{ color: "var(--ink-60)", marginBottom: 28 }}>Sign in with Google to save your orders and come back to them any time.</p>
-          <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>
+      <div className="page-fade s2 s2-inner">
+        <section className="s2-wrap s2-page-head">
+          <div>
+            <p className="s2-eyebrow">Your account</p>
+            <h1 className="s2-page-title">My orders</h1>
+            <p className="s2-page-lede">Sign in with Google to save your orders and come back to them any time.</p>
+            <button type="button" className="s2-btn s2-btn-brass s2-page-action" onClick={signInWithGoogle}>Sign in with Google</button>
+          </div>
         </section>
         <Footer navigate={navigate} />
       </div>
@@ -317,16 +324,16 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
   };
 
   return (
-    <div className="page-fade">
-      <section className="container" style={{ paddingTop: 56, paddingBottom: 80 }}>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-body s2-orders">
         <div className="orders-page-header">
           <div>
-            <div className="section-eyebrow">{user.email}</div>
-            <h1 className="serif section-title" style={{ marginBottom: 0 }}>My Orders</h1>
+            <p className="s2-eyebrow">{user.email}</p>
+            <h1 className="s2-page-title">My orders</h1>
           </div>
           <div className="orders-page-actions">
-            <button className="btn btn-sage" onClick={handleNewOrder}>+ New Order</button>
-            <button className="btn btn-ghost btn-sm" onClick={signOut}>Sign out</button>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={handleNewOrder}>+ New order</button>
+            <button type="button" className="s2-btn s2-btn-line" onClick={signOut}>Sign out</button>
           </div>
         </div>
 
@@ -339,11 +346,9 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
         {orders.length === 0 && !dbError ? (
           <div className="empty-state">
-            <h3 className="serif">No orders yet.</h3>
-            <p>Browse products and use "Add to Order" to get started.</p>
-            <button className="btn btn-sage" onClick={() => navigate('products')} style={{ marginTop: 20 }}>
-              Browse Products <ArrowRight />
-            </button>
+            <h2 className="s2-empty-title">No orders yet.</h2>
+            <p>Browse products and use "Add to order" to get started.</p>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Browse products</button>
           </div>
         ) : orders.length === 0 ? null : (
           <div className="orders-grid">
@@ -409,37 +414,65 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
   );
 }
 
-export function MeasureGuidePage({ navigate, quoteCount }) {
-  const [mountType, setMountType] = useState("inside");
+// Customers only measure. They never add or subtract anything: the overlap, the floor gap and any deductions are worked out on our side.
+const INSIDE_STEPS = [
+  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · measure in 3 places"],
+  ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · measure in 3 places"],
+  ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
+  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
+];
+const OUTSIDE_STEPS = [
+  ["Measure the width of the window frame", "From the outside edge of the frame on one side to the outside edge on the other. Measure at the top, middle and bottom, and use the widest number.", "Frame · outside edge to outside edge"],
+  ["Measure the height of the frame", "From the top of the frame down to the bottom of the sill or frame. Measure at the left, middle and right, and use the longest number.", "Top of frame to bottom of sill or frame"],
+  ["Note any obstructions", "Window cranks, handles, vents, or anything on the wall around the window, so we can talk through the options.", "Obstructions"],
+];
+const CURTAIN_STEPS = [
+  ["Measure the width of the window or door", "From the outside edge of the frame on one side to the outside edge on the other. Measure at the top, middle and bottom, and use the widest number.", "Window or door · outside edge to outside edge"],
+  ["Measure the height to the floor", "From the spot where the track or rod will go, straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track or rod to floor · measure in 3 places"],
+  ["Note any obstructions", "Wall switches, vents, radiators, a baseboard heater or a door that swings into the space, so we can talk through the options.", "Obstructions"],
+];
+function MeasureStep({ n, title, text, tag }) {
   return (
-    <div className="page-fade">
-      <section className="measure-hero">
-        <div className="container">
-          <div className="section-eyebrow">Measure guide · 10 minutes</div>
-          <h1 className="serif">Measure with <em>confidence.</em></h1>
-          <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
+    <div className="meas-step">
+      <div>
+        <div className="meas-step-num">Step {n}</div>
+        <h3 className="serif">{title}</h3>
+        <p>{text}</p>
+        {tag && <span className="meas-step-tag">{tag}</span>}
+      </div>
+    </div>
+  );
+}
 
-          <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
-            <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
-          </div>
+export function MeasureGuidePage({ navigate, quoteCount }) {
+  return (
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Measuring guide · about 10 minutes</p>
+          <h1 className="s2-page-title">Measure with confidence.</h1>
+          <p className="s2-page-lede">You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
+          <a className="s2-btn s2-btn-brass s2-page-action" href="/order" onClick={linkTo(navigate, "/order")}>Skip the guide and start your order</a>
         </div>
       </section>
 
-      <section className="container measure-content">
+      <section className="s2-wrap measure-content">
         <div className="measure-cols">
           <aside className="measure-toc">
             <div className="label">On this page</div>
             <ol className="measure-toc-list">
               <li><a href="#tools">What you'll need</a></li>
               <li><a href="#choose">Inside or outside mount</a></li>
-              <li><a href="#steps">Step-by-step</a></li>
+              <li><a href="#inside">Inside mount steps</a></li>
+              <li><a href="#outside">Outside mount steps</a></li>
+              <li><a href="#curtains">Curtains and Dream Curtains</a></li>
               <li><a href="#tips">Tips &amp; tolerances</a></li>
               <li><a href="#submit">Submit your numbers</a></li>
             </ol>
             <div className="measure-toc-callout">
               <div className="label" style={{ color: "var(--sage-dark)" }}>Need help?</div>
               <p>Unsure about a window, such as a bay, an arch, a French door or anything out of plumb? Send us a note or call and we will talk it through before you order.</p>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate("contact")}>Contact us <ArrowRight size={14} /></button>
+              <a className="s2-btn s2-btn-line" href="/contact" onClick={linkTo(navigate, "/contact")}>Contact us</a>
             </div>
           </aside>
 
@@ -476,50 +509,37 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                   <figcaption>Shades. OM = outside mount, IM = inside mount, W = width, H = height.</figcaption>
                 </figure>
                 <figure className="measure-figure">
-                  <ExplainerImg name="measure/drapery-measure-diagram" alt="Window diagram for drapery showing the outside mount width and height and the drop to the floor." />
+                  <ExplainerImg name="measure/drapery-measure-diagram" alt="Window diagram for drapery showing the outside mount width and height and the drop to the floor." eager />
                   <figcaption>Drapery. OM = outside mount, W = width, H = height, with the drop to the floor.</figcaption>
                 </figure>
               </div>
+            </div>
 
-              <div className="mount-toggle">
-                <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
-                  <div className="mount-tab-name">Inside mount</div>
-                  <div className="mount-tab-desc">Recessed in the frame. Needs ≥ 2" depth.</div>
-                </button>
-                <button className={`mount-tab ${mountType === "outside" ? "active" : ""}`} onClick={() => setMountType("outside")}>
-                  <div className="mount-tab-name">Outside mount</div>
-                  <div className="mount-tab-desc">Covers the trim. Best for light control.</div>
-                </button>
+            <div id="inside" className="measure-block">
+              <h2 className="serif">3 · Inside mount, step by step</h2>
+              <div className="measure-steps">
+                {INSIDE_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
             </div>
 
-            <div id="steps" className="measure-block">
-              <h2 className="serif">3 · {mountType === "inside" ? "Inside mount, step by step" : "Outside mount, step by step"}</h2>
+            <div id="outside" className="measure-block">
+              <h2 className="serif">4 · Outside mount, step by step</h2>
+              <p className="measure-lead">Outside mount shades hang on the wall or trim and cover the window. <strong>Don't add anything for overlap, we'll add it for you.</strong></p>
               <div className="measure-steps">
-                {(mountType === "inside" ? [
-                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
-                  ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
-                  ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
-                  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
-                ] : [
-                  ["Decide overlap", "We recommend at least 2 inches of overlap on each side and 3 inches above the frame. More overlap = better light blocking.", "Wall area to cover"],
-                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once. Outside-mount widths don't vary.", "Total width incl. overlap"],
-                  ["Measure final height", "From your chosen top point down to where you want the shade to end, either the sill, just past it, or all the way to the floor.", "Total height"],
-                  ["Check for clearance", "Make sure there's wall space above and to the sides for mounting brackets, usually 1.5\" each direction.", "Bracket clearance"],
-                ]).map(([t, d], i) => (
-                  <div key={i} className="meas-step">
-                    <div>
-                      <div className="meas-step-num">Step {i + 1}</div>
-                      <h3 className="serif" style={{ fontSize: 22, marginBottom: 6 }}>{t}</h3>
-                      <p style={{ color: "var(--ink-60)", margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d}</p>
-                    </div>
-                  </div>
-                ))}
+                {OUTSIDE_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
+              </div>
+            </div>
+
+            <div id="curtains" className="measure-block">
+              <h2 className="serif">5 · Curtains and Dream Curtains, step by step</h2>
+              <p className="measure-lead">Curtains and Dream Curtains hang from a track or rod, so you measure the width of the window or door and the drop to the floor. <strong>Don't add or subtract anything, we'll work out the overlap and floor gap.</strong></p>
+              <div className="measure-steps">
+                {CURTAIN_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
             </div>
 
             <div id="tips" className="measure-block">
-              <h2 className="serif">4 · Tips &amp; tolerances</h2>
+              <h2 className="serif">6 · Tips &amp; tolerances</h2>
               <ul className="measure-tips">
                 <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
                 <li><strong>Don't make any deductions.</strong> Send us the raw window numbers.</li>
@@ -531,10 +551,10 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
             <div id="submit" className="measure-block measure-cta">
               <div>
-                <h2 className="serif" style={{ fontSize: 32 }}>Got your numbers?</h2>
-                <p style={{ color: "var(--ink-60)", fontSize: 15, margin: "8px 0 0" }}>Send them along with your product picks and we'll have a written quote back to you within 48 hours.</p>
+                <h2 className="serif">Got your numbers?</h2>
+                <p>Send them along with your product picks and we'll email your final price within 48 hours.</p>
               </div>
-              <button className="btn btn-sage" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
+              <a className="s2-btn s2-btn-sand" href="/order" onClick={linkTo(navigate, "/order")}>Start your order</a>
             </div>
           </div>
         </div>
@@ -544,7 +564,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
   );
 }
 
-const CONTACT_TOPICS = ["General question", "Question about a quote", "Trade / wholesale"];
+const CONTACT_TOPICS = ["General question", "Question about an order or estimate", "Trade / wholesale"];
 
 export function ContactPage({ navigate }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", topic: CONTACT_TOPICS[0], subject: "", message: "", zx_kv_q7: "" });
@@ -580,11 +600,15 @@ export function ContactPage({ navigate }) {
   };
 
   return (
-    <div className="page-fade">
-      <section className="contact-page container-narrow">
-        <div className="section-eyebrow">Contact</div>
-        <h1 className="serif section-title">Drop us a line.</h1>
-        <p className="section-sub">Have a project in mind or a question about a fabric? Send us a note.</p>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Contact</p>
+          <h1 className="s2-page-title">Drop us a line.</h1>
+          <p className="s2-page-lede">Have a project in mind or a question about a fabric? Send us a note.</p>
+        </div>
+      </section>
+      <section className="contact-page s2-wrap s2-page-body">
 
         <div className="contact-grid">
           <div>
@@ -612,11 +636,12 @@ export function ContactPage({ navigate }) {
                   {/* a field people never see; a bot that fills it in is ignored */}
                   <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.zx_kv_q7} onChange={set("zx_kv_q7")} /></label></div>
                   {status === "failed" && <div className="full send-error" role="alert">{error}</div>}
-                  <div className="full"><button type="submit" className="btn btn-sage" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>Send Message <ArrowRight /></>}</button></div>
+                  <div className="full"><button type="submit" className="s2-btn s2-btn-brass" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send message"}</button></div>
                 </form>
             }
           </div>
           <aside className="contact-details">
+            <h2 className="contact-details-title">Prefer to talk?</h2>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val"><a href={SITE.phoneHref}>{SITE.phone}</a></div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val"><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div></div>
           </aside>
@@ -634,36 +659,42 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
   const p = profileOf(user);
   const [name, setName] = useState(p?.name || "");
   const [phone, setPhone] = useState(p?.phone || "");
-  const [shipTo, setShipTo] = useState(p?.shipTo || "");
+  const [addr, setAddr] = useState(p?.address || EMPTY_ADDRESS);
   const [status, setStatus] = useState(null);     // null | "saving" | "saved" | error text
+  const setA = (k) => (e) => { setAddr((a) => ({ ...a, [k]: e.target.value })); setStatus(null); };
   const seeded = useRef(false);
   useEffect(() => {
-    if (p && !seeded.current) { seeded.current = true; setName(p.name); setPhone(p.phone); setShipTo(p.shipTo); }
+    if (p && !seeded.current) { seeded.current = true; setName(p.name); setPhone(p.phone); setAddr(p.address); }
   }, [p]);
 
   const save = async (e) => {
     e.preventDefault();
     setStatus("saving");
-    try { await saveProfile({ name, phone, shipTo }); setStatus("saved"); }
+    try { await saveProfile({ name, phone, address: addr }); setStatus("saved"); }
     catch (err) { setStatus(err?.message || "Could not save your profile. Please try again."); }
   };
 
   return (
-    <div className="page-fade">
-      <header className="line-head"><div className="container line-head-inner"><h1 className="serif">Your profile</h1></div></header>
-      <div className="container-narrow" style={{ paddingBottom: 60 }}>
+    <div className="page-fade s2 s2-inner">
+      <header className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Your account</p>
+          <h1 className="s2-page-title">Your profile</h1>
+        </div>
+      </header>
+      <div className="s2-wrap s2-page-body s2-profile">
         {!supabaseEnabled && <p>Profiles are not available right now.</p>}
         {supabaseEnabled && !user && (
-          <div className="config-group">
-            <p style={{ color: "var(--ink-60)", marginBottom: 20 }}>{authLoading ? "One moment…" : "Sign in with Google to edit your profile."}</p>
-            {!authLoading && <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>}
+          <div className="s2-panel-box">
+            <p className="s2-page-lede">{authLoading ? "One moment…" : "Sign in with Google to edit your profile."}</p>
+            {!authLoading && <button type="button" className="s2-btn s2-btn-brass" onClick={signInWithGoogle}>Sign in with Google</button>}
           </div>
         )}
         {user && (
           <form onSubmit={save} className="profile-form">
             <div className="profile-form-head">
               {p.avatar ? <img src={p.avatar} alt="" width="56" height="56" referrerPolicy="no-referrer" className="profile-form-avatar" /> : <span className="profile-form-avatar profile-initials" aria-hidden="true">{p.initials}</span>}
-              <div><strong>{p.email}</strong><div style={{ color: "var(--ink-60)", fontSize: 14 }}>Your Google account. Your picture and email come from Google.</div></div>
+              <div><strong>{p.email}</strong><div className="profile-form-note">Your Google account. Your picture and email come from Google.</div></div>
             </div>
             <div className="config-group">
               <label className="label" htmlFor="pf-name">Name</label>
@@ -673,18 +704,33 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
               <label className="label" htmlFor="pf-phone">Phone</label>
               <input id="pf-phone" className="input" type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" />
             </div>
-            <div className="config-group">
-              <label className="label" htmlFor="pf-ship">Shipping address</label>
-              <input id="pf-ship" className="input" type="text" autoComplete="street-address" value={shipTo} onChange={e => setShipTo(e.target.value)} placeholder="123 Main St, City, State" />
+            <fieldset className="profile-address">
+              <legend className="label">Shipping address</legend>
+              <div className="profile-grid">
+                <div className="profile-wide"><label className="label" htmlFor="pf-street">Street address</label>
+                  <input id="pf-street" className="input" type="text" autoComplete="address-line1" value={addr.street} onChange={setA("street")} /></div>
+                <div className="profile-wide"><label className="label" htmlFor="pf-apt">Apartment, suite, etc. (optional)</label>
+                  <input id="pf-apt" className="input" type="text" autoComplete="address-line2" value={addr.apt} onChange={setA("apt")} /></div>
+                <div><label className="label" htmlFor="pf-city">City</label>
+                  <input id="pf-city" className="input" type="text" autoComplete="address-level2" value={addr.city} onChange={setA("city")} /></div>
+                <div><label className="label" htmlFor="pf-state">State / province</label>
+                  <input id="pf-state" className="input" type="text" autoComplete="address-level1" value={addr.state} onChange={setA("state")} /></div>
+                <div><label className="label" htmlFor="pf-zip">ZIP / postal code</label>
+                  <input id="pf-zip" className="input" type="text" autoComplete="postal-code" value={addr.zip} onChange={setA("zip")} /></div>
+                <div><label className="label" htmlFor="pf-country">Country</label>
+                  <select id="pf-country" className="input" autoComplete="country-name" value={addr.country} onChange={setA("country")}>
+                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select></div>
+              </div>
               <div className="choice-note">These fill in your order details automatically. You can still change them on each order.</div>
-            </div>
+            </fieldset>
             <div className="config-actions">
-              <button className="btn btn-sage" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
-              <button className="btn btn-outline" type="button" onClick={() => navigate("orders")}>Order history</button>
+              <button className="s2-btn s2-btn-brass" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
+              <button className="s2-btn s2-btn-line" type="button" onClick={() => navigate("orders")}>Order history</button>
             </div>
-            <div aria-live="polite" style={{ marginTop: 12, minHeight: 22 }}>
-              {status === "saved" && <span style={{ color: "var(--sage)" }}>Saved.</span>}
-              {status && status !== "saving" && status !== "saved" && <span role="alert" style={{ color: "#a33" }}>{status}</span>}
+            <div aria-live="polite" className="profile-status">
+              {status === "saved" && <span className="profile-saved">Saved.</span>}
+              {status && status !== "saving" && status !== "saved" && <span role="alert" className="profile-error">{status}</span>}
             </div>
           </form>
         )}

@@ -179,7 +179,7 @@ try {
   check('contact, no connection: an error with our email and phone, never "Message received"', /loveblindswindows@gmail\.com/.test(await page.locator('.send-error').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.send-error').innerText()) && !/Message received/.test(await page.locator('main').innerText()));
   await page.route('**/api/contact', async (route) => { posted = JSON.parse(route.request().postData()); if (mode === 'ok') await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, emailed: true, stored: true }) }); else await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }) }); });
   await page.locator('#c-name').fill('Ada Lovelace'); await page.locator('#c-email').fill('ada@example.com'); await page.locator('#c-phone').fill('555 010 2030');
-  await page.locator('label.opt-btn', { hasText: 'Question about a quote' }).click(); await page.locator('#c-subject').fill('About my order'); await page.locator('#c-message').fill('Can you do 120 inch curtains?');
+  await page.locator('label.opt-btn', { hasText: 'Question about an order or estimate' }).click(); await page.locator('#c-subject').fill('About my order'); await page.locator('#c-message').fill('Can you do 120 inch curtains?');
   mode = 'fail';
   await page.getByRole('button', { name: /Send message/i }).click(); await page.locator('.send-error').waitFor();
   const failText = await page.locator('main').innerText();
@@ -187,7 +187,7 @@ try {
   check('...and what was typed is still there to try again', (await page.locator('#c-message').inputValue()) === 'Can you do 120 inch curtains?');
   mode = 'ok';
   await page.getByRole('button', { name: /Send message/i }).click(); await page.getByText('Message received.').waitFor();
-  check('when the send works: "Message received." is shown, and everything was sent (name, email, phone, topic, subject, message)', posted.name === 'Ada Lovelace' && posted.email === 'ada@example.com' && posted.phone === '555 010 2030' && posted.topic === 'Question about a quote' && posted.subject === 'About my order' && posted.message === 'Can you do 120 inch curtains?' && posted.zx_kv_q7 === '');
+  check('when the send works: "Message received." is shown, and everything was sent (name, email, phone, topic, subject, message)', posted.name === 'Ada Lovelace' && posted.email === 'ada@example.com' && posted.phone === '555 010 2030' && posted.topic === 'Question about an order or estimate' && posted.subject === 'About my order' && posted.message === 'Can you do 120 inch curtains?' && posted.zx_kv_q7 === '');
   const narrow = await browser.newPage({ viewport: { width: 320, height: 640 } }); await narrow.goto(`${BASE}/contact`); await narrow.locator('#c-name').waitFor();
   check('the Contact page does not scroll sideways at 320 px', !(await narrow.evaluate(() => document.documentElement.scrollWidth > innerWidth)), String(await narrow.evaluate(() => document.documentElement.scrollWidth)));
   await narrow.close();

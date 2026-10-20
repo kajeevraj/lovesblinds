@@ -8,6 +8,8 @@ import { editPath } from './lib/itemView.js';
 import { OrderPanel, OrderOnlyBar } from './components/OrderBar.jsx';
 import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
+import { metaFor, applyMeta } from './lib/pageMeta.js';
+import PHOTOS from './data/sitePhotos.json';
 
 // Code-split: the line page pulls in the swatch data. The admin area is its own chunk (with its own CSS), fetched only
 // when someone opens /admin, so customers never download it. What an admin may do is decided by the database, not here.
@@ -36,6 +38,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const { route, slug } = routeFor(path);
+  // each page has its own title, description, share picture and product data (the same ones the build puts in the HTML)
+  useEffect(() => { applyMeta(metaFor(route, slug, PHOTOS)); }, [route, slug]);
   const [productLocation, setProductLocation] = useState(null);
   const [quote, setQuote]         = useState(() => {
     // On page load (which happens after OAuth redirect), restore guest items from localStorage.
