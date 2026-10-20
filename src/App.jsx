@@ -133,6 +133,20 @@ export default function App() {
 
   // Clear the local cart after a successful order submission so the empty
   // Order Summary / Review pages don't let the same order be resubmitted.
+  // Signing out ends the session: the order in progress belongs to the account that was signed in, so it leaves the screen
+  // (it stays saved in that account). This also covers a session that ends on its own or in another tab.
+  const prevUserId = useRef(null);
+  useEffect(() => {
+    const id = user?.id || null;
+    if (prevUserId.current && !id) {
+      setQuote([]);
+      localStorage.removeItem(GUEST_QUOTE_KEY);
+      setSynced(false);
+      setPanelOpen(false);
+    }
+    prevUserId.current = id;
+  }, [user]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const clearQuote = () => {
     setQuote([]);
     localStorage.removeItem(GUEST_QUOTE_KEY);

@@ -132,7 +132,6 @@ const MEASURE = [
 ];
 
 export function HomePage({ navigate }) {
-  const scrollTo = (id) => (e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); };
   return (
     <div className="page-fade home s2">
       <section className="s2-hero">
@@ -145,7 +144,7 @@ export function HomePage({ navigate }) {
               <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
               <div className="s2-btn-row">
                 <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start your order</a>
-                <a className="s2-btn s2-btn-line" href="#measure" onClick={scrollTo("measure")}>How to measure</a>
+                <a className="s2-btn s2-btn-line" href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
               </div>
             </div>
           </div>
