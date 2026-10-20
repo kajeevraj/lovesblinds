@@ -117,7 +117,24 @@ export default function App() {
     flashTimer.current = setTimeout(() => setFlash(null), 2400);
   };
 
-  const commit = (next) => { setQuote(next); syncToSupabase(next); persistGuestQuote(next); };   // no-op saves when not logged in / no order yet
+  // the order in other tabs of this browser follows this one (same account, same order)
+  const userIdRef = useRef(null); const orderIdRef = useRef(null);
+  userIdRef.current = user?.id || null; orderIdRef.current = activeOrderId || null;
+  const channel = useRef(null);
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return undefined;
+    const c = new BroadcastChannel('lb-cart');
+    channel.current = c;
+    c.onmessage = (e) => {
+      const m = e.data;
+      if (m?.type !== 'cart' || (m.userId || null) !== userIdRef.current || (m.orderId || null) !== orderIdRef.current) return;
+      setQuote(m.items.map((st, i) => reconstructItem(st, i)).filter(Boolean));     // shown only: the other tab already saved it
+    };
+    return () => { c.close(); channel.current = null; };
+  }, []);
+  const broadcast = (items) => { try { channel.current?.postMessage({ type: 'cart', userId: userIdRef.current, orderId: orderIdRef.current, items: items.map(serializeItem) }); } catch { /* ignore */ } };
+
+  const commit = (next) => { setQuote(next); syncToSupabase(next); persistGuestQuote(next); broadcast(next); };   // no-op saves when not logged in / no order yet
 
   const addToQuote = (item) => {
     commit([...quote, { ...item, id: item.id || newItemId(), qty: item.qty || 1 }]);
@@ -128,13 +145,36 @@ export default function App() {
     showFlash('Changes saved');
   };
   const removeItem = (id) => commit(quote.filter((it) => it.id !== id));
+  // a copy right after the original, opened for editing so only the size or room needs changing
+  const duplicateItem = (it) => {
+    const copy = { ...it, id: newItemId() };
+    const at = quote.findIndex((x) => x.id === it.id);
+    commit([...quote.slice(0, at + 1), copy, ...quote.slice(at + 1)]);
+    showFlash('Item duplicated. Change what is different, then save.');
+    navigate(editPath(copy));
+  };
   const removeFromQuote = (idx) => commit(quote.filter((_, i) => i !== idx));
   const updateItem = (idx, patch) => commit(quote.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
   // Clear the local cart after a successful order submission so the empty
   // Order Summary / Review pages don't let the same order be resubmitted.
+  // Signing out ends the session: the order in progress belongs to the account that was signed in, so it leaves the screen
+  // (it stays saved in that account). This also covers a session that ends on its own or in another tab.
+  const prevUserId = useRef(null);
+  useEffect(() => {
+    const id = user?.id || null;
+    if (prevUserId.current && !id) {
+      setQuote([]);
+      localStorage.removeItem(GUEST_QUOTE_KEY);
+      setSynced(false);
+      setPanelOpen(false);
+    }
+    prevUserId.current = id;
+  }, [user]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const clearQuote = () => {
     setQuote([]);
+    broadcast([]);
     localStorage.removeItem(GUEST_QUOTE_KEY);
   };
 
@@ -157,9 +197,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
+  // A draft opens for editing. A sent order opens to look at, never to change.
   const openOrder = (orderId) => {
+    if (orders.find(o => o.id === orderId)?.status === 'sent') { navigate(`/orders?view=${orderId}`); return; }
     setActiveOrderId(orderId);
     navigate("quote");
+  };
+
+  // "Order again": the items of a sent order are copied into a new draft, which becomes the order in progress.
+  const orderAgain = async (order) => {
+    const copies = (order.items || []).map((it) => ({ ...it, id: newItemId() }));
+    const draft = await createOrder(`Order ${orders.length + 1}`, copies);
+    if (draft) navigate('quote');
   };
 
   // the order in progress, shared with the order bar, the order panel, the product pages and the order page
@@ -167,7 +216,7 @@ export default function App() {
   const totals = totalsOf(quote, prices);
   const cart = {
     items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
-    addItem: addToQuote, saveItem, removeItem, flash, showFlash, panelOpen, setPanelOpen,
+    addItem: addToQuote, saveItem, removeItem, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
   };
 
@@ -210,7 +259,7 @@ export default function App() {
       )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
-      {route === "orders"   && <OrdersPage navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
+      {route === "orders"   && <OrdersPage viewId={new URLSearchParams(search).get('view')} orderAgain={orderAgain} navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
       </main>

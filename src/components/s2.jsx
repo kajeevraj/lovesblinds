@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react';
 import { entriesFor, fabricsFor, COLOR_FAMILY_ORDER, tileSrc, tileFallbacks } from '../data/swatchData.js';
 import { ExplainerImg, hasExplainer } from './ExplainerImg.jsx';
-import { SwatchImg, SwatchDialog, makePick, labelOf, altOf } from './SwatchPicker.jsx';
+import { SwatchImg, SwatchDialog, makePick, labelOf } from './SwatchPicker.jsx';
 import { useCatalogStatus } from '../lib/useCatalog.js';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { FRACTIONS, toInches } from '../lib/inches.js';
 import { blinds } from '../lib/itemView.js';
+import { MAX_QTY, clampQty } from '../lib/limits.js';
 
 // ---- Steps -------------------------------------------------------------------------------------------------------
 
@@ -130,7 +131,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             const s = e.swatch;
             const on = activeId === s.id;
             return (
-              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={altOf(e, codeOf(s))} onClick={() => choose(e)}>
+              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s)}`} onClick={() => choose(e)}>
                 <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                 <span className="s2-sw-name">{labelOf(e)}</span>
                 <span className="s2-sw-code">{codeOf(s)}</span>
@@ -214,16 +215,17 @@ export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm de
 
 // How many blinds this size? A whole number, 1 or more.
 export function QtyField({ qty, onChange, id = "s2-qty" }) {
-  const n = Math.max(1, parseInt(qty, 10) || 1);
+  const n = clampQty(qty);
   return (
     <div className="s2-qty">
       <label className="s2-label" htmlFor={id}>How many blinds this size?</label>
       <div className="s2-qty-row">
         <button type="button" className="s2-qty-btn" aria-label="One fewer blind" disabled={n <= 1} onClick={() => onChange(String(n - 1))}>−</button>
-        <input id={id} className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" step="1" value={qty}
+        <input id={id} className="s2-input s2-qty-input" type="number" inputMode="numeric" min="1" max={MAX_QTY} step="1" value={qty}
           onChange={(e) => onChange(e.target.value)} onBlur={() => onChange(String(n))} />
-        <button type="button" className="s2-qty-btn" aria-label="One more blind" onClick={() => onChange(String(n + 1))}>+</button>
+        <button type="button" className="s2-qty-btn" aria-label="One more blind" disabled={n >= MAX_QTY} onClick={() => onChange(String(n + 1))}>+</button>
       </div>
+      {parseInt(qty, 10) > MAX_QTY && <p className="s2-size-msg is-warn" role="status">We can take up to {MAX_QTY} blinds at a time. For more, call or email us.</p>}
     </div>
   );
 }
@@ -240,6 +242,7 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
           {summary && <div className="s2-estimate-summary">{summary.map((l, i) => <div key={i}>{l}</div>)}</div>}
         </>
       )}
+      {view.kind === "toosmall" && (<><div className="s2-estimate-title">Size too small</div><p className="s2-estimate-text">{view.text} Please enter a larger size to see your price.</p></>)}
       {view.kind === "custom" && (<><div className="s2-estimate-title">Custom size</div><p className="s2-estimate-text">{CUSTOM_TEXT}</p></>)}
       {view.kind === "request" && (<><div className="s2-estimate-title">Price on request</div><p className="s2-estimate-text">{REQUEST_TEXT}</p></>)}
       {view.kind === "loading" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">Calculating your estimate…</p></>)}

@@ -46,6 +46,7 @@ function ItemCard({ it, p, cart }) {
           {p.kind === 'custom' && <div className="s2-item-note">{CUSTOM_TEXT}</div>}
           <div className="s2-item-actions">
             <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Edit ${d.title}`}>Edit</a>
+            <button type="button" className="s2-link" aria-label={`Duplicate ${d.title}`} onClick={(e) => { e.stopPropagation(); cart.duplicateItem(it); }}>Duplicate</button>
             <button type="button" className="s2-link" onClick={(e) => { e.stopPropagation(); cart.removeItem(it.id); }}>Remove</button>
           </div>
         </div>
@@ -85,7 +86,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   const cart = useCart();
   const { items, prices } = cart;
   const { total, byEmail, loading } = cart.totals;
-  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '', zx_kv_q7: '' });
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -103,7 +104,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     const errs = {};
     if (!form.name.trim()) errs.name = 'Please enter your name';
     if (!form.email.trim()) errs.email = 'Please enter your email';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter a valid email';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = 'Enter a valid email';
     if (!form.street.trim()) errs.street = 'Please enter your street address';
     if (!form.city.trim()) errs.city = 'Please enter your city';
     if (!form.state.trim()) errs.state = 'Please enter your state or province';
@@ -120,14 +121,17 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
           customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, shipTo: addressLine(address) },
           lines: items.map((it, i) => quoteLine(it, prices[i])),
           notes: form.notes.trim(),
+          zx_kv_q7: form.zx_kv_q7,
         }),
       });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || `Server error (${res.status})`); }
       const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error('We could not send your order just now. Please email loveblindswindows@gmail.com or call 262-434-0949.');     // never show "sent" unless the server says so
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
-      if (onOrderSent && activeOrderId) onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() });
-      onSubmitted?.();
+      // it reached us: a problem saving it to the customer's account is only logged and never turns the success into an error
+      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
+      catch (e) { console.error('[order] not saved to the account:', e); }
       setSent({ copySent: !!data.customerCopy });
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again or call us.');
@@ -218,6 +222,8 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                 <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-notes">Anything we should know? (optional)</label>
                   <textarea id="o-notes" className="s2-input s2-textarea" rows={3} value={form.notes} onChange={set('notes')} /></div>
               </div>
+              {/* a field people never see; a bot that fills it in is ignored */}
+              <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.zx_kv_q7} onChange={set('zx_kv_q7')} /></label></div>
               {error && <div className="s2-send-error" role="alert">{error}</div>}
               <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={sending} onClick={send}>{sending ? 'Sending…' : 'Send my order'}</button>
               <p className="s2-send-note">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>

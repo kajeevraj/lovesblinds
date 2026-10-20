@@ -3,6 +3,8 @@ import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
 import { priceRequestFromItem } from '../src/lib/priceRequest.js';
 import { addressLine } from '../src/data/countries.js';
+import { checkSize, limitLineFor } from '../src/lib/limits.js';
+import { LIMITS, SPAM_TRAP, clientIp, digest, tooLarge, friendly, rateLimit, validateOrder, oneLine } from './_guard.js';
 
 const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
 const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
@@ -190,7 +192,7 @@ export function lineListHtml(lines, internal = false) {
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
       (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
-      (l.price ? ` &mdash; <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
+      (l.price ? `: <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
       `</li>`;
   }).join('');
 }
@@ -212,7 +214,7 @@ function totalsHtml(totals, withNote) {
 
 export function internalEmailHtml(customer, lines, notes, totals) {
   return `
-        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New Quote Request</h2>
+        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New order</h2>
         <p>
           <strong>Name:</strong> ${esc(customer.name)}<br>
           <strong>Email:</strong> ${esc(customer.email)}<br>
@@ -232,7 +234,7 @@ export function internalEmailHtml(customer, lines, notes, totals) {
 export function customerEmailHtml(customer, lines, notes, totals) {
   return `
           <h2 style="font-family:Georgia,serif;color:#2c2c2a">Thanks, ${esc(customer.name)}!</h2>
-          <p>We've received your quote request and will send a written proposal to
+          <p>We've received your order and will email your final price to
           <strong>${esc(customer.email)}</strong> within 48 hours.</p>
           ${addressHtml(customer) ? `<p><strong>Shipping to:</strong><br>${addressHtml(customer)}</p>` : ''}
           <h3 style="font-family:Georgia,serif;color:#2c2c2a">What you requested</h3>
@@ -349,62 +351,97 @@ export async function withCatalog(lines, env = process.env) {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+// The smallest sizes, from the database (size_limits(), migration 13): an item below the smallest we can make is refused here
+// as well as on the page. If the function is missing or fails, sizes are not checked (the price function still decides what
+// it can price).
+export async function checkSizes(lines, env = process.env, fetchFn = fetch) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  const cache = new Map();
+  for (const [i, l] of lines.entries()) {
+    const line = limitLineFor(l.category, l.selection?.section);
+    const k = `${line}|${l.mechId || ''}`;
+    if (!cache.has(k)) {
+      cache.set(k, fetchFn(`${url}/rest/v1/rpc/size_limits`, {
+        method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_line: line, p_options: l.mechId ? { control: l.mechId } : {} }),
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+    }
+    const limits = await cache.get(k);
+    if (!limits) continue;
+    const c = checkSize(limits, l.width, l.length);
+    if (c.tooSmall.length) return `Item ${i + 1}: ${c.tooSmall.map((t) => t.text).join(' ')} Please change the size and send again.`;
   }
+  return null;
+}
 
-  const { customer, lines: sentLines, notes } = req.body || {};
+// deps: { env, fetch, resend (an object with emails.send), rateLimit } so the tests can run this without sending anything.
+export async function handleQuote(req, res, deps = {}) {
+  const env = deps.env || process.env;
+  const fetchFn = deps.fetch || fetch;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (tooLarge(req, LIMITS.orderBytes)) return res.status(413).json({ error: friendly('That order is too large to send in one go.') });
 
-  if (!customer?.email) {
-    return res.status(400).json({ error: 'customer.email is required' });
-  }
-  if (!Array.isArray(sentLines) || sentLines.length === 0) {
-    return res.status(400).json({ error: 'At least one line item is required' });
-  }
+  // the hidden field a person never sees: a bot that fills it in is told "ok" and nothing is sent
+  if (req.body && typeof req.body === 'object' && req.body[SPAM_TRAP]) return res.status(400).json({ error: friendly('We could not send your order just now.') });
 
-  if (!process.env.RESEND_API_KEY) {
-    return res.status(500).json({ error: 'Email service not configured (RESEND_API_KEY missing)' });
-  }
+  const checked = validateOrder(req.body);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+  const { customer, lines: sentLines, notes } = checked;
+
+  if (!env.RESEND_API_KEY) return res.status(500).json({ error: friendly('Our email service is not set up right now.') });
+
+  const limited = await (deps.rateLimit || rateLimit)([
+    { key: `order:ip:${digest(clientIp(req))}`, limit: LIMITS.orderPerIpHour, windowSeconds: 3600 },
+    { key: `order:email:${digest(customer.email)}`, limit: LIMITS.orderPerEmailHour, windowSeconds: 3600 },
+  ], env, fetchFn);
+  if (limited.limited) return res.status(429).json({ error: friendly('Too many orders were sent from this connection or email address in the last hour.') });
+
+  const sizeProblem = await checkSizes(sentLines, env, fetchFn);
+  if (sizeProblem) return res.status(400).json({ error: sizeProblem });
 
   try {
-    const { lines: catalogLines, source } = await withCatalog(sentLines);
-    const { lines, total, byEmail } = await withEstimates(catalogLines);
+    const { lines: catalogLines, source } = await withCatalog(sentLines, env);
+    const { lines, total, byEmail } = await withEstimates(catalogLines, env);
     const totals = { total, byEmail };
     console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}, estimates ${lines.map(l => l.price.checked ? 'checked' : 'unchecked').join('/')}`);
     const wb = buildWorkbook(customer, lines, notes || '', totals);
     const xlsxBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = deps.resend || new Resend(env.RESEND_API_KEY);
     const date = new Date().toISOString().slice(0, 10);
-    const safeName = String(customer.name || 'customer').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    const filename = `quote-${safeName}-${date}.xlsx`;
+    const safeName = String(customer.name || 'customer').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40);
+    const filename = `order-${safeName}-${date}.xlsx`;
 
     // Internal email: xlsx attached, supplier price groups, color names and codes
-    await resend.emails.send({
+    const sentInternal = await resend.emails.send({
       from: "Love's Blinds <quotes@lovesblinds.com>",
       to: INTERNAL_TO,
-      subject: `New quote request — ${customer.name}`,
+      replyTo: customer.email,
+      subject: oneLine(`New order | ${customer.name}`),
       html: internalEmailHtml(customer, lines, notes, totals),
       attachments: [{ filename, content: xlsxBuffer }],
     });
+    // the email service answers { error } instead of throwing: an order is only "sent" if it really was
+    if (sentInternal?.error) throw new Error(sentInternal.error.message || 'email failed');
 
     // Customer confirmation: no xlsx, no supplier data, gated behind an env var
-    const customerCopy = process.env.SEND_CUSTOMER_CONFIRMATION === 'true';
+    let customerCopy = env.SEND_CUSTOMER_CONFIRMATION === 'true';
     if (customerCopy) {
-      await resend.emails.send({
+      const sentCopy = await resend.emails.send({
         from: "Love's Blinds <quotes@lovesblinds.com>",
         to: customer.email,
-        subject: "Your quote request — Love's Blinds",
+        subject: "Your order estimate | Love’s Blinds",
         html: customerEmailHtml(customer, lines, notes, totals),
       });
+      if (sentCopy?.error) { console.error('[api/quote] customer copy failed:', sentCopy.error.message); customerCopy = false; }     // we have the order; only the copy is missing
     }
 
     return res.status(200).json({ ok: true, customerCopy });
   } catch (err) {
     console.error('[api/quote]', err);
-    return res.status(500).json({
-      error: err.message || 'Failed to send quote. Please try again or call us directly.',
-    });
+    return res.status(500).json({ error: friendly('We could not send your order just now.') });
   }
 }
+
+export default function handler(req, res) { return handleQuote(req, res); }

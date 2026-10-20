@@ -12,6 +12,8 @@ import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
 import { Step, Cards, MOUNT_PICTURES, SizeFields, EMPTY_SIZE, sizeNumbers, EstimateCard, QtyField, priceView } from './components/s2.jsx';
 import { PriceBar } from './components/OrderBar.jsx';
 import { useCart } from './lib/cart.js';
+import { useSizeLimits, limitLineFor } from './lib/sizeLimits.js';
+import { checkSize, clampQty, TYPO_TEXT } from './lib/limits.js';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
 
@@ -55,14 +57,20 @@ export default function LineShell({
   const [qty, setQty] = useState(String(edit?.qty || 1));
   const [added, setAdded] = useState(false);
 
-  const n = Math.max(1, parseInt(qty, 10) || 1);
+  const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
   const sized = parseFloat(width) > 0 && parseFloat(height) > 0;
-  const req = priceRequest(line, c, mech, width, height);
-  const view = priceView(req, usePriceState(req));
+  // the smallest we can make (from the database): below it nothing is priced and nothing can be added; above the largest the
+  // price function itself answers "larger than our standard range"; a size that looks like a typo only gets a warning
+  const limits = useSizeLimits(limitLineFor(line.id, c.section), mech);
+  const chk = checkSize(limits, width, height);
+  const tooSmall = chk.tooSmall.length > 0;
+  const req = tooSmall ? null : priceRequest(line, c, mech, width, height);
+  const priced = priceView(req, usePriceState(req));
+  const view = tooSmall ? { kind: 'toosmall', text: chk.tooSmall.map((t) => t.text).join(' ') } : priced;
   const { selection, missing } = buildSelection(line, c);
   const optionsReady = missing.length === 0;
-  const canAdd = optionsReady && sized && view.kind !== 'loading' && view.kind !== 'waiting';
+  const canAdd = optionsReady && sized && !tooSmall && view.kind !== 'loading' && view.kind !== 'waiting';
   const needs = !optionsReady ? colorNeeds : !sized ? 'Enter your size' : 'Calculating…';
 
   const mechObj = getMechanism(line, mech);
@@ -146,6 +154,8 @@ export default function LineShell({
 
               <Step n={++k} title="Size" hint={<>In inches. Not sure? <a href="/measure" onClick={(e) => { e.preventDefault(); navigate('measure'); }}>See how to measure</a>.</>}>
                 <SizeFields size={size} onChange={setSize} />
+                {tooSmall && <p className="s2-size-msg is-error" role="alert">{chk.tooSmall.map((t) => <span key={t.dim}>{t.text} </span>)}Please enter a larger size.</p>}
+                {chk.typo && <p className="s2-size-msg is-warn" role="status">{TYPO_TEXT}</p>}
               </Step>
 
               {!hideMount && (

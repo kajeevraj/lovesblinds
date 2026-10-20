@@ -50,6 +50,7 @@ export function PriceBar({ title, view, needs, canAdd, added, onAdd, qty = 1, ed
   if (priced) { value = money(view.price * qty); sub = qty > 1 ? `${money(view.price)} each · ${blinds(qty)}` : null; label = null; }
   else if (view.kind === 'custom' || view.kind === 'request' || view.kind === 'error') { label = view.kind === 'request' ? 'Price on request' : 'Custom size'; value = 'Price sent by email'; }
   else if (view.kind === 'loading') { label = 'Your estimate'; value = 'Calculating…'; }
+  else if (view.kind === 'toosmall') { label = 'Size too small'; value = 'Enter a larger size'; }
   return (
     <div className="s2-bar">
       <div className="s2-wrap s2-bar-inner">
@@ -81,12 +82,26 @@ export function OrderPanel({ navigate }) {
   const open = cart.panelOpen;
   useEffect(() => {
     if (!open) return undefined;
-    const prev = document.activeElement;
+    const prev = document.activeElement;                 // the button that opened the panel
     ref.current?.querySelector('button')?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') cart.setPanelOpen(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { cart.setPanelOpen(false); return; }
+      if (e.key !== 'Tab' || !ref.current) return;
+      // keep Tab inside the panel while it is open (the page behind is not reachable)
+      const f = [...ref.current.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => x.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1], at = document.activeElement;
+      if (!ref.current.contains(at)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && at === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
     document.body.classList.add('s2-noscroll');
-    return () => { document.removeEventListener('keydown', onKey); document.body.classList.remove('s2-noscroll'); prev?.focus?.(); };
+    return () => {
+      document.removeEventListener('keydown', onKey); document.body.classList.remove('s2-noscroll');
+      // back to the button that opened it (or the order button, if that one is gone)
+      if (prev && document.contains(prev)) prev.focus(); else document.querySelector('.s2-bar-order')?.focus();
+    };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return null;
   const { items, prices, totals } = cart;
@@ -117,6 +132,7 @@ export function OrderPanel({ navigate }) {
                   </a>
                   <div className="s2-panel-actions">
                     <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} aria-label={`Edit ${d.title}`} onClick={(e) => { e.preventDefault(); go(() => cart.goEdit(it)); }}>Edit</a>
+                    <button type="button" className="s2-link" aria-label={`Duplicate ${d.title}`} onClick={() => go(() => cart.duplicateItem(it))}>Duplicate</button>
                     <button type="button" className="s2-link" aria-label={`Remove ${d.title}`} onClick={() => cart.removeItem(it.id)}>Remove</button>
                   </div>
                 </li>

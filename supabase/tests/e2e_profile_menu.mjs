@@ -98,8 +98,41 @@ try {
   check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
   check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way, London' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United States' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
   check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
+  // a sent order opens to look at, never to change; "Order again" copies it into a new draft
+  const beforeItems = JSON.stringify(sentOrder.items);
+  await page.goto(`${BASE}/orders`); await page.locator('.order-card').first().waitFor();
+  await page.locator('.order-card', { has: page.locator('.order-pill-sent') }).first().click();
+  await page.getByRole('button', { name: 'Order again' }).waitFor();
+  const view = await page.locator('main').innerText();
+  check('opening a sent order shows it read-only: its items, "Order again", and no edit, remove or send buttons', /can't be changed/.test(view) && (await page.getByRole('button', { name: 'Order again' }).count()) === 1 && (await page.getByRole('link', { name: /^Edit/ }).count()) === 0 && (await page.getByRole('button', { name: /Remove|Duplicate|Send my order/ }).count()) === 0 && /\$\d+/.test(view), view.replace(/\s+/g, ' ').slice(0, 160));
+  check('...with the details it was sent with (name, address)', /Ada B\. Lovelace/.test(view) && /London/.test(view));
+  await page.getByRole('button', { name: 'Order again' }).click();
+  await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
+  check('"Order again" opens a new order with the same items, ready to change', (await page.locator('.s2-item').count()) === 1 && /Zebra/.test(await page.locator('.s2-item').first().innerText()));
+  await page.locator('.s2-item').first().click(); await page.locator('#s2-w').waitFor(); await page.locator('#s2-w').fill('50');
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click();
+  await page.waitForFunction(() => location.pathname === '/order'); await page.waitForTimeout(2500);
+  const after = (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
+  const sentAfter = after.find((x) => x.id === sentOrder.id);
+  check('changing the copy never touches the sent order (same items, still sent)', sentAfter.status === 'sent' && JSON.stringify(sentAfter.items) === beforeItems && after.length === ord.length + 1 && after.some((x) => x.status === 'draft' && x.items[0]?.width === 50));
+  const tamper = await api('PATCH', `/rest/v1/orders?id=eq.${sentOrder.id}`, H(ANON, token.access_token), { items: [] });
+  const guardApplied = tamper.status >= 400;
+  const still = (await api('GET', `/rest/v1/orders?select=items&id=eq.${sentOrder.id}`, H(ANON, token.access_token))).body[0];
+  console.log(guardApplied ? '      (migration 13 is applied: the database itself refuses changes to a sent order)' : '      (migration 13 is not applied yet: only the site protects a sent order; the database guard arrives with it)');
+  if (process.env.REQUIRE_MIGRATION13 === '1') check('the database refuses to change the items of a sent order (migration 13)', guardApplied && JSON.stringify(still.items) === beforeItems, `PATCH answered ${tamper.status}`);
+  // an order in progress must not stay on screen after signing out
+  await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
+  await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
+  // the order in progress is the copy made by "Order again" (the sent order is never reopened) plus the window just added
+  check('before signing out the bar shows the two items in the order in progress', /Your order: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
+  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your order: \d+ item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
+  await page.goto(`${BASE}/order`); await page.waitForTimeout(800);
+  check('and the order page is empty after signing out', /Your order is empty/.test(await page.locator('main').innerText()));
+  await page.goto(`${BASE}/`); await page.waitForTimeout(500);
+  check('the home page shows no order bar after signing out', (await page.locator('.s2-bar').count()) === 0);
   check('Sign out returns the circle to the signed-out icon', (await page.locator('.profile-btn.is-signed-in').count()) === 0 && (await page.locator('.profile-btn svg').count()) === 1);
   await page.locator('.profile-btn').click();
   check('and the menu offers Sign in with Google again', (await page.getByRole('menuitem').allInnerTexts()).join('|') === 'Sign in with Google');
