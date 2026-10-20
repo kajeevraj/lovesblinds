@@ -9,6 +9,7 @@ export function useAuth() {
   const [authLoading, setAuthLoading] = useState(true);
   const [dbError, setDbError]         = useState(null);
   const saveTimer = useRef(null);
+  const ordersRef = useRef([]);
   const fetchedUserId = useRef(null);
 
   useEffect(() => {
@@ -111,8 +112,12 @@ export function useAuth() {
     return data;
   };
 
+  useEffect(() => { ordersRef.current = orders; }, [orders]);
+
   const saveItems = useCallback((orderId, items) => {
     if (!supabase || !orderId) return;
+    // a sent order is never overwritten (the database refuses it too, since migration 13)
+    if (ordersRef.current.find(o => o.id === orderId)?.status === 'sent') return;
     const serialized = items.map(serializeItem);
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {

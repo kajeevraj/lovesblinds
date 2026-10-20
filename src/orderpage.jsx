@@ -46,6 +46,7 @@ function ItemCard({ it, p, cart }) {
           {p.kind === 'custom' && <div className="s2-item-note">{CUSTOM_TEXT}</div>}
           <div className="s2-item-actions">
             <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Edit ${d.title}`}>Edit</a>
+            <button type="button" className="s2-link" aria-label={`Duplicate ${d.title}`} onClick={(e) => { e.stopPropagation(); cart.duplicateItem(it); }}>Duplicate</button>
             <button type="button" className="s2-link" onClick={(e) => { e.stopPropagation(); cart.removeItem(it.id); }}>Remove</button>
           </div>
         </div>
@@ -85,7 +86,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   const cart = useCart();
   const { items, prices } = cart;
   const { total, byEmail, loading } = cart.totals;
-  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '', website: '' });
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -120,6 +121,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
           customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, shipTo: addressLine(address) },
           lines: items.map((it, i) => quoteLine(it, prices[i])),
           notes: form.notes.trim(),
+          website: form.website,
         }),
       });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || `Server error (${res.status})`); }
@@ -218,6 +220,8 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                 <div className="s2-field s2-field-wide"><label className="s2-label" htmlFor="o-notes">Anything we should know? (optional)</label>
                   <textarea id="o-notes" className="s2-input s2-textarea" rows={3} value={form.notes} onChange={set('notes')} /></div>
               </div>
+              {/* a field people never see; a bot that fills it in is ignored */}
+              <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label></div>
               {error && <div className="s2-send-error" role="alert">{error}</div>}
               <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={sending} onClick={send}>{sending ? 'Sending…' : 'Send my order'}</button>
               <p className="s2-send-note">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>

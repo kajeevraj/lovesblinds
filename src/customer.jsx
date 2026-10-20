@@ -9,6 +9,7 @@ import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
 import { profileOf, saveProfile } from './lib/profile.js';
 import { sentEstimate } from './lib/orders.js';
+import SentOrderView from './orderview.jsx';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -85,7 +86,8 @@ const TILES = {
 };
 const TILE_SIZES = "(min-width: 1100px) 400px, (min-width: 700px) 45vw, 92vw";
 
-function LineTile({ line, navigate }) {
+function LineTile({ line, navigate, level = 3 }) {
+  const H = `h${level}`;
   const path = `/products/${line.slug}`;
   const t = TILES[line.slug];
   return (
@@ -96,7 +98,7 @@ function LineTile({ line, navigate }) {
           : <BrandPanel title={line.name} aspect="4 / 3" />}
       </div>
       <div className="s2-tile-body">
-        <h3 className="s2-tile-name">{t?.name || line.name}</h3>
+        <H className="s2-tile-name">{t?.name || line.name}</H>
         <p className="s2-tile-text">{t?.text || line.blurb}</p>
         <span className="s2-tile-cta">Build yours →</span>
       </div>
@@ -104,10 +106,10 @@ function LineTile({ line, navigate }) {
   );
 }
 
-function LineupGrid({ lines, navigate }) {
+function LineupGrid({ lines, navigate, level = 3 }) {
   return (
     <div className="s2-tiles">
-      {lines.map(l => <LineTile key={l.id} line={l} navigate={navigate} />)}
+      {lines.map(l => <LineTile key={l.id} line={l} navigate={navigate} level={level} />)}
     </div>
   );
 }
@@ -246,14 +248,14 @@ export function ProductsPage({ navigate, location, setLocation }) {
         </div>
       </section>
       <section className="container products-grid-wrap">
-        <LineupGrid lines={lines} navigate={navigate} />
+        <LineupGrid lines={lines} navigate={navigate} level={2} />
       </section>
       <Footer navigate={navigate} />
     </div>
   );
 }
 
-export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount, ordersLength, dbError }) {
+export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId, openOrder, createOrder, renameOrder, deleteOrder, user, signOut, signInWithGoogle, supabaseEnabled, quoteCount, ordersLength, dbError }) {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -282,6 +284,9 @@ export function OrdersPage({ navigate, orders, activeOrderId, openOrder, createO
       </div>
     );
   }
+
+  const viewing = viewId ? orders.find(o => o.id === viewId && o.status === 'sent') : null;
+  if (viewing) return <SentOrderView order={viewing} navigate={navigate} orderAgain={orderAgain} />;
 
   const startEdit = (e, order) => {
     e.stopPropagation();
@@ -538,8 +543,36 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
   );
 }
 
-export function ContactPage({ navigate, quoteCount }) {
-  const [sent, setSent] = useState(false);
+const CONTACT_TOPICS = ["General question", "Question about a quote", "Trade / wholesale"];
+
+export function ContactPage({ navigate }) {
+  const [f, setF] = useState({ name: "", email: "", phone: "", topic: CONTACT_TOPICS[0], subject: "", message: "", website: "" });
+  const [status, setStatus] = useState("idle");        // idle | sending | sent | failed
+  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const set = (k) => (e) => { setF((v) => ({ ...v, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: "" })); };
+
+  const send = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!f.name.trim()) errs.name = "Please enter your name";
+    if (!/\S+@\S+\.\S+/.test(f.email)) errs.email = "Please enter a valid email address";
+    if (!f.message.trim()) errs.message = "Please write your message";
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+    setStatus("sending"); setError("");
+    try {
+      const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
+      const data = await res.json().catch(() => ({}));
+      // "received" is only shown when the server says the message really went through
+      if (!res.ok || !data.ok) throw new Error(data.error || `We could not send your message just now. Please email us at ${SITE.email} or call ${SITE.phone}.`);
+      setStatus("sent");
+    } catch (err) {
+      setError(err.message || `We could not send your message just now. Please email us at ${SITE.email} or call ${SITE.phone}.`);
+      setStatus("failed");
+    }
+  };
+
   return (
     <div className="page-fade">
       <section className="contact-page container-narrow">
@@ -549,30 +582,37 @@ export function ContactPage({ navigate, quoteCount }) {
 
         <div className="contact-grid">
           <div>
-            {sent
-              ? <div className="success-banner">
+            {status === "sent"
+              ? <div className="success-banner" role="status">
                   <h3 className="serif">Message received.</h3>
                   <p>One of us will reply within 1 business day.</p>
                 </div>
-              : <div className="quote-form" style={{ marginTop: 0 }}>
-                  <div><div className="label">Name</div><input className="input" placeholder="Full name" /></div>
-                  <div><div className="label">Email</div><input className="input" type="email" placeholder="you@example.com" /></div>
-                  <div className="full"><div className="label">What's this about?</div>
+              : <form className="quote-form" style={{ marginTop: 0 }} onSubmit={send} noValidate>
+                  <div><label className="label" htmlFor="c-name">Name</label><input id="c-name" className={`input${errors.name ? " input-error" : ""}`} autoComplete="name" placeholder="Full name" value={f.name} onChange={set("name")} aria-invalid={!!errors.name} />{errors.name && <span className="field-error" role="alert">{errors.name}</span>}</div>
+                  <div><label className="label" htmlFor="c-email">Email</label><input id="c-email" className={`input${errors.email ? " input-error" : ""}`} type="email" autoComplete="email" placeholder="you@example.com" value={f.email} onChange={set("email")} aria-invalid={!!errors.email} />{errors.email && <span className="field-error" role="alert">{errors.email}</span>}</div>
+                  <div><label className="label" htmlFor="c-phone">Phone (optional)</label><input id="c-phone" className="input" type="tel" autoComplete="tel" placeholder="(555) 555-5555" value={f.phone} onChange={set("phone")} /></div>
+                  <fieldset className="full contact-topics">
+                    <legend className="label">What's this about?</legend>
                     <div className="config-options">
-                      <button className="opt-btn selected">General question</button>
-                      <button className="opt-btn">Question about a quote</button>
-                      <button className="opt-btn">Trade / wholesale</button>
+                      {CONTACT_TOPICS.map((t) => (
+                        <label key={t} className={`opt-btn${f.topic === t ? " selected" : ""}`}>
+                          <input type="radio" name="topic" value={t} checked={f.topic === t} onChange={set("topic")} className="sr-only" />{t}
+                        </label>
+                      ))}
                     </div>
-                  </div>
-                  <div className="full"><div className="label">Subject</div><input className="input" placeholder="Quick question about cellular shades…" /></div>
-                  <div className="full"><div className="label">Message</div><textarea className="textarea" rows="5" placeholder="Tell us a bit about your project." /></div>
-                  <div className="full"><button className="btn btn-sage" onClick={() => setSent(true)}>Send Message <ArrowRight /></button></div>
-                </div>
+                  </fieldset>
+                  <div className="full"><label className="label" htmlFor="c-subject">Subject (optional)</label><input id="c-subject" className="input" placeholder="Quick question about cellular shades…" value={f.subject} onChange={set("subject")} /></div>
+                  <div className="full"><label className="label" htmlFor="c-message">Message</label><textarea id="c-message" className={`textarea${errors.message ? " input-error" : ""}`} rows="5" placeholder="Tell us a bit about your project." value={f.message} onChange={set("message")} aria-invalid={!!errors.message} />{errors.message && <span className="field-error" role="alert">{errors.message}</span>}</div>
+                  {/* a field people never see; a bot that fills it in is ignored */}
+                  <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={set("website")} /></label></div>
+                  {status === "failed" && <div className="full send-error" role="alert">{error}</div>}
+                  <div className="full"><button type="submit" className="btn btn-sage" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>Send Message <ArrowRight /></>}</button></div>
+                </form>
             }
           </div>
           <aside className="contact-details">
-            <div className="contact-detail-row"><div className="label">Phone</div><div className="val">{SITE.phone}</div></div>
-            <div className="contact-detail-row"><div className="label">Email</div><div className="val">{SITE.email}</div></div>
+            <div className="contact-detail-row"><div className="label">Phone</div><div className="val"><a href={SITE.phoneHref}>{SITE.phone}</a></div></div>
+            <div className="contact-detail-row"><div className="label">Email</div><div className="val"><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div></div>
           </aside>
         </div>
       </section>
@@ -580,7 +620,6 @@ export function ContactPage({ navigate, quoteCount }) {
     </div>
   );
 }
-
 
 // ---------------------------------------------------------------------------
 // Edit profile (opened from the profile menu)
