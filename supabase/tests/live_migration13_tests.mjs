@@ -58,6 +58,8 @@ try {
   const t3 = await api('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, H(ANON, token.access_token), { customer: {} });
   const now = (await api('GET', `/rest/v1/orders?select=items,status,customer&id=eq.${ord.id}`, H(ANON, token.access_token))).body[0];
   check('orders: the database refuses new items, reopening and new details on a sent order', t1.status >= 400 && t2.status >= 400 && t3.status >= 400 && now.items[0].qty === 3 && now.status === 'sent' && now.customer.name === 'A', `${t1.status}/${t2.status}/${t3.status}`);
+  const t4 = await api('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, H(SVC), { user_id: '00000000-0000-0000-0000-000000000000' });
+  check('orders: nobody, not even the server, can move a sent order to another account (the site never does: guests have no saved orders)', t4.status >= 400, `${t4.status}`);
   const rn = await api('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, H(ANON, token.access_token), { name: 'Renamed' });
   check('orders: a sent order can still be renamed', rn.status < 300 && rn.body[0].name === 'Renamed');
 } catch (e) {

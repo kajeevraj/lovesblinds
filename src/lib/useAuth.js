@@ -58,23 +58,26 @@ export function useAuth() {
 
     const list = data ?? [];
 
-    if (list.length > 0) {
+    // The order in progress is the newest DRAFT. A sent order is never reopened for editing, so if the account has no draft
+    // (everything was sent, or a sent order was renamed last) a fresh one is made, and a guest's items go into that.
+    const draft = list.find(o => o.status !== 'sent');
+    if (draft) {
       setOrders(list);
-      setActiveOrderId(list[0].id);
+      setActiveOrderId(draft.id);
       setAuthLoading(false);
     } else {
-      // First login — create their initial order immediately so activeOrderId is always set.
       const { data: first, error: createErr } = await supabase
         .from('orders')
-        .insert({ user_id: userId, name: 'Order 1', items: [], status: 'draft' })
+        .insert({ user_id: userId, name: `Order ${list.length + 1}`, items: [], status: 'draft' })
         .select()
         .single();
 
       if (createErr) {
         console.error('[fetchOrders/createFirst]', createErr);
         setDbError(`Could not create first order: ${createErr.message}`);
+        setOrders(list);
       } else if (first) {
-        setOrders([first]);
+        setOrders([first, ...list]);
         setActiveOrderId(first.id);
       }
       setAuthLoading(false);
@@ -160,11 +163,13 @@ export function useAuth() {
     if (!supabase) return;
     const { error } = await supabase.from('orders').delete().eq('id', orderId);
     if (error) { console.error('[deleteOrder]', error); return; }
-    setOrders(prev => {
-      const next = prev.filter(o => o.id !== orderId);
-      if (activeOrderId === orderId) setActiveOrderId(next[0]?.id ?? null);
-      return next;
-    });
+    const next = orders.filter(o => o.id !== orderId);
+    setOrders(next);
+    if (activeOrderId === orderId) {
+      const draft = next.find(o => o.status !== 'sent');        // never fall back to a sent order
+      if (draft) setActiveOrderId(draft.id);
+      else await createOrder(`Order ${next.length + 1}`);
+    }
   };
 
   const activeOrder = orders.find(o => o.id === activeOrderId) ?? null;

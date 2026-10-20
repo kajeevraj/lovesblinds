@@ -124,10 +124,11 @@ try {
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
-  check('before signing out the bar shows the item in the order', /Your order: 1 item/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '1');
+  // the order in progress is the copy made by "Order again" (the sent order is never reopened) plus the window just added
+  check('before signing out the bar shows the two items in the order in progress', /Your order: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
-  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your order: 1 item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
+  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your order: \d+ item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
   await page.goto(`${BASE}/order`); await page.waitForTimeout(800);
   check('and the order page is empty after signing out', /Your order is empty/.test(await page.locator('main').innerText()));
   await page.goto(`${BASE}/`); await page.waitForTimeout(500);
