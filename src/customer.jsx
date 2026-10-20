@@ -414,7 +414,7 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
   );
 }
 
-// The overlap and clearance numbers below are the common ones in the window-covering trade (see docs/project-handoff.md).
+// Customers only measure. They never add or subtract anything: the overlap, the floor gap and any deductions are worked out on our side.
 const INSIDE_STEPS = [
   ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
   ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
@@ -422,16 +422,13 @@ const INSIDE_STEPS = [
   ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
 ];
 const OUTSIDE_STEPS = [
-  ["Measure the area to cover", "Measure the width from the outer edge of the trim on one side to the outer edge on the other. If there is no trim, measure the glass and frame. Measure once, and use the widest number.", "Area to cover · width"],
-  ["Add the overlap", "Add 2 inches on each side (4 inches in total) so light does not leak around the edges. For more light control, use 3 inches on each side. Enter the new, larger number as your width.", "Width + 2\" each side"],
-  ["Choose where the shade starts", "Mount the shade 3 inches above the top of the frame (or trim). That is the top of the shade.", "Start 3\" above the frame"],
-  ["Measure the height", "From the top of the shade down to where it should stop: 2 inches below the sill, or to the bottom of the apron, or all the way to the floor. Enter that number as your height.", "Top of shade to where it stops"],
-  ["Check for clearance", "Make sure there is flat wall space above and to each side for the brackets, usually 1.5 inches in each direction.", "Bracket space · 1.5\""],
+  ["Measure the width of the window frame", "From the outside edge of the frame on one side to the outside edge on the other. Measure once, and use the widest number.", "Frame · outside edge to outside edge"],
+  ["Measure the height of the frame", "From the top of the frame down to the bottom of the sill or frame. Measure at the left, middle and right, and use the longest number.", "Top of frame to bottom of sill or frame"],
+  ["Note any obstructions", "Window cranks, handles, vents, or anything on the wall around the window, so we can talk through the options.", "Obstructions"],
 ];
 const CURTAIN_STEPS = [
-  ["Measure the track or rod width", "If the track or rod is already up, measure it end to end. If not, measure the window or door frame and add the overlap: 6 inches on each side (12 inches in total) for curtains, or 3 inches on each side (6 inches in total) for Dream Curtains. Enter the track or rod width.", "Track or rod · width"],
-  ["Measure the height to the floor", "From the underside of the track (or the bottom of the rod) straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track to floor · height × 3"],
-  ["Leave the floor gap", "The diagram shows the gap between the bottom of the curtain and the floor: 0.8 inch by default. Do not take it off yourself. Enter the full distance to the floor. If you want a different gap, or curtains that rest on the floor, tell us in the notes.", "Curtain to floor · 0.8\" gap"],
+  ["Measure the width of the window or door", "From the outside edge of the frame on one side to the outside edge on the other. Measure once, and use the widest number.", "Window or door · outside edge to outside edge"],
+  ["Measure the height to the floor", "From the spot where the track or rod will go, straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track or rod to floor · height × 3"],
   ["Note any obstructions", "Wall switches, vents, radiators, a baseboard heater or a door that swings into the space, so we can talk through the options.", "Obstructions"],
 ];
 function MeasureStep({ n, title, text, tag }) {
@@ -527,7 +524,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
             <div id="outside" className="measure-block">
               <h2 className="serif">4 · Outside mount, step by step</h2>
-              <p className="measure-lead">Outside mount shades hang on the wall or trim and cover the window with a little to spare. <strong>The size you enter is the finished size of the shade, with the overlap already added.</strong> We do not add or take anything off.</p>
+              <p className="measure-lead">Outside mount shades hang on the wall or trim and cover the window. <strong>Don't add anything for overlap, we'll add it for you.</strong></p>
               <div className="measure-steps">
                 {OUTSIDE_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
@@ -535,7 +532,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
             <div id="curtains" className="measure-block">
               <h2 className="serif">5 · Curtains and Dream Curtains, step by step</h2>
-              <p className="measure-lead">Curtains and Dream Curtains hang from a track or rod, so you measure the track or rod and the drop to the floor, not the glass.</p>
+              <p className="measure-lead">Curtains and Dream Curtains hang from a track or rod, so you measure the width of the window or door and the drop to the floor. <strong>Don't add or subtract anything, we'll work out the overlap and floor gap.</strong></p>
               <div className="measure-steps">
                 {CURTAIN_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
