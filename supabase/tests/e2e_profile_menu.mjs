@@ -64,7 +64,6 @@ try {
     check('an address saved the old way (one line) appears in the street box, so nothing is lost', (await lp.locator('#pf-street').inputValue()) === '9 Old Road, Town' && (await lp.locator('#pf-city').inputValue()) === '' && (await lp.locator('#pf-country').inputValue()) === 'United States');
     await lc.close();
   }
-  await page.locator('.profile-btn').click();
   await page.getByRole('menuitem', { name: 'Edit profile' }).click();
   await page.getByRole('heading', { name: 'Your profile' }).waitFor();
   check('Edit profile opens the profile page at /profile', new URL(page.url()).pathname === '/profile');
