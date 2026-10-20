@@ -214,7 +214,7 @@ function totalsHtml(totals, withNote) {
 
 export function internalEmailHtml(customer, lines, notes, totals) {
   return `
-        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New Quote Request</h2>
+        <h2 style="font-family:Georgia,serif;color:#2c2c2a">New order</h2>
         <p>
           <strong>Name:</strong> ${esc(customer.name)}<br>
           <strong>Email:</strong> ${esc(customer.email)}<br>
@@ -234,7 +234,7 @@ export function internalEmailHtml(customer, lines, notes, totals) {
 export function customerEmailHtml(customer, lines, notes, totals) {
   return `
           <h2 style="font-family:Georgia,serif;color:#2c2c2a">Thanks, ${esc(customer.name)}!</h2>
-          <p>We've received your quote request and will send a written proposal to
+          <p>We've received your order and will email your final price to
           <strong>${esc(customer.email)}</strong> within 48 hours.</p>
           ${addressHtml(customer) ? `<p><strong>Shipping to:</strong><br>${addressHtml(customer)}</p>` : ''}
           <h3 style="font-family:Georgia,serif;color:#2c2c2a">What you requested</h3>
@@ -411,14 +411,14 @@ export async function handleQuote(req, res, deps = {}) {
     const resend = deps.resend || new Resend(env.RESEND_API_KEY);
     const date = new Date().toISOString().slice(0, 10);
     const safeName = String(customer.name || 'customer').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40);
-    const filename = `quote-${safeName}-${date}.xlsx`;
+    const filename = `order-${safeName}-${date}.xlsx`;
 
     // Internal email: xlsx attached, supplier price groups, color names and codes
     const sentInternal = await resend.emails.send({
       from: "Love's Blinds <quotes@lovesblinds.com>",
       to: INTERNAL_TO,
       replyTo: customer.email,
-      subject: oneLine(`New quote request | ${customer.name}`),
+      subject: oneLine(`New order | ${customer.name}`),
       html: internalEmailHtml(customer, lines, notes, totals),
       attachments: [{ filename, content: xlsxBuffer }],
     });
@@ -431,7 +431,7 @@ export async function handleQuote(req, res, deps = {}) {
       const sentCopy = await resend.emails.send({
         from: "Love's Blinds <quotes@lovesblinds.com>",
         to: customer.email,
-        subject: "Your quote request | Love's Blinds",
+        subject: "Your order estimate | Love’s Blinds",
         html: customerEmailHtml(customer, lines, notes, totals),
       });
       if (sentCopy?.error) { console.error('[api/quote] customer copy failed:', sentCopy.error.message); customerCopy = false; }     // we have the order; only the copy is missing

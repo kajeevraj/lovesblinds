@@ -46,7 +46,7 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
   );
 }
 
-export function Footer({ navigate }) {
+export function Footer({ navigate, hideMessage = false }) {
   return (
     <footer id="contact" className="s2-footer">
       <div className="s2-wrap s2-footer-inner">
@@ -58,7 +58,7 @@ export function Footer({ navigate }) {
           <div className="s2-footer-head">Questions?</div>
           <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
           <a href={SITE.phoneHref}>{SITE.phone}</a>
-          <a className="s2-footer-msg" href="/contact" onClick={linkTo(navigate, "/contact")}>Send us a message</a>
+          {!hideMessage && <a className="s2-footer-msg" href="/contact" onClick={linkTo(navigate, "/contact")}>Send us a message</a>}
         </div>
       </div>
     </footer>
@@ -622,7 +622,7 @@ export function ContactPage({ navigate }) {
           </aside>
         </div>
       </section>
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} hideMessage />
     </div>
   );
 }

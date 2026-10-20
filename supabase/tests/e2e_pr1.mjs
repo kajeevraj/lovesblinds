@@ -122,6 +122,9 @@ try {
   check('footer: the button turns brass on hover', await fb.evaluate((el) => { const c = getComputedStyle(el).backgroundColor; const b = getComputedStyle(document.querySelector('.s2-btn-brass') || el).backgroundColor; return c !== 'rgba(0, 0, 0, 0)' && c !== 'rgb(255, 255, 255)'; }));
   await fb.click(); await page.locator('#c-name').waitFor();
   check('footer: the button opens the Contact page', new URL(page.url()).pathname === '/contact');
+  check('footer: on the Contact page itself the button is hidden (the email and phone stay)', (await page.locator('a.s2-footer-msg').count()) === 0 && (await page.locator('.s2-footer a[href^=mailto]').count()) === 1);
+  await page.goto(`${BASE}/contact`); await page.locator('#c-name').waitFor();
+  check('footer: still hidden when the Contact page is opened directly', (await page.locator('a.s2-footer-msg').count()) === 0);
   for (const [name, path] of [['home', '/'], ['products list', '/products'], ['measuring guide', '/measure'], ['order page', '/order'], ['a product page', '/products/zebra'], ['My Orders', '/orders'], ['profile', '/profile']]) {
     await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
     const n = await page.locator('.s2-footer a.s2-footer-msg').count();
