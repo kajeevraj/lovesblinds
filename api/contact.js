@@ -3,7 +3,7 @@
 // fail the customer is told and given our email and phone. Same protection as the order form: a hidden spam-trap field, size
 // limits and a rate limit per IP address and per email address.
 import { Resend } from 'resend';
-import { LIMITS, SPAM_TRAP, BUSINESS_EMAIL, clientIp, digest, tooLarge, friendly, rateLimit, validEmail, oneLine } from './_guard.js';
+import { LIMITS, SPAM_TRAP, BUSINESS_EMAIL, BUSINESS_NAME, clientIp, digest, tooLarge, friendly, rateLimit, validEmail, oneLine } from './_guard.js';
 
 const INTERNAL_TO = BUSINESS_EMAIL;
 export const TOPICS = ['General question', 'Question about a quote', 'Trade / wholesale'];
@@ -49,6 +49,29 @@ export function messageHtml(m) {
     <p style="color:#666;font-size:13px">Reply to this email to answer ${esc(m.name)} directly.</p>`;
 }
 
+// ---- the confirmation to the customer -------------------------------------------------------------------------------------
+// Fixed wording. The ONLY thing taken from the form is the first name, cut down to letters (so it cannot carry a link, markup or
+// a sentence) and at most 50 characters. Nothing else they typed goes into it, so the form cannot be used to send our branded
+// email with someone else's words.
+export const FIRST_NAME_MAX = 50;
+export function firstName(name) {
+  const first = String(name ?? '').trim().split(/\s+/)[0] || '';
+  const letters = first.replace(/[^\p{L}\p{M}'’-]/gu, '').slice(0, FIRST_NAME_MAX);
+  return /\p{L}/u.test(letters) ? letters : 'there';
+}
+export const confirmationText = (name) =>
+  `Hi ${firstName(name)}, thanks for reaching out to Love’s Blinds. We got your message and will reply within 1 business day. If it’s urgent, call us at (262) 434-0949. If you didn’t send us a message, you can ignore this email.`;
+
+// Same look as the order confirmation email (a Georgia heading, plain text, a small grey signature).
+export function confirmationHtml(name) {
+  return `
+    <h2 style="font-family:Georgia,serif;color:#2c2c2a">Love’s Blinds</h2>
+    <p>${esc(confirmationText(name))}</p>
+    <p style="color:#888;font-size:12px">${BUSINESS_NAME}</p>
+  `;
+}
+export const CONFIRMATION_SUBJECT = 'We got your message — Love’s Blinds';
+
 export async function handleContact(req, res, deps = {}) {
   const env = deps.env || process.env;
   const fetchFn = deps.fetch || fetch;
@@ -79,10 +102,23 @@ export async function handleContact(req, res, deps = {}) {
       emailed = true;
     }
   } catch (err) { console.error('[api/contact] email failed:', err?.message || err); }
+  // the customer's confirmation: only after our own copy went out, whatever the order-email setting says
+  let confirmation = false;
+  if (emailed) {
+    try {
+      const resend = deps.resend || new Resend(env.RESEND_API_KEY);
+      const r = await resend.emails.send({
+        from: "Love's Blinds <quotes@lovesblinds.com>", to: m.email, replyTo: BUSINESS_EMAIL,
+        subject: CONFIRMATION_SUBJECT, html: confirmationHtml(m.name), text: confirmationText(m.name),
+      });
+      if (r?.error) throw new Error(r.error.message || 'email failed');
+      confirmation = true;
+    } catch (err) { console.error('[api/contact] confirmation not sent:', err?.message || err); }       // we have the message; only the reply is missing
+  }
   try { await storeMessage(m, emailed, env, fetchFn); stored = true; } catch (err) { console.error('[api/contact] not stored:', err?.message || err); }
 
   if (!emailed && !stored) return res.status(502).json({ error: `We could not send your message just now. Please email us at ${BUSINESS_EMAIL} or call 262-434-0949.` });
-  return res.status(200).json({ ok: true, emailed, stored });
+  return res.status(200).json({ ok: true, emailed, stored, confirmation });
 }
 
 export default function handler(req, res) { return handleContact(req, res); }

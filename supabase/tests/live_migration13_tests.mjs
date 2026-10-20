@@ -29,7 +29,7 @@ try {
   const sent = []; const res = { code: 0, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
   await handleContact({ method: 'POST', headers: { 'x-forwarded-for': `198.51.100.${stamp % 200}` }, body: { name: tag, email: `${tag}@example.com`, phone: '555', topic: 'General question', subject: 's', message: 'hello from the live test' } }, res, { env: { ...process.env, RESEND_API_KEY: 'x' }, resend: { emails: { send: async (m) => { sent.push(m); return { data: { id: '1' } }; } } } });
   const row = (await api('GET', `/rest/v1/messages?select=*&name=eq.${tag}&message=eq.hello from the live test`, H(SVC))).body[0];
-  check('contact: a message through the real handler is emailed and stored (phone, topic, subject, message, created time, status)', res.code === 200 && res.body.stored && sent.length === 1 && row && row.phone === '555' && row.topic === 'General question' && row.status === 'new' && row.emailed === true && !!row.created_at, JSON.stringify(res.body));
+  check('contact: a message through the real handler is emailed to us, confirmed to the customer, and stored (phone, topic, subject, message, created time, status)', res.code === 200 && res.body.stored && sent.length === 2 && sent[1].to === `${tag}@example.com` && row && row.phone === '555' && row.topic === 'General question' && row.status === 'new' && row.emailed === true && !!row.created_at, JSON.stringify(res.body));
 
   // rate limit counter
   const k = `${tag}:rl`; const hits = [];

@@ -2,7 +2,7 @@
 // service, the rate-limit counter and the message store replaced by fakes, so nothing is sent and nothing is written.
 // Reads the real catalog for one Roller color (SUPABASE_URL, VITE_SUPABASE_ANON_KEY) to build a realistic order.
 import { handleQuote, checkSizes } from '../../api/quote.js';
-import { handleContact } from '../../api/contact.js';
+import { handleContact, firstName, confirmationText, CONFIRMATION_SUBJECT } from '../../api/contact.js';
 import { rateLimit, validateOrder, digest, LIMITS } from '../../api/_guard.js';
 
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
@@ -99,6 +99,28 @@ c = await crun(cbody(), { fetch: cfetch(false) });
 check('contact: if storing fails but the email went, it still counts as received', c.res.code === 200 && c.res.body.emailed && !c.res.body.stored);
 c = await crun(cbody(), { resend: mkResend({ error: true }), fetch: cfetch(false) });
 check('contact: if both fail, it is NOT shown as received, and the answer has our email and phone', c.res.code === 502 && !c.res.body.ok && /loveblindswindows@gmail\.com/.test(c.res.body.error) && /262-434-0949/.test(c.res.body.error), c.res.body?.error);
+
+// ---------- the confirmation to the customer ----------
+const WORDING = (n) => `Hi ${n}, thanks for reaching out to Love’s Blinds. We got your message and will reply within 1 business day. If it’s urgent, call us at (262) 434-0949. If you didn’t send us a message, you can ignore this email.`;
+c = await crun(cbody({ name: 'Ada Lovelace', message: 'Secret project: 120 inch curtains http://evil.example', subject: 'Order 4411', phone: '555-0199' }));
+const conf = c.resend.sent[1];
+check('contact confirmation: sent after our own copy, to the customer, reply-to our address, fixed subject', c.resend.sent.length === 2 && c.resend.sent[0].to === 'loveblindswindows@gmail.com' && conf.to === 'ada@example.com' && conf.replyTo === 'loveblindswindows@gmail.com' && conf.subject === CONFIRMATION_SUBJECT && c.res.body.confirmation === true, `${c.resend.sent.length} emails`);
+check('contact confirmation: exactly the agreed wording with only the first name filled in (HTML and plain text)', conf.text === WORDING('Ada') && conf.html.includes(WORDING('Ada').replace(/’/g, '’')) && confirmationText('Ada Lovelace') === WORDING('Ada'));
+check('contact confirmation: nothing else they typed is in it (not the message, subject, phone, last name or topic)', !/Secret|evil|curtains|4411|0199|Lovelace|General question/.test(conf.html + conf.text + conf.subject));
+check('contact confirmation: it has the same look as the order confirmation (Georgia heading, grey signature)', /font-family:Georgia,serif;color:#2c2c2a/.test(conf.html) && /color:#888;font-size:12px/.test(conf.html) && /Loves Blinds and Window Treatments/.test(conf.html));
+check('contact confirmation: it is sent whatever SEND_CUSTOMER_CONFIRMATION says (off, and on)', (await crun(cbody(), { env: { ...env, SEND_CUSTOMER_CONFIRMATION: 'false', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } })).resend.sent.length === 2 && (await crun(cbody(), { env: { ...env, SEND_CUSTOMER_CONFIRMATION: undefined, SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } })).resend.sent.length === 2);
+const hostile = [['Eve <script>alert(1)</script> Smith', 'Eve'], ['<b>http://evil.example/pay', 'bhttpevilexamplepay'], ['12345 6789', 'there'], ['', 'there'], ['José-María Núñez', 'José-María'], ['A'.repeat(80), 'A'.repeat(50)]];
+for (const [typed, expected] of hostile) check(`contact confirmation: the first name from ${JSON.stringify(typed).slice(0, 40)} is "${expected.length > 20 ? expected.slice(0, 8) + '…' : expected}" (letters only, at most 50)`, firstName(typed) === expected && firstName(typed).length <= 50, firstName(typed).slice(0, 60));
+c = await crun(cbody({ name: 'Eve <script>alert(1)</script> Smith' })); const hc = c.resend.sent[1];
+check('contact confirmation: markup in the name cannot get into the email', !/<script|alert|Smith/.test(hc.html + hc.text) && hc.text === WORDING('Eve'));
+c = await crun(cbody({ name: 'M'.repeat(60) + ' Rest' })); check('contact confirmation: a very long name is cut to 50 characters', c.resend.sent[1].text.startsWith(`Hi ${'M'.repeat(50)}, thanks`));
+c = await crun(cbody(), { resend: (() => { const sent = []; return { sent, emails: { send: async (m) => { sent.push(m); return sent.length === 1 ? { error: { message: 'boom' } } : { data: { id: 'x' } }; } } }; })() });
+check('contact confirmation: if our own copy failed, no confirmation goes to the customer', c.resend.sent.length === 1 && c.res.body.confirmation === false, `${c.resend.sent.length} email attempts`);
+c = await crun(cbody(), { resend: (() => { const sent = []; return { sent, emails: { send: async (m) => { sent.push(m); return sent.length === 2 ? { error: { message: 'boom' } } : { data: { id: 'x' } }; } } }; })() });
+check('contact confirmation: if only the confirmation fails, the message still counts as received', c.res.code === 200 && c.res.body.ok && c.res.body.emailed && c.res.body.confirmation === false);
+c = await crun(cbody(), { rateLimit: async () => ({ limited: true }) }); check('contact confirmation: the rate limits (IP and email) stand in front of it: nothing at all is sent when limited', c.res.code === 429 && c.resend.sent.length === 0);
+c = await crun({ ...cbody(), website: 'x' }); check('contact confirmation: the spam trap stops it too', c.resend.sent.length === 0);
+c = await crun(cbody({ email: 'victim@example.com' })); check('contact confirmation: it goes only to the address in the form, once', c.resend.sent.filter((m) => m.to === 'victim@example.com').length === 1);
 
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);

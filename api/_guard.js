@@ -9,6 +9,7 @@ import { MAX_QTY } from '../src/lib/limits.js';
 
 export const BUSINESS_PHONE = '262-434-0949';
 export const BUSINESS_EMAIL = 'loveblindswindows@gmail.com';
+export const BUSINESS_NAME = 'Loves Blinds and Window Treatments';
 export const LIMITS = {
   orderBytes: 200_000, contactBytes: 20_000,
   items: 50, qty: MAX_QTY, notes: 2000, name: 100, email: 200, phone: 40, line1: 200, text: 3000, picks: 8,
