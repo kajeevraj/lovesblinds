@@ -104,7 +104,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     const errs = {};
     if (!form.name.trim()) errs.name = 'Please enter your name';
     if (!form.email.trim()) errs.email = 'Please enter your email';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter a valid email';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = 'Enter a valid email';
     if (!form.street.trim()) errs.street = 'Please enter your street address';
     if (!form.city.trim()) errs.city = 'Please enter your city';
     if (!form.state.trim()) errs.state = 'Please enter your state or province';
@@ -126,6 +126,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
       });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || `Server error (${res.status})`); }
       const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error('We could not send your order just now. Please email loveblindswindows@gmail.com or call 262-434-0949.');     // never show "sent" unless the server says so
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
       if (onOrderSent && activeOrderId) onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() });

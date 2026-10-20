@@ -122,6 +122,29 @@ try {
   check('the spam-trap field is not visible and not reachable by keyboard', await page.evaluate(() => { const i = document.querySelector('input[name=website]'); const r = i.getBoundingClientRect(); return i.tabIndex === -1 && (r.right < 0 || r.width <= 1) && !!i.closest('[aria-hidden=true]'); }));
   await page.getByRole('button', { name: /Send message/i }).click();
   check('an empty form shows what is missing and sends nothing', (await page.locator('.field-error').count()) === 3 && posted === null);
+  check('...each missing box has its own clear message (name, email, message)', /enter your name/.test(await page.locator('#c-name + .field-error').innerText()) && /enter your email so we can reply/.test(await page.locator('#c-email + .field-error').innerText()) && /write your message/.test(await page.locator('#c-message + .field-error').innerText()));
+  // one box wrong at a time: blocked in the browser, a message under that box, what was typed is kept, never "Message received"
+  const full = { name: 'Ada Lovelace', email: 'ada@example.com', message: 'Can you do 120 inch curtains?' };
+  const ids = { name: '#c-name', email: '#c-email', message: '#c-message' };
+  for (const [label, field, value, re] of [['no email', 'email', '', /enter your email so we can reply/], ['a bad email', 'email', 'ada@example', /valid email/], ['no name', 'name', '', /enter your name/], ['no message', 'message', '', /write your message/]]) {
+    for (const k of Object.keys(full)) await page.locator(ids[k]).fill(k === field ? value : full[k]);
+    posted = null; await page.getByRole('button', { name: /Send message/i }).click();
+    const t = await page.locator('main').innerText();
+    check(`contact, ${label}: blocked in the browser, a message under the box, nothing sent, never "Message received"`, posted === null && re.test(await page.locator(`${ids[field]} + .field-error`).innerText()) && !/Message received/.test(t));
+    if (field !== 'message') check(`...${label}: the typed message is kept`, (await page.locator('#c-message').inputValue()) === full.message);
+  }
+  for (const k of Object.keys(full)) await page.locator(ids[k]).fill(full[k]);
+  // every kind of failure from the server: an error with our email and phone, never "Message received"
+  for (const [label, status, body] of [['a database error', 502, { error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }], ['an email error', 502, { error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }], ['the rate limit', 429, { error: 'Too many messages were sent. If it keeps happening, please call us at (262) 434-0949 or email loveblindswindows@gmail.com.' }], ['an answer that is "ok" but whose email did not go out', 200, { ok: true, emailed: false, stored: true }], ['an empty answer', 200, {}]]) {
+    await page.route('**/api/contact', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+    await page.getByRole('button', { name: /Send message/i }).click(); await page.locator('.send-error').waitFor();
+    const e = await page.locator('.send-error').innerText();
+    check(`contact, ${label}: an error with our email and phone is shown, never "Message received", and the typed message is kept`, /loveblindswindows@gmail\.com/.test(e) && /262\D{0,3}434\D?0949/.test(e) && !/Message received/.test(await page.locator('main').innerText()) && (await page.locator('#c-message').inputValue()) === full.message, e);
+  }
+  await page.route('**/api/contact', (route) => route.abort());
+  await page.getByRole('button', { name: /Send message/i }).click(); await page.locator('.send-error').waitFor();
+  check('contact, no connection: an error with our email and phone, never "Message received"', /loveblindswindows@gmail\.com/.test(await page.locator('.send-error').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.send-error').innerText()) && !/Message received/.test(await page.locator('main').innerText()));
+  await page.route('**/api/contact', async (route) => { posted = JSON.parse(route.request().postData()); if (mode === 'ok') await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, emailed: true, stored: true }) }); else await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }) }); });
   await page.locator('#c-name').fill('Ada Lovelace'); await page.locator('#c-email').fill('ada@example.com'); await page.locator('#c-phone').fill('555 010 2030');
   await page.locator('label.opt-btn', { hasText: 'Question about a quote' }).click(); await page.locator('#c-subject').fill('About my order'); await page.locator('#c-message').fill('Can you do 120 inch curtains?');
   mode = 'fail';

@@ -555,17 +555,22 @@ export function ContactPage({ navigate }) {
   const send = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!f.name.trim()) errs.name = "Please enter your name";
-    if (!/\S+@\S+\.\S+/.test(f.email)) errs.email = "Please enter a valid email address";
-    if (!f.message.trim()) errs.message = "Please write your message";
+    if (!f.name.trim()) errs.name = "Please enter your name so we know who to reply to.";
+    if (!f.email.trim()) errs.email = "Please enter your email so we can reply.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) errs.email = "Please enter a valid email address, like name@example.com.";
+    if (!f.message.trim()) errs.message = "Please write your message.";
     setErrors(errs);
-    if (Object.keys(errs).length) return;
+    if (Object.keys(errs).length) { setStatus("idle"); setError(""); return; }
     setStatus("sending"); setError("");
     try {
-      const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
+      const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) }).catch(() => null);
+      if (!res) throw new Error(`We could not reach our server. Please check your connection, or email us at ${SITE.email} or call ${SITE.phone}.`);
       const data = await res.json().catch(() => ({}));
       // "received" is only shown when the server says the message really went through
-      if (!res.ok || !data.ok) throw new Error(data.error || `We could not send your message just now. Please email us at ${SITE.email} or call ${SITE.phone}.`);
+      if (!res.ok || data.ok !== true || data.emailed !== true) {
+        if (data.fields && typeof data.fields === "object") { setErrors(data.fields); setStatus("idle"); return; }     // the server found a missing field: show it under the field
+        throw new Error(data.error || `We could not send your message just now. Please email us at ${SITE.email} or call ${SITE.phone}.`);
+      }
       setStatus("sent");
     } catch (err) {
       setError(err.message || `We could not send your message just now. Please email us at ${SITE.email} or call ${SITE.phone}.`);

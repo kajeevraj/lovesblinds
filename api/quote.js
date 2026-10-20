@@ -383,7 +383,7 @@ export async function handleQuote(req, res, deps = {}) {
   if (tooLarge(req, LIMITS.orderBytes)) return res.status(413).json({ error: friendly('That order is too large to send in one go.') });
 
   // the hidden field a person never sees: a bot that fills it in is told "ok" and nothing is sent
-  if (req.body && typeof req.body === 'object' && req.body[SPAM_TRAP]) return res.status(200).json({ ok: true, customerCopy: false });
+  if (req.body && typeof req.body === 'object' && req.body[SPAM_TRAP]) return res.status(400).json({ error: friendly('We could not send your order just now.') });
 
   const checked = validateOrder(req.body);
   if (checked.error) return res.status(400).json({ error: checked.error });

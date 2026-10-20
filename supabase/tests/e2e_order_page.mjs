@@ -111,6 +111,17 @@ try {
   check('order page: no sideways scroll at 390 px and touch targets are at least 44 px', sw <= 390 && small === 0, `${sw} px, ${small} small targets`);
   check('order page: no price group names', leak(await page.content()).length === 0);
 
+  // the order form follows the same rule: "on its way" only when the server says it worked
+  await page.locator('#o-email').fill('ada@example.com');
+  for (const [label, status, body] of [['an email error', 500, { error: 'We could not send your order just now. If it keeps happening, please call us at (262) 434-0949 or email loveblindswindows@gmail.com.' }], ['the rate limit', 429, { error: 'Too many orders were sent. Please call us at (262) 434-0949.' }], ['an empty answer', 200, {}]]) {
+    await page.route('**/api/quote', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+    await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();
+    check(`order form, ${label}: an error is shown, never "on its way", and the order is still there`, !/on its way/.test(await page.locator('main').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.s2-send-error').innerText()) && (await page.locator('.s2-items > li').count()) > 0);
+  }
+  await page.route('**/api/quote', (route) => route.abort());
+  await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();
+  check('order form, no connection: an error is shown, never "on its way"', !/on its way/.test(await page.locator('main').innerText()));
+  await page.route('**/api/quote', async (route) => { sentBody = JSON.parse(route.request().postData()); await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: copy }) }); });
   // send
   await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-phone').fill('555 010 2030');  await page.locator('#o-notes').fill('Ring first');
   await page.getByRole('button', { name: 'Send my order' }).click();

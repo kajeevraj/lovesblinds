@@ -1,6 +1,6 @@
 // POST /api/contact: a message from the Contact page. It is emailed to us through Resend (the way orders are) and stored in the
-// `messages` table (migration 13; readable by admins only). It counts as received when at least one of the two worked; if both
-// fail the customer is told and given our email and phone. Same protection as the order form: a hidden spam-trap field, size
+// `messages` table (migration 13; readable by admins only). It counts as received ONLY when both worked (our email went out and it
+// was saved); anything else is an error that gives our email and phone. Success is never faked. Same protection as the order form: a hidden spam-trap field, size
 // limits and a rate limit per IP address and per email address.
 import { Resend } from 'resend';
 import { LIMITS, SPAM_TRAP, BUSINESS_EMAIL, BUSINESS_NAME, clientIp, digest, tooLarge, friendly, rateLimit, validEmail, oneLine } from './_guard.js';
@@ -13,10 +13,13 @@ const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 export function validateMessage(body) {
   const b = body && typeof body === 'object' ? body : {};
   const name = text(b.name, LIMITS.name), email = text(b.email, LIMITS.email), message = text(b.message, 5000);
-  if (!name) return { error: 'Please enter your name.' };
-  if (!validEmail(email)) return { error: 'Please enter a valid email address.' };
-  if (!message) return { error: 'Please write your message.' };
-  if (typeof b.message === 'string' && b.message.trim().length > 5000) return { error: 'Please keep your message under 5,000 characters.' };
+  const fields = {};
+  if (!name) fields.name = 'Please enter your name so we know who to reply to.';
+  if (!email) fields.email = 'Please enter your email so we can reply.';
+  else if (!validEmail(email)) fields.email = 'Please enter a valid email address, like name@example.com.';
+  if (!message) fields.message = 'Please write your message.';
+  else if (typeof b.message === 'string' && b.message.trim().length > 5000) fields.message = 'Please keep your message under 5,000 characters.';
+  if (Object.keys(fields).length) return { error: Object.values(fields)[0], fields };
   return {
     clean: {
       name, email, message,
@@ -72,15 +75,18 @@ export function confirmationHtml(name) {
 }
 export const CONFIRMATION_SUBJECT = 'We got your message — Love’s Blinds';
 
+const FAILED = `We could not send your message just now. Please email us at ${BUSINESS_EMAIL} or call 262-434-0949.`;
+
 export async function handleContact(req, res, deps = {}) {
   const env = deps.env || process.env;
   const fetchFn = deps.fetch || fetch;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (tooLarge(req, LIMITS.contactBytes)) return res.status(413).json({ error: friendly('That message is too large to send.') });
-  if (req.body && typeof req.body === 'object' && req.body[SPAM_TRAP]) return res.status(200).json({ ok: true });     // spam trap: say "ok", send nothing
+  // spam trap: send nothing, and never say "received" (a browser that auto-fills the hidden field gets our contact details)
+  if (req.body && typeof req.body === 'object' && req.body[SPAM_TRAP]) return res.status(400).json({ error: FAILED });
 
   const checked = validateMessage(req.body);
-  if (checked.error) return res.status(400).json({ error: checked.error });
+  if (checked.error) return res.status(400).json({ error: checked.error, fields: checked.fields });
   const m = checked.clean;
 
   const limited = await (deps.rateLimit || rateLimit)([
@@ -117,7 +123,7 @@ export async function handleContact(req, res, deps = {}) {
   }
   try { await storeMessage(m, emailed, env, fetchFn); stored = true; } catch (err) { console.error('[api/contact] not stored:', err?.message || err); }
 
-  if (!emailed && !stored) return res.status(502).json({ error: `We could not send your message just now. Please email us at ${BUSINESS_EMAIL} or call 262-434-0949.` });
+  if (!emailed || !stored) return res.status(502).json({ error: FAILED });
   return res.status(200).json({ ok: true, emailed, stored, confirmation });
 }
 
