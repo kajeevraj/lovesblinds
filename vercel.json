@@ -54,7 +54,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api/|robots\\.txt$).*)",
+      "source": "/((?!api/|robots\\.txt$|sitemap\\.xml$|og-image\\.jpg$).*)",
       "destination": "/index.html"
     }
   ],

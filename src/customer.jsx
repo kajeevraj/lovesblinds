@@ -229,12 +229,12 @@ export function ProductsPage({ navigate, location, setLocation }) {
   const lines = locationStep ? (location ? activeLinesIn(location) : []) : activeLines();
 
   return (
-    <div className="page-fade">
-      <section className="products-hero2">
-        <div className="container">
-          <div className="eyebrow">Our lineup</div>
-          <h1 className="serif">Choose your style</h1>
-          <p className="section-sub">Pick a line to see every fabric as a real swatch and build your order.</p>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Our lineup</p>
+          <h1 className="s2-page-title">Choose your style</h1>
+          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your order.</p>
           {locationStep && (
             <div className="location-cards">
               {locations.map(loc => (
@@ -248,7 +248,7 @@ export function ProductsPage({ navigate, location, setLocation }) {
           )}
         </div>
       </section>
-      <section className="container products-grid-wrap">
+      <section className="s2-wrap s2-page-body">
         <LineupGrid lines={lines} navigate={navigate} level={2} />
       </section>
       <Footer navigate={navigate} />
@@ -263,10 +263,13 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
   if (!supabaseEnabled) {
     return (
-      <div className="page-fade">
-        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80 }}>
-          <h1 className="serif section-title">My Orders</h1>
-          <p style={{ color: "var(--ink-60)" }}>Account features are not yet configured for this site.</p>
+      <div className="page-fade s2 s2-inner">
+        <section className="s2-wrap s2-page-head">
+          <div>
+            <p className="s2-eyebrow">Your account</p>
+            <h1 className="s2-page-title">My orders</h1>
+            <p className="s2-page-lede">Account features are not yet configured for this site.</p>
+          </div>
         </section>
         <Footer navigate={navigate} />
       </div>
@@ -275,11 +278,14 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
   if (!user) {
     return (
-      <div className="page-fade">
-        <section className="container-narrow" style={{ paddingTop: 80, paddingBottom: 80, textAlign: "center" }}>
-          <h1 className="serif section-title">My Orders</h1>
-          <p style={{ color: "var(--ink-60)", marginBottom: 28 }}>Sign in with Google to save your orders and come back to them any time.</p>
-          <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>
+      <div className="page-fade s2 s2-inner">
+        <section className="s2-wrap s2-page-head">
+          <div>
+            <p className="s2-eyebrow">Your account</p>
+            <h1 className="s2-page-title">My orders</h1>
+            <p className="s2-page-lede">Sign in with Google to save your orders and come back to them any time.</p>
+            <button type="button" className="s2-btn s2-btn-brass s2-page-action" onClick={signInWithGoogle}>Sign in with Google</button>
+          </div>
         </section>
         <Footer navigate={navigate} />
       </div>
@@ -317,16 +323,16 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
   };
 
   return (
-    <div className="page-fade">
-      <section className="container" style={{ paddingTop: 56, paddingBottom: 80 }}>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-body s2-orders">
         <div className="orders-page-header">
           <div>
-            <div className="section-eyebrow">{user.email}</div>
-            <h1 className="serif section-title" style={{ marginBottom: 0 }}>My Orders</h1>
+            <p className="s2-eyebrow">{user.email}</p>
+            <h1 className="s2-page-title">My orders</h1>
           </div>
           <div className="orders-page-actions">
-            <button className="btn btn-sage" onClick={handleNewOrder}>+ New Order</button>
-            <button className="btn btn-ghost btn-sm" onClick={signOut}>Sign out</button>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={handleNewOrder}>+ New order</button>
+            <button type="button" className="s2-btn s2-btn-line" onClick={signOut}>Sign out</button>
           </div>
         </div>
 
@@ -339,11 +345,9 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 
         {orders.length === 0 && !dbError ? (
           <div className="empty-state">
-            <h3 className="serif">No orders yet.</h3>
-            <p>Browse products and use "Add to Order" to get started.</p>
-            <button className="btn btn-sage" onClick={() => navigate('products')} style={{ marginTop: 20 }}>
-              Browse Products <ArrowRight />
-            </button>
+            <h2 className="s2-empty-title">No orders yet.</h2>
+            <p>Browse products and use "Add to order" to get started.</p>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Browse products</button>
           </div>
         ) : orders.length === 0 ? null : (
           <div className="orders-grid">
@@ -412,20 +416,17 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
 export function MeasureGuidePage({ navigate, quoteCount }) {
   const [mountType, setMountType] = useState("inside");
   return (
-    <div className="page-fade">
-      <section className="measure-hero">
-        <div className="container">
-          <div className="section-eyebrow">Measure guide · 10 minutes</div>
-          <h1 className="serif">Measure with <em>confidence.</em></h1>
-          <p className="section-sub" style={{ maxWidth: 640 }}>You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
-
-          <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
-            <button className="btn btn-sage btn-sm" onClick={() => navigate("quote")}>Skip guide · Start your order <ArrowRight size={14} /></button>
-          </div>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Measuring guide · about 10 minutes</p>
+          <h1 className="s2-page-title">Measure with confidence.</h1>
+          <p className="s2-page-lede">You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
+          <a className="s2-btn s2-btn-brass s2-page-action" href="/order" onClick={linkTo(navigate, "/order")}>Skip the guide and start your order</a>
         </div>
       </section>
 
-      <section className="container measure-content">
+      <section className="s2-wrap measure-content">
         <div className="measure-cols">
           <aside className="measure-toc">
             <div className="label">On this page</div>
@@ -439,7 +440,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             <div className="measure-toc-callout">
               <div className="label" style={{ color: "var(--sage-dark)" }}>Need help?</div>
               <p>Unsure about a window, such as a bay, an arch, a French door or anything out of plumb? Send us a note or call and we will talk it through before you order.</p>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate("contact")}>Contact us <ArrowRight size={14} /></button>
+              <a className="s2-btn s2-btn-line" href="/contact" onClick={linkTo(navigate, "/contact")}>Contact us</a>
             </div>
           </aside>
 
@@ -531,10 +532,10 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
             <div id="submit" className="measure-block measure-cta">
               <div>
-                <h2 className="serif" style={{ fontSize: 32 }}>Got your numbers?</h2>
-                <p style={{ color: "var(--ink-60)", fontSize: 15, margin: "8px 0 0" }}>Send them along with your product picks and we'll have a written quote back to you within 48 hours.</p>
+                <h2 className="serif">Got your numbers?</h2>
+                <p>Send them along with your product picks and we'll email your final price within 48 hours.</p>
               </div>
-              <button className="btn btn-sage" onClick={() => navigate("quote")}>Start Your Order <ArrowRight /></button>
+              <a className="s2-btn s2-btn-sand" href="/order" onClick={linkTo(navigate, "/order")}>Start your order</a>
             </div>
           </div>
         </div>
@@ -580,11 +581,15 @@ export function ContactPage({ navigate }) {
   };
 
   return (
-    <div className="page-fade">
-      <section className="contact-page container-narrow">
-        <div className="section-eyebrow">Contact</div>
-        <h1 className="serif section-title">Drop us a line.</h1>
-        <p className="section-sub">Have a project in mind or a question about a fabric? Send us a note.</p>
+    <div className="page-fade s2 s2-inner">
+      <section className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Contact</p>
+          <h1 className="s2-page-title">Drop us a line.</h1>
+          <p className="s2-page-lede">Have a project in mind or a question about a fabric? Send us a note.</p>
+        </div>
+      </section>
+      <section className="contact-page s2-wrap s2-page-body">
 
         <div className="contact-grid">
           <div>
@@ -612,11 +617,12 @@ export function ContactPage({ navigate }) {
                   {/* a field people never see; a bot that fills it in is ignored */}
                   <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.zx_kv_q7} onChange={set("zx_kv_q7")} /></label></div>
                   {status === "failed" && <div className="full send-error" role="alert">{error}</div>}
-                  <div className="full"><button type="submit" className="btn btn-sage" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>Send Message <ArrowRight /></>}</button></div>
+                  <div className="full"><button type="submit" className="s2-btn s2-btn-brass" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send message"}</button></div>
                 </form>
             }
           </div>
           <aside className="contact-details">
+            <h2 className="contact-details-title">Prefer to talk?</h2>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val"><a href={SITE.phoneHref}>{SITE.phone}</a></div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val"><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div></div>
           </aside>
@@ -649,21 +655,26 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
   };
 
   return (
-    <div className="page-fade">
-      <header className="line-head"><div className="container line-head-inner"><h1 className="serif">Your profile</h1></div></header>
-      <div className="container-narrow" style={{ paddingBottom: 60 }}>
+    <div className="page-fade s2 s2-inner">
+      <header className="s2-wrap s2-page-head">
+        <div>
+          <p className="s2-eyebrow">Your account</p>
+          <h1 className="s2-page-title">Your profile</h1>
+        </div>
+      </header>
+      <div className="s2-wrap s2-page-body s2-profile">
         {!supabaseEnabled && <p>Profiles are not available right now.</p>}
         {supabaseEnabled && !user && (
-          <div className="config-group">
-            <p style={{ color: "var(--ink-60)", marginBottom: 20 }}>{authLoading ? "One moment…" : "Sign in with Google to edit your profile."}</p>
-            {!authLoading && <button className="btn btn-sage" onClick={signInWithGoogle}>Sign in with Google</button>}
+          <div className="s2-panel-box">
+            <p className="s2-page-lede">{authLoading ? "One moment…" : "Sign in with Google to edit your profile."}</p>
+            {!authLoading && <button type="button" className="s2-btn s2-btn-brass" onClick={signInWithGoogle}>Sign in with Google</button>}
           </div>
         )}
         {user && (
           <form onSubmit={save} className="profile-form">
             <div className="profile-form-head">
               {p.avatar ? <img src={p.avatar} alt="" width="56" height="56" referrerPolicy="no-referrer" className="profile-form-avatar" /> : <span className="profile-form-avatar profile-initials" aria-hidden="true">{p.initials}</span>}
-              <div><strong>{p.email}</strong><div style={{ color: "var(--ink-60)", fontSize: 14 }}>Your Google account. Your picture and email come from Google.</div></div>
+              <div><strong>{p.email}</strong><div className="profile-form-note">Your Google account. Your picture and email come from Google.</div></div>
             </div>
             <div className="config-group">
               <label className="label" htmlFor="pf-name">Name</label>
@@ -679,12 +690,12 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
               <div className="choice-note">These fill in your order details automatically. You can still change them on each order.</div>
             </div>
             <div className="config-actions">
-              <button className="btn btn-sage" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
-              <button className="btn btn-outline" type="button" onClick={() => navigate("orders")}>Order history</button>
+              <button className="s2-btn s2-btn-brass" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
+              <button className="s2-btn s2-btn-line" type="button" onClick={() => navigate("orders")}>Order history</button>
             </div>
-            <div aria-live="polite" style={{ marginTop: 12, minHeight: 22 }}>
-              {status === "saved" && <span style={{ color: "var(--sage)" }}>Saved.</span>}
-              {status && status !== "saving" && status !== "saved" && <span role="alert" style={{ color: "#a33" }}>{status}</span>}
+            <div aria-live="polite" className="profile-status">
+              {status === "saved" && <span className="profile-saved">Saved.</span>}
+              {status && status !== "saving" && status !== "saved" && <span role="alert" className="profile-error">{status}</span>}
             </div>
           </form>
         )}
