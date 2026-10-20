@@ -113,6 +113,23 @@ try {
   const small = await page.evaluate(() => [...document.querySelectorAll('.s2-crumbs a, .s2-step-hint a')].map((a) => Math.round(a.getBoundingClientRect().height)).filter((h) => h < 44));
   check('the breadcrumb links and "See how to measure" are at least 44 px tall', small.length === 0, small.join(','));
 
+  // ---------- the footer "Send us a message" button ----------
+  await page.goto(`${BASE}/products/roller`); await page.locator('.s2-footer').waitFor();
+  const fb = page.locator('.s2-footer a.s2-footer-msg');
+  const fbox = await fb.boundingBox(); const fstyle = await fb.evaluate((el) => { const c = getComputedStyle(el); return { radius: c.borderRadius, border: c.borderTopWidth, text: el.textContent }; });
+  check('footer: a "Send us a message" button under the email and phone, pill-shaped, 44 px tall', fstyle.text === 'Send us a message' && Math.round(fbox.height) === 44 && parseFloat(fstyle.radius) >= 22, JSON.stringify([fbox.height, fstyle]));
+  await fb.hover(); await page.waitForTimeout(350);
+  check('footer: the button turns brass on hover', await fb.evaluate((el) => { const c = getComputedStyle(el).backgroundColor; const b = getComputedStyle(document.querySelector('.s2-btn-brass') || el).backgroundColor; return c !== 'rgba(0, 0, 0, 0)' && c !== 'rgb(255, 255, 255)'; }));
+  await fb.click(); await page.locator('#c-name').waitFor();
+  check('footer: the button opens the Contact page', new URL(page.url()).pathname === '/contact');
+  for (const [name, path] of [['home', '/'], ['products list', '/products'], ['measuring guide', '/measure'], ['order page', '/order'], ['a product page', '/products/zebra'], ['My Orders', '/orders'], ['profile', '/profile']]) {
+    await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
+    const n = await page.locator('.s2-footer a.s2-footer-msg').count();
+    check(`footer: the button is in the footer of ${name}`, n === 1, `${n}`);
+  }
+  await page.goto(`${BASE}/admin`); await page.waitForTimeout(800);
+  check('footer: the button is not in the admin', (await page.locator('a.s2-footer-msg').count()) === 0);
+
   // ---------- the contact form ----------
   let posted = null, mode = 'ok';
   await page.route('**/api/contact', async (route) => { posted = JSON.parse(route.request().postData()); if (mode === 'ok') await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, emailed: true, stored: true }) }); else await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'We could not send your message just now. Please email us at loveblindswindows@gmail.com or call 262-434-0949.' }) }); });

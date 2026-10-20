@@ -58,6 +58,7 @@ export function Footer({ navigate }) {
           <div className="s2-footer-head">Questions?</div>
           <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
           <a href={SITE.phoneHref}>{SITE.phone}</a>
+          <a className="s2-footer-msg" href="/contact" onClick={linkTo(navigate, "/contact")}>Send us a message</a>
         </div>
       </div>
     </footer>

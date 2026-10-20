@@ -152,6 +152,18 @@ c = await crun(cbody(), { rateLimit: async () => ({ limited: true }) }); check('
 c = await crun({ ...cbody(), zx_kv_q7: 'x' }); check('contact confirmation: the spam trap stops it too', c.resend.sent.length === 0);
 c = await crun(cbody({ email: 'victim@example.com' })); check('contact confirmation: it goes only to the address in the form, once', c.resend.sent.filter((m) => m.to === 'victim@example.com').length === 1);
 
+// ---------- no em dashes in any email (subjects or bodies) ----------
+{
+  const dash = (m) => /—|&mdash;|&#8212;|&#x2014;/i.test(`${m.subject}\n${m.html || ''}\n${m.text || ''}`);
+  const o = await run(body()); const cc = await crun(cbody({ topic: 'Question about a quote', subject: 'Order status' }));
+  const all = [...o.resend.sent, ...cc.resend.sent];
+  check('emails: the order emails (internal and customer) and contact emails (internal and customer) were all produced', o.resend.sent.length === 2 && cc.resend.sent.length === 2 && all.length === 4);
+  check('emails: no em dash in any subject or body (order internal and customer, contact internal and customer)', !all.some(dash), all.filter(dash).map((m) => m.subject).join(' / '));
+  check('emails: the contact confirmation subject is "Thanks for your message | Love’s Blinds"', cc.resend.sent[1].subject === 'Thanks for your message | Love’s Blinds' && CONFIRMATION_SUBJECT === cc.resend.sent[1].subject);
+  check('emails: the internal subjects use a pipe', /^New quote request \| /.test(o.resend.sent[0].subject) && /^Website message: Question about a quote \| Order status$/.test(cc.resend.sent[0].subject), `${o.resend.sent[0].subject} / ${cc.resend.sent[0].subject}`);
+  check('emails: no em dash anywhere in the email code in api/', !/—|&mdash;/.test(readFileSync('api/quote.js', 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n') + readFileSync('api/contact.js', 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')));
+}
+
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);
 process.exit(bad.length ? 1 : 0);

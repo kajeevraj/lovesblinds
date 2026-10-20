@@ -74,7 +74,7 @@ export function confirmationHtml(name) {
     <p style="color:#888;font-size:12px">${BUSINESS_NAME}</p>
   `;
 }
-export const CONFIRMATION_SUBJECT = 'We got your message — Love’s Blinds';
+export const CONFIRMATION_SUBJECT = 'Thanks for your message | Love’s Blinds';
 
 const FAILED = `We could not send your message just now. Please email us at ${BUSINESS_EMAIL} or call 262-434-0949.`;
 
@@ -102,7 +102,7 @@ export async function handleContact(req, res, deps = {}) {
       const resend = deps.resend || new Resend(env.RESEND_API_KEY);
       const r = await resend.emails.send({
         from: "Love's Blinds <quotes@lovesblinds.com>", to: INTERNAL_TO, replyTo: m.email,
-        subject: oneLine(`Website message${m.topic ? `: ${m.topic}` : ''} — ${m.subject || m.name}`),
+        subject: oneLine(`Website message${m.topic ? `: ${m.topic}` : ''} | ${m.subject || m.name}`),
         html: messageHtml(m),
       });
       if (r?.error) throw new Error(r.error.message || 'email failed');

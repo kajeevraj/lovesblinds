@@ -192,7 +192,7 @@ export function lineListHtml(lines, internal = false) {
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
       (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
-      (l.price ? ` &mdash; <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
+      (l.price ? `: <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
       `</li>`;
   }).join('');
 }
@@ -418,7 +418,7 @@ export async function handleQuote(req, res, deps = {}) {
       from: "Love's Blinds <quotes@lovesblinds.com>",
       to: INTERNAL_TO,
       replyTo: customer.email,
-      subject: oneLine(`New quote request — ${customer.name}`),
+      subject: oneLine(`New quote request | ${customer.name}`),
       html: internalEmailHtml(customer, lines, notes, totals),
       attachments: [{ filename, content: xlsxBuffer }],
     });
@@ -431,7 +431,7 @@ export async function handleQuote(req, res, deps = {}) {
       const sentCopy = await resend.emails.send({
         from: "Love's Blinds <quotes@lovesblinds.com>",
         to: customer.email,
-        subject: "Your quote request — Love's Blinds",
+        subject: "Your quote request | Love's Blinds",
         html: customerEmailHtml(customer, lines, notes, totals),
       });
       if (sentCopy?.error) { console.error('[api/quote] customer copy failed:', sentCopy.error.message); customerCopy = false; }     // we have the order; only the copy is missing

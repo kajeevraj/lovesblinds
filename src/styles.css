@@ -820,6 +820,8 @@ a:focus-visible,
 .s2-footer-head { font-weight: 600; margin-bottom: 4px; }
 .s2-footer-contact a { color: var(--s2-ink); min-height: 44px; display: inline-flex; align-items: center; }
 .s2-footer-contact a:hover { color: var(--s2-brass); }
+.s2-footer-contact a.s2-footer-msg { align-self: flex-start; margin-top: 12px; height: 44px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--s2-ink); font-weight: 600; font-size: 14px; justify-content: center; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.s2-footer-contact a.s2-footer-msg:hover { background: var(--s2-brass); border-color: var(--s2-brass); color: #fff; }
 
 /* ===== Stage 2 product page ===== */
 .s2-line { padding-bottom: 0; }
@@ -1104,3 +1106,5 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .s2-crumbs a, .s2-crumbs span { display: inline-flex; align-items: center; min-height: var(--pill); }
 .s2-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sp-1); padding: var(--sp-1) 0; }
 .s2-step-hint a { display: inline-flex; align-items: center; min-height: var(--pill); }
+.contact-details a { overflow-wrap: anywhere; }
+@media (max-width: 400px) { .contact-details { padding: 24px 16px; } }
