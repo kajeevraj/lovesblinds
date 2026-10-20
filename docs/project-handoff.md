@@ -165,3 +165,13 @@ Design reference: `design/stage2/` (the approved mockups, read as a spec, not co
 - **Sitemap and robots:** `dist/sitemap.xml` (home, Products, the six product pages, Measuring guide, Contact) is written by the build; `robots.txt` points to it and keeps `/admin` and `/api/` out.
 - **Product data:** each product page carries schema.org `Product` JSON-LD (name, description, picture, brand; no price, since prices are estimates) and the home page carries `Organization`. Nothing from the supplier appears in any tag (a test checks).
 - **Tests:** `supabase/tests/e2e_pr2.mjs` (98 checks): built HTML for every page, sitemap, robots, share picture, JSON-LD, tab titles in the browser, and the restyled pages at 320, 390 and 1280 px.
+
+### Pull request 2 follow-up: profile address, measuring numbers, phone top bar
+- **Profile address:** the Profile page has the same address fields as the order form (street, apartment/suite optional, city, state/province, ZIP/postal code, country list). It is saved on the account as `profile_address` (an object) and, as one line, in `profile_ship_to` (for anything that still reads it). A profile saved the old way (only `profile_ship_to`) shows that line in the street box. The order form starts from all six fields (only boxes the customer has not typed in).
+- **Measuring guide numbers (common trade numbers; the shop owner's supplier may differ):**
+  - Inside mount: width = smallest of 3 measurements; height = longest of 3; frame depth at least 2 inches (some products 2.5 to 3).
+  - Outside mount shades: add 2 inches overlap on each side (4 in total; 3 per side for more light control); the shade starts 3 inches above the top of the frame; height runs from the top of the shade to 2 inches below the sill (or the apron, or the floor); 1.5 inches of flat wall above and to each side for brackets. The size entered is the finished size: we add and subtract nothing.
+  - Curtains and Dream Curtains: track or rod width = measured track, or the frame plus 6 inches each side (12 in total) for curtains and 3 inches each side (6 in total) for Dream Curtains; height from the underside of the track (or bottom of the rod) to the floor, shortest of 3 measurements; the diagram's floor gap is 0.8 inch by default, so the customer does not subtract it.
+  - These live in `INSIDE_STEPS`, `OUTSIDE_STEPS` and `CURTAIN_STEPS` in `src/customer.jsx`; a test checks the wording of every number.
+- **Phone top bar:** at 390 px all four links fit on one line (13 px text); at 320 px they wrap onto a second line. No sideways scrolling.
+- **Contact topic** "Question about a quote" is now "Question about an order or estimate" (the server still accepts the old name from a page opened before the change).

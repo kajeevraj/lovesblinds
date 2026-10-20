@@ -1248,3 +1248,5 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .s2-profile .profile-grid .profile-wide { grid-column: 1 / -1; }
 .s2-profile .profile-form { max-width: 640px; }
 @media (max-width: 520px) { .s2-profile .profile-grid { grid-template-columns: 1fr; } }
+.s2-profile .profile-form-head { flex-wrap: wrap; }
+.s2-profile .profile-form-head > div { flex: 1 1 220px; }

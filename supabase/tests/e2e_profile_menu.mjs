@@ -56,9 +56,14 @@ try {
 
   // a profile saved before the address had separate boxes (one line of text) shows that line in the street box
   await api('PUT', `/auth/v1/admin/users/${userId}`, H(SVC), { user_metadata: { profile_ship_to: '9 Old Road, Town', profile_address: null } });
-  await page.goto(`${BASE}/profile`); await page.locator('#pf-street').waitFor(); await page.waitForTimeout(1500);
-  check('an address saved the old way (one line) appears in the street box, so nothing is lost', (await page.locator('#pf-street').inputValue()) === '9 Old Road, Town' && (await page.locator('#pf-city').inputValue()) === '' && (await page.locator('#pf-country').inputValue()) === 'United States');
-  await page.reload(); await page.locator('#pf-street').waitFor();
+  {
+    const fresh = (await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password })).body;     // a new sign-in sees the account as it is now
+    const lc = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await lc.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(fresh)]);
+    const lp = await lc.newPage(); lp.setDefaultTimeout(20000); await lp.goto(`${BASE}/profile`); await lp.locator('#pf-street').waitFor(); await lp.waitForTimeout(1200);
+    check('an address saved the old way (one line) appears in the street box, so nothing is lost', (await lp.locator('#pf-street').inputValue()) === '9 Old Road, Town' && (await lp.locator('#pf-city').inputValue()) === '' && (await lp.locator('#pf-country').inputValue()) === 'United States');
+    await lc.close();
+  }
   await page.locator('.profile-btn').click();
   await page.getByRole('menuitem', { name: 'Edit profile' }).click();
   await page.getByRole('heading', { name: 'Your profile' }).waitFor();
@@ -102,7 +107,7 @@ try {
   const ord = hasCustomerColumn ? ordRes.body : (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
   const sentOrder = ord.find((x) => x.status === 'sent');
   check('a sent order keeps each item\'s estimate and quantity', !!sentOrder && sentOrder.items.length === 1 && sentOrder.items[0].price > 0 && sentOrder.items[0].priceKind === 'estimate' && sentOrder.items[0].qty === 1, JSON.stringify(sentOrder?.items?.[0] && { price: sentOrder.items[0].price, kind: sentOrder.items[0].priceKind, qty: sentOrder.items[0].qty }));
-  check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United States' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
+  check('a sent order keeps the customer details and the whole shipping address (migration 12: orders.customer)', hasCustomerColumn && sentOrder?.customer?.address?.street === '1 Analytical Way' && sentOrder.customer.address.city === 'London' && sentOrder.customer.address.state === 'England' && sentOrder.customer.address.zip === 'N1 1AA' && sentOrder.customer.address.country === 'United Kingdom' && sentOrder.customer.email === email && sentOrder.customer.name === 'Ada B. Lovelace', hasCustomerColumn ? JSON.stringify(sentOrder?.customer) : 'orders.customer column missing: apply migration 12');
   check('after sending, a fresh empty order is ready for the next window', ord.some((x) => x.status === 'draft' && x.items.length === 0), ord.map((x) => x.status).join(', '));
   // a sent order opens to look at, never to change; "Order again" copies it into a new draft
   const beforeItems = JSON.stringify(sentOrder.items);
