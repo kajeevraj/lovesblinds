@@ -7,7 +7,8 @@ import { Resend } from 'resend';
 import { LIMITS, SPAM_TRAP, BUSINESS_EMAIL, BUSINESS_NAME, clientIp, digest, tooLarge, friendly, rateLimit, validEmail, oneLine } from './_guard.js';
 
 const INTERNAL_TO = BUSINESS_EMAIL;
-export const TOPICS = ['General question', 'Question about a quote', 'Trade / wholesale'];
+export const TOPICS = ['General question', 'Question about an order or estimate', 'Trade / wholesale'];
+const OLD_TOPICS = { 'Question about a quote': 'Question about an order or estimate' };     // a page opened before the rename
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
@@ -25,7 +26,7 @@ export function validateMessage(body) {
     clean: {
       name, email, message,
       phone: text(b.phone, LIMITS.phone) || null,
-      topic: TOPICS.includes(b.topic) ? b.topic : null,
+      topic: TOPICS.includes(OLD_TOPICS[b.topic] || b.topic) ? (OLD_TOPICS[b.topic] || b.topic) : null,
       subject: oneLine(text(b.subject, 150), 150) || null,
     },
   };

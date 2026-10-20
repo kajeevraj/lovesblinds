@@ -61,6 +61,34 @@ await page.goto(`${BASE}/orders`); await page.waitForTimeout(500); h = await hea
 check('browser: My Orders is marked noindex, and Products is not', h.robots === 'noindex, nofollow' && (await (async () => { await page.goto(`${BASE}/products`); await page.waitForTimeout(400); return (await head()).robots === null; })()));
 await ctx.close();
 
+// ---------- measuring guide content, phone top bar, contact topics ----------
+{
+  const c = await browser.newContext({ viewport: { width: 390, height: 844 } }); const pg = await c.newPage(); pg.setDefaultTimeout(20000);
+  await pg.goto(`${BASE}/measure`); await pg.locator('h1').waitFor();
+  const heads = await pg.locator('.measure-block h2').allInnerTexts();
+  check('measuring guide: has Inside mount, Outside mount and Curtains and Dream Curtains step by step sections (all visible, no toggle)', ['Inside mount, step by step', 'Outside mount, step by step', 'Curtains and Dream Curtains, step by step'].every((t) => heads.some((h) => h.includes(t))) && (await pg.locator('.mount-tab').count()) === 0, heads.join(' | '));
+  const text = await pg.locator('.measure-main').innerText();
+  const need = ['Add 2 inches on each side (4 inches in total)', '3 inches on each side', '3 inches above the top of the frame', '2 inches below the sill', '1.5 inches in each direction', '6 inches on each side (12 inches in total)', '3 inches on each side (6 inches in total)', '0.8 inch by default', 'underside of the track'];
+  check('measuring guide: the overlap and clearance numbers are the agreed ones', need.every((t) => text.includes(t)), need.filter((t) => !text.includes(t)).join(' | '));
+  check('measuring guide: the three step sections have numbered steps (inside 4, outside 5, curtains 4)', (await pg.locator('#inside .meas-step').count()) === 4 && (await pg.locator('#outside .meas-step').count()) === 5 && (await pg.locator('#curtains .meas-step').count()) === 4);
+  check('measuring guide: the table of contents links to every section', (await pg.locator('.measure-toc-list a').evaluateAll((as) => as.map((a) => a.getAttribute('href')))).join() === '#tools,#choose,#inside,#outside,#curtains,#tips,#submit' && (await pg.locator('#submit').count()) === 1);
+  await pg.waitForTimeout(800);
+  const figs = await pg.evaluate(() => [...document.querySelectorAll('.measure-figures figure')].map((f) => { const i = f.querySelector('img'); const cap = f.querySelector('figcaption'); return { loaded: i.complete && i.naturalWidth > 0, lazy: i.loading, extra: Math.round(f.getBoundingClientRect().height - i.getBoundingClientRect().height - cap.getBoundingClientRect().height) }; }));
+  check('measuring guide on a phone: both diagrams are loaded without scrolling and there is no empty space under them (only padding and the caption)', figs.length === 2 && figs.every((f) => f.loaded && f.lazy === 'eager' && f.extra <= 50), JSON.stringify(figs));
+  await c.close();
+  for (const width of [390, 320]) {
+    const cx = await browser.newContext({ viewport: { width, height: 800 } }); const pg2 = await cx.newPage(); await pg2.goto(`${BASE}/`); await pg2.locator('.s2-nav-links a').first().waitFor(); await pg2.waitForTimeout(400);
+    const n = await pg2.evaluate((w) => { const links = [...document.querySelectorAll('.s2-nav-links a')]; const box = document.querySelector('.s2-nav-links'); return { names: links.map((a) => a.textContent), inView: links.every((a) => { const r = a.getBoundingClientRect(); return r.left >= 0 && r.right <= w && r.width > 0; }), noScroll: box.scrollWidth <= box.clientWidth && document.documentElement.scrollWidth <= w, tall: links.every((a) => a.getBoundingClientRect().height >= 43.5), rows: new Set(links.map((a) => Math.round(a.getBoundingClientRect().top))).size }; }, width);
+    check(`[${width}px] top bar: Products, How to measure, How it works and Contact are all visible with no sideways scrolling (${width === 390 ? 'one line' : 'may wrap'}), each 44 px tall`, n.names.join('|') === 'Products|How to measure|How it works|Contact' && n.inView && n.noScroll && n.tall && (width === 320 || n.rows === 1), JSON.stringify(n));
+    for (const path of ['/products', '/measure', '/contact', '/products/roller']) { await pg2.goto(`${BASE}${path}`); await pg2.waitForTimeout(500); const ok = await pg2.evaluate((w) => [...document.querySelectorAll('.s2-nav-links a')].every((a) => { const r = a.getBoundingClientRect(); return r.left >= 0 && r.right <= w; }) && document.documentElement.scrollWidth <= w, width); if (!ok) check(`[${width}px] top bar on ${path}`, false); }
+    await cx.close();
+  }
+  const cc = await browser.newContext({ viewport: { width: 390, height: 800 } }); const pg3 = await cc.newPage(); await pg3.goto(`${BASE}/contact`); await pg3.locator('fieldset legend').waitFor();
+  const topics = await pg3.locator('.contact-topics label').allInnerTexts();
+  check('contact: the topics are General question, Question about an order or estimate, Trade / wholesale', topics.join('|') === 'General question|Question about an order or estimate|Trade / wholesale', topics.join('|'));
+  await cc.close();
+}
+
 // ---------- the restyled pages: new design at 320, 390 and 1280 ----------
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 let uid, token;

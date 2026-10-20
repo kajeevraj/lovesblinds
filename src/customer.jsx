@@ -7,7 +7,8 @@ import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
-import { profileOf, saveProfile } from './lib/profile.js';
+import { profileOf, saveProfile, EMPTY_ADDRESS } from './lib/profile.js';
+import { COUNTRIES } from './data/countries.js';
 import { sentEstimate } from './lib/orders.js';
 import SentOrderView from './orderview.jsx';
 
@@ -413,8 +414,40 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
   );
 }
 
+// The overlap and clearance numbers below are the common ones in the window-covering trade (see docs/project-handoff.md).
+const INSIDE_STEPS = [
+  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
+  ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
+  ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
+  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
+];
+const OUTSIDE_STEPS = [
+  ["Measure the area to cover", "Measure the width from the outer edge of the trim on one side to the outer edge on the other. If there is no trim, measure the glass and frame. Measure once, and use the widest number.", "Area to cover · width"],
+  ["Add the overlap", "Add 2 inches on each side (4 inches in total) so light does not leak around the edges. For more light control, use 3 inches on each side. Enter the new, larger number as your width.", "Width + 2\" each side"],
+  ["Choose where the shade starts", "Mount the shade 3 inches above the top of the frame (or trim). That is the top of the shade.", "Start 3\" above the frame"],
+  ["Measure the height", "From the top of the shade down to where it should stop: 2 inches below the sill, or to the bottom of the apron, or all the way to the floor. Enter that number as your height.", "Top of shade to where it stops"],
+  ["Check for clearance", "Make sure there is flat wall space above and to each side for the brackets, usually 1.5 inches in each direction.", "Bracket space · 1.5\""],
+];
+const CURTAIN_STEPS = [
+  ["Measure the track or rod width", "If the track or rod is already up, measure it end to end. If not, measure the window or door frame and add the overlap: 6 inches on each side (12 inches in total) for curtains, or 3 inches on each side (6 inches in total) for Dream Curtains. Enter the track or rod width.", "Track or rod · width"],
+  ["Measure the height to the floor", "From the underside of the track (or the bottom of the rod) straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track to floor · height × 3"],
+  ["Leave the floor gap", "The diagram shows the gap between the bottom of the curtain and the floor: 0.8 inch by default. Do not take it off yourself. Enter the full distance to the floor. If you want a different gap, or curtains that rest on the floor, tell us in the notes.", "Curtain to floor · 0.8\" gap"],
+  ["Note any obstructions", "Wall switches, vents, radiators, a baseboard heater or a door that swings into the space, so we can talk through the options.", "Obstructions"],
+];
+function MeasureStep({ n, title, text, tag }) {
+  return (
+    <div className="meas-step">
+      <div>
+        <div className="meas-step-num">Step {n}</div>
+        <h3 className="serif">{title}</h3>
+        <p>{text}</p>
+        {tag && <span className="meas-step-tag">{tag}</span>}
+      </div>
+    </div>
+  );
+}
+
 export function MeasureGuidePage({ navigate, quoteCount }) {
-  const [mountType, setMountType] = useState("inside");
   return (
     <div className="page-fade s2 s2-inner">
       <section className="s2-wrap s2-page-head">
@@ -433,7 +466,9 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             <ol className="measure-toc-list">
               <li><a href="#tools">What you'll need</a></li>
               <li><a href="#choose">Inside or outside mount</a></li>
-              <li><a href="#steps">Step-by-step</a></li>
+              <li><a href="#inside">Inside mount steps</a></li>
+              <li><a href="#outside">Outside mount steps</a></li>
+              <li><a href="#curtains">Curtains and Dream Curtains</a></li>
               <li><a href="#tips">Tips &amp; tolerances</a></li>
               <li><a href="#submit">Submit your numbers</a></li>
             </ol>
@@ -477,50 +512,37 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                   <figcaption>Shades. OM = outside mount, IM = inside mount, W = width, H = height.</figcaption>
                 </figure>
                 <figure className="measure-figure">
-                  <ExplainerImg name="measure/drapery-measure-diagram" alt="Window diagram for drapery showing the outside mount width and height and the drop to the floor." />
+                  <ExplainerImg name="measure/drapery-measure-diagram" alt="Window diagram for drapery showing the outside mount width and height and the drop to the floor." eager />
                   <figcaption>Drapery. OM = outside mount, W = width, H = height, with the drop to the floor.</figcaption>
                 </figure>
               </div>
+            </div>
 
-              <div className="mount-toggle">
-                <button className={`mount-tab ${mountType === "inside" ? "active" : ""}`} onClick={() => setMountType("inside")}>
-                  <div className="mount-tab-name">Inside mount</div>
-                  <div className="mount-tab-desc">Recessed in the frame. Needs ≥ 2" depth.</div>
-                </button>
-                <button className={`mount-tab ${mountType === "outside" ? "active" : ""}`} onClick={() => setMountType("outside")}>
-                  <div className="mount-tab-name">Outside mount</div>
-                  <div className="mount-tab-desc">Covers the trim. Best for light control.</div>
-                </button>
+            <div id="inside" className="measure-block">
+              <h2 className="serif">3 · Inside mount, step by step</h2>
+              <div className="measure-steps">
+                {INSIDE_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
             </div>
 
-            <div id="steps" className="measure-block">
-              <h2 className="serif">3 · {mountType === "inside" ? "Inside mount, step by step" : "Outside mount, step by step"}</h2>
+            <div id="outside" className="measure-block">
+              <h2 className="serif">4 · Outside mount, step by step</h2>
+              <p className="measure-lead">Outside mount shades hang on the wall or trim and cover the window with a little to spare. <strong>The size you enter is the finished size of the shade, with the overlap already added.</strong> We do not add or take anything off.</p>
               <div className="measure-steps">
-                {(mountType === "inside" ? [
-                  ["Measure width at 3 points", "Top, middle, and bottom of the frame opening. Record the smallest measurement. That's the one we'll cut to. Don't round up.", "Window opening · width × 3"],
-                  ["Measure height at 3 points", "Left, center, and right of the opening, from the top of the frame to the sill. Use the longest measurement.", "Window opening · height × 3"],
-                  ["Measure depth", "From the front face of the frame to the glass. We need at least 2 inches for most blinds; some products need 2.5–3 inches.", "Frame depth"],
-                  ["Note any obstructions", "Window cranks, locks, alarm sensors, tile sills, anything that sticks into the frame.", "Obstructions"],
-                ] : [
-                  ["Decide overlap", "We recommend at least 2 inches of overlap on each side and 3 inches above the frame. More overlap = better light blocking.", "Wall area to cover"],
-                  ["Measure final width", "From the outer edge of one trim to the outer edge of the other, plus your overlap. Measure once. Outside-mount widths don't vary.", "Total width incl. overlap"],
-                  ["Measure final height", "From your chosen top point down to where you want the shade to end, either the sill, just past it, or all the way to the floor.", "Total height"],
-                  ["Check for clearance", "Make sure there's wall space above and to the sides for mounting brackets, usually 1.5\" each direction.", "Bracket clearance"],
-                ]).map(([t, d], i) => (
-                  <div key={i} className="meas-step">
-                    <div>
-                      <div className="meas-step-num">Step {i + 1}</div>
-                      <h3 className="serif" style={{ fontSize: 22, marginBottom: 6 }}>{t}</h3>
-                      <p style={{ color: "var(--ink-60)", margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d}</p>
-                    </div>
-                  </div>
-                ))}
+                {OUTSIDE_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
+              </div>
+            </div>
+
+            <div id="curtains" className="measure-block">
+              <h2 className="serif">5 · Curtains and Dream Curtains, step by step</h2>
+              <p className="measure-lead">Curtains and Dream Curtains hang from a track or rod, so you measure the track or rod and the drop to the floor, not the glass.</p>
+              <div className="measure-steps">
+                {CURTAIN_STEPS.map(([t, d, tag], i) => <MeasureStep key={t} n={i + 1} title={t} text={d} tag={tag} />)}
               </div>
             </div>
 
             <div id="tips" className="measure-block">
-              <h2 className="serif">4 · Tips &amp; tolerances</h2>
+              <h2 className="serif">6 · Tips &amp; tolerances</h2>
               <ul className="measure-tips">
                 <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
                 <li><strong>Don't make any deductions.</strong> Send us the raw window numbers.</li>
@@ -545,7 +567,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
   );
 }
 
-const CONTACT_TOPICS = ["General question", "Question about a quote", "Trade / wholesale"];
+const CONTACT_TOPICS = ["General question", "Question about an order or estimate", "Trade / wholesale"];
 
 export function ContactPage({ navigate }) {
   const [f, setF] = useState({ name: "", email: "", phone: "", topic: CONTACT_TOPICS[0], subject: "", message: "", zx_kv_q7: "" });
@@ -640,17 +662,18 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
   const p = profileOf(user);
   const [name, setName] = useState(p?.name || "");
   const [phone, setPhone] = useState(p?.phone || "");
-  const [shipTo, setShipTo] = useState(p?.shipTo || "");
+  const [addr, setAddr] = useState(p?.address || EMPTY_ADDRESS);
   const [status, setStatus] = useState(null);     // null | "saving" | "saved" | error text
+  const setA = (k) => (e) => { setAddr((a) => ({ ...a, [k]: e.target.value })); setStatus(null); };
   const seeded = useRef(false);
   useEffect(() => {
-    if (p && !seeded.current) { seeded.current = true; setName(p.name); setPhone(p.phone); setShipTo(p.shipTo); }
+    if (p && !seeded.current) { seeded.current = true; setName(p.name); setPhone(p.phone); setAddr(p.address); }
   }, [p]);
 
   const save = async (e) => {
     e.preventDefault();
     setStatus("saving");
-    try { await saveProfile({ name, phone, shipTo }); setStatus("saved"); }
+    try { await saveProfile({ name, phone, address: addr }); setStatus("saved"); }
     catch (err) { setStatus(err?.message || "Could not save your profile. Please try again."); }
   };
 
@@ -684,11 +707,26 @@ export function ProfilePage({ navigate, user, authLoading, signInWithGoogle, sup
               <label className="label" htmlFor="pf-phone">Phone</label>
               <input id="pf-phone" className="input" type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" />
             </div>
-            <div className="config-group">
-              <label className="label" htmlFor="pf-ship">Shipping address</label>
-              <input id="pf-ship" className="input" type="text" autoComplete="street-address" value={shipTo} onChange={e => setShipTo(e.target.value)} placeholder="123 Main St, City, State" />
+            <fieldset className="profile-address">
+              <legend className="label">Shipping address</legend>
+              <div className="profile-grid">
+                <div className="profile-wide"><label className="label" htmlFor="pf-street">Street address</label>
+                  <input id="pf-street" className="input" type="text" autoComplete="address-line1" value={addr.street} onChange={setA("street")} /></div>
+                <div className="profile-wide"><label className="label" htmlFor="pf-apt">Apartment, suite, etc. (optional)</label>
+                  <input id="pf-apt" className="input" type="text" autoComplete="address-line2" value={addr.apt} onChange={setA("apt")} /></div>
+                <div><label className="label" htmlFor="pf-city">City</label>
+                  <input id="pf-city" className="input" type="text" autoComplete="address-level2" value={addr.city} onChange={setA("city")} /></div>
+                <div><label className="label" htmlFor="pf-state">State / province</label>
+                  <input id="pf-state" className="input" type="text" autoComplete="address-level1" value={addr.state} onChange={setA("state")} /></div>
+                <div><label className="label" htmlFor="pf-zip">ZIP / postal code</label>
+                  <input id="pf-zip" className="input" type="text" autoComplete="postal-code" value={addr.zip} onChange={setA("zip")} /></div>
+                <div><label className="label" htmlFor="pf-country">Country</label>
+                  <select id="pf-country" className="input" autoComplete="country-name" value={addr.country} onChange={setA("country")}>
+                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select></div>
+              </div>
               <div className="choice-note">These fill in your order details automatically. You can still change them on each order.</div>
-            </div>
+            </fieldset>
             <div className="config-actions">
               <button className="s2-btn s2-btn-brass" type="submit" disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save profile"}</button>
               <button className="s2-btn s2-btn-line" type="button" onClick={() => navigate("orders")}>Order history</button>

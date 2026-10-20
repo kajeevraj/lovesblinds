@@ -104,6 +104,8 @@ for (const [label, patch, field, re] of [
 }
 stores.length = 0; c = await crun({}); check('contact: an empty request lists all three missing fields', c.res.code === 400 && Object.keys(c.res.body.fields).sort().join() === 'email,message,name' && c.resend.sent.length === 0);
 c = await crun(cbody({ phone: '' })); check('contact: the phone number stays optional', c.res.code === 200 && c.res.body.ok);
+stores.length = 0; c = await crun(cbody({ topic: 'Question about a quote' }));
+check('contact: a page opened before the rename (old topic name) still works and is saved under the new name', c.res.code === 200 && c.res.body.ok && stores.at(-1).topic === 'Question about an order or estimate');
 c = await crun(cbody({ message: 'x'.repeat(5001) })); check('contact: a message over 5,000 characters is refused', c.res.code === 400 || c.res.code === 413);
 c = await crun(cbody(), { headers: { 'content-length': '50000' } }); check('contact: a request over the size cap is refused (413)', c.res.code === 413);
 c = await crun(cbody(), { rateLimit: async () => ({ limited: true }) }); check('contact: over the rate limit: 429 and nothing sent', c.res.code === 429 && c.resend.sent.length === 0);
@@ -155,7 +157,7 @@ c = await crun(cbody({ email: 'victim@example.com' })); check('contact confirmat
 // ---------- no em dashes in any email (subjects or bodies) ----------
 {
   const dash = (m) => /—|&mdash;|&#8212;|&#x2014;/i.test(`${m.subject}\n${m.html || ''}\n${m.text || ''}`);
-  const o = await run(body()); const cc = await crun(cbody({ topic: 'Question about a quote', subject: 'Order status' }));
+  const o = await run(body()); const cc = await crun(cbody({ topic: 'Question about an order or estimate', subject: 'Order status' }));
   const all = [...o.resend.sent, ...cc.resend.sent];
   check('emails: the order emails (internal and customer) and contact emails (internal and customer) were all produced', o.resend.sent.length === 2 && cc.resend.sent.length === 2 && all.length === 4);
   check('emails: no em dash in any subject or body (order internal and customer, contact internal and customer)', !all.some(dash), all.filter(dash).map((m) => m.subject).join(' / '));
@@ -163,7 +165,7 @@ c = await crun(cbody({ email: 'victim@example.com' })); check('contact confirmat
   check('emails: the order subjects are "New order | [name]" (internal) and "Your order estimate | Love’s Blinds" (customer)', /^New order \| \S/.test(o.resend.sent[0].subject) && o.resend.sent[1].subject === 'Your order estimate | Love’s Blinds', `${o.resend.sent[0].subject} / ${o.resend.sent[1].subject}`);
   check('emails: no leftover "quote request" wording in the order emails (subjects, bodies, attachment name)', !o.resend.sent.some((m) => /quote[ -]?request/i.test(`${m.subject}\n${m.html}\n${(m.attachments || []).map((a) => a.filename).join()}`)) && /^order-.*\.xlsx$/.test(o.resend.sent[0].attachments[0].filename));
   check('emails: the customer email says we received the order and will email the final price within 48 hours', /received your order and will email your final price to/.test(o.resend.sent[1].html) && /<h2[^>]*>New order<\/h2>/.test(o.resend.sent[0].html));
-  check('emails: the internal subjects use a pipe', o.resend.sent[0].subject === 'New order | Ada' || /^New order \| /.test(o.resend.sent[0].subject) && /^Website message: Question about a quote \| Order status$/.test(cc.resend.sent[0].subject), `${o.resend.sent[0].subject} / ${cc.resend.sent[0].subject}`);
+  check('emails: the internal subjects use a pipe', o.resend.sent[0].subject === 'New order | Ada' || /^New order \| /.test(o.resend.sent[0].subject) && /^Website message: Question about an order or estimate \| Order status$/.test(cc.resend.sent[0].subject), `${o.resend.sent[0].subject} / ${cc.resend.sent[0].subject}`);
   check('emails: no em dash anywhere in the email code in api/', !/—|&mdash;/.test(readFileSync('api/quote.js', 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n') + readFileSync('api/contact.js', 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')));
 }
 

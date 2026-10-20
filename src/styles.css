@@ -1226,3 +1226,25 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .profile-initials { background: var(--s2-brass); }
 .profile-btn.is-signed-in { border-color: var(--s2-brass); }
 .profile-btn:focus-visible { outline-color: var(--s2-brass); }
+
+/* measuring guide: step tags, lead text, diagrams that never stretch or stay blank */
+.measure-lead { margin: 0 0 8px; }
+.s2-inner .meas-step-tag { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px; background: #F1E7D4; color: var(--s2-brass-text); font-size: 12px; font-weight: 600; }
+.s2-inner .measure-figures { align-items: start; }
+.s2-inner .measure-figure { align-self: start; }
+.s2-inner .measure-figure img { width: 100%; height: auto; }
+
+/* top bar on a phone: all four links stay in view (they wrap onto a second line on the narrowest phones) */
+@media (max-width: 760px) {
+  .s2-nav-links { order: 3; flex: 1 0 100%; flex-wrap: wrap; overflow: visible; white-space: nowrap; gap: 0 2px; justify-content: space-between; font-size: 13px; }
+  .s2-nav-links a { padding: 0 4px; }
+}
+
+/* profile: the address uses the same fields as the order form */
+.s2-profile .profile-address { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
+.s2-profile .profile-address > legend { padding: 0; margin-bottom: 12px; font-weight: 600; }
+.s2-profile .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.s2-profile .profile-grid > * { min-width: 0; }
+.s2-profile .profile-grid .profile-wide { grid-column: 1 / -1; }
+.s2-profile .profile-form { max-width: 640px; }
+@media (max-width: 520px) { .s2-profile .profile-grid { grid-template-columns: 1fr; } }
