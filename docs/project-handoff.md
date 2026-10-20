@@ -99,7 +99,6 @@ Also: Lighthouse baseline (mobile, within 1 point per page) is in `docs/supabase
 
 ## 7. Known bugs and open items
 
-- **Price group controls for an added line (reported, not reproduced).** Report: in the color editor's Pricing details, the added line (Roman) showed no "Edit this price group" button / dropdown like the original line. On the latest build (`2702992`, in `main`) a Roman row appears with its own dropdown and its own edit button, and a browser test (`e2e_price_groups_per_line.mjs`) checks both. If it still reproduces on a deployment that is on that commit, capture which color, whether Roman was ticked in the same session or already saved, and a screenshot. Earlier builds only offered the edit button on the color's original line. The edit button warns before leaving with unsaved changes.
 - Default price group for a newly ticked line is simply the first group by sort order; for Roller, Zebra and Shangri-La (per-group grids) the admin must check it, because the group changes the price.
 - Hiding a color's own price group no longer hides its placements in other lines (a placement shows when the color and that line's group are active). Hiding the color hides it everywhere.
 - Re-import wizard and the 20-price spot check need the private workbooks (not in cloud sessions).
