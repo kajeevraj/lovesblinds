@@ -23,7 +23,7 @@ try {
   let sentBody = null, copy = false;
   await page.route('**/api/quote', async (route) => { sentBody = JSON.parse(route.request().postData()); await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: copy }) }); });
   const size = async (w, h) => { await page.locator('#s2-w').fill(String(w)); await page.locator('#s2-h').fill(String(h)); };
-  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click(); };
+  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor(); };
 
   // an empty order
   await page.goto(`${BASE}/order`);
@@ -76,17 +76,17 @@ try {
   // the Edit link opens the same page as clicking the item
   await items.nth(2).getByRole('link', { name: /^Edit / }).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-color-style .s2-card.on').waitFor();
-  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
+  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
   await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   // clicking an item opens its product page with every choice filled in; Save changes updates the same item
   await items.nth(0).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-picked').innerText()).includes(rName));
+  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-picked').innerText()).includes(rName));
   const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#s2-qty').fill('4');
   await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
-  await page.locator('.s2-bar-btn').click();
+  await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order');
   await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => /44" wide × 64" high/.test(document.querySelector('.s2-item').innerText) && !/Calculating/.test(document.querySelector('.s2-items').innerText));

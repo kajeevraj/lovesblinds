@@ -1,5 +1,5 @@
 // The cart bar: sticky at the bottom of the customer pages. On a product page its left side is the item being built
-// (its total, "$139 each · 3 blinds", and Add to cart or Save changes) and its right side is the cart so far; elsewhere it is
+// (its price, "$139 each · 3 blinds") and its right side is the cart so far; elsewhere it is
 // only the cart part. The cart part opens a panel (a bottom sheet on phones, a side panel on desktop) listing every item.
 import { useEffect, useRef } from 'react';
 import { useCart } from '../lib/cart.js';
@@ -64,38 +64,45 @@ export function OrderButton({ compact = false }) {
   );
 }
 
-// Only the cart part: home, products list, measuring guide and the other customer pages, and only when the cart has items.
+// The cart part of the bar: the cart summary (opens the cart panel) and a Checkout button (hidden while the cart is empty).
+function CartPart({ only = false }) {
+  const cart = useCart();
+  return (
+    <div className={`s2-bar-cart${only ? ' is-only' : ''}`}>
+      <OrderButton compact={only} />
+      {cart.items.length > 0 && <button type="button" className="s2-bar-btn s2-bar-checkout" onClick={cart.goCheckout}>Checkout</button>}
+    </div>
+  );
+}
+
+// Home, products list, measuring guide and the other customer pages, and only when the cart has something in it.
 export function OrderOnlyBar() {
   const cart = useCart();
   if (!cart.count) return null;
   return (
     <div className="s2-bar s2-bar-only">
-      <div className="s2-wrap s2-bar-inner"><OrderButton compact /></div>
+      <div className="s2-wrap s2-bar-inner"><CartPart only /></div>
       <Flash />
     </div>
   );
 }
 
-// The product page bar. `view` is the current estimate (see priceView in s2.jsx).
-export function PriceBar({ title, view, needs, canAdd, added, onAdd, qty = 1, editing = false }) {
+// The product page bar: the price of the blind being built (nothing until there is one) and the cart part.
+// Adding to the cart happens in the estimate card on the page, not here.
+export function PriceBar({ view, qty = 1 }) {
   const priced = view.kind === 'price';
-  let label = title, value = needs, sub = null;
-  if (priced) { value = money(view.price * qty); sub = qty > 1 ? `${money(view.price)} each · ${blinds(qty)}` : null; label = null; }
-  else if (view.kind === 'custom' || view.kind === 'request' || view.kind === 'error') { label = view.kind === 'request' ? 'Price on request' : 'Custom size'; value = 'Price sent by email'; }
-  else if (view.kind === 'loading') { label = 'Your estimate'; value = 'Calculating…'; }
-  else if (view.kind === 'toosmall') { label = 'Size too small'; value = 'Enter a larger size'; }
   return (
     <div className="s2-bar">
       <div className="s2-wrap s2-bar-inner">
         <div className="s2-bar-left">
-          <div className="s2-bar-text">
-            {label && <span className="s2-bar-label">{label}</span>}
-            <span className={`s2-bar-value${priced ? '' : ' is-text'}`}>{value}</span>
-            {sub && <span className="s2-bar-sub">{sub}</span>}
-          </div>
-          <button type="button" className="s2-bar-btn" disabled={!canAdd} onClick={onAdd}>{added ? (editing ? 'Saved' : 'Added') : (editing ? 'Save changes' : 'Add to cart')}</button>
+          {priced && (
+            <div className="s2-bar-text">
+              <span className="s2-bar-value">{money(view.price * qty)}</span>
+              {qty > 1 && <span className="s2-bar-sub">{money(view.price)} each · {blinds(qty)}</span>}
+            </div>
+          )}
         </div>
-        <OrderButton />
+        <CartPart />
       </div>
       <Flash />
     </div>
@@ -196,33 +203,6 @@ export function OrderPanel({ navigate }) {
 
 // The room and window label of a cart line: "Primary bedroom · Left window"
 export const roomText = (it) => [it.roomLabel, it.windowLabel].filter(Boolean).join(' · ');
-
-// Right after something is added: a small popup on the page itself, with Checkout and Keep shopping.
-export function AddedPopup({ navigate }) {
-  const cart = useCart();
-  const { added } = cart;
-  const ref = useRef(null);
-  const open = !!added && !cart.panelOpen;
-  useEffect(() => {
-    if (!open) return undefined;
-    ref.current?.querySelector('[data-checkout]')?.focus({ preventScroll: true });
-    const onKey = (e) => { if (e.key === 'Escape') cart.closeAdded(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, added?.n]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!open) return null;
-  return (
-    <div className="s2-added" role="dialog" aria-modal="false" aria-labelledby="s2-added-title" ref={ref} key={added.n}>
-      <button type="button" className="s2-added-x" aria-label="Close" onClick={cart.closeAdded}>×</button>
-      <div className="s2-added-head"><span className="s2-added-check" aria-hidden="true">✓</span><strong id="s2-added-title">{added.merged ? 'Quantity updated in your cart' : 'Added to your cart'}</strong></div>
-      <p className="s2-added-text">{added.title}{added.merged ? `: now ${blinds(added.qty)} of this size.` : added.qty > 1 ? ` · ${blinds(added.qty)}` : ''}</p>
-      <div className="s2-added-actions">
-        <button type="button" className="s2-btn s2-btn-brass" data-checkout onClick={cart.goCheckout}>Checkout</button>
-        <button type="button" className="s2-btn s2-btn-line" onClick={cart.closeAdded}>Keep shopping</button>
-      </div>
-    </div>
-  );
-}
 
 // The small note that tells a visitor a half-finished product page was kept in the cart. They can close it.
 export function IncompleteNote({ note, onClose }) {

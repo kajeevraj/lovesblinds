@@ -247,7 +247,7 @@ export function ProductsPage({ navigate, location, setLocation }) {
         <div>
           <p className="s2-eyebrow">Our lineup</p>
           <h1 className="s2-page-title">Choose your style</h1>
-          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your cart.</p>
+          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and start building your order.</p>
           {locationStep && (
             <div className="location-cards">
               {locations.map(loc => (

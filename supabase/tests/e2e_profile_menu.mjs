@@ -78,8 +78,8 @@ try {
   // the order details form starts from the profile
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-  await page.getByRole('button', { name: 'Add to cart' }).click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click(); await page.waitForTimeout(1500);   // saved to their order
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+  await page.getByRole('button', { name: 'Add to cart' }).click(); await page.locator('.s2-added-card').waitFor(); await page.waitForTimeout(1500);   // saved to their order
   await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   const filled = await page.locator('.s2-form input, .s2-form select').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile: name, email, phone and the whole address (street, apartment, city, state, ZIP, country)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way', 'Flat 2', 'London', 'England', 'N1 1AA', 'United Kingdom'].every((v) => filled.includes(v)), filled.join(' | '));
@@ -88,7 +88,7 @@ try {
   await page.locator('.s2-item').first().click();
   await page.locator('#s2-w').waitFor(); const editUrl = page.url();
   await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
+  check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
   await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
   await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));
@@ -113,7 +113,7 @@ try {
   await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   check('"Order again" opens a new order with the same items, ready to change', (await page.locator('.s2-item').count()) === 1 && /Zebra/.test(await page.locator('.s2-item').first().innerText()));
   await page.locator('.s2-item').first().click(); await page.locator('#s2-w').waitFor(); await page.locator('#s2-w').fill('50');
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click();
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order'); await page.waitForTimeout(2500);
   const after = (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
   const sentAfter = after.find((x) => x.id === sentOrder.id);
@@ -126,7 +126,7 @@ try {
   // an order in progress must not stay on screen after signing out
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
   // the order in progress is the copy made by "Order again" (the sent order is never reopened) plus the window just added
   check('before signing out the bar shows the two items in the order in progress', /Your cart: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();

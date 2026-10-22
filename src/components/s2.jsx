@@ -221,7 +221,7 @@ export function QtyStepper({ value, onChange, name }) {
   );
 }
 
-export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }) {
+export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null, footer = null }) {
   return (
     <section className="s2-estimate" aria-live="polite">
       {view.kind === "price" && (
@@ -248,6 +248,7 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
         </>
       )}
       {qtyField}
+      {footer}
     </section>
   );
 }

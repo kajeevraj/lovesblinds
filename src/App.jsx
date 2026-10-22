@@ -10,7 +10,7 @@ import { clampQty } from './lib/limits.js';
 import { getActiveLine } from './data/lines.js';
 import { useItemPrices, totalsOf } from './lib/itemPrice.js';
 import { editPath } from './lib/itemView.js';
-import { OrderPanel, OrderOnlyBar, AddedPopup, IncompleteNote } from './components/OrderBar.jsx';
+import { OrderPanel, OrderOnlyBar, IncompleteNote } from './components/OrderBar.jsx';
 import ExitPrompt from './components/ExitPrompt.jsx';
 import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
@@ -147,7 +147,6 @@ export default function App() {
   const commit = (next) => { setQuote(next); syncToSupabase(next); persistGuestQuote(next); broadcast(next); };   // no-op saves when not logged in / no order yet
 
   // The same product, options, size and room already in the cart: its quantity goes up. Anything different is a new line.
-  const [added, setAdded] = useState(null);                  // the "Added to your cart" popup: { title, qty, merged, n }
   const addToQuote = (item) => {
     const same = quote.find((it) => sameItem(it, item));
     const add = item.qty || 1;
@@ -160,7 +159,6 @@ export default function App() {
       commit([...quote, { ...item, id: item.id || newItemId(), qty: add }]);
       result = { merged: false, qty: add };
     }
-    setAdded({ title: item.variant || item.product.name, ...result, n: Date.now() });
     return result;
   };
   const setQty = (id, qty) => commit(quote.map((it) => (it.id === id ? { ...it, qty: clampQty(qty) } : it)));
@@ -269,7 +267,7 @@ export default function App() {
   }, [supabaseEnabled, user, authLoading, route]);
 
   // Checkout: straight to the details step, unless something is still incomplete (then the cart page explains)
-  const goCheckout = () => { setPanelOpen(false); setAdded(null); navigate(incomplete.length ? '/order' : '/order?checkout=1'); };
+  const goCheckout = () => { setPanelOpen(false); navigate(incomplete.length ? '/order' : '/order?checkout=1'); };
 
   // the cart, shared with the cart bar, the cart panel, the product pages and the cart page
   const prices = useItemPrices(quote);
@@ -279,7 +277,6 @@ export default function App() {
     addItem: addToQuote, saveItem, removeItem, setQty, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
     incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout,
-    added, closeAdded: () => setAdded(null),
     auth: { user, supabaseEnabled, authLoading, signIn: handleSignIn },
   };
 
@@ -329,7 +326,6 @@ export default function App() {
       {/* product pages have their own bar (the item being built plus the order); the other customer pages get the order part alone, never on the order page */}
       {!onLinePage && !onOrderPage && <OrderOnlyBar />}
       <OrderPanel navigate={navigate} />
-      {!onOrderPage && <AddedPopup navigate={navigate} />}
       {!onLinePage && !onOrderPage && <IncompleteNote note={note} onClose={() => setNote(null)} />}
       <ExitPrompt route={route} />
     </div>

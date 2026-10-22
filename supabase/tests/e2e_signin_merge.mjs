@@ -19,7 +19,7 @@ try {
 
   // 1. a guest builds an order and SENDS one (guests have no account, so nothing is saved to any order)
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-  await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+  await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
   await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(600);
   await page.locator('#o-name').fill('Guest'); await page.locator('#o-email').fill('guest@example.com'); await page.locator('#o-street').fill('1 Way'); await page.locator('#o-city').fill('City'); await page.locator('#o-state').fill('ST'); await page.locator('#o-zip').fill('12345');
   await page.getByRole('button', { name: 'Send my order' }).click(); await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor();
@@ -34,7 +34,7 @@ try {
   check('set-up: the account\'s newest order is a sent one', old?.status === 'sent');
 
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-  await page.locator('#s2-w').fill('44'); await page.locator('#s2-h').fill('66'); await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+  await page.locator('#s2-w').fill('44'); await page.locator('#s2-h').fill('66'); await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
   check('the guest has one item in progress, kept in the browser', JSON.parse(await page.evaluate(() => localStorage.getItem('lb_guest_quote') || '[]')).length === 1);
   await page.evaluate(([k, v]) => localStorage.setItem(k, v), [`sb-${ref}-auth-token`, JSON.stringify(token)]);     // "signs in" (as the other browser tests do)
   await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor(); await page.waitForTimeout(2500);

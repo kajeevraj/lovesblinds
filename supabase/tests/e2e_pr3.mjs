@@ -1,4 +1,4 @@
-// Browser test of the PR 3 fixes at 390 px and 1280 px: cart wording and icon, the "Added to your cart" popup, merging identical
+// Browser test of the PR 3 fixes at 390 px and 1280 px: cart wording and icon, the "Added to your cart" card, merging identical
 // items, the − / + quantity, size entry, room and window, swatch zoom, autosave, incomplete items and the checkout block, the
 // sign-in prompts and the exit prompt, the top bar sign-in button, the signed-in picture and prefilled details, editing on a
 // phone, and the homepage / footer / measuring-guide wording. A temporary customer is created for the signed-in checks and deleted
@@ -26,7 +26,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width, height: phone ? 844 : 900 } });
     const page = await ctx.newPage(); page.setDefaultTimeout(30000);
     const errors = []; page.on('pageerror', (e) => errors.push(e.message));
-    const ready = () => page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+    const ready = () => page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
     const fill = async (w, h) => { await page.locator('#s2-w').fill(w); await page.locator('#s2-h').fill(h); };
     const unit = async () => Number((await page.locator('.s2-bar-value').first().innerText()).replace(/\D/g, ''));
 
@@ -83,24 +83,46 @@ try {
     await ready();
     const one = await unit();
 
-    // ---------- add: popup, merge, different lines
-    await page.locator('.s2-bar-btn').click();
-    await page.locator('.s2-added').waitFor();
-    const pop = await page.locator('.s2-added').innerText();
-    check(T('adding shows a popup on the page with Checkout and Keep shopping'), /Added to your cart/.test(pop) && (await page.getByRole('button', { name: 'Checkout' }).count()) >= 1 && (await page.getByRole('button', { name: 'Keep shopping' }).count()) === 1, pop.replace(/\s+/g, ' '));
-    await page.waitForTimeout(400); await shot(page, `${phone ? 'phone' : 'desktop'}-cart-popup`);
-    check(T('the popup does not cover the Add button or the cart bar'), await page.evaluate(() => { const p = document.querySelector('.s2-added').getBoundingClientRect(); const b = document.querySelector('.s2-bar').getBoundingClientRect(); return p.bottom <= b.top + 1 || p.top >= b.bottom; }));
-    await page.getByRole('button', { name: 'Keep shopping' }).click();
-    check(T('Keep shopping closes the popup'), (await page.locator('.s2-added').count()) === 0);
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor();
-    check(T('adding the same item again raises its quantity (popup says so)'), /Quantity updated/.test(await page.locator('.s2-added').innerText()) && /now 2 blinds/.test(await page.locator('.s2-added').innerText()));
-    await page.getByRole('button', { name: 'Keep shopping' }).click();
+    // ---------- add: the card, merge, different lines
+    check(T('before adding: a large "Add to cart" button is in the estimate card, and the bar has no Add button'), /^Add to cart$/.test((await page.locator('.s2-estimate .s2-add-btn').innerText()).trim()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-btn:not(.s2-bar-checkout)').count()) === 0 && (await page.locator('.s2-estimate .s2-add-btn').evaluate((e) => e.getBoundingClientRect().height)) >= 54);
+    check(T('the bar shows this blind\'s price on the left and "Your cart is empty" (no Checkout yet) on the right'), (await page.locator('.s2-bar-left .s2-bar-value').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0);
+    await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-before-add`);
+    await page.locator('.s2-add-btn').click();
+    await page.locator('.s2-added-card').waitFor();
+    const pop = await page.locator('.s2-added-card').innerText();
+    check(T('after adding, the card says "Added to your cart" with Checkout, Keep shopping and a "Build another" link; the Add button is gone'), /Added to your cart/.test(pop) && (await page.locator('.s2-added-card').getByRole('button', { name: 'Checkout' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Keep shopping' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Build another' }).count()) === 1 && (await page.locator('.s2-estimate .s2-add-btn').count()) === 0, pop.replace(/\s+/g, ' '));
+    check(T('there is no floating popup'), (await page.locator('.s2-added').count()) === 0);
+    check(T('the bar now has "Your cart: 1 item" and a Checkout button, still no Add button'), /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-bar-checkout').count()) === 1 && (await page.locator('.s2-bar .s2-add-btn').count()) === 0);
+    await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-after-add`);
+    await page.locator('#s2-qty').fill('2');
+    check(T('changing how many brings the Add button back'), (await page.locator('.s2-estimate .s2-add-btn').count()) === 1 && (await page.locator('.s2-added-card').count()) === 0);
+    await page.locator('#s2-qty').fill('1');
+    check(T('putting it back to what was added shows the confirmation again'), (await page.locator('.s2-added-card').count()) === 1);
+    await page.locator('.s2-added-card').getByRole('button', { name: 'Build another' }).click();
+    await page.locator('.s2-sw').first().waitFor();
+    check(T('Build another starts the page again, blank, for a new blind'), (await page.locator('.s2-sw.on').count()) === 0 && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === '');
+    check(T('...and the first blind is still in the cart (and no incomplete item was left behind)'), /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-order-pill').innerText()).includes('(1)'));
+    // the same blind again merges into the first line
+    await page.locator('.s2-sw-zoom').first().click(); await page.locator('dialog.swatch-dialog[open]').waitFor(); await page.locator('dialog.swatch-dialog button', { hasText: 'Keep this color' }).click();
+    await page.locator('#s2-w').fill('35 7/8'); await page.locator('#s2-h').fill('64'); await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Sunroom'); await page.locator('#s2-window').fill('Left');
+    await ready();
+    await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
+    check(T('adding the same blind again raises its quantity and the card says so'), /now has 2 blinds/.test(await page.locator('.s2-added-card').innerText()) && /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')), (await page.locator('.s2-added-card').innerText()) + ' | ' + (await page.locator('.s2-bar-order').getAttribute('aria-label')));
     await page.locator('#s2-window').fill('Right'); await ready();
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor();
-    check(T('a different window label is a new line'), /Added to your cart/.test(await page.locator('.s2-added').innerText()));
-    await page.getByRole('button', { name: 'Keep shopping' }).click();
+    await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
+    check(T('a different window label is a new line'), !/now \d blinds/.test(await page.locator('.s2-added-card').innerText()) && /Your cart: 2 items/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
     await page.locator('#s2-h').fill('65'); await ready();
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+    await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
+    // Keep shopping goes to the products list; the bar there has the cart summary and Checkout
+    await page.locator('.s2-added-card').getByRole('button', { name: 'Keep shopping' }).click();
+    await page.locator('.s2-bar-only').waitFor();
+    check(T('Keep shopping goes to the products list'), new URL(page.url()).pathname === '/products');
+    check(T('products list bar: "Your cart: 3 items · $total" and a Checkout button'), /Your cart: 3 items · \$\d+/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-bar-checkout').count()) === 1);
+    await page.waitForTimeout(600); await shot(page, `${phone ? 'phone' : 'desktop'}-products-bar`);
+    check(T('the products subtitle reads "Pick a line to see every fabric as a real swatch and start building your order."'), /Pick a line to see every fabric as a real swatch and start building your order\./.test(await page.locator('main').innerText()));
+    await page.locator('.s2-bar-checkout').click(); await page.locator('#s2-details-title').waitFor();
+    check(T('the bar\'s Checkout goes to checkout'), page.url().includes('checkout=1'));
+    await page.goto(`${BASE}/products`); await page.locator('.s2-bar-only').waitFor();
     await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
     const lines = await page.locator('.s2-panel-item').count();
     check(T('the cart has 3 lines (same item merged; different window and different size are new lines)'), lines === 3, `${lines}`);
@@ -188,8 +210,8 @@ try {
   for (const [w, h] of [[320, 568], [360, 640], [390, 844]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } }); const page = await ctx.newPage(); page.setDefaultTimeout(30000);
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-    await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor();
+    await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
     await page.goto(`${BASE}/`); await page.locator('.s2-bar-only').waitFor(); await page.waitForTimeout(700);
     const r = await page.evaluate(() => ({ barTop: document.querySelector('.s2-bar').getBoundingClientRect().top, buttons: document.querySelector('.s2-hero-card .s2-btn-row').getBoundingClientRect().bottom, textTop: document.querySelector('.s2-hero-card h1').getBoundingClientRect().top }));
     check(`[${w}x${h}] home on a phone: the hero text and both buttons sit above the cart bar (never covered)`, r.buttons <= r.barTop && r.textTop < h * 0.6, JSON.stringify(r));
@@ -218,8 +240,8 @@ try {
     check(`[${width}px] signed in: the top bar shows their Google picture, and no Sign in button`, (await page.locator('.profile-btn img').getAttribute('src')) === AVATAR && (await page.locator('.s2-nav .gsi').count()) === 0);
     await shot(page, width < 760 ? 'phone-signed-in' : 'desktop-signed-in');
     await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50');
-    await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor();
-    check(`[${width}px] signed in: no "Sign in with Google to save your cart" in the panel`, !/Sign in with Google to save/.test(await (async () => { await page.getByRole('button', { name: 'Keep shopping' }).click(); await page.locator('.s2-bar-order').click(); return page.locator('.s2-panel').innerText(); })()));
+    await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
+    check(`[${width}px] signed in: no "Sign in with Google to save your cart" in the panel`, !/Sign in with Google to save/.test(await (async () => { await page.locator('.s2-bar-order').click(); return page.locator('.s2-panel').innerText(); })()));
     await page.locator('.s2-panel-go').click(); await page.locator('#o-name').waitFor();
     check(`[${width}px] checkout: name, email, phone and saved address are filled in and can be edited`, (await page.locator('#o-name').inputValue()) === 'Ada Lovelace' && (await page.locator('#o-email').inputValue()) === email && (await page.locator('#o-phone').inputValue()) === '555-0100' && (await page.locator('#o-street').inputValue()) === '1 Analytical Way' && (await page.locator('#o-country').inputValue()) === 'United Kingdom');
     await page.locator('#o-name').fill('Ada K. Lovelace');

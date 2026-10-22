@@ -12,9 +12,11 @@ import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
 import { Step, Cards, MOUNT_PICTURES, EstimateCard, QtyField, priceView } from './components/s2.jsx';
 import SizeFields, { EMPTY_SIZE, sizeNumbers } from './components/SizeFields.jsx';
 import RoomFields, { splitRoom, roomLabelOf } from './components/RoomFields.jsx';
+import { blinds } from './lib/itemView.js';
 import { saveDraft, clearDraft, hasProgress } from './lib/drafts.js';
 import { PriceBar } from './components/OrderBar.jsx';
-import { useCart } from './lib/cart.js';
+import { useCart, BuildAnotherContext } from './lib/cart.js';
+import { useContext } from 'react';
 import { useSizeLimits, limitLineFor } from './lib/sizeLimits.js';
 import { checkSize, clampQty, TYPO_TEXT } from './lib/limits.js';
 import SitePhoto from './components/SitePhoto.jsx';
@@ -59,7 +61,8 @@ export default function LineShell({
   const [roomF, setRoomF] = useState(() => ({ ...splitRoom(start?.roomLabel), windowLabel: start?.windowLabel || '' }));
   const room = roomLabelOf(roomF.choice, roomF.custom);
   const [qty, setQty] = useState(String(start?.qty || edit?.qty || 1));
-  const [added, setAdded] = useState(false);
+  const [addedAt, setAddedAt] = useState(null);       // { key, merged, qty } for the choices that were just added
+  const buildAnother = useContext(BuildAnotherContext);
 
   const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
@@ -119,10 +122,28 @@ export default function LineShell({
     if (edit) { clearDraft(line.id, edit.id); cart.saveItem(edit.id, item); navigate('quote'); return; }
     addedSig.current = draftSig;
     clearDraft(line.id, null);
-    cart.addItem(item);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    const r = cart.addItem(item);
+    setAddedAt({ key: `${draftSig}|${n}`, merged: r.merged, qty: r.qty });
   };
+  // the confirmation stays until something about the blind (or how many) changes
+  const justAdded = !edit && addedAt && addedAt.key === `${draftSig}|${n}` ? addedAt : null;
+
+  const footer = justAdded ? (
+    <div className="s2-added-card" role="status">
+      <div className="s2-added-card-head"><span className="s2-added-check" aria-hidden="true">✓</span><strong>Added to your cart</strong></div>
+      {justAdded.merged && <p className="s2-added-card-text">Same as one already in your cart, so it now has {blinds(justAdded.qty)} of this size.</p>}
+      <div className="s2-added-card-actions">
+        <button type="button" className="s2-btn s2-btn-brass" onClick={cart.goCheckout}>Checkout</button>
+        <button type="button" className="s2-btn s2-btn-line" onClick={() => navigate('products')}>Keep shopping</button>
+      </div>
+      <button type="button" className="s2-link s2-build-another" onClick={() => { clearDraft(line.id, null); buildAnother(); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Build another</button>
+    </div>
+  ) : (
+    <>
+      <button type="button" className="s2-btn s2-btn-brass s2-add-btn" disabled={!canAdd} onClick={handleAdd}>{edit ? 'Save changes' : 'Add to cart'}</button>
+      {!canAdd && <p className="s2-add-hint">{needs}</p>}
+    </>
+  );
 
   const sum = summarize({ product: line, selection });
   const summary = [
@@ -205,7 +226,7 @@ export default function LineShell({
                 <RoomFields choice={roomF.choice} custom={roomF.custom} windowLabel={roomF.windowLabel} onChange={setRoomF} />
               </Step>
 
-              <EstimateCard view={view} qty={n} summary={summary}
+              <EstimateCard view={view} qty={n} summary={summary} footer={footer}
                 checks={[...checks, { label: 'Width and height', done: sized }]}
                 qtyField={<QtyField qty={qty} onChange={setQty} />} />
               {edit && <a className="s2-link s2-cancel" href="/order" onClick={(e) => { e.preventDefault(); clearDraft(line.id, edit.id); navigate('quote'); }}>Cancel</a>}
@@ -213,7 +234,7 @@ export default function LineShell({
             </div>
           </div>
         </div>
-        <PriceBar title={title} view={view} needs={needs} qty={n} canAdd={canAdd} added={added} editing={!!edit} onAdd={handleAdd} />
+        <PriceBar view={view} qty={n} />
         <Footer navigate={navigate} />
       </div>
     </CatalogStatusContext.Provider>

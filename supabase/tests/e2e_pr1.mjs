@@ -23,15 +23,15 @@ try {
   await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
   await size(20, 64); await page.locator('.s2-size-msg.is-error').waitFor();
   check('Roller: a width under the smallest says "The smallest we can make is 23 inches wide." and nothing is priced', /The smallest we can make is 23 inches wide\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && /Size too small/.test(await estimate()) && (await page.locator('.s2-estimate-price').count()) === 0);
-  check('...and Add to cart is blocked, the bar says so', await page.locator('.s2-bar-btn').isDisabled() && /Enter a larger size/.test(await page.locator('.s2-bar').innerText()));
+  check('...and Add to cart is blocked, the bar says so', await page.locator('.s2-add-btn').isDisabled() && /Enter a larger size|Size too small/.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-bar-value').count()) === 0);
   await size(40, 10); await page.locator('.s2-size-msg.is-error').waitFor();
-  check('a height under the smallest says "...24 inches high."', /The smallest we can make is 24 inches high\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && await page.locator('.s2-bar-btn').isDisabled());
+  check('a height under the smallest says "...24 inches high."', /The smallest we can make is 24 inches high\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && await page.locator('.s2-add-btn').isDisabled());
   await size(10, 10); await page.waitForTimeout(300);
   check('both too small: both messages', (await page.locator('.s2-size-msg.is-error').innerText()).match(/smallest we can make/g).length === 2);
   await size(23, 24); await page.locator('.s2-estimate-price').waitFor();
-  check('exactly the smallest size is fine: priced, no warning, Add to cart works', (await page.locator('.s2-size-msg').count()) === 0 && await page.locator('.s2-bar-btn').isEnabled());
+  check('exactly the smallest size is fine: priced, no warning, Add to cart works', (await page.locator('.s2-size-msg').count()) === 0 && await page.locator('.s2-add-btn').isEnabled());
   await size(200, 64); await page.getByText(/larger than our standard range/).first().waitFor();
-  check('above the largest: the "larger than our standard range" message stays, and the order can still be added', await page.locator('.s2-bar-btn').isEnabled() && /Add it to your cart and we'll reply with a price/.test(await estimate()));
+  check('above the largest: the "larger than our standard range" message stays, and the order can still be added', await page.locator('.s2-add-btn').isEnabled() && /Add it to your cart and we'll reply with a price/.test(await estimate()));
   await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.locator('#s2-w').fill('22 1/2');
   await page.waitForTimeout(300);
@@ -41,8 +41,8 @@ try {
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
   await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click(); await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
   await size(8, 96); await page.locator('.s2-size-msg.is-warn').waitFor();
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-  check('a size that looks like a typo (8 inches wide) shows "Double-check this size." and does not block', /Double-check this size\./.test(await page.locator('.s2-size-msg.is-warn').innerText()) && await page.locator('.s2-bar-btn').isEnabled());
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+  check('a size that looks like a typo (8 inches wide) shows "Double-check this size." and does not block', /Double-check this size\./.test(await page.locator('.s2-size-msg.is-warn').innerText()) && await page.locator('.s2-add-btn').isEnabled());
   await size(120, 96); await page.waitForTimeout(300);
   check('a normal curtain size shows no warning', (await page.locator('.s2-size-msg').count()) === 0);
   await size(400, 96); await page.locator('.s2-size-msg.is-warn').waitFor();
@@ -50,7 +50,7 @@ try {
 
   // ---------- quantity 1 to 99 ----------
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click(); await size(40, 64);
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
   await page.locator('#s2-qty').fill('150'); await page.locator('#s2-qty').blur();
   check('typing 150 becomes 99, with a note', (await page.locator('#s2-qty').inputValue()) === '99');
   await page.waitForFunction(() => /99 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
@@ -63,10 +63,10 @@ try {
   // the size-limit pages above left unfinished drafts behind (they would show as incomplete items); this part is about finished items
   await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('lb_draft_v1:')).forEach((k) => localStorage.removeItem(k)));
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click(); await size(40, 64);
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
 
   // ---------- the order panel's keyboard ----------
-  await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+  await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
   await page.locator('.s2-bar-order').focus(); await page.keyboard.press('Enter'); await page.locator('.s2-panel').waitFor();
   let inside = true; for (let i = 0; i < 12; i++) { await page.keyboard.press('Tab'); inside = inside && await page.evaluate(() => !!document.activeElement.closest('.s2-panel')); }
   check('Tab 12 times: focus never leaves the open panel', inside);
@@ -83,8 +83,8 @@ try {
   check('the panel has Edit, Duplicate and Remove on each item', (await page.getByRole('link', { name: /^Edit / }).count()) === 1 && (await page.getByRole('button', { name: /^Duplicate / }).count()) === 1);
   await page.getByRole('button', { name: /^Duplicate / }).click();
   await page.waitForFunction(() => /\?edit=/.test(location.search)); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('Duplicate adds a copy and opens it for editing with everything filled in', (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && /\?edit=/.test(page.url()));
-  await page.locator('#s2-w').fill('55'); await page.locator('.s2-bar-btn').click();
+  check('Duplicate adds a copy and opens it for editing with everything filled in', (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && /\?edit=/.test(page.url()));
+  await page.locator('#s2-w').fill('55'); await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => document.querySelectorAll('.s2-item').length === 2 && !/Calculating/.test(document.querySelector('.s2-items').innerText));
   const texts = await page.locator('.s2-item').allInnerTexts();
@@ -92,7 +92,7 @@ try {
   check('the order page has Edit, Duplicate and Remove on each item', (await page.getByRole('link', { name: /^Edit / }).count()) === 2 && (await page.getByRole('button', { name: /^Duplicate / }).count()) === 2 && (await page.getByRole('button', { name: 'Remove' }).count()) === 2);
   await page.getByRole('button', { name: /^Duplicate / }).first().click();
   await page.waitForFunction(() => /\?edit=/.test(location.search));
-  check('Duplicate from the order page opens the copy too', (await page.locator('.s2-bar-btn').innerText()) === 'Save changes');
+  check('Duplicate from the order page opens the copy too', (await page.locator('.s2-add-btn').innerText()) === 'Save changes');
   await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order');
   check('Cancel keeps the copy in the order (three items)', (await page.locator('.s2-item').count()) === 3);
 

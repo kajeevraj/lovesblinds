@@ -5,10 +5,13 @@ import { createContext, useContext } from 'react';
 //   addItem(item) -> { merged, qty }, saveItem(id, item), removeItem(id), setQty(id, qty), panelOpen / setPanelOpen,
 //   flash ({ msg, n }), showFlash(msg), goEdit(item), duplicateItem(item),
 //   incomplete (product pages left part way: { key, lineId, product, title, colorText, sizeText }), removeIncomplete(entry), goIncomplete(entry),
-//   count (items + incomplete), goCheckout(), added (the "Added to your cart" popup, or null), closeAdded(),
+//   count (items + incomplete), goCheckout(),
 //   auth ({ user, supabaseEnabled, authLoading, signIn })
 export const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
+
+// "Build another": the product page asks LinePage to start again with a blank page.
+export const BuildAnotherContext = createContext(() => {});
 
 // JSON with sorted keys, so two selections that mean the same thing compare equal.
 const stable = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((key) => [key, x[key]])) : x));
