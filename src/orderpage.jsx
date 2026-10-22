@@ -1,5 +1,6 @@
-// The order page (Stage 2): every blind with its estimate (click one to change it), the estimated total, your details and
-// shipping address, Send my order, and the confirmation screen. It replaces the old Order Summary and Review pages.
+// The cart page and checkout (Stage 2): every blind with its estimate (click one to change it, − / + for how many), the estimated
+// total and a Checkout button. Checkout (/order?checkout=1) shows your details and shipping address and Send my order, then the
+// confirmation screen. Once it is sent it is an order.
 import { useEffect, useState } from 'react';
 import { getMechanism } from './data/lines.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
@@ -7,7 +8,9 @@ import { useCart } from './lib/cart.js';
 import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
 import { profileOf } from './lib/profile.js';
 import { COUNTRIES, DEFAULT_COUNTRY, addressLine } from './data/countries.js';
-import { CUSTOM_TEXT, REQUEST_TEXT, ESTIMATE_TEXT } from './components/s2.jsx';
+import { CART_CUSTOM_TEXT, REQUEST_TEXT, ESTIMATE_TEXT, QtyStepper } from './components/s2.jsx';
+import { IncompleteRow, SavePrompt, roomText, BLOCKED_TEXT } from './components/OrderBar.jsx';
+import GoogleSignIn from './components/GoogleSignIn.jsx';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
 
@@ -39,11 +42,11 @@ function ItemCard({ it, p, cart }) {
             <a className="s2-item-title" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Change ${d.title}`}>{d.title}</a>
             <PriceCell it={it} p={p} />
           </div>
-          {it.roomLabel && <div className="s2-item-room">{it.roomLabel}</div>}
-          <div className="s2-item-details">{d.parts.join(' · ')}{!d.parts.length ? '' : ''}</div>
-          <div className="s2-item-qty">{blinds(Math.max(1, it.qty || 1))}</div>
+          {roomText(it) && <div className="s2-item-room">{roomText(it)}</div>}
+          <div className="s2-item-details">{d.parts.join(' · ')}</div>
+          <div className="s2-item-qty"><QtyStepper value={Math.max(1, it.qty || 1)} name={d.title} onChange={(n) => cart.setQty(it.id, n)} /> <span>{Math.max(1, it.qty || 1) === 1 ? 'blind' : 'blinds'}</span></div>
           {p.kind === 'request' && <div className="s2-item-note">{REQUEST_TEXT}</div>}
-          {p.kind === 'custom' && <div className="s2-item-note">{CUSTOM_TEXT}</div>}
+          {p.kind === 'custom' && <div className="s2-item-note">{CART_CUSTOM_TEXT}</div>}
           <div className="s2-item-actions">
             <a className="s2-link" href={`/products/${it.product.slug}?edit=${encodeURIComponent(it.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); edit(); }} aria-label={`Edit ${d.title}`}>Edit</a>
             <button type="button" className="s2-link" aria-label={`Duplicate ${d.title}`} onClick={(e) => { e.stopPropagation(); cart.duplicateItem(it); }}>Duplicate</button>
@@ -78,13 +81,17 @@ function quoteLine(it, p) {
     qty: it.qty || 1,
     location: it.location || it.product.location,
     roomLabel: it.roomLabel || '',
+    windowLabel: it.windowLabel || '',
     estimate: { kind: p.kind, unit: p.kind === 'price' ? p.price : null },     // what the customer saw; the server works it out again
   };
 }
 
-export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubmitted, user }) {
+export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubmitted, user, search = '' }) {
   const cart = useCart();
-  const { items, prices } = cart;
+  const { items, prices, incomplete } = cart;
+  const blocked = incomplete.length > 0;
+  // the cart page, or (after Checkout) the details step. Incomplete items keep it on the cart page.
+  const checkout = new URLSearchParams(search).get('checkout') === '1' && !blocked && items.length > 0;
   const { total, byEmail, loading } = cart.totals;
   const [form, setForm] = useState({ name: '', email: '', phone: '', street: '', apt: '', city: '', state: '', zip: '', country: DEFAULT_COUNTRY, notes: '', zx_kv_q7: '' });
   const [errors, setErrors] = useState({});
@@ -99,6 +106,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     const a = pr.address;
     setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, street: f.street || a.street, apt: f.apt || a.apt, city: f.city || a.city, state: f.state || a.state, zip: f.zip || a.zip, country: f.country === DEFAULT_COUNTRY ? a.country : f.country }));
   }, [user]);
+  useEffect(() => { if (checkout) document.getElementById('s2-details-title')?.scrollIntoView({ block: 'start' }); }, [checkout]);
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: '' })); };
 
   const send = async () => {
@@ -112,6 +120,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     if (!form.zip.trim()) errs.zip = 'Please enter your ZIP or postal code';
     setErrors(errs);
     if (Object.keys(errs).length) return;
+    if (blocked) { setError(BLOCKED_TEXT); return; }
     if (loading) { setError('One moment, we are still working out your estimates.'); return; }
     const address = { street: form.street.trim(), apt: form.apt.trim(), city: form.city.trim(), state: form.state.trim(), zip: form.zip.trim(), country: form.country };
     setSending(true); setError(null);
@@ -159,16 +168,21 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   return (
     <div className="page-fade s2 s2-order">
       <section className="s2-wrap s2-order-wrap">
-        <h1 className="s2-order-title">Your order</h1>
-        <p className="s2-order-sub">Check your blinds, add your details, and send. No payment is taken now.</p>
+        <h1 className="s2-order-title">{checkout ? 'Checkout' : 'Your cart'}</h1>
+        <p className="s2-order-sub">{checkout ? 'Check your blinds, add your details, and send. No payment is taken now.' : 'Check your blinds, then check out. No payment is taken now.'}</p>
 
-        {items.length === 0 ? (
+        {items.length === 0 && incomplete.length === 0 ? (
           <div className="s2-empty-order">
-            <p>Your order is empty. Choose a style to get started.</p>
+            <p>Your cart is empty. Choose a style to get started.</p>
             <a className="s2-btn s2-btn-brass" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>Choose a style</a>
           </div>
         ) : (
           <>
+            {incomplete.length > 0 && (
+              <ul className="s2-items s2-items-incomplete" aria-label="Incomplete items">
+                {incomplete.map((e) => <IncompleteRow key={e.key} entry={e} cart={cart} />)}
+              </ul>
+            )}
             <ul className="s2-items">
               {items.map((it, i) => (
                 <ItemCard key={it.id} it={it} p={prices[i]} cart={cart} />
@@ -176,6 +190,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
             </ul>
             <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>
 
+            {items.length > 0 && (
             <section className="s2-total" aria-live="polite">
               {total > 0 || (!loading && byEmail === 0) ? (
                 <>
@@ -190,9 +205,25 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                 </>
               )}
             </section>
+            )}
 
+            {!checkout && (
+              <div className="s2-cart-actions">
+                <SavePrompt className="s2-save-page" />
+                {blocked && <p className="s2-blocked" role="status">{BLOCKED_TEXT}</p>}
+                <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={blocked || items.length === 0} onClick={() => navigate('/order?checkout=1')}>Checkout</button>
+              </div>
+            )}
+
+            {checkout && (
             <section className="s2-details" aria-labelledby="s2-details-title">
               <h2 id="s2-details-title" className="s2-details-title">Your details</h2>
+              {cart.auth.supabaseEnabled && (user
+                ? <p className="s2-details-who">Signed in as <strong>{user.email}</strong>. We filled in what we know. You can change anything.</p>
+                : <div className="s2-details-signin">
+                    <p>Sign in with Google to fill in your name, email and saved details.</p>
+                    <GoogleSignIn wide text="continue_with" label="Continue with Google" gis onFallback={cart.auth.signIn} disabled={cart.auth.authLoading} />
+                  </div>)}
               <div className="s2-form">
                 <div className="s2-field"><label className="s2-label" htmlFor="o-name">Full name</label>
                   <input id="o-name" className="s2-input" autoComplete="name" value={form.name} onChange={set('name')} aria-invalid={!!errors.name} />
@@ -229,6 +260,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
               <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={sending} onClick={send}>{sending ? 'Sending…' : 'Send my order'}</button>
               <p className="s2-send-note">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>
             </section>
+            )}
           </>
         )}
       </section>

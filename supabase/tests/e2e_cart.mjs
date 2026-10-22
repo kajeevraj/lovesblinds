@@ -17,32 +17,32 @@ try {
 
     // other pages: no bar while the order is empty
     for (const path of ['/', '/products', '/measure']) { await page.goto(`${BASE}${path}`); await page.waitForTimeout(300); }
-    check(T('the home, products and measuring pages show no bar while the order is empty'), (await page.locator('.s2-bar').count()) === 0);
+    check(T('the home, products and measuring pages show no bar while the cart is empty'), (await page.locator('.s2-bar').count()) === 0);
 
     // product page: the bar before and after adding
     await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor();
-    check(T('product page bar: the current item on the left and "Your order is empty" on the right'), /Pick a color/.test(await page.locator('.s2-bar-left').innerText()) && (w < 640 || /Your order is empty/.test(await page.locator('.s2-bar-order').innerText())));
+    check(T('product page bar: the current item on the left and "Your cart is empty" on the right'), /Pick a color/.test(await page.locator('.s2-bar-left').innerText()) && (w < 640 || /Your cart is empty/.test(await page.locator('.s2-bar-order').innerText())));
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.locator('#s2-qty').fill('3');
-    await page.locator('#s2-room').fill('Living room'); await ready();
+    await page.locator('#s2-room').selectOption('Living room'); await ready();
     const unit = Number((await page.locator('.s2-bar-sub').innerText()).match(/\$(\d+) each/)[1]);
     check(T('the bar shows the item total large and "$X each · 3 blinds" small under it'), (await price()) === unit * 3 && (await page.locator('.s2-bar-sub').innerText()).trim() === `$${unit} each · 3 blinds`);
     check(T('closed bar is one row (no wrapping) and the Add button is inside the screen'), await page.evaluate(() => { const b = document.querySelector('.s2-bar').getBoundingClientRect(); return b.height < 80 && b.right <= innerWidth + 0.5 && document.querySelector('.s2-bar-btn').getBoundingClientRect().right <= innerWidth; }));
     await page.locator('.s2-bar-btn').click();
-    await page.locator('.s2-flash').waitFor();
-    check(T('adding shows "Added to your order" and updates the count and total at once'), /Added to your order/.test(await page.locator('.s2-flash').innerText()) && (w < 640 ? (await page.locator('.s2-bar-count').innerText()) === '1' : new RegExp(`Your order: 1 item · \\$${unit * 3}`).test(await page.locator('.s2-bar-order').innerText())));
+    await page.locator('.s2-added').waitFor();
+    check(T('adding shows "Added to your cart" and updates the count and total at once'), /Added to your cart/.test(await page.locator('.s2-added').innerText()) && (w < 640 ? (await page.locator('.s2-bar-count').innerText()) === '1' : new RegExp(`Your cart: 1 item · \\$${unit * 3}`).test(await page.locator('.s2-bar-order').innerText())));
     // add a second item, a Dream Curtains one (price by email is tested elsewhere)
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await ready();
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
     const zebraUnit = await price();
+    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
 
     // other pages now show the order part alone
     await page.goto(`${BASE}/`); await page.locator('.s2-bar-only').waitFor();
-    check(T('the home page shows only the order part now, with the count and total'), (await page.locator('.s2-bar-btn').count()) === 0 && new RegExp(`Your order: 2 items · \\$${unit * 3 + zebraUnit}`).test(await page.locator('.s2-bar-order').innerText()), (await page.locator('.s2-bar-order').innerText()).replace(/\s+/g, ' '));
+    check(T('the home page shows only the cart part now, with the count and total'), (await page.locator('.s2-bar-btn').count()) === 0 && new RegExp(`Your cart: 2 items · \\$${unit * 3 + zebraUnit}`).test(await page.locator('.s2-bar-order').innerText()), (await page.locator('.s2-bar-order').innerText()).replace(/\s+/g, ' '));
     for (const path of ['/products', '/measure']) { await page.goto(`${BASE}${path}`); await page.locator('.s2-bar-only').waitFor(); }
     check(T('the products list and the measuring guide show it too'), true);
     await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
-    check(T('the order page has no bar'), (await page.locator('.s2-bar').count()) === 0);
+    check(T('the cart page has no bar'), (await page.locator('.s2-bar').count()) === 0);
 
     // the last step's buttons are never covered by the closed bar
     await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor();
@@ -52,13 +52,17 @@ try {
     const cover = await page.evaluate(() => { const bar = document.querySelector('.s2-bar').getBoundingClientRect(); const els = [...document.querySelectorAll('.s2-qty-btn, .s2-qty-input, .s2-estimate a, .s2-estimate button')]; return els.filter((e) => { const r = e.getBoundingClientRect(); return r.bottom > bar.top + 0.5 && r.top < bar.bottom; }).length; });
     check(T('scrolled to the end, the bar does not cover the quantity buttons or anything above it'), cover === 0, `${cover} covered`);
 
+    // the choices just made on that page are an unfinished draft; this test is about the finished items, so clear it
+    await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('lb_draft_v1:')).forEach((k) => localStorage.removeItem(k)));
+    await page.goto(`${BASE}/`); await page.locator('.s2-bar-only').waitFor();
+
     // the panel
     await page.locator('.s2-bar-order').click();
     await page.locator('.s2-panel').waitFor(); await page.waitForTimeout(500);
     const box = await page.locator('.s2-panel').boundingBox();
     check(T(w < 760 ? 'the panel is a bottom sheet on phones' : 'the panel is a side panel on desktop'), w < 760 ? (box.width >= w - 1 && Math.abs(box.y + box.height - h) < 2) : (box.x + box.width >= w - 1 && box.width < w / 2 && box.height >= h - 2), JSON.stringify(box));
     const panel = await page.locator('.s2-panel').innerText();
-    check(T('the panel lists each item (product, color and code, size, blinds, price), the estimated total and the review button'), /Roller Shades/.test(panel) && /40" wide × 64" high · 3 blinds/.test(panel) && new RegExp(`\\$${unit * 3}`).test(panel) && /Zebra/.test(panel) && /\([A-Z0-9-]+\)/.test(panel) && new RegExp(`Estimated total\\s*\\$${unit * 3 + zebraUnit}`).test(panel) && /Review and send order/.test(panel) && (await page.getByRole('button', { name: /^Remove/ }).count()) === 2 && (await page.getByRole('link', { name: /^Edit / }).count()) === 2);
+    check(T('the panel lists each item (product, color and code, size, blinds, price), the estimated total and the Checkout button'), /Roller Shades/.test(panel) && /40" wide × 64" high/.test(panel) && /Living room/.test(panel) && new RegExp(`\\$${unit * 3}`).test(panel) && /Zebra/.test(panel) && /\([A-Z0-9-]+\)/.test(panel) && new RegExp(`Estimated total\\s*\\$${unit * 3 + zebraUnit}`).test(panel) && /Checkout/.test(panel) && (await page.getByRole('button', { name: /^Remove/ }).count()) === 2 && (await page.getByRole('link', { name: /^Edit / }).count()) === 2);
     check(T('option names in the panel and on the page are in sentence case'), !TITLE_CASE.test(panel + await page.locator('main').innerText()));
     await page.keyboard.press('Escape');
     check(T('Escape closes the panel'), (await page.locator('.s2-panel').count()) === 0);
@@ -67,15 +71,15 @@ try {
     await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
     await page.getByRole('link', { name: /^Edit Roller/ }).click();
     await page.waitForFunction(() => /\?edit=/.test(location.search));
-    await page.locator('#s2-w').waitFor();
+    await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
     check(T('clicking an item in the panel opens its page with every choice filled in and a "Save changes" button and Cancel link'), (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-h').inputValue()) === '64' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room' && (await page.locator('.s2-sw.on').count()) === 1 && (await page.getByRole('link', { name: 'Cancel' }).count()) >= 1);
     const editUrl = page.url();
     // refresh in the middle of an edit
-    await page.locator('#s2-w').fill('48'); await page.locator('#s2-wf').selectOption('0.5');
+    await page.locator('#s2-w').fill('48 1/2');
     await page.reload(); await page.locator('#s2-w').waitFor();
-    check(T('after a refresh the same item is open again (its saved choices, since the unsaved change is gone)'), page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-wf').inputValue()) === '0');
+    check(T('after a refresh the same item is open again, with the unsaved change kept (autosave)'), page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '48 1/2');
     // change the fraction and save
-    await page.locator('#s2-wf').selectOption('0.125'); await page.locator('#s2-qty').fill('2'); await page.waitForFunction(() => /each · 2 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
+    await page.locator('#s2-w').fill('40 1/8'); await page.locator('#s2-qty').fill('2'); await page.waitForFunction(() => /each · 2 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
     await page.locator('.s2-bar-btn').click();
     await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
     await page.waitForFunction(() => /40 1\/8" wide × 64" high/.test(document.querySelector('.s2-item').innerText) && !/Calculating/.test(document.querySelector('.s2-items').innerText));
@@ -88,22 +92,22 @@ try {
     check(T('clicking an item on the order page opens its page too (Zebra)'), /\/products\/zebra\?edit=/.test(page.url()) && (await page.locator('#s2-w').inputValue()) === '30');
     await page.getByRole('link', { name: 'Cancel' }).first().click();
     await page.waitForFunction(() => location.pathname === '/order');
-    check(T('Cancel goes back to the order and changes nothing'), (await page.locator('.s2-item').count()) === 2);
+    check(T('Cancel goes back to the cart and changes nothing'), (await page.locator('.s2-item').count()) === 2);
 
     // an unknown or stale edit link just opens a new blank page
     await page.goto(`${BASE}/products/roller?edit=nope`); await page.locator('.s2-sw').first().waitFor();
-    check(T('an edit link for an item that is not in the order opens the page as a new item'), (await page.locator('.s2-bar-btn').innerText()) === 'Add to order' && (await page.locator('.s2-editing').count()) === 0);
+    check(T('an edit link for an item that is not in the order opens the page as a new item'), (await page.locator('.s2-bar-btn').innerText()) === 'Add to cart' && (await page.locator('.s2-editing').count()) === 0);
 
     // remove from the panel
     await page.goto(`${BASE}/`); await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
     await page.getByRole('button', { name: /^Remove Zebra/ }).click();
     await page.waitForFunction(() => document.querySelectorAll('.s2-panel-item').length === 1);
     check(T('Remove in the panel takes the item out and the total follows'), /Estimated total\s*\$\d+/.test(await page.locator('.s2-panel-foot').innerText()) && !/Zebra/.test(await page.locator('.s2-panel').innerText()));
-    await page.getByRole('button', { name: 'Review and send order' }).click();
+    await page.getByRole('button', { name: 'Checkout' }).click();
     await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
-    check(T('"Review and send order" opens the order page'), (await page.locator('.s2-item').count()) === 1 && (await page.locator('.s2-panel').count()) === 0);
+    check(T('"Checkout" in the panel opens the checkout page'), (await page.locator('.s2-item').count()) === 1 && page.url().includes('checkout=1') && (await page.locator('.s2-panel').count()) === 0);
     await page.getByRole('button', { name: 'Remove' }).click();
-    check(T('removing the last item empties the order (the bar is gone on other pages again)'), /Your order is empty/.test(await page.locator('main').innerText()));
+    check(T('removing the last item empties the order (the bar is gone on other pages again)'), /Your cart is empty/.test(await page.locator('main').innerText()));
     await page.goto(`${BASE}/products`); await page.waitForTimeout(300);
     check(T('with an empty order the products page has no bar'), (await page.locator('.s2-bar').count()) === 0);
 

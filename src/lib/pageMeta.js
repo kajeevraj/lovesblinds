@@ -12,7 +12,7 @@ const title = (t) => `${t} | ${SITE_NAME}`;
 export const PAGES = {
   home: { path: '/', title: `${SITE_NAME} | Custom made-to-measure window treatments`, description: 'Custom roller, zebra, Shangri-La, Roman and cellular shades and drapery, made to your measurements. See your price as you build, then send us your order.' },
   products: { path: '/products', title: title('Choose your style'), description: 'Six ways to dress a window: roller, zebra, Shangri-La, Roman and cellular shades, and drapery. Pick a style, choose a color and see your estimate.' },
-  measure: { path: '/measure', title: title('How to measure for blinds and shades'), description: 'A step-by-step guide to measuring your windows for inside or outside mount blinds, shades and drapery. All you need is a steel tape and ten minutes.' },
+  measure: { path: '/measure', title: title('How to measure for blinds and shades'), description: 'A step-by-step guide to measuring your windows for inside or outside mount blinds, shades and drapery. All you need is a tape measure and ten minutes.' },
   contact: { path: '/contact', title: title('Contact us'), description: 'Questions about a fabric, a window or an order? Send us a message or call (262) 434-0949. We reply within 1 business day.' },
   // pages that belong to one customer or one order: not for search results
   quote: { path: '/order', title: title('Your order'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },

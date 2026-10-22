@@ -59,20 +59,20 @@ try {
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
   await page.locator('#s2-qty').fill('3');
-  await page.locator('#s2-room').fill('Test room');
+  await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Test room');
   await page.locator('.s2-bar-btn').click();
   await page.waitForTimeout(300);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('lb_guest_quote') || '[]'));
-  check('Add to order keeps the quantity, the size, the room and the top cover choice', saved.length === 1 && saved[0].qty === 3 && saved[0].width === 40 && saved[0].length === 64 && saved[0].roomLabel === 'Test room' && saved[0].selection?.cover === 'none', JSON.stringify({ qty: saved[0]?.qty, cover: saved[0]?.selection?.cover }));
+  check('Add to cart keeps the quantity, the size, the room and the top cover choice', saved.length === 1 && saved[0].qty === 3 && saved[0].width === 40 && saved[0].length === 64 && saved[0].roomLabel === 'Test room' && saved[0].selection?.cover === 'none', JSON.stringify({ qty: saved[0]?.qty, cover: saved[0]?.selection?.cover }));
 
   // oversize + early states
   await page.locator('#s2-w').fill('500');
   await page.getByText(/larger than our standard range/).first().waitFor();
-  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to order still works', /Add it to your order and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isEnabled());
+  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to cart still works', /Add it to your cart and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isEnabled());
 
   // ---------- Zebra ----------
   await open('zebra');
-  check('Zebra: no price and no Add to order before a color and size', (await estimate().count()) === 0 && await page.locator('.s2-bar-btn').isDisabled());
+  check('Zebra: no price and no Add to cart before a color and size', (await estimate().count()) === 0 && await page.locator('.s2-bar-btn').isDisabled());
   const zt = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
   const zid = await swatchId('zebra', zt);
   const zdb = await dbPrice('zebra', zid, { control: 'chain' }, 40, 64);

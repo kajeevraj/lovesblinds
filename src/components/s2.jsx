@@ -6,9 +6,9 @@ import { ExplainerImg, hasExplainer } from './ExplainerImg.jsx';
 import { SwatchImg, SwatchDialog, makePick, labelOf } from './SwatchPicker.jsx';
 import { useCatalogStatus } from '../lib/useCatalog.js';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
-import { FRACTIONS, toInches } from '../lib/inches.js';
 import { blinds } from '../lib/itemView.js';
 import { MAX_QTY, clampQty } from '../lib/limits.js';
+import { MagnifierIcon } from '../icons.jsx';
 
 // ---- Steps -------------------------------------------------------------------------------------------------------
 
@@ -131,11 +131,14 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             const s = e.swatch;
             const on = activeId === s.id;
             return (
-              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s)}`} onClick={() => choose(e)}>
-                <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
-                <span className="s2-sw-name">{labelOf(e)}</span>
-                <span className="s2-sw-code">{codeOf(s)}</span>
-              </button>
+              <div key={s.id} className="s2-sw-cell">
+                <button type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s)}`} onClick={() => choose(e)}>
+                  <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
+                  <span className="s2-sw-name">{labelOf(e)}</span>
+                  <span className="s2-sw-code">{codeOf(s)}</span>
+                </button>
+                <button type="button" className="s2-sw-zoom" aria-label={`View ${labelOf(e)} larger`} onClick={() => setView(e)}><MagnifierIcon /></button>
+              </div>
             );
           })}
         </div>
@@ -147,7 +150,6 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
       {picked && (
         <div className="s2-picked" aria-live="polite">
           <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({value?.code || codeOf(picked.swatch)})</span>
-          <button type="button" className="s2-link" onClick={() => setView(picked)}>View larger</button>
         </div>
       )}
       {picked && styles.length > 0 && (
@@ -167,31 +169,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
 }
 
 // ---- Size step -----------------------------------------------------------------------------------------------------
-
-// Whole inches plus a 1/8 fraction for each side. `size` is { w, wf, h, hf } strings; onChange gets the next one.
-export function SizeFields({ size, onChange, idp = "s2" }) {
-  const set = (k) => (e) => onChange({ ...size, [k]: e.target.value });
-  const field = ({ label, k, f, ph }) => (
-    <div className="s2-field" key={k}>
-      <label className="s2-label" htmlFor={`${idp}-${k}`}>{label}</label>
-      <div className="s2-field-row">
-        <input id={`${idp}-${k}`} className="s2-input" type="number" inputMode="numeric" min="0" step="1" placeholder={ph} value={size[k]} onChange={set(k)} />
-        <label className="s2-sr" htmlFor={`${idp}-${f}`}>{label} fraction</label>
-        <select id={`${idp}-${f}`} className="s2-input s2-frac" value={size[f]} onChange={set(f)}>
-          {FRACTIONS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-        </select>
-      </div>
-    </div>
-  );
-  return (
-    <div className="s2-size">
-      {field({ label: "Width", k: "w", f: "wf", ph: "e.g. 40" })}
-      {field({ label: "Height", k: "h", f: "hf", ph: "e.g. 64" })}
-    </div>
-  );
-}
-export const EMPTY_SIZE = { w: "", wf: "0", h: "", hf: "0" };
-export const sizeNumbers = (size) => ({ width: toInches(size.w, size.wf), height: toInches(size.h, size.hf) });
+// (SizeFields and the size helpers live in SizeFields.jsx)
 
 // ---- Estimate -------------------------------------------------------------------------------------------------------
 
@@ -209,7 +187,8 @@ export function priceView(req, state) {
   return { kind: "error" };
 }
 
-export const CUSTOM_TEXT = "This size is larger than our standard range. Add it to your order and we'll reply with a price.";
+export const CUSTOM_TEXT = "This size is larger than our standard range. Add it to your cart and we'll reply with a price.";
+export const CART_CUSTOM_TEXT = "This size is larger than our standard range. Send us your order and we'll reply with a price.";
 export const REQUEST_TEXT = "Send us your order and we'll reply with a price.";
 export const ESTIMATE_TEXT = "Here's your estimate. Send it and we'll confirm details and final price.";
 
@@ -230,6 +209,18 @@ export function QtyField({ qty, onChange, id = "s2-qty" }) {
   );
 }
 
+// A small − / + selector for the quantity of a cart line (panel and cart page).
+export function QtyStepper({ value, onChange, name }) {
+  const n = clampQty(value);
+  return (
+    <span className="s2-stepper" role="group" aria-label={`Quantity of ${name}`}>
+      <button type="button" aria-label={`One fewer ${name}`} disabled={n <= 1} onClick={(e) => { e.stopPropagation(); onChange(n - 1); }}>−</button>
+      <output aria-live="polite" aria-label="Quantity">{n}</output>
+      <button type="button" aria-label={`One more ${name}`} disabled={n >= MAX_QTY} onClick={(e) => { e.stopPropagation(); onChange(n + 1); }}>+</button>
+    </span>
+  );
+}
+
 export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }) {
   return (
     <section className="s2-estimate" aria-live="polite">
@@ -246,7 +237,7 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null }
       {view.kind === "custom" && (<><div className="s2-estimate-title">Custom size</div><p className="s2-estimate-text">{CUSTOM_TEXT}</p></>)}
       {view.kind === "request" && (<><div className="s2-estimate-title">Price on request</div><p className="s2-estimate-text">{REQUEST_TEXT}</p></>)}
       {view.kind === "loading" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">Calculating your estimate…</p></>)}
-      {view.kind === "error" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">We couldn't work out an estimate just now. You can still add this to your order and we'll reply with a price.</p></>)}
+      {view.kind === "error" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">We couldn't work out an estimate just now. You can still add this to your cart and we'll reply with a price.</p></>)}
       {view.kind === "waiting" && (
         <>
           <div className="s2-estimate-title">Your price</div>

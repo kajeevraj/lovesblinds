@@ -1,7 +1,22 @@
 import { createContext, useContext } from 'react';
 
-// The order in progress, shared by the order bar, the order panel, the product pages and the order page.
-//   items, prices ({ kind, price } per item), totals ({ total, byEmail, loading }), ready (the saved order has loaded),
-//   addItem(item), saveItem(id, item), removeItem(id), panelOpen / setPanelOpen, flash ({ msg, n }), showFlash(msg), goEdit(item)
+// The cart (the order in progress until it is sent), shared by the cart bar, the cart panel, the product pages and the cart page.
+//   items, prices ({ kind, price } per item), totals ({ total, byEmail, loading }), ready (the saved cart has loaded),
+//   addItem(item) -> { merged, qty }, saveItem(id, item), removeItem(id), setQty(id, qty), panelOpen / setPanelOpen,
+//   flash ({ msg, n }), showFlash(msg), goEdit(item), duplicateItem(item),
+//   incomplete (product pages left part way: { key, lineId, product, title, colorText, sizeText }), removeIncomplete(entry), goIncomplete(entry),
+//   count (items + incomplete), goCheckout(), added (the "Added to your cart" popup, or null), closeAdded(),
+//   auth ({ user, supabaseEnabled, authLoading, signIn })
 export const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
+
+// JSON with sorted keys, so two selections that mean the same thing compare equal.
+const stable = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((key) => [key, x[key]])) : x));
+
+// The same product, options, size and room (and window label): adding it again raises the quantity instead of making a new line.
+export const sameItem = (a, b) =>
+  a.product.id === b.product.id && a.mech === b.mech && a.mount === b.mount
+  && Number(a.width) === Number(b.width) && Number(a.length) === Number(b.length)
+  && (a.roomLabel || '').trim().toLowerCase() === (b.roomLabel || '').trim().toLowerCase()
+  && (a.windowLabel || '').trim().toLowerCase() === (b.windowLabel || '').trim().toLowerCase()
+  && stable(a.selection ?? null) === stable(b.selection ?? null);

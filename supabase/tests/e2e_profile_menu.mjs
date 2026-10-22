@@ -21,20 +21,13 @@ try {
     // ---------- signed out
     const out = await browser.newContext({ viewport: { width, height: 800 } });
     const page = await out.newPage(); page.setDefaultTimeout(20000);
-    await page.goto(`${BASE}/`); const circle = page.locator('.profile-btn'); await circle.waitFor();
-    const box = await circle.boundingBox();
-    check(`[${width}px] signed out: the profile circle is in the top right of the top bar`, box.x + box.width > width - 40 && box.y < 80 && box.width >= 44, JSON.stringify(box));
-    for (const path of ['/products', '/measure', '/contact']) { await page.goto(`${BASE}${path}`); await page.locator('.profile-btn').waitFor(); }
-    check(`[${width}px] the circle is on every page`, true, 'home, products, measure guide, contact');
-    await circle.click();
-    const items = await page.getByRole('menuitem').allInnerTexts();
-    check(`[${width}px] signed out: the menu offers only "Sign in with Google"`, items.join('|') === 'Sign in with Google', items.join('|'));
-    const dd = await page.locator('.profile-dropdown').boundingBox();
-    check(`[${width}px] the menu stays on screen`, dd.x >= 0 && dd.x + dd.width <= width, JSON.stringify(dd));
-    await page.keyboard.press('Escape');
-    check(`[${width}px] Escape closes it and focus returns to the circle`, (await page.locator('.profile-dropdown').count()) === 0 && await circle.evaluate((el) => el === document.activeElement));
-    await circle.click(); await page.mouse.click(5, 400);
-    check(`[${width}px] clicking outside closes it`, (await page.locator('.profile-dropdown').count()) === 0);
+    await page.goto(`${BASE}/`); const signIn = page.locator('.s2-nav .gsi-btn'); await signIn.waitFor();
+    const box = await signIn.boundingBox();
+    check(`[${width}px] signed out: a "Sign in" button with the Google logo is in the top right of the top bar`, /Sign in/.test(await signIn.innerText()) && (await signIn.locator('svg').count()) === 1 && box.x + box.width > width - 40 && box.y < 80 && box.height >= 44, JSON.stringify(box));
+    check(`[${width}px] signed out: there is no profile (person) icon`, (await page.locator('.profile-btn').count()) === 0);
+    for (const path of ['/products', '/measure', '/contact']) { await page.goto(`${BASE}${path}`); await page.locator('.s2-nav .gsi-btn').waitFor(); }
+    check(`[${width}px] the button is on every page`, true, 'home, products, measure guide, contact');
+    await noOverflow(page, 'signed out top bar');
     await out.close();
   }
 
@@ -86,8 +79,8 @@ try {
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-  await page.getByRole('button', { name: 'Add to order' }).click(); await page.locator('.s2-flash').waitFor(); await page.waitForTimeout(1500);   // saved to their order
-  await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
+  await page.getByRole('button', { name: 'Add to cart' }).click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click(); await page.waitForTimeout(1500);   // saved to their order
+  await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   const filled = await page.locator('.s2-form input, .s2-form select').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile: name, email, phone and the whole address (street, apartment, city, state, ZIP, country)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way', 'Flat 2', 'London', 'England', 'N1 1AA', 'United Kingdom'].every((v) => filled.includes(v)), filled.join(' | '));
 
@@ -96,7 +89,7 @@ try {
   await page.locator('#s2-w').waitFor(); const editUrl = page.url();
   await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
   check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
-  await page.goto(`${BASE}/order`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
+  await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
   await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));
   await page.getByRole('button', { name: 'Send my order' }).click();
@@ -133,19 +126,17 @@ try {
   // an order in progress must not stay on screen after signing out
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
   // the order in progress is the copy made by "Order again" (the sent order is never reopened) plus the window just added
-  check('before signing out the bar shows the two items in the order in progress', /Your order: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
+  check('before signing out the bar shows the two items in the order in progress', /Your cart: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
-  await page.locator('.profile-btn:not(.is-signed-in)').waitFor();
-  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your order: \d+ item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
+  await page.locator('.s2-nav .gsi-btn').waitFor();
+  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your cart: \d+ item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
   await page.goto(`${BASE}/order`); await page.waitForTimeout(800);
-  check('and the order page is empty after signing out', /Your order is empty/.test(await page.locator('main').innerText()));
+  check('and the order page is empty after signing out', /Your cart is empty/.test(await page.locator('main').innerText()));
   await page.goto(`${BASE}/`); await page.waitForTimeout(500);
   check('the home page shows no order bar after signing out', (await page.locator('.s2-bar').count()) === 0);
-  check('Sign out returns the circle to the signed-out icon', (await page.locator('.profile-btn.is-signed-in').count()) === 0 && (await page.locator('.profile-btn svg').count()) === 1);
-  await page.locator('.profile-btn').click();
-  check('and the menu offers Sign in with Google again', (await page.getByRole('menuitem').allInnerTexts()).join('|') === 'Sign in with Google');
+  check('Sign out returns the top bar to the Google "Sign in" button', (await page.locator('.profile-btn').count()) === 0 && /Sign in/.test(await page.locator('.s2-nav .gsi-btn').innerText()));
   await ctx.close();
 } catch (e) {
   console.log('\nTEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false });

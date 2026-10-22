@@ -52,7 +52,7 @@ export function SwatchDialog({ entry, role, onChoose, onClose, chosen, hideCode 
       <div className="swatch-dialog-body">
         <SwatchImg className="swatch-dialog-img" src={s.image} alt={altOf(entry)} code={s.code} size={600} />
         <div className="swatch-dialog-text">
-          <div className="preview-eyebrow">{role || "Swatch"}</div>
+          <div className="preview-eyebrow">{role || "Color"}</div>
           <h3 className="preview-name serif">{labelOf(entry)}</h3>
           {!hideCode && <div className="preview-code">Code {s.styles?.length ? s.styles.map(x => `${x.style}: ${x.code}`).join(" · ") : s.code}</div>}
           <dl className="preview-specs">
@@ -61,7 +61,7 @@ export function SwatchDialog({ entry, role, onChoose, onClose, chosen, hideCode 
           </dl>
           <div className="swatch-dialog-actions">
             <button type="button" className="btn btn-sage" onClick={() => { onChoose(entry); ref.current?.close(); }}>
-              {chosen ? "Keep this swatch" : "Choose this swatch"}
+              {chosen ? "Keep this color" : "Choose this color"}
             </button>
             <button type="button" className="btn btn-outline" onClick={() => ref.current?.close()}>Close</button>
           </div>

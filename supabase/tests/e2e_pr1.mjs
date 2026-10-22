@@ -23,17 +23,17 @@ try {
   await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
   await size(20, 64); await page.locator('.s2-size-msg.is-error').waitFor();
   check('Roller: a width under the smallest says "The smallest we can make is 23 inches wide." and nothing is priced', /The smallest we can make is 23 inches wide\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && /Size too small/.test(await estimate()) && (await page.locator('.s2-estimate-price').count()) === 0);
-  check('...and Add to order is blocked, the bar says so', await page.locator('.s2-bar-btn').isDisabled() && /Enter a larger size/.test(await page.locator('.s2-bar').innerText()));
+  check('...and Add to cart is blocked, the bar says so', await page.locator('.s2-bar-btn').isDisabled() && /Enter a larger size/.test(await page.locator('.s2-bar').innerText()));
   await size(40, 10); await page.locator('.s2-size-msg.is-error').waitFor();
   check('a height under the smallest says "...24 inches high."', /The smallest we can make is 24 inches high\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && await page.locator('.s2-bar-btn').isDisabled());
   await size(10, 10); await page.waitForTimeout(300);
   check('both too small: both messages', (await page.locator('.s2-size-msg.is-error').innerText()).match(/smallest we can make/g).length === 2);
   await size(23, 24); await page.locator('.s2-estimate-price').waitFor();
-  check('exactly the smallest size is fine: priced, no warning, Add to order works', (await page.locator('.s2-size-msg').count()) === 0 && await page.locator('.s2-bar-btn').isEnabled());
+  check('exactly the smallest size is fine: priced, no warning, Add to cart works', (await page.locator('.s2-size-msg').count()) === 0 && await page.locator('.s2-bar-btn').isEnabled());
   await size(200, 64); await page.getByText(/larger than our standard range/).first().waitFor();
-  check('above the largest: the "larger than our standard range" message stays, and the order can still be added', await page.locator('.s2-bar-btn').isEnabled() && /Add it to your order and we'll reply with a price/.test(await estimate()));
+  check('above the largest: the "larger than our standard range" message stays, and the order can still be added', await page.locator('.s2-bar-btn').isEnabled() && /Add it to your cart and we'll reply with a price/.test(await estimate()));
   await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
-  await page.locator('#s2-wf').selectOption('0.5'); await page.locator('#s2-w').fill('22');
+  await page.locator('#s2-w').fill('22 1/2');
   await page.waitForTimeout(300);
   check('22 1/2 inches is still under 23', (await page.locator('.s2-size-msg.is-error').count()) === 1);
 
@@ -60,8 +60,13 @@ try {
   await page.locator('#s2-qty').fill('-4'); await page.locator('#s2-qty').blur();
   check('typing -4 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
 
+  // the size-limit pages above left unfinished drafts behind (they would show as incomplete items); this part is about finished items
+  await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('lb_draft_v1:')).forEach((k) => localStorage.removeItem(k)));
+  await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click(); await size(40, 64);
+  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
+
   // ---------- the order panel's keyboard ----------
-  await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor();
+  await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
   await page.locator('.s2-bar-order').focus(); await page.keyboard.press('Enter'); await page.locator('.s2-panel').waitFor();
   let inside = true; for (let i = 0; i < 12; i++) { await page.keyboard.press('Tab'); inside = inside && await page.evaluate(() => !!document.activeElement.closest('.s2-panel')); }
   check('Tab 12 times: focus never leaves the open panel', inside);
@@ -70,7 +75,7 @@ try {
   await page.keyboard.press('Escape');
   check('Escape closes the panel and puts focus back on the order button', (await page.locator('.s2-panel').count()) === 0 && await page.evaluate(() => document.activeElement?.classList.contains('s2-bar-order')));
   await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
-  await page.getByRole('button', { name: 'Close your order' }).click();
+  await page.getByRole('button', { name: 'Close your cart' }).click();
   check('the close button also returns focus to the order button', await page.evaluate(() => document.activeElement?.classList.contains('s2-bar-order')));
 
   // ---------- Duplicate ----------
@@ -93,9 +98,9 @@ try {
 
   // ---------- the order follows the other tab ----------
   const tab2 = await ctx.newPage(); await tab2.goto(`${BASE}/`); await tab2.locator('.s2-bar-only').waitFor();
-  check('a second tab shows the same order', /Your order: 3 items/.test(await tab2.locator('.s2-bar-order').innerText()));
+  check('a second tab shows the same order', /Your cart: 3 items/.test(await tab2.locator('.s2-bar-order').innerText()));
   await page.getByRole('button', { name: 'Remove' }).first().click();
-  await tab2.waitForFunction(() => /Your order: 2 items/.test(document.querySelector('.s2-bar-order')?.innerText || ''), null, { timeout: 5000 });
+  await tab2.waitForFunction(() => /Your cart: 2 items/.test(document.querySelector('.s2-bar-order')?.innerText || ''), null, { timeout: 5000 });
   check('removing an item in one tab updates the other tab without a reload', true);
   await page.locator('.s2-item').first().waitFor();
   await tab2.close();

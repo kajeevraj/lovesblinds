@@ -36,7 +36,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
                           : it.priceKind ? <div className="s2-item-amount s2-item-onreq">Price sent by email</div> : null}
                       </div>
                     </div>
-                    {it.roomLabel && <div className="s2-item-room">{it.roomLabel}</div>}
+                    {(it.roomLabel || it.windowLabel) && <div className="s2-item-room">{[it.roomLabel, it.windowLabel].filter(Boolean).join(' · ')}</div>}
                     <div className="s2-item-details">{d.parts.join(' · ')}</div>
                     <div className="s2-item-qty">{blinds(q)}</div>
                   </div>

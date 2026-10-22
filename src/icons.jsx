@@ -164,3 +164,18 @@ export const XIcon = ({ size = 14 }) => (
     <line x1="18" y1="6" x2="6" y2="18" />
   </svg>
 );
+
+// A shopping cart: a basket on two wheels with a handle. Used for the cart button and the cart bar.
+export const CartIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <path d="M2.5 3.5h2.7l2.3 11.3a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 7.5H6" />
+    <circle cx="9.5" cy="20" r="1.4" /><circle cx="17" cy="20" r="1.4" />
+  </svg>
+);
+
+// A magnifying glass, for "see this swatch bigger".
+export const MagnifierIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /><path d="M10.5 7.8v5.4M7.8 10.5h5.4" />
+  </svg>
+);

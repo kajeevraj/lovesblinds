@@ -92,6 +92,13 @@ export function useAuth() {
     });
   };
 
+  // Google's own button and One Tap give us an ID token; this turns it into a session (no redirect, the page and the cart stay as they are).
+  const signInWithIdToken = async (token, nonce) => {
+    if (!supabase) return new Error('not available');
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce });
+    return error || null;
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -177,7 +184,7 @@ export function useAuth() {
   return {
     supabaseEnabled: !!supabase,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
-    authLoading, signInWithGoogle, signOut, dbError,
+    authLoading, signInWithGoogle, signInWithIdToken, signOut, dbError,
     createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   };
 }

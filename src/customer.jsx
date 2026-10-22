@@ -7,6 +7,8 @@ import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
+import GoogleSignIn from './components/GoogleSignIn.jsx';
+import { CartIcon } from './icons.jsx';
 import { profileOf, saveProfile, EMPTY_ADDRESS } from './lib/profile.js';
 import { COUNTRIES } from './data/countries.js';
 import { sentEstimate } from './lib/orders.js';
@@ -18,13 +20,22 @@ const linkTo = (navigate, path) => (e) => {
   navigate(path);
 };
 
+// true while the window is at least this wide (re-checked when it changes)
+function useWide(query) {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const f = () => setOn(m.matches);
+    f(); m.addEventListener('change', f);
+    return () => m.removeEventListener('change', f);
+  }, [query]);
+  return on;
+}
+
 export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
-  const goHow = (e) => {
-    e.preventDefault();
-    if (route === "home") document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
-    else { navigate("home"); setTimeout(() => document.getElementById("how")?.scrollIntoView(), 50); }
-  };
   const goContact = (e) => { e.preventDefault(); navigate("contact"); };
+  // Google's own (personalized) button fits on desktop; on a phone the compact "Sign in" button keeps the bar on one line
+  const roomy = useWide('(min-width: 760px)');
   return (
     <header className="s2-nav">
       <nav className="s2-nav-inner" aria-label="Main">
@@ -32,15 +43,16 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
         <div className="s2-nav-links">
           <a className={route === "products" ? "active" : ""} href="/products" onClick={linkTo(navigate, "/products")}>Products</a>
           <a className={route === "measure" ? "active" : ""} href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
-          <a href="/#how" onClick={goHow}>How it works</a>
           <a className={route === "contact" ? "active" : ""} href="/contact" onClick={goContact}>Contact</a>
         </div>
         <div className="s2-nav-right">
-          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
-            Your order{quoteCount > 0 ? ` (${quoteCount})` : ""}
+          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")} aria-label={quoteCount > 0 ? `Cart, ${quoteCount} item${quoteCount === 1 ? '' : 's'}` : 'Cart'}>
+            <CartIcon size={18} />
+            Cart{quoteCount > 0 ? ` (${quoteCount})` : ""}
           </a>
-          {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
+          {supabaseEnabled && (user
+            ? <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />
+            : <GoogleSignIn gis={roomy} text="signin" label="Sign in" disabled={authLoading} onFallback={signInWithGoogle} />)}
         </div>
       </nav>
     </header>
@@ -53,7 +65,7 @@ export function Footer({ navigate, hideMessage = false }) {
       <div className="s2-wrap s2-footer-inner">
         <div className="s2-footer-brand">
           <div className="s2-footer-name">Love's Blinds</div>
-          <div className="s2-footer-text">Custom made-to-measure window treatments, shipped worldwide.</div>
+          <div className="s2-footer-text">Custom made-to-measure window treatments, <strong>shipped worldwide</strong>.</div>
         </div>
         <div className="s2-footer-contact">
           <div className="s2-footer-head">Questions?</div>
@@ -127,7 +139,7 @@ const STEPS = [
 const LIGHT = [
   { photo: "shangri-la", slug: "shangri-la", title: "Soft, glowing light", text: "Shangri-La, Zebra and sheer curtains" },
   { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and screen view roller shades" },
-  { photo: "blackout", slug: "roller", title: "Dark for sleeping", text: "Blackout rollers and blackout cellular shades" },
+  { photo: "blackout", slug: "roller", title: "Room darkening", text: "Good for bedrooms, nurseries and home theaters." },
 ];
 const MEASURE = [
   ["Choose inside or outside mount", "Inside sits within the window frame. Outside covers the frame from the wall."],
@@ -147,7 +159,7 @@ export function HomePage({ navigate }) {
               <h1>Six ways to dress a window.</h1>
               <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
               <div className="s2-btn-row">
-                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start your order</a>
+                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start shopping</a>
                 <a className="s2-btn s2-btn-line" href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
               </div>
             </div>
@@ -202,7 +214,7 @@ export function HomePage({ navigate }) {
           <div className="s2-measure-intro">
             <p className="s2-eyebrow s2-eyebrow-light">Measure at home</p>
             <h2 id="measure-title" className="s2-h2">Measuring takes about five minutes.</h2>
-            <p className="s2-measure-text">All you need is a steel tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
+            <p className="s2-measure-text">All you need is a tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
             <a className="s2-btn s2-btn-sand" href="/measure" onClick={linkTo(navigate, "/measure")}>Read the full guide</a>
           </div>
           <ol className="s2-measure-steps">
@@ -235,7 +247,7 @@ export function ProductsPage({ navigate, location, setLocation }) {
         <div>
           <p className="s2-eyebrow">Our lineup</p>
           <h1 className="s2-page-title">Choose your style</h1>
-          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your order.</p>
+          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your cart.</p>
           {locationStep && (
             <div className="location-cards">
               {locations.map(loc => (
@@ -347,7 +359,7 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
         {orders.length === 0 && !dbError ? (
           <div className="empty-state">
             <h2 className="s2-empty-title">No orders yet.</h2>
-            <p>Browse products and use "Add to order" to get started.</p>
+            <p>Browse products and use "Add to cart" to get started.</p>
             <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Browse products</button>
           </div>
         ) : orders.length === 0 ? null : (
@@ -451,8 +463,8 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
         <div>
           <p className="s2-eyebrow">Measuring guide · about 10 minutes</p>
           <h1 className="s2-page-title">Measure with confidence.</h1>
-          <p className="s2-page-lede">You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
-          <a className="s2-btn s2-btn-brass s2-page-action" href="/order" onClick={linkTo(navigate, "/order")}>Skip the guide and start your order</a>
+          <p className="s2-page-lede">You only need a tape measure, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
+          <a className="s2-btn s2-btn-brass s2-page-action" href="/products" onClick={linkTo(navigate, "/products")}>Skip the guide and start shopping</a>
         </div>
       </section>
 
@@ -471,7 +483,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             </ol>
             <div className="measure-toc-callout">
               <div className="label" style={{ color: "var(--sage-dark)" }}>Need help?</div>
-              <p>Unsure about a window, such as a bay, an arch, a French door or anything out of plumb? Send us a note or call and we will talk it through before you order.</p>
+              <p>Send us a note or call and we'd be happy to help!</p>
               <a className="s2-btn s2-btn-line" href="/contact" onClick={linkTo(navigate, "/contact")}>Contact us</a>
             </div>
           </aside>
@@ -481,9 +493,9 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <h2 className="serif">1 · What you'll need</h2>
               <div className="measure-tools">
                 {[
-                  ["Steel tape", "At least 16 ft. Avoid cloth tapes, they stretch."],
+                  ["Tape measure", "At least 16 ft. Avoid cloth tapes, they stretch."],
                   ["Pencil & paper", "Or your phone's notes app. One line per window."],
-                  ["Step stool", "For tall windows. Don't measure on tiptoe."],
+                  ["Step stool or ladder", "For tall windows. Don't measure on tiptoe."],
                   ["A second pair of eyes", "Optional but helpful for double-checking."],
                 ].map(([t, d]) => (
                   <div key={t} className="tool-card">
@@ -544,7 +556,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                 <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
                 <li><strong>Don't make any deductions.</strong> Send us the raw window numbers.</li>
                 <li><strong>Measure every window.</strong> Even if they look identical. Older houses rarely come square.</li>
-                <li><strong>Write every window down as you go.</strong> You'll enter each width and height with your order.</li>
+                <li><strong>Write every window down as you go.</strong> You'll enter each width and height as you add blinds to your cart.</li>
                 <li><strong>Out of plumb?</strong> If a window's left and right heights differ by more than 1/4 inch, flag it in notes, we'll discuss options.</li>
               </ul>
             </div>
@@ -554,7 +566,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                 <h2 className="serif">Got your numbers?</h2>
                 <p>Send them along with your product picks and we'll email your final price within 48 hours.</p>
               </div>
-              <a className="s2-btn s2-btn-sand" href="/order" onClick={linkTo(navigate, "/order")}>Start your order</a>
+              <a className="s2-btn s2-btn-sand" href="/products" onClick={linkTo(navigate, "/products")}>Start shopping</a>
             </div>
           </div>
         </div>

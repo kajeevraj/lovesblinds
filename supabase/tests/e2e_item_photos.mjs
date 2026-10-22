@@ -10,7 +10,7 @@ try {
     const page = await browser.newPage({ viewport: { width: w, height: h } }); page.setDefaultTimeout(30000);
     const failed = []; page.on('response', (r) => { if (/images\/site\//.test(r.url()) && r.status() >= 400) failed.push(`${r.status()} ${r.url()}`); });
     const size = async () => { await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); };
-    const add = async () => { await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor(); await page.waitForTimeout(150); };
+    const add = async () => { await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click(); await page.waitForTimeout(150); };
     const open = async (slug) => { await page.goto(`${BASE}/products/${slug}`); await page.locator('.s2-sw').first().waitFor(); };
     // one item of each kind of photo: Roller (Solar, Screen view, Blackout), Zebra, Shangri-La, Roman, Cellular (standard, top-down), Curtains, Dream Curtains
     for (const fabric of ['Solar', 'Screen view', 'Blackout']) { await open('roller'); await page.locator('.s2-card', { hasText: new RegExp(`^${fabric}`) }).first().click(); await page.locator('.s2-sw').first().click(); await size(); await add(); }

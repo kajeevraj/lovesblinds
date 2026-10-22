@@ -40,7 +40,7 @@ export function buildSelection(line, c) {
       }
       break;
     case "roman":
-      need(c.pick, "a swatch");
+      need(c.pick, "a color");
       need(c.romanStyle, "a style");
       need(c.lining, "a lining");
       sel.style = c.romanStyle || undefined;
@@ -50,7 +50,7 @@ export function buildSelection(line, c) {
     case "drapery":
       sel.section = c.section;
       if (c.section === "curtains") {
-        need(c.pick, "a swatch");
+        need(c.pick, "a color");
         need(c.pleat, "a pleat style");
         need(c.lining, "a lining");
         sel.pleat = c.pleat || undefined;
@@ -67,3 +67,6 @@ export function buildSelection(line, c) {
   return { selection: sel, missing };
 }
 
+
+// The pick for a role ("Front shade", "Day ...") in a saved or draft selection; null when it is not picked yet.
+export const pickByRole = (sel, rolePrefix) => sel?.picks?.find((p) => (p.role || '').startsWith(rolePrefix)) || null;
