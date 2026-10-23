@@ -214,12 +214,12 @@ export function OrderPanel({ navigate }) {
   const blocked = incomplete.length > 0;
   return (
     <div className="s2-panel-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) cart.setPanelOpen(false); }}>
-      <aside className="s2-panel" role="dialog" aria-modal="true" aria-label="Your cart" ref={ref}>
-        <header className="s2-panel-head">
+      <div className="s2-panel" role="dialog" aria-modal="true" aria-label="Your cart" ref={ref}>
+        <div className="s2-panel-head">
           <h2>Your cart</h2>
           <a className="s2-link s2-panel-full" href="/order" onClick={(e) => { e.preventDefault(); go(() => navigate('quote')); }}>Full cart page</a>
           <button type="button" className="s2-panel-close" aria-label="Close your cart" onClick={() => cart.setPanelOpen(false)}>×</button>
-        </header>
+        </div>
         <UndoBar />
         {items.length === 0 && incomplete.length === 0 ? (
           <div className="s2-panel-empty"><p>Your cart is empty. Choose a style to get started.</p></div>
@@ -251,7 +251,7 @@ export function OrderPanel({ navigate }) {
           </ul>
         )}
         {(items.length > 0 || incomplete.length > 0) && (
-          <footer className="s2-panel-foot">
+          <div className="s2-panel-foot">
             <SavePrompt />
             {items.length > 0 && (
               <>
@@ -261,9 +261,9 @@ export function OrderPanel({ navigate }) {
             )}
             {blocked && <p className="s2-blocked" role="status">{BLOCKED_TEXT}</p>}
             <button type="button" className="s2-btn s2-btn-brass s2-panel-go" disabled={blocked || items.length === 0} onClick={() => go(cart.goCheckout)}>Checkout</button>
-          </footer>
+          </div>
         )}
-      </aside>
+      </div>
     </div>
   );
 }

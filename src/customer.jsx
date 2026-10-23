@@ -470,7 +470,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
 
       <section className="s2-wrap measure-content">
         <div className="measure-cols">
-          <aside className="measure-toc">
+          <div className="measure-toc">
             <div className="label">On this page</div>
             <ol className="measure-toc-list">
               <li><a href="#tools">What you'll need</a></li>
@@ -486,7 +486,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
               <p>Send us a note or call and we'd be happy to help!</p>
               <a className="s2-btn s2-btn-line" href="/contact" onClick={linkTo(navigate, "/contact")}>Contact us</a>
             </div>
-          </aside>
+          </div>
 
           <div className="measure-main">
             <div id="tools" className="measure-block">
@@ -654,11 +654,11 @@ export function ContactPage({ navigate }) {
                 </form>
             }
           </div>
-          <aside className="contact-details">
+          <div className="contact-details">
             <h2 className="contact-details-title">Prefer to talk?</h2>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val"><a href={SITE.phoneHref}>{SITE.phone}</a></div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val"><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div></div>
-          </aside>
+          </div>
         </div>
       </section>
       <Footer navigate={navigate} hideMessage />
