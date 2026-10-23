@@ -39,13 +39,16 @@ const seoPages = () => {
       const slugs = activeLines().map((l) => l.slug)
       const home = readFileSync(join(outDir, 'index.html'), 'utf8')
       const homeBlock = home.slice(home.indexOf(START), home.indexOf(END) + END.length)
-      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ...slugs.map((s) => ['line', s])]
+      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ...slugs.map((s) => ['line', s])]
       for (const [route, slug] of pages) {
         const m = metaFor(route, slug, photos())
         const file = join(outDir, m.path.slice(1), 'index.html')
         mkdirSync(join(outDir, m.path.slice(1)), { recursive: true })
         writeFileSync(file, home.replace(homeBlock, block(m)))
       }
+      // Vercel serves this file, with a 404 status, for any address that is not a real page (vercel.json only rewrites /admin and /review)
+      const nf = metaFor('notfound', null, photos())
+      writeFileSync(join(outDir, '404.html'), home.replace(homeBlock, block(nf)))
       const urls = sitemapPaths(slugs).map((p) => `  <url><loc>${SITE_URL}${p === '/' ? '/' : p}</loc></url>`).join('\n')
       writeFileSync(join(outDir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
     },

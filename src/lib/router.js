@@ -10,6 +10,8 @@ const ROUTE_PATHS = {
   profile: '/profile',
   contact: '/contact',
   admin: '/admin',
+  privacy: '/privacy',
+  terms: '/terms',
 };
 const PATH_ROUTES = Object.fromEntries(Object.entries(ROUTE_PATHS).map(([r, p]) => [p, r]));
 
@@ -24,13 +26,12 @@ export function resolvePath(rawPath) {
   const m = path.match(/^\/products\/([^/]+)$/);
   if (m && !getActiveLine(m[1])) return { redirect: '/products' };   // inactive or unknown line
   if (path !== rawPath && (PATH_ROUTES[path] || m)) return { redirect: path };
-  if (!PATH_ROUTES[path] && !m) return { redirect: '/' };
-  return {};
+  return {};                                                         // an unknown path is shown as "Page not found" (routeFor)
 }
 
 export function routeFor(rawPath) {
   const path = clean(rawPath);
   const m = path.match(/^\/products\/([^/]+)$/);
   if (m) return { route: 'line', slug: m[1] };
-  return { route: PATH_ROUTES[path] || 'home', slug: null };
+  return { route: PATH_ROUTES[path] || 'notfound', slug: null };
 }

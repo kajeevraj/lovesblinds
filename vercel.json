@@ -54,7 +54,15 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api/|robots\\.txt$|sitemap\\.xml$|og-image\\.jpg$).*)",
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/review",
       "destination": "/index.html"
     }
   ],

@@ -76,6 +76,11 @@ export function Footer({ navigate, hideMessage = false }) {
           {!hideMessage && <a className="s2-footer-msg" href="/contact" onClick={linkTo(navigate, "/contact")}>Send us a message</a>}
         </div>
       </div>
+      <div className="s2-wrap s2-footer-legal">
+        <span>© Love's Blinds</span>
+        <a href="/privacy" onClick={linkTo(navigate, "/privacy")}>Privacy policy</a>
+        <a href="/terms" onClick={linkTo(navigate, "/terms")}>Terms of sale</a>
+      </div>
     </footer>
   );
 }

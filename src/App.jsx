@@ -21,6 +21,7 @@ import PHOTOS from './data/sitePhotos.json';
 // when someone opens /admin, so customers never download it. What an admin may do is decided by the database, not here.
 const LinePage = lazy(() => import('./linepage.jsx'));
 const OrderPage = lazy(() => import('./orderpage.jsx'));
+const Legal = lazy(() => import('./legal.jsx').then((m) => ({ default: m.default })));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
@@ -370,6 +371,7 @@ export default function App() {
       {route === "orders"   && <OrdersPage viewId={new URLSearchParams(search).get('view')} orderAgain={orderAgain} navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
+      {(route === "privacy" || route === "terms" || route === "notfound") && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><Legal page={route} navigate={navigate} /></Suspense>}
       </main>
       {/* product pages have their own bar (the item being built plus the order); the other customer pages get the order part alone, never on the order page */}
       {!onLinePage && !onOrderPage && <OrderOnlyBar />}
