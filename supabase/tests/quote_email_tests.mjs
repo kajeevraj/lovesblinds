@@ -41,7 +41,7 @@ const sheetOf = async (c, ls, notes, t) => { const buf = Buffer.from(await (awai
 const wantRoller = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: roller.id, p_options: { control: 'chain', mode: 'single', wrap_cassette: 'none' }, p_width: 40, p_height: 64 });
 const wantDream = await rpc('estimate_price_for_swatch', { p_line: 'dream-curtains', p_swatch_id: dream.id, p_options: { control: 'manual' }, p_width: 60, p_height: 84 });
 check('the server works the Roller estimate out again, with the No fabric wrap deduction, ignoring the $1 the browser claimed', lines[0].price.kind === 'price' && lines[0].price.unit === wantRoller.price && lines[0].price.checked, `server $${lines[0].price.unit}, database $${wantRoller.price}`);
-check('curtains have no dollar estimate (price sent by email)', lines[1].price.kind === 'request' && priceText(lines[1]) === 'Price sent by email');
+check('curtains have no dollar estimate (price by email)', lines[1].price.kind === 'request' && priceText(lines[1]) === 'Price by email');
 check('Dream Curtains are priced again on the server too', lines[2].price.unit === wantDream.price, `$${wantDream.price} (browser claimed $5)`);
 check('the estimated total is the sum of price x quantity for priced windows, and one item is priced by email', total === wantRoller.price * 3 + wantDream.price && byEmail === 1, `$${total}, plus ${byEmail}`);
 check('"$X each · $Y for 3" for quantity 3', priceText(lines[0]) === `$${wantRoller.price} each · $${wantRoller.price * 3} for 3 blinds`, priceText(lines[0]));
@@ -50,7 +50,7 @@ check('the price request carries the supplier "no wrap" option and nothing else 
 
 const cust = customerEmailHtml(customer, lines, 'a note', totals);
 const intl = internalEmailHtml(customer, lines, 'a note', totals);
-check('customer email: each item has its estimate, the total, "Plus 1 item priced by email" and the estimate sentence', cust.includes(`$${wantRoller.price} each`) && cust.includes('Price sent by email') && cust.includes('Estimated total') && /Plus 1 item priced by email/.test(cust) && cust.includes(ESTIMATE_NOTE));
+check('customer email: each item has its estimate, the total, "Plus 1 item priced by email" and the estimate sentence', cust.includes(`$${wantRoller.price} each`) && cust.includes('Price by email') && cust.includes('Estimated total') && /Plus 1 item priced by email/.test(cust) && cust.includes(ESTIMATE_NOTE));
 const dcode = dream.styles.find((x) => x.style === 'B').code, acode = dream.styles.find((x) => x.style === 'A').code;
 check('customer email: Dream Curtains show the style name and the picked style\'s code like any other line, not the other style\'s code or "Style B"', /Slim/.test(cust) && cust.includes(dcode) && !cust.includes(acode) && !/Style [AB]/.test(cust), dcode);
 check('customer email counts blinds ("3 blinds")', /, 3 blinds/.test(cust) && !/qty/.test(cust));
@@ -85,7 +85,7 @@ check('an order whose estimate lookup fails still goes through with the browser 
   const r = await withEstimates(cat, { SUPABASE_URL: 'http://127.0.0.1:9', VITE_SUPABASE_ANON_KEY: 'x' });
   return r.lines[0].price.kind === 'price' && r.lines[0].price.checked === false && /could not be re-checked/.test(lineListHtml(r.lines, true));
 })());
-check('totalText with nothing priced is "Price sent by email"', totalText({ total: 0, byEmail: 2 }) === 'Price sent by email');
+check('totalText with nothing priced is "Price by email"', totalText({ total: 0, byEmail: 2 }) === 'Price by email');
 
 check('My Orders: a sent order shows its estimated total and the items priced by email', sentEstimate({ status: 'sent', items: [{ price: 135, priceKind: 'estimate', qty: 3 }, { price: null, priceKind: 'email', qty: 2 }] }) === 'Estimated total $405 · plus 1 item priced by email');
 check('My Orders: orders saved before Stage 2 and orders not yet sent show no price line', sentEstimate({ status: 'sent', items: [{ qty: 1 }] }) === null && sentEstimate({ status: 'draft', items: [{ price: 5, priceKind: 'estimate', qty: 1 }] }) === null);

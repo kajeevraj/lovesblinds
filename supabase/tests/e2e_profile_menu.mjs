@@ -79,7 +79,7 @@ try {
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
-  await page.getByRole('button', { name: 'Add to cart' }).click(); await page.locator('.s2-added-card').waitFor(); await page.waitForTimeout(1500);   // saved to their order
+  await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor(); await page.waitForTimeout(1500);   // saved to their order
   await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   const filled = await page.locator('.s2-form input, .s2-form select').evaluateAll((els) => els.map((e) => e.value));
   check('the order details form is pre-filled from the profile: name, email, phone and the whole address (street, apartment, city, state, ZIP, country)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way', 'Flat 2', 'London', 'England', 'N1 1AA', 'United Kingdom'].every((v) => filled.includes(v)), filled.join(' | '));

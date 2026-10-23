@@ -46,7 +46,7 @@ try {
   check('the sent order is exactly as it was sent (items, status)', sentNow.status === 'sent' && JSON.stringify(sentNow.items) === JSON.stringify(old.items));
   check('the guest\'s items are no longer kept in the browser (they are in the account now)', (await page.evaluate(() => localStorage.getItem('lb_guest_quote'))) === null);
   await page.goto(`${BASE}/orders`); await page.locator('.order-card').first().waitFor();
-  check('My Orders lists the sent order as Sent and the new one as in progress and active', (await page.locator('.order-pill-sent').count()) === 1 && (await page.locator('.order-pill-active').count()) === 1 && /In progress/.test(await page.locator('main').innerText()));
+  check('My Orders lists only the sent order (the cart in progress is not an order)', (await page.locator('.order-card').count()) === 1 && /Sent/.test(await page.locator('main').innerText()) && !/In progress|Active/.test(await page.locator('main').innerText()));
 } catch (e) {
   console.log('\nTEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false });
 } finally {

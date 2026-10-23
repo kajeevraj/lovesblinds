@@ -102,10 +102,12 @@ try {
     await page.goto(`${BASE}/`); await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
     await page.getByRole('button', { name: /^Remove Zebra/ }).click();
     await page.waitForFunction(() => document.querySelectorAll('.s2-panel-item').length === 1);
-    check(T('Remove in the panel takes the item out and the total follows'), /Estimated total\s*\$\d+/.test(await page.locator('.s2-panel-foot').innerText()) && !/Zebra/.test(await page.locator('.s2-panel').innerText()));
+    check(T('Remove in the panel takes the item out and the total follows'), /Estimated total\s*\$\d+/.test(await page.locator('.s2-panel-foot').innerText()) && !/Zebra/.test(await page.locator('.s2-panel-items').innerText()));
     await page.locator('.s2-panel-go').click();
-    await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
-    check(T('"Checkout" in the panel opens the checkout page'), (await page.locator('.s2-item').count()) === 1 && page.url().includes('checkout=1') && (await page.locator('.s2-panel').count()) === 0);
+    await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-co-summary').waitFor();
+    await page.getByRole('button', { name: 'See items' }).click(); await page.locator('.s2-item').first().waitFor();
+    check(T('"Checkout" in the panel opens the checkout page (summary, items behind "See items")'), (await page.locator('.s2-item').count()) === 1 && page.url().includes('checkout=1') && (await page.locator('.s2-panel').count()) === 0);
+    await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
     await page.getByRole('button', { name: 'Remove' }).click();
     check(T('removing the last item empties the order (the bar is gone on other pages again)'), /Your cart is empty/.test(await page.locator('main').innerText()));
     await page.goto(`${BASE}/products`); await page.waitForTimeout(300);

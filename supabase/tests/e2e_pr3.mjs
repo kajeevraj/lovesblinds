@@ -84,14 +84,14 @@ try {
     const one = await unit();
 
     // ---------- add: the card, merge, different lines
-    check(T('before adding: a large "Add to cart" button is in the estimate card, and the bar has no Add button'), /^Add to cart$/.test((await page.locator('.s2-estimate .s2-add-btn').innerText()).trim()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-btn:not(.s2-bar-checkout)').count()) === 0 && (await page.locator('.s2-estimate .s2-add-btn').evaluate((e) => e.getBoundingClientRect().height)) >= 54);
+    check(T('before adding: a large "Add to cart" button is in the estimate card, and the bar's main button is "Add to cart" too'), /^Add to cart$/.test((await page.locator('.s2-estimate .s2-add-btn').innerText()).trim()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-main-btn').innerText()) === 'Add to cart' && (await page.locator('.s2-estimate .s2-add-btn').evaluate((e) => e.getBoundingClientRect().height)) >= 54);
     check(T('the bar: swatch circle, "This blind", the color name and the price; a divider; then "Your cart" (empty, no Checkout yet)'), (await page.locator('.s2-bar-blind .s2-dot img').count()) === 1 && /This blind/i.test(await page.locator('.s2-bar-blind').textContent()) && /Jet Black/.test(await page.locator('.s2-bar-blind').textContent()) && (await page.locator('.s2-bar-divider').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0 && /Your cart is empty/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
     check(T(phone ? 'phone: the bar shows the total only ("$130"), small "This blind" above it' : 'desktop: with 1 blind the bar shows just the price'), /^\$\d+$/.test((await page.locator('.s2-bar-price').innerText()).trim()));
     await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-before-add`);
     await page.locator('.s2-add-btn').click();
     await page.locator('.s2-added-card').waitFor();
     const pop = await page.locator('.s2-added-card').innerText();
-    check(T('after adding, the card says "Added to your cart" with Checkout, Keep shopping and a "Build another" link; the Add button is gone'), /Added to your cart/.test(pop) && (await page.locator('.s2-added-card').getByRole('button', { name: 'Checkout' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Keep shopping' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Build another' }).count()) === 1 && (await page.locator('.s2-estimate .s2-add-btn').count()) === 0, pop.replace(/\s+/g, ' '));
+    check(T('after adding, the card says "Added to your cart" with Checkout, Keep shopping and an "Add another like this" link; the Add button is gone'), /Added to your cart/.test(pop) && (await page.locator('.s2-added-card').getByRole('button', { name: 'Checkout' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Keep shopping' }).count()) === 1 && (await page.locator('.s2-added-card').getByRole('button', { name: 'Add another like this' }).count()) === 1 && (await page.locator('.s2-estimate .s2-add-btn').count()) === 0, pop.replace(/\s+/g, ' '));
     check(T('there is no floating popup'), (await page.locator('.s2-added').count()) === 0);
     check(T('the bar now has "Your cart: 1 item" and a Checkout button, still no Add button'), /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-bar-checkout').count()) === 1 && (await page.locator('.s2-bar .s2-add-btn').count()) === 0);
     await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-after-add`);
@@ -104,9 +104,9 @@ try {
     const barPrice = (await page.locator('.s2-bar-price').innerText()).trim();
     check(T(phone ? 'phone: with 3 of this blind the bar shows the total only' : 'desktop: with 3 of this blind the bar says "3 × $each = $total"'), phone ? /^\$\d+$/.test(barPrice) : /^3 × \$\d+ = \$\d+$/.test(barPrice), barPrice);
     await page.locator('#s2-qty').fill('1');
-    await page.locator('.s2-added-card').getByRole('button', { name: 'Build another' }).click();
+    await page.locator('.s2-added-card').getByRole('button', { name: 'Add another like this' }).click();
     await page.locator('.s2-sw').first().waitFor();
-    check(T('Build another starts the page again, blank, for a new blind'), (await page.locator('.s2-sw.on').count()) === 0 && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === '');
+    check(T('Add another like this keeps the color and room and clears the size'), (await page.locator('.s2-sw.on').count()) === 1 && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === 'Other');
     check(T('...and the first blind is still in the cart (and no incomplete item was left behind)'), /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-order-pill').innerText()).includes('(1)'));
     // the same blind again merges into the first line
     await page.locator('.s2-sw-zoom').first().click(); await page.locator('dialog.swatch-dialog[open]').waitFor(); await page.locator('dialog.swatch-dialog button', { hasText: 'Keep this color' }).click();

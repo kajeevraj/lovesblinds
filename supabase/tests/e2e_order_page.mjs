@@ -52,9 +52,9 @@ try {
   await page.locator('.s2-color-tools input').fill('Angel White'); await page.locator('.s2-sw').first().click();
   const styleCards = await page.locator('.s2-color-style .s2-card').allInnerTexts();
   check('Dream Curtains styles are called Classic and Slim, with the one-liners, and show no measurements or "Style A/B"', styleCards.length === 2 && /Classic[\s\S]*Fuller vanes in a heavier fabric\./.test(styleCards[0]) && /Slim[\s\S]*Slimmer vanes in a lighter, airier fabric\./.test(styleCards[1]) && !/\d\s?(cm|in\b|inch)|Style [AB]/i.test(styleCards.join(' ') + await page.locator('.s2-color').innerText()), styleCards.map((c) => c.replace(/\s+/g, ' ')).join(' | '));
-  check('before a style is picked the color shows both codes; after picking Slim it shows the Slim code', /ZDS30\d+-\d+ \/ ZDS39\d+-\d+/.test(await page.locator('.s2-color').innerText()));
+  check('Classic is preselected and the color tile shows only the Classic code (ZDS30xx)', (await page.locator('.s2-color-style .s2-card.on').innerText()).includes('Classic') && /^ZDS30\d+-\d+$/.test((await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim()));
   await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click();
-  check('the picked style\'s code is shown (Slim = ZDS39xx)', /Angel White\s*\(ZDS3902-1\)/.test(await page.locator('.s2-picked').innerText()), await page.locator('.s2-picked').innerText());
+  check('after picking Slim the tile shows the Slim code (ZDS3902-1)', (await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim() === 'ZDS3902-1', await page.locator('.s2-sw.on .s2-sw-code').innerText());
   await size(60, 84); await page.locator('#s2-qty').fill('2'); await add();
 
   // the order page

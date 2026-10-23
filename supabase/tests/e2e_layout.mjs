@@ -43,16 +43,16 @@ try {
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
     await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click();
-    await page.goto(`${BASE}/order?checkout=1`); await page.locator('.s2-item').first().waitFor();
+    await page.goto(`${BASE}/order?checkout=1`); await page.locator('.s2-co-summary').waitFor(); await page.getByRole('button', { name: 'See items' }).click(); await page.locator('.s2-item').first().waitFor();
     await page.waitForFunction(() => !/Calculating/.test(document.querySelector('.s2-items').innerText));
     const o = await page.evaluate(() => {
       const edge = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.left * 10) / 10, Math.round(r.right * 10) / 10]; };
       const pad = (s) => { const c = getComputedStyle(document.querySelector(s)); return [c.paddingTop, c.paddingRight, c.paddingBottom, c.paddingLeft].map(parseFloat); };
       const title = document.querySelector('.s2-order-title').getBoundingClientRect();
-      const edges = ['.s2-item', '.s2-total', '.s2-details-title', '.s2-send', '.s2-add-another'].map((s) => edge(s)[0]);
-      const right = ['.s2-item', '.s2-total', '.s2-send'].map((s) => edge(s)[1]);
+      const edges = ['.s2-item', '.s2-co-summary', '.s2-details-title', '.s2-send'].map((s) => edge(s)[0]);
+      const right = ['.s2-item', '.s2-co-summary', '.s2-send'].map((s) => edge(s)[1]);
       const fields = [...document.querySelectorAll('.s2-form input.s2-input')].map((e) => Math.round(e.getBoundingClientRect().height));
-      return { titleLeft: Math.round(title.left * 10) / 10, edges, right, itemPad: pad('.s2-item'), totalPad: pad('.s2-total'), fields };
+      return { titleLeft: Math.round(title.left * 10) / 10, edges, right, itemPad: pad('.s2-item'), totalPad: pad('.s2-co-summary'), fields };
     });
     check(`[${w}px] order page: cards, heading, button and form start on the same left edge and cards and button end on the same right edge`, o.edges.every((x) => Math.abs(x - o.titleLeft) < 0.6) && Math.abs(o.right[0] - o.right[1]) < 0.6 && Math.abs(o.right[1] - o.right[2]) < 0.6, JSON.stringify(o));
     check(`[${w}px] order page: card padding is even on all four sides and on the spacing scale`, [o.itemPad, o.totalPad].every((p) => p.every((v) => v === p[0]) && SCALE.includes(p[0])), JSON.stringify([o.itemPad, o.totalPad]));
