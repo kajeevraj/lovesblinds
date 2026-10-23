@@ -86,7 +86,7 @@ try {
   check('admin sees the Colors manager with every swatch', /^\d+ of 4\d\d colors/.test(total.trim()), total.trim());
   await noOverflow(page, 'color list'); await page.screenshot({ path: `${OUT}/03-list-mobile.png` });
   await page.getByRole('button', { name: 'Menu' }).click();
-  check('phone menu lists Colors plus Orders, Suppliers, Analytics as coming soon', (await page.getByText('Coming soon').count()) === 3);
+  check('phone menu lists Colors, Products, Pricing and Orders, with Suppliers and Analytics as coming soon', (await page.getByText('Coming soon').count()) === 2 && (await page.getByRole('button', { name: 'Orders', exact: true }).count()) === 1);
   await page.screenshot({ path: `${OUT}/04-menu-mobile.png` });
   await page.getByRole('button', { name: /^Colors/ }).click();
   const ords = await api('GET', `/rest/v1/orders?select=id`, admin.hdr);
