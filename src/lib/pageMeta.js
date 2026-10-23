@@ -19,6 +19,10 @@ export const PAGES = {
   review: { path: '/review', title: title('Your cart'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },
   orders: { path: '/orders', title: title('My orders'), description: 'Your saved and sent orders.', noindex: true },
   profile: { path: '/profile', title: title('Your profile'), description: 'Your name, phone and shipping address.', noindex: true },
+  // drafts until the owner fills in the [placeholders] (docs/legal-needs.md); remove noindex then
+  privacy: { path: '/privacy', title: title('Privacy policy'), description: 'What Love\'s Blinds collects when you order, send a message or sign in with Google, and who helps us handle it.', noindex: true },
+  terms: { path: '/terms', title: title('Terms of sale'), description: 'How ordering works at Love\'s Blinds: estimates, final prices, lead times, returns and warranty.', noindex: true },
+  notfound: { path: '/404', title: title('Page not found'), description: 'We could not find that page.', noindex: true },
   admin: { path: '/admin', title: title('Admin'), description: 'Admin.', noindex: true },
 };
 

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import ColorsSection from './colors/ColorsSection.jsx';
 import ProductsSection from './products/ProductsSection.jsx';
 import PricingSection from './pricing/PricingSection.jsx';
+import OrdersSection from './orders/OrdersSection.jsx';
 
 const MENU = [
   { id: 'colors', label: 'Colors' },
   { id: 'products', label: 'Products' },
   { id: 'pricing', label: 'Pricing' },
-  { id: 'orders', label: 'Orders', soon: true },
+  { id: 'orders', label: 'Orders' },
   { id: 'suppliers', label: 'Suppliers', soon: true },
   { id: 'analytics', label: 'Analytics', soon: true },
 ];
@@ -42,7 +43,7 @@ export default function Shell({ user, signOut }) {
         </div>
       </nav>
       <main className="adm-main">
-        {section === 'colors' ? <ColorsSection /> : section === 'products' ? <ProductsSection /> : section === 'pricing' ? <PricingSection /> : (
+        {section === 'colors' ? <ColorsSection /> : section === 'products' ? <ProductsSection /> : section === 'pricing' ? <PricingSection /> : section === 'orders' ? <OrdersSection /> : (
           <div className="adm-card adm-soon">
             <h1>{current.label}</h1>
             <p className="adm-muted">Coming soon.</p>

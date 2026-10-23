@@ -61,6 +61,9 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
   );
 }
 
+// The privacy and terms pages exist (/privacy, /terms) but are not linked until the owner has filled in their placeholders (docs/legal-needs.md).
+const SHOW_LEGAL_LINKS = false;
+
 export function Footer({ navigate, hideMessage = false }) {
   return (
     <footer id="contact" className="s2-footer">
@@ -76,6 +79,13 @@ export function Footer({ navigate, hideMessage = false }) {
           {!hideMessage && <a className="s2-footer-msg" href="/contact" onClick={linkTo(navigate, "/contact")}>Send us a message</a>}
         </div>
       </div>
+      {SHOW_LEGAL_LINKS && (
+        <div className="s2-wrap s2-footer-legal">
+          <span>© Love's Blinds</span>
+          <a href="/privacy" onClick={linkTo(navigate, "/privacy")}>Privacy policy</a>
+          <a href="/terms" onClick={linkTo(navigate, "/terms")}>Terms of sale</a>
+        </div>
+      )}
     </footer>
   );
 }

@@ -171,3 +171,20 @@ tr.is-selected td { background: var(--pale-sage); }
 .adm-linepick { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; }
 .adm-linepick .adm-check { min-height: 44px; display: inline-flex; align-items: center; }
 .adm-details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* orders */
+.adm-h2 { font-size: 18px; margin: 0 0 12px; }
+.adm-order-bar { justify-content: space-between; margin-bottom: 12px; }
+.adm-order-bar .adm-tabs { margin-bottom: 0; border-bottom: 0; }
+.adm-order-search { margin: 0; flex: 1 1 220px; max-width: 320px; }
+.adm-order-head { margin-top: 12px; }
+.adm-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+.adm-kv dt { color: var(--ink-60); font-size: 13px; padding-top: 2px; }
+.adm-kv dd { margin: 0; overflow-wrap: anywhere; }
+.adm-pre { white-space: pre-wrap; }
+.adm-order-total { text-align: right; margin: 12px 0 0; }
+.adm-status-new { background: #fff3c4; color: #5a4300; }
+.adm-status-confirmed { background: #dbe8f7; color: #1d3f6b; }
+.adm-status-ordered { background: var(--pale-sand); color: var(--gold-deep); }
+.adm-status-shipped { background: var(--pale-sage); color: var(--sage-dark); }
+@media (max-width: 640px) { .adm-kv { grid-template-columns: 1fr; gap: 0; } .adm-kv dd { margin-bottom: 8px; } }

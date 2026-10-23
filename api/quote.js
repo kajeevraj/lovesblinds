@@ -301,6 +301,18 @@ export async function checkSizes(lines, env = process.env, fetchFn = fetch) {
   return null;
 }
 
+// Keeps a copy of the order in Supabase (table sent_orders, migration 14; only admins can read it). The email is the order itself,
+// so a failure here is logged and never turns a sent order into an error.
+export async function storeSentOrder({ customer, lines, notes, totals, customerCopy }, env = process.env, fetchFn = fetch) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('storage not configured');
+  const res = await fetchFn(`${url}/rest/v1/sent_orders`, {
+    method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ customer, lines, notes: notes || null, total: totals.total > 0 ? totals.total : null, by_email_count: totals.byEmail || 0, customer_copy: !!customerCopy }),
+  });
+  if (!res.ok) throw new Error(`storing the order failed (${res.status})`);
+}
+
 // deps: { env, fetch, resend (an object with emails.send), rateLimit } so the tests can run this without sending anything.
 export async function handleQuote(req, res, deps = {}) {
   const env = deps.env || process.env;
@@ -362,7 +374,13 @@ export async function handleQuote(req, res, deps = {}) {
       if (sentCopy?.error) { console.error('[api/quote] customer copy failed:', sentCopy.error.message); customerCopy = false; }     // we have the order; only the copy is missing
     }
 
-    return res.status(200).json({ ok: true, customerCopy });
+    let stored = false;
+    for (let attempt = 1; attempt <= 2 && !stored; attempt++) {
+      try { await storeSentOrder({ customer, lines, notes, totals, customerCopy }, env, fetchFn); stored = true; }
+      catch (err) { console.error(`[api/quote] order not stored (try ${attempt}; it was emailed to us):`, err?.message || err); }
+    }
+
+    return res.status(200).json({ ok: true, customerCopy, stored });
   } catch (err) {
     console.error('[api/quote]', err);
     return res.status(500).json({ error: friendly('We could not send your order just now.') });

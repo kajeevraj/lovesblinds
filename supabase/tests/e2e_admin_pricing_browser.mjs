@@ -31,7 +31,7 @@ try {
 
   await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor();
   const labels = await page.evaluate(() => [...document.querySelectorAll('.adm-nav-item')].map((e) => e.textContent.replace('Coming soon', ' (soon)')));
-  check('menu has Colors, Products, Pricing, then Orders, Suppliers, Analytics as coming soon', labels.join('|').replace(/\s+/g, ' ') === 'Colors|Products|Pricing|Orders (soon)|Suppliers (soon)|Analytics (soon)', labels.join(' | '));
+  check('menu has Colors, Products, Pricing, Orders, then Suppliers and Analytics as coming soon', labels.join('|').replace(/\s+/g, ' ') === 'Colors|Products|Pricing|Orders|Suppliers (soon)|Analytics (soon)', labels.join(' | '));
 
   // ------------------------------------------------------------ Products
   await menu('Products'); await page.getByRole('heading', { name: 'Products' }).waitFor();
