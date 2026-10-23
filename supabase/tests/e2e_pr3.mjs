@@ -163,7 +163,7 @@ try {
     // ---------- cart page
     await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
     check(T('cart page: title is Your cart and the main button is Checkout'), (await page.locator('h1').innerText()) === 'Your cart' && (await page.locator('.s2-cart-actions .s2-send').innerText()) === 'Checkout' && (await page.locator('#s2-details-title').count()) === 0);
-    check(T('cart page: − / + on each line, and the sign-in prompt'), (await page.locator('.s2-item .s2-stepper').count()) === 3 && /Sign in with Google to save your cart/.test(await page.locator('body').innerText()));
+    check(T('cart page: − / + on each line (the sign-in prompt is in the cart panel, not here)'), (await page.locator('.s2-item .s2-stepper').count()) === 3 && !/Sign in with Google to save your cart/.test(await page.locator('main').innerText()));
     await page.locator('.s2-item').first().getByRole('button', { name: /One more/ }).click();
     check(T('cart page: + changes the quantity (and the line stays one line)'), (await page.locator('.s2-item').count()) === 3 && (await page.locator('.s2-item').first().locator('.s2-stepper output').innerText()).trim() === '3');
 
@@ -171,7 +171,7 @@ try {
     await page.locator('.s2-item').first().getByRole('link', { name: /^Edit/ }).click();
     await page.locator('.s2-editing').waitFor(); await page.waitForTimeout(700);
     const top = await page.locator('.s2-editing').evaluate((e) => e.getBoundingClientRect().top);
-    check(T('Edit: "You’re changing an item in your cart" message'), /You’re changing an item in your cart/.test(await page.locator('.s2-editing').innerText()));
+    check(T('Edit: "You’re changing: ..." message names the item'), /You’re changing: /.test(await page.locator('.s2-editing').innerText()));
     check(T(phone ? 'Edit on a phone: the message is at the top of the screen' : 'Edit on desktop: the message is visible near the top'), top >= 0 && top <= (phone ? 24 : 300), `top ${Math.round(top)}px`);
     check(T('Edit: size and room come back as they were'), (await page.locator('#s2-w').inputValue()) === '35 7/8' && (await page.locator('#s2-room').inputValue()) === 'Other' && (await page.locator('#s2-room-custom').inputValue()) === 'Sunroom' && (await page.locator('#s2-window').inputValue()) === 'Left');
     await page.locator('.s2-editing .s2-link').click();

@@ -119,7 +119,7 @@ try {
   for (const [label, status, body] of [['an email error', 500, { error: 'We could not send your order just now. If it keeps happening, please call us at (262) 434-0949 or email loveblindswindows@gmail.com.' }], ['the rate limit', 429, { error: 'Too many orders were sent. Please call us at (262) 434-0949.' }], ['an empty answer', 200, {}]]) {
     await page.route('**/api/quote', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
     await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();
-    check(`order form, ${label}: an error is shown, never "on its way", and the order is still there`, !/on its way/.test(await page.locator('main').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.s2-send-error').innerText()) && (await page.locator('.s2-items > li').count()) > 0);
+    check(`order form, ${label}: an error is shown, never "on its way", and the order is still there`, !/on its way/.test(await page.locator('main').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.s2-send-error').innerText()) && (await page.locator('.s2-co-summary').count()) === 1);
   }
   await page.route('**/api/quote', (route) => route.abort());
   await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();

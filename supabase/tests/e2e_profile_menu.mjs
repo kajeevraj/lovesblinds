@@ -112,13 +112,13 @@ try {
   check('...with the details it was sent with (name, address)', /Ada B\. Lovelace/.test(view) && /London/.test(view));
   await page.getByRole('button', { name: 'Order again' }).click();
   await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
-  check('"Order again" opens a new order with the same items, ready to change', (await page.locator('.s2-item').count()) === 1 && /Zebra/.test(await page.locator('.s2-item').first().innerText()));
+  check('"Order again" adds the same items to the cart and opens it, ready to change', (await page.locator('.s2-item').count()) === 1 && /Zebra/.test(await page.locator('.s2-item').first().innerText()));
   await page.locator('.s2-item').first().click(); await page.locator('#s2-w').waitFor(); await page.locator('#s2-w').fill('50');
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order'); await page.waitForTimeout(2500);
   const after = (await api('GET', `/rest/v1/orders?select=id,status,items&user_id=eq.${userId}`, H(ANON, token.access_token))).body;
   const sentAfter = after.find((x) => x.id === sentOrder.id);
-  check('changing the copy never touches the sent order (same items, still sent)', sentAfter.status === 'sent' && JSON.stringify(sentAfter.items) === beforeItems && after.length === ord.length + 1 && after.some((x) => x.status === 'draft' && x.items[0]?.width === 50));
+  check('changing the copy never touches the sent order (same items, still sent)', sentAfter.status === 'sent' && JSON.stringify(sentAfter.items) === beforeItems && after.length === ord.length && after.some((x) => x.status === 'draft' && x.items.some((i) => i.width === 50)));
   const tamper = await api('PATCH', `/rest/v1/orders?id=eq.${sentOrder.id}`, H(ANON, token.access_token), { items: [] });
   const guardApplied = tamper.status >= 400;
   const still = (await api('GET', `/rest/v1/orders?select=items&id=eq.${sentOrder.id}`, H(ANON, token.access_token))).body[0];
