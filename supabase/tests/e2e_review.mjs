@@ -27,8 +27,12 @@ try {
     check(`[${label}] no sideways scroll`, ov <= 0);
     await page.close();
   }
-  // fonts come from our own site: nothing is requested from Google Fonts, and both families load
   const page = await (await browser.newContext()).newPage(); page.setDefaultTimeout(30000);
+  // moving to another page puts keyboard focus at the top of the new page
+  await page.goto(`${BASE}/`); await page.locator('.s2-footer').waitFor();
+  await page.getByRole('link', { name: 'Terms of sale' }).click(); await page.locator('h1').waitFor(); await page.waitForTimeout(200);
+  check('after a page change the focus is on the main area (not left on the link that was pressed)', await page.evaluate(() => document.activeElement?.id === 'main'));
+  // fonts come from our own site: nothing is requested from Google Fonts, and both families load
   const fontHosts = []; page.on('request', (r) => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontHosts.push(r.url()); });
   await page.goto(`${BASE}/products/roller`); await page.waitForTimeout(1500);
   const loaded = await page.evaluate(async () => { await document.fonts.ready; return [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')))]; });

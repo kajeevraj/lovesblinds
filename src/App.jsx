@@ -50,6 +50,12 @@ export default function App() {
   const { route, slug } = routeFor(path);
   // each page has its own title, description, share picture and product data (the same ones the build puts in the HTML)
   useEffect(() => { applyMeta(metaFor(route, slug, PHOTOS)); }, [route, slug]);
+  // After moving to another page, keyboard and screen reader users start at the top of the new page (not on the link they pressed)
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) { firstPath.current = false; return; }
+    document.getElementById('main')?.focus({ preventScroll: true });
+  }, [path]);
   const [productLocation, setProductLocation] = useState(null);
   const [quote, setQuote]         = useState(() => {
     // On page load (which happens after OAuth redirect), restore guest items from localStorage.
