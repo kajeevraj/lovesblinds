@@ -3,9 +3,9 @@
 -- this file does nothing; on a fresh project it creates the same table, so the migrations alone can rebuild the database.
 -- Column names, types and defaults were read from the live project on 2026-10-23; "not null" and the user_id link are best guesses.
 --
--- Not recorded here: the row-level-security policies on `orders` (customers see and change only their own rows, with the
--- sent-order guard from migration 13 on top). They were set up by hand. Before rebuilding from scratch, export them from the
--- live project (Authentication > Policies, or `select * from pg_policies where tablename = 'orders'`) and add them to this file.
+-- The row-level-security policy was read from the live project on 2026-10-23: one policy, "Users manage own orders", for every
+-- command and every role, allowing a row only when auth.uid() = user_id. Migration 13 adds the sent-order guard on top.
+-- On the live project the policy already exists, so the block below does nothing there.
 
 create table if not exists public.orders (
   id          uuid primary key default gen_random_uuid(),
@@ -19,3 +19,11 @@ create table if not exists public.orders (
 );
 comment on column public.orders.customer is 'Customer details and shipping address as sent with the order (set when the order is sent).';
 create index if not exists orders_user_idx on public.orders (user_id);
+
+alter table public.orders enable row level security;      -- already on in the live project
+
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'orders' and policyname = 'Users manage own orders') then
+    create policy "Users manage own orders" on public.orders for all to public using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+end $$;
