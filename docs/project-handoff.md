@@ -6,7 +6,7 @@ State as of the merge of Stage 1 (`main` at or after `7bfab3f`; migrations 1 to 
 
 | Piece | What it is |
 |---|---|
-| Site | Vite + React single-page app (`src/`), served by Vercel as static files. Routes: `/`, `/products`, `/products/<line>`, `/measure`, `/order`, `/review`, `/orders` (My Orders), `/contact`, `/admin`. Lines on the site: roller, zebra, shangri-la, cellular, roman, drapery (curtains plus a Dream Curtains section). Woven wood exists in pricing only and is hidden. |
+| Site | Vite + React single-page app (`src/`), served by Vercel as static files. Routes: `/`, `/products`, `/products/<line>`, `/measure`, `/order`, `/review`, `/orders` (My Orders), `/contact`, `/privacy`, `/terms`, `/admin`; any other address shows "Page not found" (real 404 through `dist/404.html`). Lines on the site: roller, zebra, shangri-la, cellular, roman, drapery (curtains plus a Dream Curtains section). Woven wood exists in pricing only and is hidden. |
 | Supabase | One project is both the live site's and the test database (there is no separate staging project). Postgres + Auth (Google sign-in) + Storage (public buckets `swatches` and `option-images`). Everything customers or admins can do is enforced by the database (RLS, triggers, `is_admin()`); the browser only holds the anon key. |
 | Vercel | Static site plus serverless functions in `api/`: `catalog.js` (edge-cached catalog per line, 60 s, tagged `catalog-<line>`), `catalog-purge.js` (admin-only; clears those tags right after an admin save), `quote.js` (order emails + spreadsheet; looks swatches up with the service role). Preview deployments need the same environment variables as Production. |
 | Admin | `/admin` (no link from the site, `noindex`). Google sign-in; only emails in the `admins` table, bound to a user on first sign-in (`loveblindswindows@gmail.com`). Sections: **Colors** (colors, product lines, price groups), **Products** (lines, option groups and values, size rules), **Pricing** (price checker, markups, grids, adders and flags, re-import). Orders, Suppliers and Analytics are placeholders. Idle sign-out after 30 minutes. Lazy-loaded, so customers never download it. |
@@ -196,3 +196,14 @@ Wording rule: it is a **cart** until it is sent, then an **order** (emails, My O
 - **Wording:** "Zebra Shades", "Price by email", "Larger than our standard range", cart tab title "Your cart"; plain jargon lines in `data/optionInfo.js`.
 - **Hardening from the review:** security headers in `vercel.json`, safe localStorage writes, 30-day draft expiry, skip link, noscript message, axe landmark fixes.
 - **Tests:** `supabase/tests/e2e_round3.mjs` added; other suites updated for the new wording and flow.
+
+## Deep review branch (`claude/deep-review`)
+
+- **Migration 14 `..._000014_sent_orders_store.sql` (paste into the SQL Editor):** table `sent_orders`, one row for every order the site accepts, guests included. Written by `api/quote.js` (service role) after our email went out; a failed save is logged and never fails the order (`stored` in the answer says which). Admin read, admin status/note update, admin delete; nobody else. A trigger blocks changing the order itself. Live test: `supabase/tests/live_migration14_tests.mjs` (exits 2 until the migration is applied; it leaves one test row because the server cannot delete).
+- **Migration 15 `..._000015_orders_table_record.sql`:** a record of the existing `orders` table (all `if not exists`, changes nothing live). The RLS policies on `orders` are still not recorded; export them before rebuilding a project from scratch.
+- **Privacy and terms (`src/legal.jsx`):** drafts with yellow `[placeholders]`, `noindex` until filled in. `docs/legal-needs.md` lists what the owner must supply.
+- **404:** the router no longer redirects unknown addresses home. `vercel.json` rewrites only `/admin` and `/review`; every other unknown address is served `dist/404.html` with a 404 status (written by `vite.config.js`). Every real page has its own `dist/<page>/index.html`.
+- **CSP:** `Content-Security-Policy-Report-Only` in `vercel.json` (blocks nothing). Known reports: the inline script that starts the catalog request early. Before enforcing, move or hash it and test Google sign-in.
+- **Fonts** are served from the site (`@fontsource/*`, imported in `src/main.jsx`), no requests to Google Fonts.
+- **Fixed on the way:** a stray `}` in `styles.css` made browsers drop `.s2-noscroll` (the page behind the cart panel could scroll); 23 unused CSS classes removed; focus moves to the main area after a page change.
+- Tests: `supabase/tests/e2e_review.mjs`; `api_guard_tests.mjs` now fakes the order store.
