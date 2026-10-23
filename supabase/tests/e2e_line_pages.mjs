@@ -53,9 +53,9 @@ try {
   check('the quantity question says "How many blinds this size?" and cannot go below 1', /How many blinds this size\?/.test(await page.locator('.s2-qty').innerText()) && await page.getByRole('button', { name: 'One fewer blind' }).isDisabled());
   await page.locator('#s2-qty').fill('3');
   await page.getByText(/each · 3 blinds/).first().waitFor();
-  const barTotal = (await page.locator('.s2-bar-value').innerText()).trim(), barSub = (await page.locator('.s2-bar-sub').innerText()).trim();
+  const barTotal = (await page.locator('.s2-estimate-price').innerText()).trim(), barSub = (await page.locator('.s2-estimate-each').innerText()).trim();
   const estText = await page.locator('.s2-estimate').innerText();
-  check('with 3 blinds the total is the big number, with "$X each · 3 blinds" small under it (once per block)', barTotal === `$${noWrap * 3}` && barSub === `$${noWrap} each · 3 blinds` && new RegExp(`^YOUR ESTIMATE\\s*\\$${noWrap * 3}\\s*\\$${noWrap} each · 3 blinds`, 'i').test(estText.replace(/\n+/g, ' ')) && (estText.match(/3 blinds/g) || []).length === 1 && (await page.locator('.s2-bar-text').innerText()).match(/3 blinds/g).length === 1, `${barTotal} / ${barSub}`);
+  check('with 3 blinds the card total is the big number with "$X each · 3 blinds" under it, and the bar says "3 × $X = $total"', barTotal === `$${noWrap * 3}` && barSub === `$${noWrap} each · 3 blinds` && new RegExp(`^YOUR ESTIMATE\\s*\\$${noWrap * 3}\\s*\\$${noWrap} each · 3 blinds`, 'i').test(estText.replace(/\n+/g, ' ')) && (estText.match(/3 blinds/g) || []).length === 1 && new RegExp(`3 × \\$${noWrap} = \\$${noWrap * 3}`).test(await page.locator('.s2-bar-price').textContent()), `${barTotal} / ${barSub}`);
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
   await page.locator('#s2-qty').fill('3');
@@ -68,7 +68,7 @@ try {
   // oversize + early states
   await page.locator('#s2-w').fill('500');
   await page.getByText(/larger than our standard range/).first().waitFor();
-  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to cart still works', /Add it to your cart and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-bar-value').count()) === 0 && await page.locator('.s2-add-btn').isEnabled());
+  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to cart still works', /Add it to your cart and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0 && await page.locator('.s2-add-btn').isEnabled());
 
   // ---------- Zebra ----------
   await open('zebra');
@@ -132,7 +132,7 @@ try {
   await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
   await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
   await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
-  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar').innerText()) && (await page.locator('.s2-bar-value').count()) === 0);
+  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar-blind').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0);
   check('Curtains need a size before they can be added', await page.locator('.s2-add-btn').isDisabled());
   await size(120, 96);
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);

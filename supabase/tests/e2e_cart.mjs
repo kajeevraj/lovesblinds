@@ -12,7 +12,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } });
     const page = await ctx.newPage(); page.setDefaultTimeout(30000);
     const T = (s) => `[${w}px] ${s}`;
-    const price = async () => Number((await page.locator('.s2-bar-value').first().innerText()).replace(/\D/g, ''));
+    const price = async () => Number((await page.locator('.s2-estimate-price').first().innerText()).replace(/\D/g, ''));
     const ready = async () => { await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); };
 
     // other pages: no bar while the order is empty
@@ -21,15 +21,15 @@ try {
 
     // product page: the bar before and after adding
     await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor();
-    check(T('product page bar: nothing on the left until there is a price, "Your cart is empty" on the right, no Add button and no Checkout'), (await page.locator('.s2-bar-left').innerText()).trim() === '' && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-checkout').count()) === 0 && (w < 640 || /Your cart is empty/.test(await page.locator('.s2-bar-order').innerText())));
+    check(T('product page bar: nothing on the left until there is a price, "Your cart is empty" on the right, no Add button and no Checkout'), /This blind: choose a color and size/.test(await page.locator('.s2-bar-blind').innerText()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-checkout').count()) === 0 && /Your cart is empty/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.locator('#s2-qty').fill('3');
     await page.locator('#s2-room').selectOption('Living room'); await ready();
-    const unit = Number((await page.locator('.s2-bar-sub').innerText()).match(/\$(\d+) each/)[1]);
-    check(T('the bar shows the item total large and "$X each · 3 blinds" small under it'), (await price()) === unit * 3 && (await page.locator('.s2-bar-sub').innerText()).trim() === `$${unit} each · 3 blinds`);
+    const unit = Number((await page.locator('.s2-estimate-each').innerText()).match(/\$(\d+) each/)[1]);
+    check(T('the bar shows the item total large and "$X each · 3 blinds" small under it'), (await price()) === unit * 3 && (await page.locator('.s2-estimate-each').innerText()).trim() === `$${unit} each · 3 blinds`);
     check(T('closed bar is one row (no wrapping) and the Add button is inside the screen'), await page.evaluate(() => { const b = document.querySelector('.s2-bar').getBoundingClientRect(); return b.height < 80 && b.right <= innerWidth + 0.5 && document.querySelector('.s2-add-btn').getBoundingClientRect().right <= innerWidth; }));
     await page.locator('.s2-add-btn').click();
     await page.locator('.s2-added-card').waitFor();
-    check(T('adding shows "Added to your cart" and updates the count and total at once'), /Added to your cart/.test(await page.locator('.s2-added-card').innerText()) && (w < 640 ? (await page.locator('.s2-bar-count').innerText()) === '1' : new RegExp(`Your cart: 1 item · \\$${unit * 3}`).test(await page.locator('.s2-bar-order').innerText())));
+    check(T('adding shows "Added to your cart" and updates the count and total at once'), /Added to your cart/.test(await page.locator('.s2-added-card').innerText()) && new RegExp(`Your cart: 1 item · \\$${unit * 3}`).test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
     // add a second item, a Dream Curtains one (price by email is tested elsewhere)
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await ready();
@@ -38,7 +38,7 @@ try {
 
     // other pages now show the order part alone
     await page.goto(`${BASE}/`); await page.locator('.s2-bar-only').waitFor();
-    check(T('the home page shows only the cart part now, with the count and total'), (await page.locator('.s2-add-btn').count()) === 0 && new RegExp(`Your cart: 2 items · \\$${unit * 3 + zebraUnit}`).test(await page.locator('.s2-bar-order').innerText()), (await page.locator('.s2-bar-order').innerText()).replace(/\s+/g, ' '));
+    check(T('the home page shows only the cart part now, with the count and total'), (await page.locator('.s2-add-btn').count()) === 0 && new RegExp(`Your cart: 2 items · \\$${unit * 3 + zebraUnit}`).test(await page.locator('.s2-bar-order').getAttribute('aria-label')), (await page.locator('.s2-bar-order').getAttribute('aria-label')).replace(/\s+/g, ' '));
     for (const path of ['/products', '/measure']) { await page.goto(`${BASE}${path}`); await page.locator('.s2-bar-only').waitFor(); }
     check(T('the products list and the measuring guide show it too'), true);
     await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
@@ -60,7 +60,7 @@ try {
     await page.locator('.s2-bar-order').click();
     await page.locator('.s2-panel').waitFor(); await page.waitForTimeout(500);
     const box = await page.locator('.s2-panel').boundingBox();
-    check(T(w < 760 ? 'the panel is a bottom sheet on phones' : 'the panel is a side panel on desktop'), w < 760 ? (box.width >= w - 1 && Math.abs(box.y + box.height - h) < 2) : (box.x + box.width >= w - 1 && box.width < w / 2 && box.height >= h - 2), JSON.stringify(box));
+    check(T(w < 760 ? 'the panel is a bottom sheet on phones' : 'the panel slides up from the bar on desktop (a sheet on the right, over the cart half)'), w < 760 ? (box.width >= w - 1 && Math.abs(box.y + box.height - h) < 2) : (box.x + box.width >= w - 24 - 1 && box.width < w / 2 && Math.abs(box.y + box.height - h) < 2 && box.height < h), JSON.stringify(box));
     const panel = await page.locator('.s2-panel').innerText();
     check(T('the panel lists each item (product, color and code, size, blinds, price), the estimated total and the Checkout button'), /Roller Shades/.test(panel) && /40" wide × 64" high/.test(panel) && /Living room/.test(panel) && new RegExp(`\\$${unit * 3}`).test(panel) && /Zebra/.test(panel) && /\([A-Z0-9-]+\)/.test(panel) && new RegExp(`Estimated total\\s*\\$${unit * 3 + zebraUnit}`).test(panel) && /Checkout/.test(panel) && (await page.getByRole('button', { name: /^Remove/ }).count()) === 2 && (await page.getByRole('link', { name: /^Edit / }).count()) === 2);
     check(T('option names in the panel and on the page are in sentence case'), !TITLE_CASE.test(panel + await page.locator('main').innerText()));
@@ -79,7 +79,7 @@ try {
     await page.reload(); await page.locator('#s2-w').waitFor();
     check(T('after a refresh the same item is open again, with the unsaved change kept (autosave)'), page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '48 1/2');
     // change the fraction and save
-    await page.locator('#s2-w').fill('40 1/8'); await page.locator('#s2-qty').fill('2'); await page.waitForFunction(() => /each · 2 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
+    await page.locator('#s2-w').fill('40 1/8'); await page.locator('#s2-qty').fill('2'); await page.waitForFunction(() => /each · 2 blinds/.test(document.querySelector('.s2-estimate-each')?.innerText || ''));
     await page.locator('.s2-add-btn').click();
     await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
     await page.waitForFunction(() => /40 1\/8" wide × 64" high/.test(document.querySelector('.s2-item').innerText) && !/Calculating/.test(document.querySelector('.s2-items').innerText));

@@ -21,15 +21,15 @@ try {
       const rows = (sel) => [...document.querySelectorAll(sel)].map((row) => [...row.children].filter((c) => c.tagName !== 'LABEL' && c.offsetHeight).map((c) => Math.round(c.getBoundingClientRect().height * 10) / 10));
       const pads = (sel) => [...document.querySelectorAll(sel)].map((e) => { const c = getComputedStyle(e); return ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].map((k) => parseFloat(c[k])); });
       return {
-        txt: R('.s2-bar-text'), btn: R('.s2-bar-checkout'), ord: R('.s2-bar-cart'), crumbs: R('.s2-crumbs'), bar: bar.getBoundingClientRect().toJSON(),
+        txt: R('.s2-bar-blind'), btn: R('.s2-bar-checkout'), ord: R('.s2-bar-cartbtn'), crumbs: R('.s2-crumbs'), bar: bar.getBoundingClientRect().toJSON(),
         padT: parseFloat(inner.paddingTop), padB: parseFloat(inner.paddingBottom), padL: parseFloat(inner.paddingLeft), padR: parseFloat(inner.paddingRight),
-        value: R('.s2-bar-value'), sub: R('.s2-bar-sub'),
+        value: R('.s2-bar-price'), sub: R('.s2-bar-price'),
         sizeRows: rows('.s2-field-row'), qtyRow: rows('.s2-qty-row'), cardPads: pads('.s2-estimate, .s2-card'),
         vw: document.documentElement.clientWidth,
       };
     });
-    check(`[${w}px] bar: price block, cart summary and Checkout button share one center line, and the Checkout button is as tall as the price block`, Math.abs(m.txt.cy - m.btn.cy) < 0.6 && Math.abs(m.txt.h - m.btn.h) < 0.6 && Math.abs(m.ord.cy - m.btn.cy) < 0.6, `price block ${m.txt.h}px at ${m.txt.cy.toFixed(1)}, button ${m.btn.h}px at ${m.btn.cy.toFixed(1)}, order button at ${m.ord.cy.toFixed(1)}`);
-    check(`[${w}px] bar: one clean row (nothing wraps onto a second line) and the price lines are centered in the price block`, m.bar.height < 80 && m.value.t >= m.txt.t - 0.5 && m.sub.b <= m.txt.b + 0.5 && Math.abs((m.value.t - m.txt.t) - (m.txt.b - m.sub.b)) < 1.6, `bar ${m.bar.height}px, gaps ${(m.value.t - m.txt.t).toFixed(1)}/${(m.txt.b - m.sub.b).toFixed(1)}`);
+    check(`[${w}px] bar: the "This blind" half, the cart half and the Checkout button share one center line, and the Checkout button is 48 px`, Math.abs(m.txt.cy - m.btn.cy) < 0.6 && m.btn.h === 48 && Math.abs(m.ord.cy - m.btn.cy) < 0.6, `price block ${m.txt.h}px at ${m.txt.cy.toFixed(1)}, button ${m.btn.h}px at ${m.btn.cy.toFixed(1)}, order button at ${m.ord.cy.toFixed(1)}`);
+    check(`[${w}px] bar: one clean row (nothing wraps onto a second line, the price stays inside its half)`, m.bar.height < 80 && m.value.r <= m.txt.r + 0.5 && m.value.t >= m.bar.top, `bar ${m.bar.height}px`);
     check(`[${w}px] bar: even padding top and bottom, and left and right`, m.padT === m.padB && m.padL === m.padR && Math.abs((m.txt.t - m.bar.top - 1) - (m.bar.bottom - m.btn.b)) < 1.5 || Math.abs((m.txt.t - m.bar.top) - (m.bar.bottom - m.txt.b)) < 1.6, `padding ${m.padT}/${m.padR}/${m.padB}/${m.padL}, space above ${(m.txt.t - m.bar.top).toFixed(1)} (includes the 1px edge), below ${(m.bar.bottom - m.txt.b).toFixed(1)}`);
     check(`[${w}px] bar: content starts and ends on the same edges as the page content above`, Math.abs(m.txt.l - m.crumbs.l) < 0.6 && Math.abs((m.vw - m.ord.r) - m.crumbs.l) < 0.6, `text ${m.txt.l}, page ${m.crumbs.l}; order button right gap ${(m.vw - m.ord.r).toFixed(1)}`);
     check(`[${w}px] width/height fields: input and fraction select are the same height`, m.sizeRows.every((r) => r.length >= 2 && r.every((x) => x === r[0])), JSON.stringify(m.sizeRows));

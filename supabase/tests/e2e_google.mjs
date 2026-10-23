@@ -41,8 +41,8 @@ try {
     }
     // a cart item, then the places that carry the button
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-    await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-    await page.locator('.s2-bar-btn').click(); await page.locator('.s2-added').waitFor(); await page.getByRole('button', { name: 'Keep shopping' }).click();
+    await page.locator('#s2-w').fill('30'); await page.locator('#s2-h').fill('50'); await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
     await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel .fake-gsi').waitFor();
     check(T('the cart panel carries Google\'s button under "Sign in with Google to save your cart"'), /Sign in with Google to save your cart/.test(await page.locator('.s2-panel').innerText()));
     await page.locator('.s2-panel-go').click(); await page.locator('.s2-details-signin .fake-gsi').waitFor();

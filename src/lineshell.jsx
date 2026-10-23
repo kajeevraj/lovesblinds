@@ -234,7 +234,7 @@ export default function LineShell({
             </div>
           </div>
         </div>
-        <PriceBar view={view} qty={n} />
+        <PriceBar view={view} qty={n} pick={chip || null} />
         <Footer navigate={navigate} />
       </div>
     </CatalogStatusContext.Provider>

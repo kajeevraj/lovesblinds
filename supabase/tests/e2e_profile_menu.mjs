@@ -128,10 +128,10 @@ try {
   await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
   // the order in progress is the copy made by "Order again" (the sent order is never reopened) plus the window just added
-  check('before signing out the bar shows the two items in the order in progress', /Your cart: 2 items/.test(await page.locator('.s2-bar-order').innerText()) || (await page.locator('.s2-bar-count').innerText()) === '2');
+  check('before signing out the bar shows the two items in the order in progress', /Your cart: 2 items/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
   await page.locator('.profile-btn').click(); await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.locator('.s2-nav .gsi-btn').waitFor();
-  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your cart: \d+ item/.test(await page.locator('.s2-bar-order').innerText()) && (await page.locator('.s2-bar-count').count()) === 0);
+  check('after signing out the order in progress is gone from the bar, the order page and the browser', (await page.evaluate(() => (localStorage.getItem('lb_guest_quote') || '[]'))) === '[]' && !/Your cart: \d+ item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
   await page.goto(`${BASE}/order`); await page.waitForTimeout(800);
   check('and the order page is empty after signing out', /Your cart is empty/.test(await page.locator('main').innerText()));
   await page.goto(`${BASE}/`); await page.waitForTimeout(500);

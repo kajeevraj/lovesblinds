@@ -23,7 +23,7 @@ try {
   await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
   await size(20, 64); await page.locator('.s2-size-msg.is-error').waitFor();
   check('Roller: a width under the smallest says "The smallest we can make is 23 inches wide." and nothing is priced', /The smallest we can make is 23 inches wide\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && /Size too small/.test(await estimate()) && (await page.locator('.s2-estimate-price').count()) === 0);
-  check('...and Add to cart is blocked, the bar says so', await page.locator('.s2-add-btn').isDisabled() && /Enter a larger size|Size too small/.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-bar-value').count()) === 0);
+  check('...and Add to cart is blocked, the bar says so', await page.locator('.s2-add-btn').isDisabled() && /Enter a larger size|Size too small/.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0);
   await size(40, 10); await page.locator('.s2-size-msg.is-error').waitFor();
   check('a height under the smallest says "...24 inches high."', /The smallest we can make is 24 inches high\./.test(await page.locator('.s2-size-msg.is-error').innerText()) && await page.locator('.s2-add-btn').isDisabled());
   await size(10, 10); await page.waitForTimeout(300);
@@ -53,7 +53,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
   await page.locator('#s2-qty').fill('150'); await page.locator('#s2-qty').blur();
   check('typing 150 becomes 99, with a note', (await page.locator('#s2-qty').inputValue()) === '99');
-  await page.waitForFunction(() => /99 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
+  await page.waitForFunction(() => /99 blinds/.test(document.querySelector('.s2-estimate-each')?.innerText || ''));
   check('at 99 the + button is off and the bar says 99 blinds', await page.getByRole('button', { name: 'One more blind' }).isDisabled());
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
@@ -98,9 +98,9 @@ try {
 
   // ---------- the order follows the other tab ----------
   const tab2 = await ctx.newPage(); await tab2.goto(`${BASE}/`); await tab2.locator('.s2-bar-only').waitFor();
-  check('a second tab shows the same order', /Your cart: 3 items/.test(await tab2.locator('.s2-bar-order').innerText()));
+  check('a second tab shows the same order', /Your cart: 3 items/.test(await tab2.locator('.s2-bar-order').getAttribute('aria-label')));
   await page.getByRole('button', { name: 'Remove' }).first().click();
-  await tab2.waitForFunction(() => /Your cart: 2 items/.test(document.querySelector('.s2-bar-order')?.innerText || ''), null, { timeout: 5000 });
+  await tab2.waitForFunction(() => /Your cart: 2 items/.test(document.querySelector('.s2-bar-order')?.getAttribute('aria-label') || ''), null, { timeout: 5000 });
   check('removing an item in one tab updates the other tab without a reload', true);
   await page.locator('.s2-item').first().waitFor();
   await tab2.close();

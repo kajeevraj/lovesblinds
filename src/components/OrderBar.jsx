@@ -1,23 +1,14 @@
-// The cart bar: sticky at the bottom of the customer pages. On a product page its left side is the item being built
-// (its price, "$139 each · 3 blinds") and its right side is the cart so far; elsewhere it is
-// only the cart part. The cart part opens a panel (a bottom sheet on phones, a side panel on desktop) listing every item.
+// The cart bar: sticky at the bottom of the customer pages. On a product page its left half is "This blind" (swatch, color, price)
+// and its right half is "Your cart"; elsewhere only the cart half shows. The cart half opens a panel that slides up from the bar.
 import { useEffect, useRef } from 'react';
 import { useCart } from '../lib/cart.js';
 import { money, blinds, photoFor, detailsOf } from '../lib/itemView.js';
-import { CartIcon } from '../icons.jsx';
 import { QtyStepper } from './s2.jsx';
 import GoogleSignIn from './GoogleSignIn.jsx';
 import SitePhoto from './SitePhoto.jsx';
 
 export const INCOMPLETE_TEXT = 'Incomplete: finish choosing';
 export const BLOCKED_TEXT = 'Finish choosing or remove the incomplete items to check out.';
-
-export const orderSummaryText = (cart) => {
-  const n = cart.count;
-  if (!n) return 'Your cart is empty';
-  const t = cart.totals;
-  return `Your cart: ${n} item${n === 1 ? '' : 's'} · ${cart.items.length === 0 ? 'Not finished yet' : t.loading ? '…' : t.total > 0 ? money(t.total) : 'Price by email'}`;
-};
 
 // "Sign in with Google to save your cart", with the button. Only for a signed-out visitor, and only when sign-in exists.
 export function SavePrompt({ className = '' }) {
@@ -50,59 +41,81 @@ export function IncompleteRow({ entry, cart, compact = false }) {
   );
 }
 
-// The right-hand part of the bar. On a phone it is a small button with the item count.
-export function OrderButton({ compact = false }) {
-  const cart = useCart();
-  const n = cart.count;
-  const label = orderSummaryText(cart);
+// A small round swatch: the picture of the color, or a neutral circle when there is none.
+export function Dot({ pick, size = 32, className = '' }) {
   return (
-    <button type="button" className={`s2-bar-order${compact ? ' is-only' : ''}`} aria-haspopup="dialog" aria-label={`${label}. Open your cart`} onClick={() => cart.setPanelOpen(true)}>
-      <span className="s2-bar-order-icon"><CartIcon />{n > 0 && <span className="s2-bar-count">{n}</span>}</span>
-      <span className="s2-bar-order-text">{label}</span>
-      <span className="s2-bar-order-arrow" aria-hidden="true">›</span>
-    </button>
+    <span className={`s2-dot ${className}`} style={{ width: size, height: size }} aria-hidden="true">
+      {pick?.thumb && <img src={pick.thumb} alt="" width={size} height={size} crossOrigin="anonymous" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+    </span>
   );
 }
 
-// The cart part of the bar: the cart summary (opens the cart panel) and a Checkout button (hidden while the cart is empty).
-function CartPart({ only = false }) {
+// "Your cart" half of the bar: up to three overlapping swatches (then +N), "Your cart · 3 items · $527", an up chevron and Checkout.
+// Anywhere on this half opens the cart panel; Checkout goes straight to checkout (hidden while the cart is empty).
+function CartHalf() {
   const cart = useCart();
+  const items = cart.items;
+  const n = cart.count;
+  const t = cart.totals;
+  const total = items.length === 0 ? null : t.loading ? '…' : t.total > 0 ? money(t.total) : 'Price by email';
+  const shown = items.slice(0, 3);
+  const more = items.length - shown.length;
+  const label = n === 0 ? 'Your cart is empty' : `Your cart: ${n} item${n === 1 ? '' : 's'} · ${total || 'Not finished yet'}`;
   return (
-    <div className={`s2-bar-cart${only ? ' is-only' : ''}`}>
-      <OrderButton compact={only} />
-      {cart.items.length > 0 && <button type="button" className="s2-bar-btn s2-bar-checkout" onClick={cart.goCheckout}>Checkout</button>}
+    <div className="s2-bar-cartbtn" onClick={() => cart.setPanelOpen(true)}>
+      <button type="button" className="s2-bar-order" aria-haspopup="dialog" aria-label={`${label}. Open your cart`} onClick={(e) => { e.stopPropagation(); cart.setPanelOpen(true); }}>
+        {shown.length > 0 && (
+          <span className="s2-dots" aria-hidden="true">
+            {shown.map((it) => <Dot key={it.id} pick={it.selection?.picks?.[0]} size={28} />)}
+            {more > 0 && <span className="s2-dots-more">+{more}</span>}
+          </span>
+        )}
+        <span className={`s2-bar-order-text${n === 0 ? ' is-empty' : ''}`}><span className="s2-bar-kick">Your cart</span><span className="s2-bar-main">{n === 0 ? 'empty' : <><span className="s2-bar-count">{n} item{n === 1 ? '' : 's'}</span>{total && <><span className="s2-bar-sep"> · </span><span className={`s2-bar-total${total === 'Price by email' ? ' is-email' : ''}`}>{total}</span></>}</>}</span></span>
+        <svg className="s2-bar-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+      </button>
+      {items.length > 0 && <button type="button" className="s2-bar-btn s2-bar-checkout" onClick={(e) => { e.stopPropagation(); cart.goCheckout(); }}>Checkout</button>}
     </div>
   );
 }
 
-// Home, products list, measuring guide and the other customer pages, and only when the cart has something in it.
+// Home, products list, measuring guide and the other customer pages: only the cart half, and only when the cart has something in it.
 export function OrderOnlyBar() {
   const cart = useCart();
   if (!cart.count) return null;
   return (
     <div className="s2-bar s2-bar-only">
-      <div className="s2-wrap s2-bar-inner"><CartPart only /></div>
+      <div className="s2-wrap s2-bar-inner"><CartHalf /></div>
       <Flash />
     </div>
   );
 }
 
-// The product page bar: the price of the blind being built (nothing until there is one) and the cart part.
-// Adding to the cart happens in the estimate card on the page, not here.
-export function PriceBar({ view, qty = 1 }) {
+// The product page bar. Left, "This blind": a swatch circle, the color name and the price ("3 × $130 = $390" for several). Right, "Your cart".
+// Adding to the cart happens in the estimate card on the page, not here. `pick` is the color chosen so far.
+export function PriceBar({ view, qty = 1, pick = null }) {
   const priced = view.kind === 'price';
+  const byEmail = view.kind === 'custom' || view.kind === 'request' || view.kind === 'error';
+  let body;
+  if (!pick) body = <span className="s2-bar-muted">This blind: choose a color and size</span>;
+  else {
+    const price = priced ? (qty > 1 ? <><span className="s2-bar-price-long">{qty} × {money(view.price)} = </span>{money(view.price * qty)}</> : money(view.price)) : null;
+    body = (
+      <>
+        <Dot pick={pick} size={32} />
+        <span className="s2-bar-blind-text">
+          <span className="s2-bar-kick">This blind</span>
+          <span className="s2-bar-color">{pick.displayName}</span>
+          {priced ? <span className="s2-bar-price">{price}</span> : <span className="s2-bar-muted">{byEmail ? 'Price sent by email' : view.kind === 'toosmall' ? 'Enter a larger size' : 'Choose a size'}</span>}
+        </span>
+      </>
+    );
+  }
   return (
     <div className="s2-bar">
-      <div className="s2-wrap s2-bar-inner">
-        <div className="s2-bar-left">
-          {priced && (
-            <div className="s2-bar-text">
-              <span className="s2-bar-value">{money(view.price * qty)}</span>
-              {qty > 1 && <span className="s2-bar-sub">{money(view.price)} each · {blinds(qty)}</span>}
-            </div>
-          )}
-        </div>
-        <CartPart />
+      <div className="s2-wrap s2-bar-inner s2-bar-split">
+        <div className="s2-bar-blind">{body}</div>
+        <span className="s2-bar-divider" aria-hidden="true" />
+        <CartHalf />
       </div>
       <Flash />
     </div>

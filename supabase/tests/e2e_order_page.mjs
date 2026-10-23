@@ -37,7 +37,7 @@ try {
   await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Living room, left window');
   await page.locator('#s2-qty').fill('3');
   await page.getByText(/each · 3 blinds/).first().waitFor();
-  const unit = num((await page.locator('.s2-bar-sub').innerText()).split('each')[0]);
+  const unit = num((await page.locator('.s2-estimate-each').innerText()).split('each')[0]);
   await add();
   // window 2: curtains, 2 windows
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
@@ -85,7 +85,7 @@ try {
   const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#s2-qty').fill('4');
-  await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
+  await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-estimate-each')?.innerText || ''));
   await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order');
   await page.locator('.s2-item').first().waitFor();

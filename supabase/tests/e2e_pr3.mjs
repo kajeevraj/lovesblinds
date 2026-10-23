@@ -28,7 +28,7 @@ try {
     const errors = []; page.on('pageerror', (e) => errors.push(e.message));
     const ready = () => page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
     const fill = async (w, h) => { await page.locator('#s2-w').fill(w); await page.locator('#s2-h').fill(h); };
-    const unit = async () => Number((await page.locator('.s2-bar-value').first().innerText()).replace(/\D/g, ''));
+    const unit = async () => Number((await page.locator('.s2-estimate-price').first().innerText()).replace(/\D/g, ''));
 
     // ---------- top bar and wording
     await page.goto(`${BASE}/`); await page.locator('.s2-nav').waitFor();
@@ -85,7 +85,8 @@ try {
 
     // ---------- add: the card, merge, different lines
     check(T('before adding: a large "Add to cart" button is in the estimate card, and the bar has no Add button'), /^Add to cart$/.test((await page.locator('.s2-estimate .s2-add-btn').innerText()).trim()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-btn:not(.s2-bar-checkout)').count()) === 0 && (await page.locator('.s2-estimate .s2-add-btn').evaluate((e) => e.getBoundingClientRect().height)) >= 54);
-    check(T('the bar shows this blind\'s price on the left and "Your cart is empty" (no Checkout yet) on the right'), (await page.locator('.s2-bar-left .s2-bar-value').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0);
+    check(T('the bar: swatch circle, "This blind", the color name and the price; a divider; then "Your cart" (empty, no Checkout yet)'), (await page.locator('.s2-bar-blind .s2-dot img').count()) === 1 && /This blind/i.test(await page.locator('.s2-bar-blind').textContent()) && /Jet Black/.test(await page.locator('.s2-bar-blind').textContent()) && (await page.locator('.s2-bar-divider').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0 && /Your cart is empty/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
+    check(T(phone ? 'phone: the bar shows the total only ("$130"), small "This blind" above it' : 'desktop: with 1 blind the bar shows just the price'), /^\$\d+$/.test((await page.locator('.s2-bar-price').innerText()).trim()));
     await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-before-add`);
     await page.locator('.s2-add-btn').click();
     await page.locator('.s2-added-card').waitFor();
@@ -98,6 +99,11 @@ try {
     check(T('changing how many brings the Add button back'), (await page.locator('.s2-estimate .s2-add-btn').count()) === 1 && (await page.locator('.s2-added-card').count()) === 0);
     await page.locator('#s2-qty').fill('1');
     check(T('putting it back to what was added shows the confirmation again'), (await page.locator('.s2-added-card').count()) === 1);
+    // the bar with several of this blind: "3 × $130 = $390" on desktop, the total alone on a phone
+    await page.locator('#s2-qty').fill('3');
+    const barPrice = (await page.locator('.s2-bar-price').innerText()).trim();
+    check(T(phone ? 'phone: with 3 of this blind the bar shows the total only' : 'desktop: with 3 of this blind the bar says "3 × $each = $total"'), phone ? /^\$\d+$/.test(barPrice) : /^3 × \$\d+ = \$\d+$/.test(barPrice), barPrice);
+    await page.locator('#s2-qty').fill('1');
     await page.locator('.s2-added-card').getByRole('button', { name: 'Build another' }).click();
     await page.locator('.s2-sw').first().waitFor();
     check(T('Build another starts the page again, blank, for a new blind'), (await page.locator('.s2-sw.on').count()) === 0 && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === '');
@@ -120,9 +126,18 @@ try {
     check(T('products list bar: "Your cart: 3 items · $total" and a Checkout button'), /Your cart: 3 items · \$\d+/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-bar-checkout').count()) === 1);
     await page.waitForTimeout(600); await shot(page, `${phone ? 'phone' : 'desktop'}-products-bar`);
     check(T('the products subtitle reads "Pick a line to see every fabric as a real swatch and start building your order."'), /Pick a line to see every fabric as a real swatch and start building your order\./.test(await page.locator('main').innerText()));
+    const barInfo = await page.evaluate(() => { const q = (x) => document.querySelector(x); const r = (x) => q(x)?.getBoundingClientRect(); return { onlyHalf: !q('.s2-bar-blind') && !!q('.s2-bar-cartbtn'), dots: document.querySelectorAll('.s2-bar-order .s2-dot').length, more: q('.s2-dots-more')?.textContent || '', chev: !!q('.s2-bar-chev') && getComputedStyle(q('.s2-bar-chev')).display !== 'none', ctl: r('.s2-bar-checkout').height, order: r('.s2-bar-order').height, text: r('.s2-bar-order-text'), checkout: r('.s2-bar-checkout'), vw: innerWidth, sw: document.documentElement.scrollWidth }; });
+    check(T('products list: only the cart half shows, with up to 3 item swatches (then +N) and a 48 px Checkout'), barInfo.onlyHalf && barInfo.dots === 3 && barInfo.ctl === 48 && barInfo.order === 48, JSON.stringify(barInfo));
+    check(T(phone ? 'phone: one row, nothing overlaps or spills (cart text ends before Checkout)' : 'desktop: an up chevron shows the cart expands, and nothing overlaps'), barInfo.text.right <= barInfo.checkout.left + 0.5 && barInfo.sw <= barInfo.vw && (phone || barInfo.chev), JSON.stringify(barInfo));
+    await page.locator('.s2-bar-cartbtn').click({ position: { x: 4, y: 4 }, force: true });
+    await page.locator('.s2-panel').waitFor();
+    await page.waitForTimeout(500); const sheet = await page.locator('.s2-panel').boundingBox();
+    check(T('tapping anywhere on the cart half (its edge too) opens the cart panel, which slides up from the bar'), Math.abs(sheet.y + sheet.height - (phone ? 844 : 900)) < 2 && sheet.height < (phone ? 844 : 900));
+    await page.keyboard.press('Escape');
     await page.locator('.s2-bar-checkout').click(); await page.locator('#s2-details-title').waitFor();
-    check(T('the bar\'s Checkout goes to checkout'), page.url().includes('checkout=1'));
+    check(T('Checkout in the bar goes straight to checkout (it does not open the panel)'), page.url().includes('checkout=1') && (await page.locator('.s2-panel').count()) === 0);
     await page.goto(`${BASE}/products`); await page.locator('.s2-bar-only').waitFor();
+    await page.locator('.s2-bar-checkout').count();
     await page.locator('.s2-bar-order').click(); await page.locator('.s2-panel').waitFor();
     const lines = await page.locator('.s2-panel-item').count();
     check(T('the cart has 3 lines (same item merged; different window and different size are new lines)'), lines === 3, `${lines}`);
