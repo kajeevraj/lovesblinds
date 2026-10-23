@@ -1,6 +1,6 @@
 # What the privacy and terms pages still need from the owner
 
-The pages `/privacy` and `/terms` (`src/legal.jsx`) are drafts. Every yellow `[placeholder]` on them needs an answer. Until then both pages are marked `noindex` in `src/lib/pageMeta.js` (remove `noindex: true` from `privacy` and `terms`, and add them to `sitemapPaths`, when they are final). Have a lawyer read both before launch.
+The pages `/privacy` and `/terms` (`src/legal.jsx`) are drafts. Every yellow `[placeholder]` on them needs an answer. The footer links to them are hidden for now (`SHOW_LEGAL_LINKS = false` in `src/customer.jsx`; the pages still open at `/privacy` and `/terms`). When the pages are final, set it to `true`. Until then both pages are marked `noindex` in `src/lib/pageMeta.js` (remove `noindex: true` from `privacy` and `terms`, and add them to `sitemapPaths`, when they are final). Have a lawyer read both before launch.
 
 ## Both pages
 - Legal business name and mailing address (the sheet says "Loves Blinds and Window Treatments").

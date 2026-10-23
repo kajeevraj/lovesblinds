@@ -1,4 +1,4 @@
-// Browser tests for the deep-review branch: the privacy and terms pages, the "Page not found" page, and the footer links.
+// Browser tests for the deep-review branch: the privacy and terms pages (built, not linked), the "Page not found" page.
 // Needs a preview on BASE_URL (default http://localhost:4173).
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -8,9 +8,9 @@ const browser = await chromium.launch();
 try {
   for (const [label, vp] of [['390px', { width: 390, height: 844 }], ['1280px', { width: 1280, height: 800 }]]) {
     const page = await (await browser.newContext({ viewport: vp })).newPage(); page.setDefaultTimeout(30000);
-    await page.goto(`${BASE}/`); await page.locator('.s2-footer-legal').waitFor();
-    check(`[${label}] the footer has Privacy policy and Terms of sale links`, (await page.locator('.s2-footer-legal a').allInnerTexts()).join('|') === 'Privacy policy|Terms of sale');
-    await page.getByRole('link', { name: 'Privacy policy' }).click(); await page.locator('h1').waitFor();
+    await page.goto(`${BASE}/`); await page.locator('.s2-footer').waitFor();
+    check(`[${label}] the footer does not link to Privacy or Terms yet (the pages exist but wait for the owner's details)`, (await page.locator('.s2-footer a[href="/privacy"], .s2-footer a[href="/terms"]').count()) === 0);
+    await page.goto(`${BASE}/privacy`); await page.locator('h1').waitFor();
     const priv = await page.locator('main').innerText();
     check(`[${label}] the privacy page names Google, Supabase, Vercel and Resend, the data we keep, and says no payment is taken`, page.url().endsWith('/privacy') && ['Google', 'Supabase', 'Vercel', 'Resend', 'name, email, phone number and shipping address', 'messages', 'do not take payment'].every((t) => new RegExp(t, 'i').test(priv)));
     check(`[${label}] the privacy page is not indexed and has the yellow placeholders`, (await page.locator('meta[name=robots]').getAttribute('content')) === 'noindex, nofollow' && (await page.locator('.legal-todo').count()) > 0);
@@ -30,7 +30,7 @@ try {
   const page = await (await browser.newContext()).newPage(); page.setDefaultTimeout(30000);
   // moving to another page puts keyboard focus at the top of the new page
   await page.goto(`${BASE}/`); await page.locator('.s2-footer').waitFor();
-  await page.getByRole('link', { name: 'Terms of sale' }).click(); await page.locator('h1').waitFor(); await page.waitForTimeout(200);
+  await page.getByRole('link', { name: 'Contact', exact: true }).first().click(); await page.locator('h1').waitFor(); await page.waitForTimeout(200);
   check('after a page change the focus is on the main area (not left on the link that was pressed)', await page.evaluate(() => document.activeElement?.id === 'main'));
   // fonts come from our own site: nothing is requested from Google Fonts, and both families load
   const fontHosts = []; page.on('request', (r) => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontHosts.push(r.url()); });
