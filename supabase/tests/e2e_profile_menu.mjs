@@ -85,6 +85,7 @@ try {
   check('the order details form is pre-filled from the profile: name, email, phone and the whole address (street, apartment, city, state, ZIP, country)', ['Ada B. Lovelace', email, '555 010 2030', '1 Analytical Way', 'Flat 2', 'London', 'England', 'N1 1AA', 'United Kingdom'].every((v) => filled.includes(v)), filled.join(' | '));
 
   // signed in: an edit link survives a refresh (the saved order has to load before the item can be found)
+  await page.goto(`${BASE}/order`); await page.locator('.s2-item').first().waitFor();
   await page.locator('.s2-item').first().click();
   await page.locator('#s2-w').waitFor(); const editUrl = page.url();
   await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();

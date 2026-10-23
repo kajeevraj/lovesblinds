@@ -66,7 +66,7 @@ try {
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
   const curtainText = await items.nth(1).innerText();
-  check('Curtains: "Price on request" and the reply-with-a-price sentence, 2 blinds', /Price on request/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  check('Curtains: "Price by email" and the reply-with-a-price sentence, 2 blinds', /Price by email/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
   const dreamCard = await items.nth(2).innerText();
   const dreamPrice = num(dreamCard.match(/\$[\d,]+/)?.[0]);
   check('Dream Curtains window: a live price, the style name and the picked style\'s code (ZDS3902-1), no "Style B"', dreamPrice > 0 && /Slim/.test(dreamCard) && /ZDS3902-1/.test(dreamCard) && !/ZDS3002|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));

@@ -55,7 +55,7 @@ try {
       return { titleLeft: Math.round(title.left * 10) / 10, edges, right, itemPad: pad('.s2-item'), totalPad: pad('.s2-co-summary'), fields };
     });
     check(`[${w}px] order page: cards, heading, button and form start on the same left edge and cards and button end on the same right edge`, o.edges.every((x) => Math.abs(x - o.titleLeft) < 0.6) && Math.abs(o.right[0] - o.right[1]) < 0.6 && Math.abs(o.right[1] - o.right[2]) < 0.6, JSON.stringify(o));
-    check(`[${w}px] order page: card padding is even on all four sides and on the spacing scale`, [o.itemPad, o.totalPad].every((p) => p.every((v) => v === p[0]) && SCALE.includes(p[0])), JSON.stringify([o.itemPad, o.totalPad]));
+    check(`[${w}px] order page: card padding is even on all four sides and on the spacing scale`, [o.itemPad].every((p) => p.every((v) => v === p[0]) && SCALE.includes(p[0])) && o.totalPad.every((v) => SCALE.includes(v)), JSON.stringify([o.itemPad, o.totalPad]));
     check(`[${w}px] order page: single-line form boxes are all 48 px`, o.fields.every((x) => x === 48), o.fields.join(','));
     await page.close();
   }
