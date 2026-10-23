@@ -62,7 +62,7 @@ export default function RollerPage({ line, navigate, edit = null }) {
   ];
 
   const tailSteps = [{
-    title: 'Top cover',
+    title: 'Top cover', hint: 'The cassette is the cover over the top of the shade.',
     node: <TopCoverStep value={wrap} onChange={setWrap} />,
   }];
 

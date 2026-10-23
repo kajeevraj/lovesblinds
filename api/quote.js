@@ -41,7 +41,7 @@ function nameCell(line) {
 // If the lookup fails, the estimate the customer saw is used and marked as unchecked.
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
-export const EMAIL_PRICE = 'Price sent by email';
+export const EMAIL_PRICE = 'Price by email';
 export const ESTIMATE_NOTE = "This is an estimate. We'll confirm details and your final price within 48 hours.";
 
 const kindOf = (res) => {
@@ -87,7 +87,7 @@ export async function withEstimates(lines, env = process.env) {
   return { lines: priced, total, byEmail };
 }
 
-// "$226 each · $678 for 3", "$226", or "Price sent by email"
+// "$226 each · $678 for 3", "$226", or "Price by email"
 export function priceText(l) {
   const q = Math.max(1, Number(l.qty) || 1);
   if (l.price?.kind !== 'price') return EMAIL_PRICE;

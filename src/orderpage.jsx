@@ -9,7 +9,8 @@ import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
 import { profileOf } from './lib/profile.js';
 import { COUNTRIES, DEFAULT_COUNTRY, addressLine } from './data/countries.js';
 import { CART_CUSTOM_TEXT, REQUEST_TEXT, ESTIMATE_TEXT, QtyStepper } from './components/s2.jsx';
-import { IncompleteRow, SavePrompt, roomText, BLOCKED_TEXT } from './components/OrderBar.jsx';
+import { IncompleteRow, UndoBar, roomText, BLOCKED_TEXT } from './components/OrderBar.jsx';
+import { SITE } from './data/site.js';
 import GoogleSignIn from './components/GoogleSignIn.jsx';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
@@ -25,7 +26,7 @@ function PriceCell({ it, p }) {
     );
   }
   if (p.kind === 'loading') return <div className="s2-item-price"><div className="s2-item-each">Calculating…</div></div>;
-  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">{p.kind === 'custom' ? 'Price sent by email' : 'Price on request'}</div>{q > 1 && <div className="s2-item-each">{blinds(q)}</div>}</div>;
+  return <div className="s2-item-price"><div className="s2-item-amount s2-item-onreq">Price by email</div>{q > 1 && <div className="s2-item-each">{blinds(q)}</div>}</div>;
 }
 
 // The whole card opens the product page with every choice filled in; Remove is the only other control.
@@ -97,7 +98,8 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
-  const [sent, setSent] = useState(null);                // { copySent } once the order has gone
+  const [sent, setSent] = useState(null);                // { copySent, lines, total, byEmail } once the order has gone
+  const [showItems, setShowItems] = useState(false);     // "See items" in the checkout summary
 
   // start from the customer's saved profile (only fills fields they have not typed into)
   useEffect(() => {
@@ -106,7 +108,10 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     const a = pr.address;
     setForm((f) => ({ ...f, name: f.name || pr.name, email: f.email || pr.email, phone: f.phone || pr.phone, street: f.street || a.street, apt: f.apt || a.apt, city: f.city || a.city, state: f.state || a.state, zip: f.zip || a.zip, country: f.country === DEFAULT_COUNTRY ? a.country : f.country }));
   }, [user]);
-  useEffect(() => { if (checkout) document.getElementById('s2-details-title')?.scrollIntoView({ block: 'start' }); }, [checkout]);
+  useEffect(() => { if (checkout) window.scrollTo({ top: 0, behavior: 'instant' }); }, [checkout]);
+  useEffect(() => { if (sent) window.scrollTo({ top: 0, behavior: 'instant' }); }, [sent]);
+  const fixCount = Object.values(errors).filter(Boolean).length;
+  const NETWORK_TEXT = `We could not reach our server. Please check your connection, or email us at ${SITE.email} or call ${SITE.phone}.`;
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: '' })); };
 
   const send = async () => {
@@ -119,7 +124,11 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     if (!form.state.trim()) errs.state = 'Please enter your state or province';
     if (!form.zip.trim()) errs.zip = 'Please enter your ZIP or postal code';
     setErrors(errs);
-    if (Object.keys(errs).length) return;
+    const first = ['name', 'email', 'street', 'city', 'state', 'zip'].find((k) => errs[k]);
+    if (first) {                                   // take them to the first thing to fix
+      setTimeout(() => { const el = document.getElementById(`o-${first}`); if (el) { el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); } }, 0);
+      return;
+    }
     if (blocked) { setError(BLOCKED_TEXT); return; }
     if (loading) { setError('One moment, we are still working out your estimates.'); return; }
     const address = { street: form.street.trim(), apt: form.apt.trim(), city: form.city.trim(), state: form.state.trim(), zip: form.zip.trim(), country: form.country };
@@ -133,7 +142,8 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
           notes: form.notes.trim(),
           zx_kv_q7: form.zx_kv_q7,
         }),
-      });
+      }).catch(() => null);
+      if (!res) throw new Error(NETWORK_TEXT);                   // offline or the connection dropped: our own plain message
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || `Server error (${res.status})`); }
       const data = await res.json().catch(() => ({}));
       if (!data.ok) throw new Error('We could not send your order just now. Please email loveblindswindows@gmail.com or call 262-434-0949.');     // never show "sent" unless the server says so
@@ -142,9 +152,9 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
       // it reached us: a problem saving it to the customer's account is only logged and never turns the success into an error
       try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
       catch (e) { console.error('[order] not saved to the account:', e); }
-      setSent({ copySent: !!data.customerCopy });
+      setSent({ copySent: !!data.customerCopy, total, byEmail, lines: items.map((it, i) => ({ id: it.id, title: detailsOf(it).title, room: roomText(it), qty: Math.max(1, it.qty || 1), p: prices[i] })) });
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again or call us.');
+      setError(err instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(err?.message || '') ? NETWORK_TEXT : (err.message || `Something went wrong. Please try again, or email us at ${SITE.email} or call ${SITE.phone}.`));
     } finally {
       setSending(false);
     }
@@ -158,6 +168,20 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
           <h1 className="s2-order-title">Your order is on its way to us</h1>
           <p className="s2-order-sub">We'll check every detail and email you your final price within 48 hours. Nothing is charged until you approve it.</p>
           {sent.copySent && <p className="s2-order-sub">A copy of your order was sent to your email.</p>}
+          <section className="s2-sent-list" aria-label="What you sent">
+            <h2 className="s2-sent-list-title">What you sent</h2>
+            <ul>
+              {sent.lines.map((l) => (
+                <li key={l.id}>
+                  <span className="s2-sent-name">{l.title}{l.room ? ` · ${l.room}` : ''}</span>
+                  <span className="s2-sent-qty">{blinds(l.qty)}</span>
+                  <span className="s2-sent-price">{l.p.kind === 'price' ? money(l.p.price * l.qty) : 'Price by email'}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="s2-total-row"><span>Estimated total</span><strong>{sent.total > 0 ? money(sent.total) : 'Price by email'}</strong></div>
+            {sent.byEmail > 0 && sent.total > 0 && <div className="s2-total-plus">Plus {sent.byEmail} item{sent.byEmail === 1 ? '' : 's'} priced by email</div>}
+          </section>
           <a className="s2-btn s2-btn-brass" href="/" onClick={(e) => { e.preventDefault(); navigate('home'); }}>Back to home</a>
         </section>
         <Footer navigate={navigate} />
@@ -169,7 +193,15 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
     <div className="page-fade s2 s2-order">
       <section className="s2-wrap s2-order-wrap">
         <h1 className="s2-order-title">{checkout ? 'Checkout' : 'Your cart'}</h1>
-        <p className="s2-order-sub">{checkout ? 'Check your blinds, add your details, and send. No payment is taken now.' : 'Check your blinds, then check out. No payment is taken now.'}</p>
+        <p className="s2-order-sub">{checkout ? 'Add your details and send. No payment is taken now.' : 'Check your blinds, then check out. No payment is taken now.'}</p>
+        {!checkout && cart.notice && <div className="s2-saved" role="status" key={cart.notice.n}><span aria-hidden="true">✓</span> {cart.notice.msg}</div>}
+        {!checkout && <UndoBar />}
+        {checkout && (
+          <div className="s2-co-summary">
+            <span><strong>{blinds(items.reduce((n, it) => n + Math.max(1, it.qty || 1), 0))}</strong> · {loading ? '…' : total > 0 ? money(total) : 'Price by email'}{total > 0 && byEmail > 0 ? ` + ${byEmail} by email` : ''}</span>
+            <button type="button" className="s2-link" aria-expanded={showItems} onClick={() => setShowItems((v) => !v)}>{showItems ? 'Hide items' : 'See items'}</button>
+          </div>
+        )}
 
         {items.length === 0 && incomplete.length === 0 ? (
           <div className="s2-empty-order">
@@ -183,14 +215,16 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                 {incomplete.map((e) => <IncompleteRow key={e.key} entry={e} cart={cart} />)}
               </ul>
             )}
-            <ul className="s2-items">
-              {items.map((it, i) => (
-                <ItemCard key={it.id} it={it} p={prices[i]} cart={cart} />
-              ))}
-            </ul>
-            <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>
+            {(!checkout || showItems) && (
+              <ul className="s2-items">
+                {items.map((it, i) => (
+                  <ItemCard key={it.id} it={it} p={prices[i]} cart={cart} />
+                ))}
+              </ul>
+            )}
+            {!checkout && <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>}
 
-            {items.length > 0 && (
+            {items.length > 0 && !checkout && (
             <section className="s2-total" aria-live="polite">
               {total > 0 || (!loading && byEmail === 0) ? (
                 <>
@@ -209,7 +243,6 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
 
             {!checkout && (
               <div className="s2-cart-actions">
-                <SavePrompt className="s2-save-page" />
                 {blocked && <p className="s2-blocked" role="status">{BLOCKED_TEXT}</p>}
                 <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={blocked || items.length === 0} onClick={() => navigate('/order?checkout=1')}>Checkout</button>
               </div>
@@ -256,6 +289,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
               </div>
               {/* a field people never see; a bot that fills it in is ignored */}
               <div className="spam-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="zx_kv_q7" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.zx_kv_q7} onChange={set('zx_kv_q7')} /></label></div>
+              {fixCount > 0 && <div className="s2-fix-summary" role="alert">{fixCount} thing{fixCount === 1 ? '' : 's'} to fix</div>}
               {error && <div className="s2-send-error" role="alert">{error}</div>}
               <button type="button" className="s2-btn s2-btn-brass s2-send" disabled={sending} onClick={send}>{sending ? 'Sending…' : 'Send my order'}</button>
               <p className="s2-send-note">We reply within 48 hours. Made-to-measure orders ship in two to three weeks after you approve.</p>

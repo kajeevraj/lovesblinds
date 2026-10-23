@@ -15,8 +15,8 @@ export const PAGES = {
   measure: { path: '/measure', title: title('How to measure for blinds and shades'), description: 'A step-by-step guide to measuring your windows for inside or outside mount blinds, shades and drapery. All you need is a tape measure and ten minutes.' },
   contact: { path: '/contact', title: title('Contact us'), description: 'Questions about a fabric, a window or an order? Send us a message or call (262) 434-0949. We reply within 1 business day.' },
   // pages that belong to one customer or one order: not for search results
-  quote: { path: '/order', title: title('Your order'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },
-  review: { path: '/review', title: title('Your order'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },
+  quote: { path: '/order', title: title('Your cart'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },
+  review: { path: '/review', title: title('Your cart'), description: 'Check your blinds, add your details and send your order. No payment is taken now.', noindex: true },
   orders: { path: '/orders', title: title('My orders'), description: 'Your saved and sent orders.', noindex: true },
   profile: { path: '/profile', title: title('Your profile'), description: 'Your name, phone and shipping address.', noindex: true },
   admin: { path: '/admin', title: title('Admin'), description: 'Admin.', noindex: true },

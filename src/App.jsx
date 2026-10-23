@@ -10,7 +10,7 @@ import { clampQty } from './lib/limits.js';
 import { getActiveLine } from './data/lines.js';
 import { useItemPrices, totalsOf } from './lib/itemPrice.js';
 import { editPath } from './lib/itemView.js';
-import { OrderPanel, OrderOnlyBar, IncompleteNote } from './components/OrderBar.jsx';
+import { OrderPanel, OrderOnlyBar, IncompleteNote, AddFirstDialog } from './components/OrderBar.jsx';
 import ExitPrompt from './components/ExitPrompt.jsx';
 import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
@@ -164,15 +164,39 @@ export default function App() {
   const setQty = (id, qty) => commit(quote.map((it) => (it.id === id ? { ...it, qty: clampQty(qty) } : it)));
   const saveItem = (id, item) => {
     commit(quote.map((it) => (it.id === id ? { ...it, ...item, id } : it)));
-    showFlash('Changes saved');
+    showNotice('Saved');
   };
-  const removeItem = (id) => commit(quote.filter((it) => it.id !== id));
+  // Remove can be undone for a few seconds
+  const [undo, setUndo] = useState(null);                      // { label, item, index, n }
+  const undoTimer = useRef(null);
+  const undoRef = useRef(null); undoRef.current = undo;
+  const removeItem = (id) => {
+    const index = quote.findIndex((it) => it.id === id);
+    if (index < 0) return;
+    const item = quote[index];
+    commit(quote.filter((it) => it.id !== id));
+    clearTimeout(undoTimer.current);
+    setUndo({ label: `Removed ${item.product.name}${item.roomLabel ? `, ${item.roomLabel}` : ''}`, item, index, n: Date.now() });
+    undoTimer.current = setTimeout(() => setUndo(null), 7000);
+  };
+  const undoRemove = () => {
+    const u = undoRef.current;
+    if (!u) return;
+    clearTimeout(undoTimer.current); setUndo(null);
+    if (quote.some((x) => x.id === u.item.id)) return;
+    const next = [...quote]; next.splice(Math.min(u.index, next.length), 0, u.item);
+    commit(next);
+  };
+  // a short confirmation ("Saved") shown on the cart page
+  const [notice, setNotice] = useState(null);
+  const noticeTimer = useRef(null);
+  const showNotice = (msg) => { clearTimeout(noticeTimer.current); setNotice({ msg, n: Date.now() }); noticeTimer.current = setTimeout(() => setNotice(null), 4000); };
   // a copy right after the original, opened for editing so only the size or room needs changing
   const duplicateItem = (it) => {
     const copy = { ...it, id: newItemId() };
     const at = quote.findIndex((x) => x.id === it.id);
     commit([...quote.slice(0, at + 1), copy, ...quote.slice(at + 1)]);
-    showFlash('Item duplicated. Change what is different, then save.');
+    showFlash('Copy added. Change what is different, then save.');
     navigate(editPath(copy));
   };
   const removeFromQuote = (idx) => commit(quote.filter((_, i) => i !== idx));
@@ -228,11 +252,19 @@ export default function App() {
     navigate("quote");
   };
 
-  // "Order again": the items of a sent order are copied into a new draft, which becomes the order in progress.
-  const orderAgain = async (order) => {
-    const copies = (order.items || []).map((it) => ({ ...it, id: newItemId() }));
-    const draft = await createOrder(`Order ${orders.length + 1}`, copies);
-    if (draft) navigate('quote');
+  // "Order again": the blinds of a sent order are added to the cart (the same blind raises its quantity), and the cart page opens.
+  const orderAgain = (order) => {
+    let next = [...quote];
+    (order.items || []).forEach((st, i) => {
+      const it = reconstructItem(st, i);
+      if (!it) return;
+      const copy = { ...it, id: newItemId() };
+      const same = next.find((x) => sameItem(x, copy));
+      if (same) next = next.map((x) => (x.id === same.id ? { ...x, qty: Math.min(99, clampQty(x.qty) + clampQty(copy.qty)) } : x));
+      else next.push(copy);
+    });
+    commit(next);
+    navigate('/order');
   };
 
   // Product pages left part way stay in the cart as incomplete items (the page open right now is not one of them)
@@ -240,7 +272,8 @@ export default function App() {
   const openLine = route === 'line' && !editIdNow ? getActiveLine(slug)?.id || null : null;
   const incomplete = useIncomplete(openLine);
   const removeIncomplete = (entry) => clearDraft(entry.lineId);
-  const goIncomplete = (entry) => { setPanelOpen(false); navigate(`/products/${entry.product.slug}`); };
+  // "Finish choosing": back to the product page, scrolled to the first step that is still missing
+  const goIncomplete = (entry) => { setPanelOpen(false); try { sessionStorage.setItem('lb_scroll', 'missing'); } catch { /* ignore */ } navigate(`/products/${entry.product.slug}`); };
   const [note, setNote] = useState(null);                       // the small note that tells them about an incomplete item
   const notedRef = useRef(new Set((() => { try { return JSON.parse(sessionStorage.getItem('lb_noted') || '[]'); } catch { return []; } })()));
   useEffect(() => {
@@ -248,7 +281,7 @@ export default function App() {
     if (!fresh.length || route === 'admin') return;
     fresh.forEach((e) => notedRef.current.add(e.key));
     try { sessionStorage.setItem('lb_noted', JSON.stringify([...notedRef.current])); } catch { /* ignore */ }
-    setNote({ title: fresh[0].title, n: Date.now() });
+    setNote({ title: fresh[0].title, entry: fresh[0], n: Date.now() });
   }, [incomplete]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (incomplete.length === 0) setNote(null); }, [incomplete.length]);
 
@@ -267,7 +300,17 @@ export default function App() {
   }, [supabaseEnabled, user, authLoading, route]);
 
   // Checkout: straight to the details step, unless something is still incomplete (then the cart page explains)
-  const goCheckout = () => { setPanelOpen(false); navigate(incomplete.length ? '/order' : '/order?checkout=1'); };
+  // If the blind on the open product page is ready but not added, ask first: "Add this blind to your cart first?" (Add or Skip)
+  const pageRef = useRef(null);
+  const [askAdd, setAskAdd] = useState(false);
+  const toCheckout = () => { setPanelOpen(false); setAskAdd(false); navigate(incomplete.length ? '/order' : '/order?checkout=1'); };
+  const goCheckout = () => { if (pageRef.current?.ready) { setPanelOpen(false); setAskAdd(true); return; } toCheckout(); };
+  const confirmAdd = {
+    open: askAdd,
+    add: () => { pageRef.current?.add(); toCheckout(); },
+    skip: () => { pageRef.current?.discard(); toCheckout(); },       // skipped: the blind is not kept either, so it cannot block checkout
+    cancel: () => setAskAdd(false),
+  };
 
   // the cart, shared with the cart bar, the cart panel, the product pages and the cart page
   const prices = useItemPrices(quote);
@@ -276,7 +319,8 @@ export default function App() {
     items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
     addItem: addToQuote, saveItem, removeItem, setQty, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
-    incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout,
+    incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout, confirmAdd,
+    registerPage: (p) => { pageRef.current = p; }, undo, undoRemove, notice,
     auth: { user, supabaseEnabled, authLoading, signIn: handleSignIn },
   };
 
@@ -327,6 +371,7 @@ export default function App() {
       {!onLinePage && !onOrderPage && <OrderOnlyBar />}
       <OrderPanel navigate={navigate} />
       {!onLinePage && !onOrderPage && <IncompleteNote note={note} onClose={() => setNote(null)} />}
+      <AddFirstDialog />
       <ExitPrompt route={route} />
     </div>
     </CartContext.Provider>

@@ -50,9 +50,9 @@ export function Dot({ pick, size = 32, className = '' }) {
   );
 }
 
-// "Your cart" half of the bar: up to three overlapping swatches (then +N), "Your cart · 3 items · $527", an up chevron and Checkout.
-// Anywhere on this half opens the cart panel; Checkout goes straight to checkout (hidden while the cart is empty).
-function CartHalf() {
+// "Your cart" half of the bar: up to three overlapping swatches (then +N), "Your cart · 3 items · $527", an up chevron and the main
+// button. Anywhere on this half opens the cart panel. `button` is the bar's main button: { label, onClick, disabled } or null.
+function CartHalf({ button = null }) {
   const cart = useCart();
   const items = cart.items;
   const n = cart.count;
@@ -70,10 +70,17 @@ function CartHalf() {
             {more > 0 && <span className="s2-dots-more">+{more}</span>}
           </span>
         )}
-        <span className={`s2-bar-order-text${n === 0 ? ' is-empty' : ''}`}><span className="s2-bar-kick">Your cart</span><span className="s2-bar-main">{n === 0 ? 'empty' : <><span className="s2-bar-count">{n} item{n === 1 ? '' : 's'}</span>{total && <><span className="s2-bar-sep"> · </span><span className={`s2-bar-total${total === 'Price by email' ? ' is-email' : ''}`}>{total}</span></>}</>}</span></span>
+        <span className="s2-bar-order-text">
+          <span className="s2-bar-line1">
+            <span className="s2-bar-kick"><span className="k-d">Your cart</span><span className="k-p">Cart</span></span>
+            <span className="s2-bar-sep"> · </span>
+            <span className="s2-bar-count">{n === 0 ? 'empty' : `${n} item${n === 1 ? '' : 's'}`}</span>
+          </span>
+          {total && <span className="s2-bar-line2"><span className="s2-bar-sep"> · </span><span className={`s2-bar-total${total === 'Price by email' ? ' is-email' : ''}`}>{total}</span></span>}
+        </span>
         <svg className="s2-bar-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
       </button>
-      {items.length > 0 && <button type="button" className="s2-bar-btn s2-bar-checkout" onClick={(e) => { e.stopPropagation(); cart.goCheckout(); }}>Checkout</button>}
+      {button && <button type="button" className={`s2-bar-btn s2-bar-main-btn${button.label === 'Checkout' ? ' s2-bar-checkout' : ''}`} disabled={button.disabled} onClick={(e) => { e.stopPropagation(); button.onClick(); }}>{button.label}</button>}
     </div>
   );
 }
@@ -84,40 +91,85 @@ export function OrderOnlyBar() {
   if (!cart.count) return null;
   return (
     <div className="s2-bar s2-bar-only">
-      <div className="s2-wrap s2-bar-inner"><CartHalf /></div>
+      <div className="s2-wrap s2-bar-inner"><CartHalf button={cart.items.length > 0 ? { label: 'Checkout', onClick: cart.goCheckout } : null} /></div>
       <Flash />
     </div>
   );
 }
 
-// The product page bar. Left, "This blind": a swatch circle, the color name and the price ("3 × $130 = $390" for several). Right, "Your cart".
-// Adding to the cart happens in the estimate card on the page, not here. `pick` is the color chosen so far.
-export function PriceBar({ view, qty = 1, pick = null }) {
+// The product page bar. Left, "This blind" (or "These blinds" for several): a swatch circle, the color name and the price
+// ("3 × $130 = $390"). Right, "Your cart". The main button follows the page: Add to cart when this blind is ready and not yet
+// added, Save changes while editing, Checkout otherwise (and nothing while the cart is empty and nothing is being built).
+// `pick` is the color chosen so far; `mode` is 'add' | 'save' | 'checkout'; `onAction` adds or saves.
+export function PriceBar({ view, qty = 1, pick = null, mode = 'checkout', onAction, canAct = true }) {
+  const cart = useCart();
   const priced = view.kind === 'price';
   const byEmail = view.kind === 'custom' || view.kind === 'request' || view.kind === 'error';
+  const label = qty > 1 ? 'These blinds' : 'This blind';
   let body;
-  if (!pick) body = <span className="s2-bar-muted">This blind: choose a color and size</span>;
+  if (!pick) body = <span className="s2-bar-muted">{label}: choose a color and size</span>;
   else {
     const price = priced ? (qty > 1 ? <><span className="s2-bar-price-long">{qty} × {money(view.price)} = </span>{money(view.price * qty)}</> : money(view.price)) : null;
     body = (
       <>
         <Dot pick={pick} size={32} />
         <span className="s2-bar-blind-text">
-          <span className="s2-bar-kick">This blind</span>
+          <span className="s2-bar-kick">{label}</span>
           <span className="s2-bar-color">{pick.displayName}</span>
-          {priced ? <span className="s2-bar-price">{price}</span> : <span className="s2-bar-muted">{byEmail ? 'Price sent by email' : view.kind === 'toosmall' ? 'Enter a larger size' : 'Choose a size'}</span>}
+          {priced ? <span className="s2-bar-price">{price}</span> : <span className="s2-bar-muted">{byEmail ? 'Price by email' : view.kind === 'toosmall' ? 'Larger size needed' : 'Choose a size'}</span>}
         </span>
       </>
     );
   }
+  const button = mode === 'save' ? { label: 'Save changes', onClick: onAction, disabled: !canAct }
+    : mode === 'add' ? { label: 'Add to cart', onClick: onAction, disabled: !canAct }
+      : cart.items.length > 0 ? { label: 'Checkout', onClick: cart.goCheckout } : null;
   return (
     <div className="s2-bar">
       <div className="s2-wrap s2-bar-inner s2-bar-split">
         <div className="s2-bar-blind">{body}</div>
         <span className="s2-bar-divider" aria-hidden="true" />
-        <CartHalf />
+        <CartHalf button={button} />
       </div>
       <Flash />
+    </div>
+  );
+}
+
+// "Removed Roller Shades, Living room   Undo": for a few seconds after Remove (in the panel and on the cart page)
+export function UndoBar() {
+  const { undo, undoRemove } = useCart();
+  if (!undo) return null;
+  return (
+    <div className="s2-undo" role="status" key={undo.n}>
+      <span>{undo.label}</span>
+      <button type="button" className="s2-link" onClick={undoRemove}>Undo</button>
+    </div>
+  );
+}
+
+// "Add this blind to your cart first?" when Checkout is tapped while the blind on the page is ready but not added.
+export function AddFirstDialog() {
+  const { confirmAdd } = useCart();
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!confirmAdd.open) return undefined;
+    ref.current?.querySelector('[data-add]')?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') confirmAdd.cancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [confirmAdd.open]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!confirmAdd.open) return null;
+  return (
+    <div className="s2-exit-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) confirmAdd.cancel(); }}>
+      <div className="s2-exit s2-addfirst" role="dialog" aria-modal="true" aria-labelledby="s2-addfirst-title" ref={ref}>
+        <h2 id="s2-addfirst-title" className="s2-exit-title">Add this blind to your cart first?</h2>
+        <p className="s2-exit-text">You have a blind on this page that is not in your cart yet.</p>
+        <div className="s2-added-card-actions">
+          <button type="button" className="s2-btn s2-btn-brass" data-add onClick={confirmAdd.add}>Add</button>
+          <button type="button" className="s2-btn s2-btn-line" onClick={confirmAdd.skip}>Skip</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -165,8 +217,10 @@ export function OrderPanel({ navigate }) {
       <aside className="s2-panel" role="dialog" aria-modal="true" aria-label="Your cart" ref={ref}>
         <header className="s2-panel-head">
           <h2>Your cart</h2>
+          <a className="s2-link s2-panel-full" href="/order" onClick={(e) => { e.preventDefault(); go(() => navigate('quote')); }}>Full cart page</a>
           <button type="button" className="s2-panel-close" aria-label="Close your cart" onClick={() => cart.setPanelOpen(false)}>×</button>
         </header>
+        <UndoBar />
         {items.length === 0 && incomplete.length === 0 ? (
           <div className="s2-panel-empty"><p>Your cart is empty. Choose a style to get started.</p></div>
         ) : (
@@ -182,7 +236,7 @@ export function OrderPanel({ navigate }) {
                       <span className="s2-panel-title">{d.title}</span>
                       <span className="s2-panel-line">{d.colorText}</span>
                       <span className="s2-panel-line">{[d.parts.find((x) => /wide ×/.test(x)), roomText(it)].filter(Boolean).join(' · ')}</span>
-                      <span className="s2-panel-price">{p.kind === 'price' ? <><strong>{money(p.price * q)}</strong>{q > 1 && <small> {money(p.price)} each</small>}</> : p.kind === 'loading' ? 'Calculating…' : 'Price sent by email'}</span>
+                      <span className="s2-panel-price">{p.kind === 'price' ? <><strong>{money(p.price * q)}</strong>{q > 1 && <small> {money(p.price)} each</small>}</> : p.kind === 'loading' ? 'Calculating…' : 'Price by email'}</span>
                     </span>
                   </a>
                   <div className="s2-panel-actions">
@@ -217,15 +271,16 @@ export function OrderPanel({ navigate }) {
 // The room and window label of a cart line: "Primary bedroom · Left window"
 export const roomText = (it) => [it.roomLabel, it.windowLabel].filter(Boolean).join(' · ');
 
-// The small note that tells a visitor a half-finished product page was kept in the cart. They can close it.
+// The small note that tells a visitor a half-finished product page was kept in the cart. "Finish choosing" goes straight back to it.
 export function IncompleteNote({ note, onClose }) {
   const cart = useCart();
   if (!note || cart.panelOpen || !cart.incomplete.length) return null;
+  const entry = cart.incomplete.find((e) => e.key === note.entry?.key) || cart.incomplete[0];
   return (
     <div className="s2-incnote" role="status" key={note.n}>
-      <p>We kept your <strong>{note.title}</strong> in your cart, marked incomplete, so you can pick up where you left off.</p>
+      <p>Your <strong>{note.title}</strong> is in your cart, marked incomplete.</p>
       <div className="s2-incnote-actions">
-        <button type="button" className="s2-link" onClick={() => { onClose(); cart.setPanelOpen(true); }}>Open cart</button>
+        <button type="button" className="s2-link" onClick={() => { onClose(); cart.goIncomplete(entry); }}>Finish choosing</button>
         <button type="button" className="s2-incnote-x" aria-label="Close this note" onClick={onClose}>×</button>
       </div>
     </div>

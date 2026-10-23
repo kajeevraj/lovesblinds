@@ -13,7 +13,7 @@ const BUSINESS_ADDRESS = '512 Glenwyck Court Fuquay Varina, NC 27526';
 const BUSINESS_EMAIL = 'loveblindswindows@gmail.com';
 const BUSINESS_PHONE = 'Phone number: 262-434-0949';
 const MIN_ROWS = 15;
-const EMAIL_PRICE = 'Price sent by email';
+const EMAIL_PRICE = 'Price by email';
 const ACCOUNTING = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)';
 const BLUE = 'FF4F95DC', GREEN = 'FFB6D7A8', PEACH = 'FCE5CD'.replace(/^/, 'FF');
 const MOUNT = { inside: 'Inside mount', outside: 'Outside mount' };

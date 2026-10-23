@@ -22,7 +22,7 @@ export function ZebraPage({ line, navigate, edit = null }) {
     <LineShell line={line} navigate={navigate} edit={edit} start={start} title={PAGE.zebra.title} intro={PAGE.zebra.intro}
       photo={cur} gallery={PHOTOS.zebra} onGallery={setPhoto} photoNote={NOTE} chip={pick}
       c={{ pick, wrap }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
-      tailSteps={[{ title: 'Top cover', node: <TopCoverStep value={wrap} onChange={setWrap} /> }]}
+      tailSteps={[{ title: 'Top cover', hint: 'The cassette is the cover over the top of the shade.', node: <TopCoverStep value={wrap} onChange={setWrap} /> }]}
       leadSteps={[{ title: 'Color', node: <ColorStep id="c-zebra" lineKey="zebra" value={pick} onChange={setPick} /> }]} />
   );
 }

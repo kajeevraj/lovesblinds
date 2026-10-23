@@ -33,7 +33,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
                       <div className="s2-item-price">
                         {it.priceKind === 'estimate' && it.price > 0
                           ? <><div className="s2-item-amount">{money(it.price * q)}</div>{q > 1 && <div className="s2-item-each">{money(it.price)} each · {blinds(q)}</div>}</>
-                          : it.priceKind ? <div className="s2-item-amount s2-item-onreq">Price sent by email</div> : null}
+                          : it.priceKind ? <div className="s2-item-amount s2-item-onreq">Price by email</div> : null}
                       </div>
                     </div>
                     {(it.roomLabel || it.windowLabel) && <div className="s2-item-room">{[it.roomLabel, it.windowLabel].filter(Boolean).join(' · ')}</div>}
@@ -48,7 +48,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
 
         {hasEstimates && (
           <section className="s2-total">
-            <div className="s2-total-row"><span>Estimated total</span><strong>{total > 0 ? money(total) : 'Price sent by email'}</strong></div>
+            <div className="s2-total-row"><span>Estimated total</span><strong>{total > 0 ? money(total) : 'Price by email'}</strong></div>
             {byEmail > 0 && total > 0 && <div className="s2-total-plus">Plus {byEmail} item{byEmail === 1 ? '' : 's'} priced by email</div>}
           </section>
         )}

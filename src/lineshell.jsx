@@ -78,7 +78,7 @@ export default function LineShell({
   const { selection, missing } = buildSelection(line, c);
   const optionsReady = missing.length === 0;
   const canAdd = optionsReady && sized && !tooSmall && view.kind !== 'loading' && view.kind !== 'waiting';
-  const needs = !optionsReady ? colorNeeds : !sized ? 'Enter your size' : 'Calculating…';
+  const needs = !optionsReady ? colorNeeds : tooSmall ? chk.tooSmall.map((t) => t.text).join(' ') : !sized ? 'Enter your size' : 'Calculating…';
 
   const mechObj = getMechanism(line, mech);
   const mountObj = MOUNTS.find((m) => m.id === mount);
@@ -128,6 +128,43 @@ export default function LineShell({
   // the confirmation stays until something about the blind (or how many) changes
   const justAdded = !edit && addedAt && addedAt.key === `${draftSig}|${n}` ? addedAt : null;
 
+  // "Add another like this": the same product, color, options and room, with the size and window label cleared
+  const addAnother = () => {
+    saveDraft(line.id, null, { selection, mech, mount, w: '', h: '', roomLabel: room, windowLabel: '', qty: '1', ui: ui || {} });
+    try { sessionStorage.setItem('lb_scroll', 'size'); } catch { /* ignore */ }
+    buildAnother();
+  };
+
+  // tell the cart which blind is on this page, so Checkout can ask "Add this blind to your cart first?"
+  useEffect(() => { cart.registerPage({ ready: !edit && canAdd && !justAdded, add: handleAdd, discard: () => clearDraft(line.id, null) }); });
+  useEffect(() => () => cart.registerPage(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arriving from "Finish choosing" or "Add another like this": scroll to the first missing step (or the Size step)
+  const missingRef = useRef({ missing, sized });
+  missingRef.current = { missing, sized };
+  useEffect(() => {
+    let mode = null;
+    try { mode = sessionStorage.getItem('lb_scroll'); sessionStorage.removeItem('lb_scroll'); } catch { /* ignore */ }
+    if (!mode || edit) return undefined;
+    const go = () => {
+      const steps = [...document.querySelectorAll('.s2-step')];
+      const byTitle = (re) => steps.find((e) => re.test(e.querySelector('.s2-step-title')?.innerText.replace(/^\d+\s*/, '') || ''));
+      const { missing: miss, sized: ok } = missingRef.current;
+      let el = null;
+      if (mode === 'size') el = byTitle(/^Size$/);
+      else if (miss.length) {
+        const m = miss[0];
+        const re = /front/i.test(m) ? /front/i : /back/i.test(m) ? /back/i : /day/i.test(m) ? /day/i : /night/i.test(m) ? /night/i : /pleat/i.test(m) ? /pleat/i : /lining/i.test(m) ? /lining/i : /style/i.test(m) ? /^style$/i : /color|fabric/i;
+        el = byTitle(re) || steps[0];
+      } else if (!ok) el = byTitle(/^Size$/);
+      else el = document.querySelector('.s2-estimate');
+      if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 12), behavior: 'instant' });
+    };
+    go();
+    const t = setTimeout(go, 350);              // once the colors have loaded and taken their space
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const footer = justAdded ? (
     <div className="s2-added-card" role="status">
       <div className="s2-added-card-head"><span className="s2-added-check" aria-hidden="true">✓</span><strong>Added to your cart</strong></div>
@@ -136,7 +173,7 @@ export default function LineShell({
         <button type="button" className="s2-btn s2-btn-brass" onClick={cart.goCheckout}>Checkout</button>
         <button type="button" className="s2-btn s2-btn-line" onClick={() => navigate('products')}>Keep shopping</button>
       </div>
-      <button type="button" className="s2-link s2-build-another" onClick={() => { clearDraft(line.id, null); buildAnother(); window.scrollTo({ top: 0, behavior: 'instant' }); }}>Build another</button>
+      <button type="button" className="s2-link s2-build-another" onClick={addAnother}>Add another like this</button>
     </div>
   ) : (
     <>
@@ -146,11 +183,18 @@ export default function LineShell({
   );
 
   const sum = summarize({ product: line, selection });
+  // one short line per color ("Day: Light filtering · Name (code)"), then the other options, then size and control
+  const nPicks = selection.picks.length;
+  const shortRole = (r) => String(r || '').replace(/\s*\(.*\)\s*$/, '').replace(/ shade$/i, '');
+  const pickLines = nPicks > 1 ? selection.picks.map((pk, i) => `${shortRole(pk.role) || `Color ${i + 1}`}: ${sum.parts[i].replace(/^[^:]*: /, '')}`) : sum.parts.slice(0, nPicks);
+  const optionLine = sum.parts.slice(nPicks).filter(Boolean).join(' · ');
   const summary = [
-    sum.parts.filter(Boolean).join(' · ') || line.name,
+    ...pickLines,
+    optionLine,
     `${formatInches(width)}" wide × ${formatInches(height)}" high${hideMount ? '' : ` · ${mountObj?.name}`}`,
     mechObj?.name,
-  ];
+  ].filter(Boolean);
+  if (!summary.length) summary.push(line.name);
 
   let k = 0;
   const mountOptions = line.mounts.map((id) => ({ id, label: MOUNTS.find((m) => m.id === id).name, desc: MOUNT_INFO[id].desc, picture: MOUNT_PICTURES[id] }));
@@ -187,7 +231,7 @@ export default function LineShell({
             <div className="s2-line-steps">
               {edit && (
                 <div className="s2-editing" role="status" ref={editingRef}>
-                  <span>You’re changing an item in your cart.</span>
+                  <span>You’re changing: <strong>{[edit.product.name, edit.roomLabel ? `${edit.roomLabel}${edit.windowLabel ? ` · ${edit.windowLabel}` : ''}` : edit.colorName].filter(Boolean).join(', ')}</strong></span>
                   <a className="s2-link" href="/order" onClick={(e) => { e.preventDefault(); clearDraft(line.id, edit.id); navigate('quote'); }}>Cancel</a>
                 </div>
               )}
@@ -234,7 +278,7 @@ export default function LineShell({
             </div>
           </div>
         </div>
-        <PriceBar view={view} qty={n} pick={chip || null} />
+        <PriceBar view={view} qty={n} pick={chip || null} mode={edit ? 'save' : (canAdd && !justAdded ? 'add' : 'checkout')} onAction={handleAdd} canAct={canAdd} />
         <Footer navigate={navigate} />
       </div>
     </CatalogStatusContext.Provider>

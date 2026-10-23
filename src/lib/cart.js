@@ -4,13 +4,15 @@ import { createContext, useContext } from 'react';
 //   items, prices ({ kind, price } per item), totals ({ total, byEmail, loading }), ready (the saved cart has loaded),
 //   addItem(item) -> { merged, qty }, saveItem(id, item), removeItem(id), setQty(id, qty), panelOpen / setPanelOpen,
 //   flash ({ msg, n }), showFlash(msg), goEdit(item), duplicateItem(item),
+//   registerPage({ ready, add, discard } | null): the blind on the open product page (so Checkout can ask to add it first),
+//   undo ({ label, restore } | null) after Remove, notice ({ msg, n } | null) such as "Saved",
 //   incomplete (product pages left part way: { key, lineId, product, title, colorText, sizeText }), removeIncomplete(entry), goIncomplete(entry),
 //   count (items + incomplete), goCheckout(),
 //   auth ({ user, supabaseEnabled, authLoading, signIn })
 export const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
 
-// "Build another": the product page asks LinePage to start again with a blank page.
+// "Add another like this": the product page asks LinePage to start the page again from the draft it just saved.
 export const BuildAnotherContext = createContext(() => {});
 
 // JSON with sorted keys, so two selections that mean the same thing compare equal.

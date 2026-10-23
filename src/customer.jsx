@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
+import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism, getLine, resolveLineId } from './data/lines.js';
 import { SITE } from './data/site.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
 import { BrandPanel } from './components/Showcase.jsx';
@@ -13,6 +13,7 @@ import { profileOf, saveProfile, EMPTY_ADDRESS } from './lib/profile.js';
 import { COUNTRIES } from './data/countries.js';
 import { sentEstimate } from './lib/orders.js';
 import SentOrderView from './orderview.jsx';
+import { useCart } from './lib/cart.js';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -33,6 +34,7 @@ function useWide(query) {
 }
 
 export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
+  const cart = useCart();
   const goContact = (e) => { e.preventDefault(); navigate("contact"); };
   // Google's own (personalized) button fits on desktop; on a phone the compact "Sign in" button keeps the bar on one line
   const roomy = useWide('(min-width: 760px)');
@@ -46,7 +48,7 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
           <a className={route === "contact" ? "active" : ""} href="/contact" onClick={goContact}>Contact</a>
         </div>
         <div className="s2-nav-right">
-          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")} aria-label={quoteCount > 0 ? `Cart, ${quoteCount} item${quoteCount === 1 ? '' : 's'}` : 'Cart'}>
+          <a className="s2-order-pill" href="/order" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); cart.setPanelOpen(true); }} aria-haspopup="dialog" aria-label={quoteCount > 0 ? `Cart, ${quoteCount} item${quoteCount === 1 ? '' : 's'}` : 'Cart'}>
             <CartIcon size={18} />
             Cart{quoteCount > 0 ? ` (${quoteCount})` : ""}
           </a>
@@ -159,7 +161,7 @@ export function HomePage({ navigate }) {
               <h1>Six ways to dress a window.</h1>
               <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
               <div className="s2-btn-row">
-                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start shopping</a>
+                <a className="s2-btn s2-btn-brass" href="#products" onClick={(e) => { e.preventDefault(); document.getElementById("products")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Start shopping</a>
                 <a className="s2-btn s2-btn-line" href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
               </div>
             </div>
@@ -330,10 +332,9 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
     }
   };
 
-  const handleNewOrder = () => {
-    const name = `Order ${(ordersLength ?? orders.length) + 1}`;
-    createOrder(name).then(o => { if (o) navigate('products'); });
-  };
+  // Only orders that were sent are listed here. The cart (and any empty draft) lives in the cart, not in My orders.
+  const sentOrders = orders.filter((o) => o.status === 'sent').sort((x, y) => new Date(y.updated_at) - new Date(x.updated_at));
+  const uniq = (list) => [...new Set(list.filter(Boolean))];
 
   return (
     <div className="page-fade s2 s2-inner">
@@ -344,8 +345,8 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
             <h1 className="s2-page-title">My orders</h1>
           </div>
           <div className="orders-page-actions">
-            <button type="button" className="s2-btn s2-btn-brass" onClick={handleNewOrder}>+ New order</button>
-            <button type="button" className="s2-btn s2-btn-line" onClick={signOut}>Sign out</button>
+            <a className="s2-btn s2-btn-brass" href="/order" onClick={linkTo(navigate, "/order")}>Your cart{quoteCount > 0 ? ` (${quoteCount})` : ""}</a>
+            <button type="button" className="s2-link orders-signout" onClick={signOut}>Sign out</button>
           </div>
         </div>
 
@@ -356,26 +357,27 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
           </div>
         )}
 
-        {orders.length === 0 && !dbError ? (
+        {sentOrders.length === 0 && !dbError ? (
           <div className="empty-state">
             <h2 className="s2-empty-title">No orders yet.</h2>
-            <p>Browse products and use "Add to cart" to get started.</p>
-            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Browse products</button>
+            <p>Orders you send will appear here.</p>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Start shopping</button>
           </div>
-        ) : orders.length === 0 ? null : (
+        ) : sentOrders.length === 0 ? null : (
           <div className="orders-grid">
-            {orders.map(order => {
-              const isActive = order.id === activeOrderId;
-              const blinds = (order.items || []).reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
-              const itemCount = blinds;
+            {sentOrders.map(order => {
+              const items = order.items || [];
+              const blinds = items.reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
+              const products = uniq(items.map((it) => getLine(resolveLineId(it.productId))?.name));
+              const rooms = uniq(items.map((it) => it.roomLabel));
               return (
                 <div
                   key={order.id}
-                  className={`order-card${isActive ? ' active' : ''}`}
+                  className="order-card"
                   onClick={() => openOrder(order.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrder(order.id); }}}
+                  onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openOrder(order.id); }}}
                 >
                   <div className="order-card-header">
                     {editingId === order.id ? (
@@ -392,10 +394,11 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
                       <div className="order-card-name">{order.name}</div>
                     )}
                     <div className="order-card-btns" onClick={e => e.stopPropagation()}>
-                      <button className="order-card-btn" title="Rename" onClick={e => startEdit(e, order)}>✎</button>
+                      <button className="order-card-btn" title="Rename" aria-label={`Rename ${order.name}`} onClick={e => startEdit(e, order)}>✎</button>
                       <button
                         className={`order-card-btn${pendingDelete === order.id ? ' danger' : ''}`}
                         title={pendingDelete === order.id ? 'Click again to confirm delete' : 'Delete'}
+                        aria-label={`Delete ${order.name}`}
                         onClick={e => handleDelete(e, order.id)}
                       >
                         {pendingDelete === order.id ? 'Delete?' : <XIcon size={13} />}
@@ -403,17 +406,14 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
                     </div>
                   </div>
                   <div className="order-card-meta">
-                    {itemCount} blind{itemCount !== 1 ? 's' : ''}
-                    {' · '}
-                    {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    Sent {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {' · '}{blinds} blind{blinds !== 1 ? 's' : ''}
                   </div>
+                  {products.length > 0 && <div className="order-card-lines"><strong>Products:</strong> {products.join(', ')}</div>}
+                  {rooms.length > 0 && <div className="order-card-lines"><strong>Rooms:</strong> {rooms.join(', ')}</div>}
                   {sentEstimate(order) && <div className="order-card-meta order-card-est">{sentEstimate(order)}</div>}
-                  <div className="order-card-pills">
-                    {order.status === 'sent'
-                      ? <span className="order-pill order-pill-sent">Sent</span>
-                      : <span className="order-pill order-pill-draft">In progress</span>
-                    }
-                    {isActive && <span className="order-pill order-pill-active">Active</span>}
+                  <div className="order-card-pills" onClick={e => e.stopPropagation()}>
+                    <button type="button" className="s2-btn s2-btn-line order-again" onClick={() => orderAgain(order)}>Order again</button>
                   </div>
                 </div>
               );
@@ -564,7 +564,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             <div id="submit" className="measure-block measure-cta">
               <div>
                 <h2 className="serif">Got your numbers?</h2>
-                <p>Send them along with your product picks and we'll email your final price within 48 hours.</p>
+                <p>Enter them as you build each blind. We'll email your final price within 48 hours.</p>
               </div>
               <a className="s2-btn s2-btn-sand" href="/products" onClick={linkTo(navigate, "/products")}>Start shopping</a>
             </div>
@@ -584,6 +584,8 @@ export function ContactPage({ navigate }) {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => { setF((v) => ({ ...v, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: "" })); };
+  const sentRef = useRef(null);
+  useEffect(() => { if (status === "sent") sentRef.current?.scrollIntoView({ block: "center" }); }, [status]);          // the confirmation, not the middle of the page
 
   const send = async (e) => {
     e.preventDefault();
@@ -625,7 +627,7 @@ export function ContactPage({ navigate }) {
         <div className="contact-grid">
           <div>
             {status === "sent"
-              ? <div className="success-banner" role="status">
+              ? <div className="success-banner" role="status" ref={sentRef}>
                   <h3 className="serif">Message received.</h3>
                   <p>One of us will reply within 1 business day.</p>
                 </div>

@@ -88,7 +88,6 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
   const activeId = pendingId ?? value?.swatchId ?? null;
   const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
   const styles = picked?.swatch.styles || [];
-  const stylePhotos = styles.length > 1 && !!styles[0].image && styles[0].image !== styles[1].image;
   // a color with Classic and Slim has two codes until a style is picked; then the picked style's code is shown
   const codeOf = (s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
 
@@ -103,8 +102,9 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
   }
 
   const choose = (e) => {
-    if (e.swatch.styles?.length) { setPendingId(e.swatch.id); onChange(null); return; }
     setPendingId(null);
+    // Dream Curtains: Classic is preselected (Slim is one tap away)
+    if (e.swatch.styles?.length) { onChange(makePick(e.swatch, role, e.swatch.styles.find((x) => x.style === "A") || e.swatch.styles[0])); return; }
     onChange(makePick(e.swatch, role, null));
   };
   const chooseStyle = (st) => onChange(makePick(picked.swatch, role, styles.find((x) => x.style === st)));
@@ -135,9 +135,9 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
                 <button type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s)}`} onClick={() => choose(e)}>
                   <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                   <span className="s2-sw-name">{labelOf(e)}</span>
-                  <span className="s2-sw-code">{codeOf(s)}</span>
+                  <span className="s2-sw-code">{on && value?.style && value.swatchId === s.id ? value.code : codeOf(s)}</span>
                 </button>
-                <button type="button" className="s2-sw-zoom" aria-label={`View ${labelOf(e)} larger`} onClick={() => setView(e)}><MagnifierIcon /></button>
+                <button type="button" className="s2-sw-zoom" aria-label={`View ${labelOf(e)} larger`} onClick={() => setView(e)}><span className="s2-sw-zoom-dot"><MagnifierIcon /></span></button>
               </div>
             );
           })}
@@ -147,19 +147,13 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
         <button type="button" className="s2-btn-more" onClick={() => setAll(true)}>Show all {results.length} colors</button>
       )}
 
-      {picked && (
-        <div className="s2-picked" aria-live="polite">
-          <span>{role ? `${role}: ` : "Selected: "}<strong>{labelOf(picked)}</strong> ({value?.code || codeOf(picked.swatch)})</span>
-        </div>
-      )}
+      <p className="s2-sr" aria-live="polite">{picked ? `${role ? `${role}: ` : "Selected: "}${labelOf(picked)} (${value?.code || codeOf(picked.swatch)})` : ""}</p>
       {picked && styles.length > 0 && (
         <div className="s2-color-style">
           <p className="s2-step-hint">Choose a style for this color.</p>
           <Cards label="Style" value={value?.style || null} onChange={chooseStyle}
             options={styles.map((st) => ({
               id: st.style, label: DREAM_STYLE_INFO[st.style]?.name || `Style ${st.style}`, desc: DREAM_STYLE_INFO[st.style]?.desc,
-              // a picture only when the two styles of this color have their own photos
-              picture: stylePhotos ? <SwatchImg src={st.thumb} fallback={st.image} alt="" code="" size={64} /> : null,
             }))} />
         </div>
       )}
@@ -234,8 +228,8 @@ export function EstimateCard({ view, checks, summary, qty = 1, qtyField = null, 
         </>
       )}
       {view.kind === "toosmall" && (<><div className="s2-estimate-title">Size too small</div><p className="s2-estimate-text">{view.text} Please enter a larger size to see your price.</p></>)}
-      {view.kind === "custom" && (<><div className="s2-estimate-title">Custom size</div><p className="s2-estimate-text">{CUSTOM_TEXT}</p></>)}
-      {view.kind === "request" && (<><div className="s2-estimate-title">Price on request</div><p className="s2-estimate-text">{REQUEST_TEXT}</p></>)}
+      {view.kind === "custom" && (<><div className="s2-estimate-title">Larger than our standard range</div><p className="s2-estimate-text">{CUSTOM_TEXT}</p></>)}
+      {view.kind === "request" && (<><div className="s2-estimate-title">Price by email</div><p className="s2-estimate-text">{REQUEST_TEXT}</p></>)}
       {view.kind === "loading" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">Calculating your estimate…</p></>)}
       {view.kind === "error" && (<><div className="s2-estimate-title">Your price</div><p className="s2-estimate-text">We couldn't work out an estimate just now. You can still add this to your cart and we'll reply with a price.</p></>)}
       {view.kind === "waiting" && (
