@@ -1414,7 +1414,7 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 
 /* privacy, terms and "Page not found" */
 .legal { max-width: 760px; padding-bottom: 72px; }
-.legal h2 { font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; margin: 36px 0 8px; }
+.legal h2 { font-family: "Playfair Display", Georgia, serif; font-weight: 500; font-size: 24px; margin: 32px 0 8px; }
 .legal p, .legal li { font-size: 16px; line-height: 1.65; }
 .legal ul { padding-left: 22px; }
 .legal li { margin: 6px 0; }

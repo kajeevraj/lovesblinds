@@ -58,7 +58,7 @@ export function PrivacyPage({ navigate }) {
         <li><strong>Resend</strong> sends the emails (our copy of your order and the confirmation to you).</li>
         <li><strong>Google</strong> provides Sign in with Google. Google's own privacy policy applies to your Google account.</li>
       </ul>
-      <p>These companies may process data in the United States and other countries. We share your order details with our suppliers and shipping carriers only as needed to make and deliver your order. <Todo>confirm: supplier names or "our manufacturing partners"</Todo></p>
+      <p>These companies may process data in the United States and other countries. We share your order details with the partners who make and deliver your order (manufacturing and shipping carriers) only as needed to do so. <Todo>confirm this wording is accurate</Todo></p>
 
       <h2>Cookies and browser storage</h2>
       <p>The site saves your cart, your unfinished blinds and your sign-in in your browser's storage so they are still there when you come back. Google may set its own cookies when you use Sign in with Google. You can clear this any time in your browser settings; you will be signed out and unsent carts will be lost.</p>

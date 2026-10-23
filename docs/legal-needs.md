@@ -8,7 +8,7 @@ The pages `/privacy` and `/terms` (`src/legal.jsx`) are drafts. Every yellow `[p
 
 ## Privacy policy
 - How long you keep orders and messages (and whether you delete on request).
-- Who your suppliers and carriers are, or whether "our manufacturing partners" is enough.
+- Whether "the partners who make and deliver your order" describes who sees customer details accurately (the pages avoid the word "supplier" on purpose).
 - Whether you sell to people in California, the EU or the UK. If so, extra rights and wording apply.
 - Confirm that you run no analytics or ad trackers (the site has none today).
 
