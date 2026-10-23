@@ -1,17 +1,22 @@
 // The shared layout of every redesigned product page: sticky photo on the left, numbered steps on the right,
 // then size, mount, control, room, quantity, the estimate and the sticky price bar.
 // A line page supplies its own steps (fabric, color, style ...) and its price configuration; everything else is here.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MOUNTS, getMechanism } from './data/lines.js';
 import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO } from './data/optionInfo.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
 import { buildSelection } from './lib/lineSelection.js';
-import { formatInches, sizeFromNumbers } from './lib/inches.js';
+import { formatInches } from './lib/inches.js';
 import { summarize } from './lib/selection.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
-import { Step, Cards, MOUNT_PICTURES, SizeFields, EMPTY_SIZE, sizeNumbers, EstimateCard, QtyField, priceView } from './components/s2.jsx';
+import { Step, Cards, MOUNT_PICTURES, EstimateCard, QtyField, priceView } from './components/s2.jsx';
+import SizeFields, { EMPTY_SIZE, sizeNumbers } from './components/SizeFields.jsx';
+import RoomFields, { splitRoom, roomLabelOf } from './components/RoomFields.jsx';
+import { blinds } from './lib/itemView.js';
+import { saveDraft, clearDraft, hasProgress } from './lib/drafts.js';
 import { PriceBar } from './components/OrderBar.jsx';
-import { useCart } from './lib/cart.js';
+import { useCart, BuildAnotherContext } from './lib/cart.js';
+import { useContext } from 'react';
 import { useSizeLimits, limitLineFor } from './lib/sizeLimits.js';
 import { checkSize, clampQty, TYPO_TEXT } from './lib/limits.js';
 import SitePhoto from './components/SitePhoto.jsx';
@@ -44,18 +49,20 @@ export const PHOTOS = {
 };
 
 export default function LineShell({
-  line, navigate, edit = null, title, intro, photo, photoNote, gallery, onGallery, chip,
+  line, navigate, edit = null, start = null, ui = null, title, intro, photo, photoNote, gallery, onGallery, chip,
   leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null,
 }) {
   const catalog = useLineCatalog(line.id);
   const cart = useCart();
-  // editing an item: every choice starts as it was saved
-  const [mech, setMech] = useState(edit?.mech || line.mechanisms[0].id);
-  const [mount, setMount] = useState(edit?.mount || line.mounts[0]);
-  const [size, setSize] = useState(edit ? sizeFromNumbers(edit.width, edit.length) : EMPTY_SIZE);
-  const [room, setRoom] = useState(edit?.roomLabel || '');
-  const [qty, setQty] = useState(String(edit?.qty || 1));
-  const [added, setAdded] = useState(false);
+  // every choice starts as it was saved: the draft from earlier on this page, else the item being edited
+  const [mech, setMech] = useState(start?.mech || edit?.mech || line.mechanisms[0].id);
+  const [mount, setMount] = useState(start?.mount || edit?.mount || line.mounts[0]);
+  const [size, setSize] = useState(start ? { w: start.w, h: start.h } : EMPTY_SIZE);
+  const [roomF, setRoomF] = useState(() => ({ ...splitRoom(start?.roomLabel), windowLabel: start?.windowLabel || '' }));
+  const room = roomLabelOf(roomF.choice, roomF.custom);
+  const [qty, setQty] = useState(String(start?.qty || edit?.qty || 1));
+  const [addedAt, setAddedAt] = useState(null);       // { key, merged, qty } for the choices that were just added
+  const buildAnother = useContext(BuildAnotherContext);
 
   const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
@@ -71,10 +78,32 @@ export default function LineShell({
   const { selection, missing } = buildSelection(line, c);
   const optionsReady = missing.length === 0;
   const canAdd = optionsReady && sized && !tooSmall && view.kind !== 'loading' && view.kind !== 'waiting';
-  const needs = !optionsReady ? colorNeeds : !sized ? 'Enter your size' : 'Calculating…';
+  const needs = !optionsReady ? colorNeeds : tooSmall ? chk.tooSmall.map((t) => t.text).join(' ') : !sized ? 'Enter your size' : 'Calculating…';
 
   const mechObj = getMechanism(line, mech);
   const mountObj = MOUNTS.find((m) => m.id === mount);
+
+  // What is chosen is saved in this browser as it changes, so the back button or a refresh never loses it. Right after the item
+  // is added the same choices are not a draft any more (no "incomplete" copy of what is already in the cart).
+  const addedSig = useRef(null);
+  const draftSig = JSON.stringify([selection, mech, mount, size.w, size.h, room, roomF.windowLabel]);
+  const uiSig = JSON.stringify(ui || {});
+  const origSig = edit ? JSON.stringify([edit.selection ?? null, edit.mech, edit.mount, formatInches(edit.width), formatInches(edit.length), edit.roomLabel || '', edit.windowLabel || '']) : null;
+  useEffect(() => {
+    const data = { selection, mech, mount, w: size.w, h: size.h, roomLabel: room, windowLabel: roomF.windowLabel, qty, ui: ui || {} };
+    if (draftSig === addedSig.current || (edit && draftSig === origSig) || (!edit && !hasProgress(data))) clearDraft(line.id, edit?.id || null);
+    else saveDraft(line.id, edit?.id || null, data);
+  }, [draftSig, qty, uiSig]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Editing from the cart: put the "You're changing an item in your cart" message at the top of the screen (the photo comes first on a phone)
+  const editingRef = useRef(null);
+  useEffect(() => {
+    if (!edit || !window.matchMedia('(max-width: 959px)').matches) return undefined;
+    const go = () => { const el = editingRef.current; if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8), behavior: 'instant' }); };
+    go();
+    const t = setTimeout(go, 250);               // once pictures and colors have taken their space
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAdd = () => {
     if (!canAdd) return;
@@ -88,20 +117,84 @@ export default function LineShell({
       price: view.kind === 'price' ? view.price : null,          // the price for one window; the order multiplies by qty
       priceKind: view.kind === 'price' ? 'estimate' : 'email',
       width: parseFloat(width) || null, length: parseFloat(height) || null, qty: n,
-      roomLabel: room.trim(), addons: edit?.addons || { blackout: false, install: false },
+      roomLabel: room, windowLabel: roomF.windowLabel.trim(), addons: edit?.addons || { blackout: false, install: false },
     };
-    if (edit) { cart.saveItem(edit.id, item); navigate('quote'); return; }
-    cart.addItem(item);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    if (edit) { clearDraft(line.id, edit.id); cart.saveItem(edit.id, item); navigate('quote'); return; }
+    addedSig.current = draftSig;
+    clearDraft(line.id, null);
+    const r = cart.addItem(item);
+    setAddedAt({ key: `${draftSig}|${n}`, merged: r.merged, qty: r.qty });
+  };
+  // the confirmation stays until something about the blind (or how many) changes
+  const justAdded = !edit && addedAt && addedAt.key === `${draftSig}|${n}` ? addedAt : null;
+
+  // "Add another like this": the same product, color, options and room, with the size and window label cleared
+  const addAnother = () => {
+    saveDraft(line.id, null, { selection, mech, mount, w: '', h: '', roomLabel: room, windowLabel: '', qty: '1', ui: ui || {} });
+    try { sessionStorage.setItem('lb_scroll', 'size'); } catch { /* ignore */ }
+    buildAnother();
   };
 
+  // tell the cart which blind is on this page, so Checkout can ask "Add this blind to your cart first?"
+  useEffect(() => { cart.registerPage({ ready: !edit && canAdd && !justAdded, add: handleAdd, discard: () => clearDraft(line.id, null) }); });
+  useEffect(() => () => cart.registerPage(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arriving from "Finish choosing" or "Add another like this": scroll to the first missing step (or the Size step)
+  const missingRef = useRef({ missing, sized });
+  missingRef.current = { missing, sized };
+  useEffect(() => {
+    let mode = null;
+    try { mode = sessionStorage.getItem('lb_scroll'); sessionStorage.removeItem('lb_scroll'); } catch { /* ignore */ }
+    if (!mode || edit) return undefined;
+    const go = () => {
+      const steps = [...document.querySelectorAll('.s2-step')];
+      const byTitle = (re) => steps.find((e) => re.test(e.querySelector('.s2-step-title')?.innerText.replace(/^\d+\s*/, '') || ''));
+      const { missing: miss, sized: ok } = missingRef.current;
+      let el = null;
+      if (mode === 'size') el = byTitle(/^Size$/);
+      else if (miss.length) {
+        const m = miss[0];
+        const re = /front/i.test(m) ? /front/i : /back/i.test(m) ? /back/i : /day/i.test(m) ? /day/i : /night/i.test(m) ? /night/i : /pleat/i.test(m) ? /pleat/i : /lining/i.test(m) ? /lining/i : /style/i.test(m) ? /^style$/i : /color|fabric/i;
+        el = byTitle(re) || steps[0];
+      } else if (!ok) el = byTitle(/^Size$/);
+      else el = document.querySelector('.s2-estimate');
+      if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 12), behavior: 'instant' });
+    };
+    go();
+    const t = setTimeout(go, 350);              // once the colors have loaded and taken their space
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const footer = justAdded ? (
+    <div className="s2-added-card" role="status">
+      <div className="s2-added-card-head"><span className="s2-added-check" aria-hidden="true">✓</span><strong>Added to your cart</strong></div>
+      {justAdded.merged && <p className="s2-added-card-text">Same as one already in your cart, so it now has {blinds(justAdded.qty)} of this size.</p>}
+      <div className="s2-added-card-actions">
+        <button type="button" className="s2-btn s2-btn-brass" onClick={cart.goCheckout}>Checkout</button>
+        <button type="button" className="s2-btn s2-btn-line" onClick={() => navigate('products')}>Keep shopping</button>
+      </div>
+      <button type="button" className="s2-link s2-build-another" onClick={addAnother}>Add another like this</button>
+    </div>
+  ) : (
+    <>
+      <button type="button" className="s2-btn s2-btn-brass s2-add-btn" disabled={!canAdd} onClick={handleAdd}>{edit ? 'Save changes' : 'Add to cart'}</button>
+      {!canAdd && <p className="s2-add-hint">{needs}</p>}
+    </>
+  );
+
   const sum = summarize({ product: line, selection });
+  // one short line per color ("Day: Light filtering · Name (code)"), then the other options, then size and control
+  const nPicks = selection.picks.length;
+  const shortRole = (r) => String(r || '').replace(/\s*\(.*\)\s*$/, '').replace(/ shade$/i, '');
+  const pickLines = nPicks > 1 ? selection.picks.map((pk, i) => `${shortRole(pk.role) || `Color ${i + 1}`}: ${sum.parts[i].replace(/^[^:]*: /, '')}`) : sum.parts.slice(0, nPicks);
+  const optionLine = sum.parts.slice(nPicks).filter(Boolean).join(' · ');
   const summary = [
-    sum.parts.filter(Boolean).join(' · ') || line.name,
+    ...pickLines,
+    optionLine,
     `${formatInches(width)}" wide × ${formatInches(height)}" high${hideMount ? '' : ` · ${mountObj?.name}`}`,
     mechObj?.name,
-  ];
+  ].filter(Boolean);
+  if (!summary.length) summary.push(line.name);
 
   let k = 0;
   const mountOptions = line.mounts.map((id) => ({ id, label: MOUNTS.find((m) => m.id === id).name, desc: MOUNT_INFO[id].desc, picture: MOUNT_PICTURES[id] }));
@@ -137,9 +230,9 @@ export default function LineShell({
 
             <div className="s2-line-steps">
               {edit && (
-                <div className="s2-editing" role="status">
-                  <span>You are changing an item in your order.</span>
-                  <a className="s2-link" href="/order" onClick={(e) => { e.preventDefault(); navigate('quote'); }}>Cancel</a>
+                <div className="s2-editing" role="status" ref={editingRef}>
+                  <span>You’re changing: <strong>{[edit.product.name, edit.roomLabel ? `${edit.roomLabel}${edit.windowLabel ? ` · ${edit.windowLabel}` : ''}` : edit.colorName].filter(Boolean).join(', ')}</strong></span>
+                  <a className="s2-link" href="/order" onClick={(e) => { e.preventDefault(); clearDraft(line.id, edit.id); navigate('quote'); }}>Cancel</a>
                 </div>
               )}
               <div>
@@ -152,7 +245,7 @@ export default function LineShell({
                 <Step key={st.title} n={++k} title={st.title} hint={st.hint}>{st.node}</Step>
               ))}
 
-              <Step n={++k} title="Size" hint={<>In inches. Not sure? <a href="/measure" onClick={(e) => { e.preventDefault(); navigate('measure'); }}>See how to measure</a>.</>}>
+              <Step n={++k} title="Size" hint={<>Not sure? <a href="/measure" onClick={(e) => { e.preventDefault(); navigate('measure'); }}>See how to measure</a>.</>}>
                 <SizeFields size={size} onChange={setSize} />
                 {tooSmall && <p className="s2-size-msg is-error" role="alert">{chk.tooSmall.map((t) => <span key={t.dim}>{t.text} </span>)}Please enter a larger size.</p>}
                 {chk.typo && <p className="s2-size-msg is-warn" role="status">{TYPO_TEXT}</p>}
@@ -174,20 +267,18 @@ export default function LineShell({
               ))}
 
               <Step n={++k} title="Which room is this for?">
-                <label className="s2-sr" htmlFor="s2-room">Room name</label>
-                <input id="s2-room" className="s2-input" type="text" placeholder="e.g. Primary bedroom, left window" value={room} onChange={(e) => setRoom(e.target.value)} />
-                <p className="s2-step-hint">Helps you keep track when you order several blinds.</p>
+                <RoomFields choice={roomF.choice} custom={roomF.custom} windowLabel={roomF.windowLabel} onChange={setRoomF} />
               </Step>
 
-              <EstimateCard view={view} qty={n} summary={summary}
+              <EstimateCard view={view} qty={n} summary={summary} footer={footer}
                 checks={[...checks, { label: 'Width and height', done: sized }]}
                 qtyField={<QtyField qty={qty} onChange={setQty} />} />
-              {edit && <a className="s2-link s2-cancel" href="/order" onClick={(e) => { e.preventDefault(); navigate('quote'); }}>Cancel</a>}
+              {edit && <a className="s2-link s2-cancel" href="/order" onClick={(e) => { e.preventDefault(); clearDraft(line.id, edit.id); navigate('quote'); }}>Cancel</a>}
               {tail}
             </div>
           </div>
         </div>
-        <PriceBar title={title} view={view} needs={needs} qty={n} canAdd={canAdd} added={added} editing={!!edit} onAdd={handleAdd} />
+        <PriceBar view={view} qty={n} pick={chip || null} mode={edit ? 'save' : (canAdd && !justAdded ? 'add' : 'checkout')} onAction={handleAdd} canAct={canAdd} />
         <Footer navigate={navigate} />
       </div>
     </CatalogStatusContext.Provider>

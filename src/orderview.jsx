@@ -1,5 +1,5 @@
 // A sent order, to look at and nothing more: its items with the estimates they were sent with, the customer's details and
-// address, and "Order again", which copies the items into a new draft. A sent order is never edited or overwritten.
+// address, and "Order again", which adds the same blinds to the cart. A sent order is never edited or overwritten.
 import { reconstructItem } from './lib/orders.js';
 import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
 import { addressLine } from './data/countries.js';
@@ -18,7 +18,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
       <section className="s2-wrap s2-order-wrap">
         <a className="s2-link" href="/orders" onClick={(e) => { e.preventDefault(); navigate('orders'); }}>← My orders</a>
         <h1 className="s2-order-title">{order.name}</h1>
-        <p className="s2-order-sub">Sent on {when}. This order has been sent to us and can't be changed. To order the same blinds again, start a new order from it.</p>
+        <p className="s2-order-sub">Sent on {when}. This order has been sent to us and can't be changed. To get the same blinds again, add them to your cart with "Order again".</p>
 
         <ul className="s2-items">
           {items.map((it) => {
@@ -33,10 +33,10 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
                       <div className="s2-item-price">
                         {it.priceKind === 'estimate' && it.price > 0
                           ? <><div className="s2-item-amount">{money(it.price * q)}</div>{q > 1 && <div className="s2-item-each">{money(it.price)} each · {blinds(q)}</div>}</>
-                          : it.priceKind ? <div className="s2-item-amount s2-item-onreq">Price sent by email</div> : null}
+                          : it.priceKind ? <div className="s2-item-amount s2-item-onreq">Price by email</div> : null}
                       </div>
                     </div>
-                    {it.roomLabel && <div className="s2-item-room">{it.roomLabel}</div>}
+                    {(it.roomLabel || it.windowLabel) && <div className="s2-item-room">{[it.roomLabel, it.windowLabel].filter(Boolean).join(' · ')}</div>}
                     <div className="s2-item-details">{d.parts.join(' · ')}</div>
                     <div className="s2-item-qty">{blinds(q)}</div>
                   </div>
@@ -48,7 +48,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
 
         {hasEstimates && (
           <section className="s2-total">
-            <div className="s2-total-row"><span>Estimated total</span><strong>{total > 0 ? money(total) : 'Price sent by email'}</strong></div>
+            <div className="s2-total-row"><span>Estimated total</span><strong>{total > 0 ? money(total) : 'Price by email'}</strong></div>
             {byEmail > 0 && total > 0 && <div className="s2-total-plus">Plus {byEmail} item{byEmail === 1 ? '' : 's'} priced by email</div>}
           </section>
         )}

@@ -23,21 +23,21 @@ try {
   let sentBody = null, copy = false;
   await page.route('**/api/quote', async (route) => { sentBody = JSON.parse(route.request().postData()); await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: copy }) }); });
   const size = async (w, h) => { await page.locator('#s2-w').fill(String(w)); await page.locator('#s2-h').fill(String(h)); };
-  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled); await page.locator('.s2-bar-btn').click(); await page.locator('.s2-flash').waitFor(); };
+  const add = async () => { await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled); await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor(); };
 
   // an empty order
   await page.goto(`${BASE}/order`);
-  check('an empty order says so and offers a way to choose a style', /Your order is empty/.test(await page.locator('main').innerText()));
+  check('an empty order says so and offers a way to choose a style', /Your cart is empty/.test(await page.locator('main').innerText()));
 
   // window 1: Roller, No fabric wrap, 3 windows, a room
   await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor();
   const rName = (await page.locator('.s2-sw-name').first().innerText()).trim();
   await page.locator('.s2-sw').first().click(); await size(40, 64);
   await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
-  await page.locator('#s2-room').fill('Living room, left window');
+  await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Living room, left window');
   await page.locator('#s2-qty').fill('3');
   await page.getByText(/each · 3 blinds/).first().waitFor();
-  const unit = num((await page.locator('.s2-bar-sub').innerText()).split('each')[0]);
+  const unit = num((await page.locator('.s2-estimate-each').innerText()).split('each')[0]);
   await add();
   // window 2: curtains, 2 windows
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
@@ -52,9 +52,9 @@ try {
   await page.locator('.s2-color-tools input').fill('Angel White'); await page.locator('.s2-sw').first().click();
   const styleCards = await page.locator('.s2-color-style .s2-card').allInnerTexts();
   check('Dream Curtains styles are called Classic and Slim, with the one-liners, and show no measurements or "Style A/B"', styleCards.length === 2 && /Classic[\s\S]*Fuller vanes in a heavier fabric\./.test(styleCards[0]) && /Slim[\s\S]*Slimmer vanes in a lighter, airier fabric\./.test(styleCards[1]) && !/\d\s?(cm|in\b|inch)|Style [AB]/i.test(styleCards.join(' ') + await page.locator('.s2-color').innerText()), styleCards.map((c) => c.replace(/\s+/g, ' ')).join(' | '));
-  check('before a style is picked the color shows both codes; after picking Slim it shows the Slim code', /ZDS30\d+-\d+ \/ ZDS39\d+-\d+/.test(await page.locator('.s2-color').innerText()));
+  check('Classic is preselected and the color tile shows only the Classic code (ZDS30xx)', (await page.locator('.s2-color-style .s2-card.on').innerText()).includes('Classic') && /^ZDS30\d+-\d+$/.test((await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim()));
   await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click();
-  check('the picked style\'s code is shown (Slim = ZDS39xx)', /Angel White\s*\(ZDS3902-1\)/.test(await page.locator('.s2-picked').innerText()), await page.locator('.s2-picked').innerText());
+  check('after picking Slim the tile shows the Slim code (ZDS3902-1)', (await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim() === 'ZDS3902-1', await page.locator('.s2-sw.on .s2-sw-code').innerText());
   await size(60, 84); await page.locator('#s2-qty').fill('2'); await add();
 
   // the order page
@@ -66,7 +66,7 @@ try {
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
   const curtainText = await items.nth(1).innerText();
-  check('Curtains: "Price on request" and the reply-with-a-price sentence, 2 blinds', /Price on request/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  check('Curtains: "Price by email" and the reply-with-a-price sentence, 2 blinds', /Price by email/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
   const dreamCard = await items.nth(2).innerText();
   const dreamPrice = num(dreamCard.match(/\$[\d,]+/)?.[0]);
   check('Dream Curtains window: a live price, the style name and the picked style\'s code (ZDS3902-1), no "Style B"', dreamPrice > 0 && /Slim/.test(dreamCard) && /ZDS3902-1/.test(dreamCard) && !/ZDS3002|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));
@@ -76,17 +76,17 @@ try {
   // the Edit link opens the same page as clicking the item
   await items.nth(2).getByRole('link', { name: /^Edit / }).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-color-style .s2-card.on').waitFor();
-  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
+  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
   await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   // clicking an item opens its product page with every choice filled in; Save changes updates the same item
   await items.nth(0).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-bar-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-picked').innerText()).includes(rName));
+  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-sw.on .s2-sw-name').innerText()).includes(rName));
   const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#s2-qty').fill('4');
-  await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-bar-sub')?.innerText || ''));
-  await page.locator('.s2-bar-btn').click();
+  await page.waitForFunction(() => /each · 4 blinds/.test(document.querySelector('.s2-estimate-each')?.innerText || ''));
+  await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order');
   await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => /44" wide × 64" high/.test(document.querySelector('.s2-item').innerText) && !/Calculating/.test(document.querySelector('.s2-items').innerText));
@@ -97,7 +97,8 @@ try {
   await items.nth(1).getByRole('button', { name: 'Remove' }).click();
   check('Remove takes the window out and the "priced by email" line goes with it', (await items.count()) === 2 && !/priced by email/.test(await page.locator('.s2-total').innerText()));
 
-  // validation
+  // Checkout opens the details step; validation
+  await page.getByRole('button', { name: 'Checkout' }).click(); await page.locator('#s2-details-title').waitFor();
   await page.getByRole('button', { name: 'Send my order' }).click();
   check('Send my order without a name, email or address asks for them and sends nothing', (await page.locator('.s2-error').count()) === 6 && sentBody === null);
   await page.locator('#o-name').fill('Ada Lovelace'); await page.locator('#o-email').fill('not-an-email');
@@ -118,7 +119,7 @@ try {
   for (const [label, status, body] of [['an email error', 500, { error: 'We could not send your order just now. If it keeps happening, please call us at (262) 434-0949 or email loveblindswindows@gmail.com.' }], ['the rate limit', 429, { error: 'Too many orders were sent. Please call us at (262) 434-0949.' }], ['an empty answer', 200, {}]]) {
     await page.route('**/api/quote', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
     await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();
-    check(`order form, ${label}: an error is shown, never "on its way", and the order is still there`, !/on its way/.test(await page.locator('main').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.s2-send-error').innerText()) && (await page.locator('.s2-items > li').count()) > 0);
+    check(`order form, ${label}: an error is shown, never "on its way", and the order is still there`, !/on its way/.test(await page.locator('main').innerText()) && /262\D{0,3}434\D?0949/.test(await page.locator('.s2-send-error').innerText()) && (await page.locator('.s2-co-summary').count()) === 1);
   }
   await page.route('**/api/quote', (route) => route.abort());
   await page.getByRole('button', { name: 'Send my order' }).click(); await page.locator('.s2-send-error').waitFor();
@@ -140,7 +141,7 @@ try {
   copy = true;
   await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click(); await size(40, 64); await add();
-  await page.goto(`${BASE}/order`); await page.locator('#o-name').fill('Ada'); await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-street').fill('1 Way'); await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1');
+  await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').fill('Ada'); await page.locator('#o-email').fill('ada@example.com'); await page.locator('#o-street').fill('1 Way'); await page.locator('#o-city').fill('London'); await page.locator('#o-state').fill('England'); await page.locator('#o-zip').fill('N1');
   await page.getByRole('button', { name: 'Send my order' }).click();
   await page.getByRole('heading', { name: 'Your order is on its way to us' }).waitFor();
   check('when an email copy was sent, the confirmation says "A copy of your order was sent to your email."', /A copy of your order was sent to your email\./.test(await page.locator('main').innerText()));

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FAMILY_LABELS } from './lib/selection.js';
+import { startFor } from './lib/drafts.js';
+import { pickByRole } from './lib/lineSelection.js';
 import { ROLLER_MODE_INFO, ROLLER_FAMILY_INFO, ROLLER_FAMILY_CARD, ROLLER_PRIVACY_NOTE } from './data/optionInfo.js';
 import { Cards, ColorStep, TopCoverStep } from './components/s2.jsx';
 import LineShell, { PAGE } from './lineshell.jsx';
@@ -22,11 +24,12 @@ function FabricType({ value, onChange, label }) {
 }
 
 export default function RollerPage({ line, navigate, edit = null }) {
-  const sel = edit?.selection;
-  const shade = (pk) => ({ family: pk?.family || 'solar', pick: pk || null });
+  const [start] = useState(() => startFor(line.id, edit));
+  const sel = start?.selection;
+  const shade = (pk, fam) => ({ family: pk?.family || fam || 'solar', pick: pk || null });
   const [mode, setMode] = useState(sel?.mode || 'single');
-  const [front, setFront] = useState(shade(sel?.picks?.[0]));
-  const [back, setBack] = useState(shade(sel?.picks?.[1]));
+  const [front, setFront] = useState(shade((sel?.mode === 'double-stack' ? pickByRole(sel, 'Front') : sel?.picks?.[0]), start?.ui?.frontFamily));
+  const [back, setBack] = useState(shade(sel?.mode === 'double-stack' ? pickByRole(sel, 'Back') : null, start?.ui?.backFamily));
   const [wrap, setWrap] = useState(sel?.cover || 'wrapped');
   const double = mode === 'double-stack';
   const c = { mode, front: front.pick, back: back.pick, wrap };
@@ -59,12 +62,12 @@ export default function RollerPage({ line, navigate, edit = null }) {
   ];
 
   const tailSteps = [{
-    title: 'Top cover',
+    title: 'Top cover', hint: 'The cassette is the cover over the top of the shade.',
     node: <TopCoverStep value={wrap} onChange={setWrap} />,
   }];
 
   return (
-    <LineShell line={line} navigate={navigate} edit={edit} title={PAGE.roller.title} intro={PAGE.roller.intro}
+    <LineShell line={line} navigate={navigate} edit={edit} start={start} ui={{ frontFamily: front.family, backFamily: back.family }} title={PAGE.roller.title} intro={PAGE.roller.intro}
       photo={{ name: ROLLER_FAMILY_CARD[front.family].photo, alt: ROLLER_FAMILY_CARD[front.family].alt }}
       photoNote={`Photo shows ${FAMILY_LABELS[front.family]} fabric. Your color is shown in the swatch.`}
       chip={front.pick}

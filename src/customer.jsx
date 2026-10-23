@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism } from './data/lines.js';
+import { activeLines, activeLinesIn, activeLocations, needsLocationStep, LOCATION_LABELS, MOUNTS, getMechanism, getLine, resolveLineId } from './data/lines.js';
 import { SITE } from './data/site.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
 import { BrandPanel } from './components/Showcase.jsx';
@@ -7,10 +7,13 @@ import SitePhoto from './components/SitePhoto.jsx';
 import { CATEGORY_ICONS, ArrowRight, XIcon } from './icons.jsx';
 import { ExplainerImg } from './components/ExplainerImg.jsx';
 import ProfileMenu from './components/ProfileMenu.jsx';
+import GoogleSignIn from './components/GoogleSignIn.jsx';
+import { CartIcon } from './icons.jsx';
 import { profileOf, saveProfile, EMPTY_ADDRESS } from './lib/profile.js';
 import { COUNTRIES } from './data/countries.js';
 import { sentEstimate } from './lib/orders.js';
 import SentOrderView from './orderview.jsx';
+import { useCart } from './lib/cart.js';
 
 const linkTo = (navigate, path) => (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // let the browser open new tabs
@@ -18,13 +21,23 @@ const linkTo = (navigate, path) => (e) => {
   navigate(path);
 };
 
+// true while the window is at least this wide (re-checked when it changes)
+function useWide(query) {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const f = () => setOn(m.matches);
+    f(); m.addEventListener('change', f);
+    return () => m.removeEventListener('change', f);
+  }, [query]);
+  return on;
+}
+
 export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signInWithGoogle, signOut, authLoading }) {
-  const goHow = (e) => {
-    e.preventDefault();
-    if (route === "home") document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
-    else { navigate("home"); setTimeout(() => document.getElementById("how")?.scrollIntoView(), 50); }
-  };
+  const cart = useCart();
   const goContact = (e) => { e.preventDefault(); navigate("contact"); };
+  // Google's own (personalized) button fits on desktop; on a phone the compact "Sign in" button keeps the bar on one line
+  const roomy = useWide('(min-width: 760px)');
   return (
     <header className="s2-nav">
       <nav className="s2-nav-inner" aria-label="Main">
@@ -32,15 +45,16 @@ export function Nav({ route, navigate, quoteCount, supabaseEnabled, user, signIn
         <div className="s2-nav-links">
           <a className={route === "products" ? "active" : ""} href="/products" onClick={linkTo(navigate, "/products")}>Products</a>
           <a className={route === "measure" ? "active" : ""} href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
-          <a href="/#how" onClick={goHow}>How it works</a>
           <a className={route === "contact" ? "active" : ""} href="/contact" onClick={goContact}>Contact</a>
         </div>
         <div className="s2-nav-right">
-          <a className="s2-order-pill" href="/order" onClick={linkTo(navigate, "/order")}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
-            Your order{quoteCount > 0 ? ` (${quoteCount})` : ""}
+          <a className="s2-order-pill" href="/order" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); cart.setPanelOpen(true); }} aria-haspopup="dialog" aria-label={quoteCount > 0 ? `Cart, ${quoteCount} item${quoteCount === 1 ? '' : 's'}` : 'Cart'}>
+            <CartIcon size={18} />
+            Cart{quoteCount > 0 ? ` (${quoteCount})` : ""}
           </a>
-          {supabaseEnabled && <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />}
+          {supabaseEnabled && (user
+            ? <ProfileMenu user={user} authLoading={authLoading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} />
+            : <GoogleSignIn gis={roomy} text="signin" label="Sign in" disabled={authLoading} onFallback={signInWithGoogle} />)}
         </div>
       </nav>
     </header>
@@ -53,7 +67,7 @@ export function Footer({ navigate, hideMessage = false }) {
       <div className="s2-wrap s2-footer-inner">
         <div className="s2-footer-brand">
           <div className="s2-footer-name">Love's Blinds</div>
-          <div className="s2-footer-text">Custom made-to-measure window treatments, shipped worldwide.</div>
+          <div className="s2-footer-text">Custom made-to-measure window treatments, <strong>shipped worldwide</strong>.</div>
         </div>
         <div className="s2-footer-contact">
           <div className="s2-footer-head">Questions?</div>
@@ -127,7 +141,7 @@ const STEPS = [
 const LIGHT = [
   { photo: "shangri-la", slug: "shangri-la", title: "Soft, glowing light", text: "Shangri-La, Zebra and sheer curtains" },
   { photo: "screen-view", slug: "roller", title: "Less glare, keep the view", text: "Solar and screen view roller shades" },
-  { photo: "blackout", slug: "roller", title: "Dark for sleeping", text: "Blackout rollers and blackout cellular shades" },
+  { photo: "blackout", slug: "roller", title: "Room darkening", text: "Good for bedrooms, nurseries and home theaters." },
 ];
 const MEASURE = [
   ["Choose inside or outside mount", "Inside sits within the window frame. Outside covers the frame from the wall."],
@@ -147,7 +161,7 @@ export function HomePage({ navigate }) {
               <h1>Six ways to dress a window.</h1>
               <p className="s2-hero-text">Pick a style, choose your color and size, and see your price as you build. Send us your order and we confirm the details within 48 hours.</p>
               <div className="s2-btn-row">
-                <a className="s2-btn s2-btn-brass" href="/products" onClick={linkTo(navigate, "/products")}>Start your order</a>
+                <a className="s2-btn s2-btn-brass" href="#products" onClick={(e) => { e.preventDefault(); document.getElementById("products")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Start shopping</a>
                 <a className="s2-btn s2-btn-line" href="/measure" onClick={linkTo(navigate, "/measure")}>How to measure</a>
               </div>
             </div>
@@ -202,7 +216,7 @@ export function HomePage({ navigate }) {
           <div className="s2-measure-intro">
             <p className="s2-eyebrow s2-eyebrow-light">Measure at home</p>
             <h2 id="measure-title" className="s2-h2">Measuring takes about five minutes.</h2>
-            <p className="s2-measure-text">All you need is a steel tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
+            <p className="s2-measure-text">All you need is a tape measure. Measure to the nearest 1/8 inch, and we double-check every size before anything is made.</p>
             <a className="s2-btn s2-btn-sand" href="/measure" onClick={linkTo(navigate, "/measure")}>Read the full guide</a>
           </div>
           <ol className="s2-measure-steps">
@@ -235,7 +249,7 @@ export function ProductsPage({ navigate, location, setLocation }) {
         <div>
           <p className="s2-eyebrow">Our lineup</p>
           <h1 className="s2-page-title">Choose your style</h1>
-          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and build your order.</p>
+          <p className="s2-page-lede">Pick a line to see every fabric as a real swatch and start building your order.</p>
           {locationStep && (
             <div className="location-cards">
               {locations.map(loc => (
@@ -318,10 +332,9 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
     }
   };
 
-  const handleNewOrder = () => {
-    const name = `Order ${(ordersLength ?? orders.length) + 1}`;
-    createOrder(name).then(o => { if (o) navigate('products'); });
-  };
+  // Only orders that were sent are listed here. The cart (and any empty draft) lives in the cart, not in My orders.
+  const sentOrders = orders.filter((o) => o.status === 'sent').sort((x, y) => new Date(y.updated_at) - new Date(x.updated_at));
+  const uniq = (list) => [...new Set(list.filter(Boolean))];
 
   return (
     <div className="page-fade s2 s2-inner">
@@ -332,8 +345,8 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
             <h1 className="s2-page-title">My orders</h1>
           </div>
           <div className="orders-page-actions">
-            <button type="button" className="s2-btn s2-btn-brass" onClick={handleNewOrder}>+ New order</button>
-            <button type="button" className="s2-btn s2-btn-line" onClick={signOut}>Sign out</button>
+            <a className="s2-btn s2-btn-brass" href="/order" onClick={linkTo(navigate, "/order")}>Your cart{quoteCount > 0 ? ` (${quoteCount})` : ""}</a>
+            <button type="button" className="s2-link orders-signout" onClick={signOut}>Sign out</button>
           </div>
         </div>
 
@@ -344,26 +357,27 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
           </div>
         )}
 
-        {orders.length === 0 && !dbError ? (
+        {sentOrders.length === 0 && !dbError ? (
           <div className="empty-state">
             <h2 className="s2-empty-title">No orders yet.</h2>
-            <p>Browse products and use "Add to order" to get started.</p>
-            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Browse products</button>
+            <p>Orders you send will appear here.</p>
+            <button type="button" className="s2-btn s2-btn-brass" onClick={() => navigate('products')}>Start shopping</button>
           </div>
-        ) : orders.length === 0 ? null : (
+        ) : sentOrders.length === 0 ? null : (
           <div className="orders-grid">
-            {orders.map(order => {
-              const isActive = order.id === activeOrderId;
-              const blinds = (order.items || []).reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
-              const itemCount = blinds;
+            {sentOrders.map(order => {
+              const items = order.items || [];
+              const blinds = items.reduce((n, it) => n + Math.max(1, it.qty || 1), 0);
+              const products = uniq(items.map((it) => getLine(resolveLineId(it.productId))?.name));
+              const rooms = uniq(items.map((it) => it.roomLabel));
               return (
                 <div
                   key={order.id}
-                  className={`order-card${isActive ? ' active' : ''}`}
+                  className="order-card"
                   onClick={() => openOrder(order.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrder(order.id); }}}
+                  onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openOrder(order.id); }}}
                 >
                   <div className="order-card-header">
                     {editingId === order.id ? (
@@ -380,10 +394,11 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
                       <div className="order-card-name">{order.name}</div>
                     )}
                     <div className="order-card-btns" onClick={e => e.stopPropagation()}>
-                      <button className="order-card-btn" title="Rename" onClick={e => startEdit(e, order)}>✎</button>
+                      <button className="order-card-btn" title="Rename" aria-label={`Rename ${order.name}`} onClick={e => startEdit(e, order)}>✎</button>
                       <button
                         className={`order-card-btn${pendingDelete === order.id ? ' danger' : ''}`}
                         title={pendingDelete === order.id ? 'Click again to confirm delete' : 'Delete'}
+                        aria-label={`Delete ${order.name}`}
                         onClick={e => handleDelete(e, order.id)}
                       >
                         {pendingDelete === order.id ? 'Delete?' : <XIcon size={13} />}
@@ -391,17 +406,14 @@ export function OrdersPage({ viewId, orderAgain, navigate, orders, activeOrderId
                     </div>
                   </div>
                   <div className="order-card-meta">
-                    {itemCount} blind{itemCount !== 1 ? 's' : ''}
-                    {' · '}
-                    {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    Sent {new Date(order.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {' · '}{blinds} blind{blinds !== 1 ? 's' : ''}
                   </div>
+                  {products.length > 0 && <div className="order-card-lines"><strong>Products:</strong> {products.join(', ')}</div>}
+                  {rooms.length > 0 && <div className="order-card-lines"><strong>Rooms:</strong> {rooms.join(', ')}</div>}
                   {sentEstimate(order) && <div className="order-card-meta order-card-est">{sentEstimate(order)}</div>}
-                  <div className="order-card-pills">
-                    {order.status === 'sent'
-                      ? <span className="order-pill order-pill-sent">Sent</span>
-                      : <span className="order-pill order-pill-draft">In progress</span>
-                    }
-                    {isActive && <span className="order-pill order-pill-active">Active</span>}
+                  <div className="order-card-pills" onClick={e => e.stopPropagation()}>
+                    <button type="button" className="s2-btn s2-btn-line order-again" onClick={() => orderAgain(order)}>Order again</button>
                   </div>
                 </div>
               );
@@ -451,14 +463,14 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
         <div>
           <p className="s2-eyebrow">Measuring guide · about 10 minutes</p>
           <h1 className="s2-page-title">Measure with confidence.</h1>
-          <p className="s2-page-lede">You only need a steel tape, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
-          <a className="s2-btn s2-btn-brass s2-page-action" href="/order" onClick={linkTo(navigate, "/order")}>Skip the guide and start your order</a>
+          <p className="s2-page-lede">You only need a tape measure, a pencil, and ten minutes. Measure every window even if they look identical, older houses rarely come square.</p>
+          <a className="s2-btn s2-btn-brass s2-page-action" href="/products" onClick={linkTo(navigate, "/products")}>Skip the guide and start shopping</a>
         </div>
       </section>
 
       <section className="s2-wrap measure-content">
         <div className="measure-cols">
-          <aside className="measure-toc">
+          <div className="measure-toc">
             <div className="label">On this page</div>
             <ol className="measure-toc-list">
               <li><a href="#tools">What you'll need</a></li>
@@ -471,19 +483,19 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             </ol>
             <div className="measure-toc-callout">
               <div className="label" style={{ color: "var(--sage-dark)" }}>Need help?</div>
-              <p>Unsure about a window, such as a bay, an arch, a French door or anything out of plumb? Send us a note or call and we will talk it through before you order.</p>
+              <p>Send us a note or call and we'd be happy to help!</p>
               <a className="s2-btn s2-btn-line" href="/contact" onClick={linkTo(navigate, "/contact")}>Contact us</a>
             </div>
-          </aside>
+          </div>
 
           <div className="measure-main">
             <div id="tools" className="measure-block">
               <h2 className="serif">1 · What you'll need</h2>
               <div className="measure-tools">
                 {[
-                  ["Steel tape", "At least 16 ft. Avoid cloth tapes, they stretch."],
+                  ["Tape measure", "At least 16 ft. Avoid cloth tapes, they stretch."],
                   ["Pencil & paper", "Or your phone's notes app. One line per window."],
-                  ["Step stool", "For tall windows. Don't measure on tiptoe."],
+                  ["Step stool or ladder", "For tall windows. Don't measure on tiptoe."],
                   ["A second pair of eyes", "Optional but helpful for double-checking."],
                 ].map(([t, d]) => (
                   <div key={t} className="tool-card">
@@ -544,7 +556,7 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
                 <li><strong>Always record in inches, to the nearest 1/8 inch.</strong> Decimals are fine, just be consistent.</li>
                 <li><strong>Don't make any deductions.</strong> Send us the raw window numbers.</li>
                 <li><strong>Measure every window.</strong> Even if they look identical. Older houses rarely come square.</li>
-                <li><strong>Write every window down as you go.</strong> You'll enter each width and height with your order.</li>
+                <li><strong>Write every window down as you go.</strong> You'll enter each width and height as you add blinds to your cart.</li>
                 <li><strong>Out of plumb?</strong> If a window's left and right heights differ by more than 1/4 inch, flag it in notes, we'll discuss options.</li>
               </ul>
             </div>
@@ -552,9 +564,9 @@ export function MeasureGuidePage({ navigate, quoteCount }) {
             <div id="submit" className="measure-block measure-cta">
               <div>
                 <h2 className="serif">Got your numbers?</h2>
-                <p>Send them along with your product picks and we'll email your final price within 48 hours.</p>
+                <p>Enter them as you build each blind. We'll email your final price within 48 hours.</p>
               </div>
-              <a className="s2-btn s2-btn-sand" href="/order" onClick={linkTo(navigate, "/order")}>Start your order</a>
+              <a className="s2-btn s2-btn-sand" href="/products" onClick={linkTo(navigate, "/products")}>Start shopping</a>
             </div>
           </div>
         </div>
@@ -572,6 +584,8 @@ export function ContactPage({ navigate }) {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => { setF((v) => ({ ...v, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: "" })); };
+  const sentRef = useRef(null);
+  useEffect(() => { if (status === "sent") sentRef.current?.scrollIntoView({ block: "center" }); }, [status]);          // the confirmation, not the middle of the page
 
   const send = async (e) => {
     e.preventDefault();
@@ -613,7 +627,7 @@ export function ContactPage({ navigate }) {
         <div className="contact-grid">
           <div>
             {status === "sent"
-              ? <div className="success-banner" role="status">
+              ? <div className="success-banner" role="status" ref={sentRef}>
                   <h3 className="serif">Message received.</h3>
                   <p>One of us will reply within 1 business day.</p>
                 </div>
@@ -640,11 +654,11 @@ export function ContactPage({ navigate }) {
                 </form>
             }
           </div>
-          <aside className="contact-details">
+          <div className="contact-details">
             <h2 className="contact-details-title">Prefer to talk?</h2>
             <div className="contact-detail-row"><div className="label">Phone</div><div className="val"><a href={SITE.phoneHref}>{SITE.phone}</a></div></div>
             <div className="contact-detail-row"><div className="label">Email</div><div className="val"><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div></div>
-          </aside>
+          </div>
         </div>
       </section>
       <Footer navigate={navigate} hideMessage />

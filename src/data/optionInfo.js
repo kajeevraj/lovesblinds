@@ -6,13 +6,13 @@ const MOTORIZED = "Raise and lower with a remote, no pulling.";
 
 export const CONTROL_COPY = {
   chain: "Pull the beaded chain loop to raise and lower.",
-  cordless: "Push or pull the bottom of the shade by hand. No cords.",
+  cordless: "Lift or pull the bottom bar by hand. No cords.",
   freestop: "Stop the shade at any height.",
   remote: MOTORIZED,
-  matter: "Smart motor that works with Alexa, Google and Apple Home.",
-  motor: "Motor with hub-based smart control.",
+  matter: "Smart-home motor, works with Alexa, Google and Apple Home.",
+  motor: "Motor with remote, connects to a smart hub.",
   remote_wand: "A detachable rotating wand tilts and raises the shade.",
-  manual: "Pull by hand along the track.",
+  manual: "Slide the curtain by hand along the track.",
 };
 
 // Controls with a picture: [line][mechanism id] -> explainer key

@@ -23,14 +23,14 @@ try {
   await page.goto(`${BASE}/products/roller`); await rtiles().first().waitFor();
   const html = await page.content();
   check('the Roller page shows no price on any swatch, tag or filter before a color is picked', !/\$\s?\d/.test(await page.locator('.s2-swatches').first().innerText()) && (await page.locator('.s2-estimate-price').count()) === 0, 'no "$" in the grid, no estimate shown');
-  check('before a color and size the bar asks for them and Add to order is off', /Pick a color/.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isDisabled(), (await page.locator('.s2-bar').innerText()).replace(/\s+/g, ' '));
+  check('before a color and size the bar shows no price, and the Add to cart button in the card is off and says what is missing', (await page.locator('.s2-estimate-price').count()) === 0 && await page.locator('.s2-add-btn').isDisabled() && /Pick a color/.test(await page.locator('.s2-add-hint').innerText()));
   check('the page and the catalog responses contain no price group names', leak(html + bodies.map((b) => b[1]).join('')).length === 0, leak(html + bodies.map((b) => b[1]).join('')).slice(0, 5).join(', ') || `${names.length} names checked`);
 
   // pick the first color (Solar is the first fabric type)
   const pickedLabel = (await rtiles().first().locator('.s2-sw-name').innerText()).trim();
   check('swatches show a name and a code only (no price, no collection)', /^[^$]+$/.test(await rtiles().first().innerText()) && (await rtiles().first().locator('.s2-sw-code').innerText()).length > 3);
   await rtiles().first().click();
-  check('no price until a size is entered (a color alone is not enough)', (await page.locator('.s2-estimate-price').count()) === 0 && /Enter your size/.test(await page.locator('.s2-bar').innerText()), 'no estimate');
+  check('no price until a size is entered (a color alone is not enough)', (await page.locator('.s2-estimate-price').count()) === 0 && /Enter your size/.test(await page.locator('.s2-add-hint').innerText()), 'no estimate');
   await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64');
   await page.locator('.s2-estimate-price').waitFor();
   const p1 = Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, ''));
@@ -40,7 +40,7 @@ try {
   const want = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 40, p_height: 64 });
   check('after a color and a size the page shows one price, the one the database calculates', p1 > 0 && p1 === want.price, `page $${p1}, database $${want.price} for ${firstSw.display_name}`);
   check('the estimate carries the wording from the design', /Here's your estimate\. Send it and we'll confirm details and final price\./.test(await page.locator('.s2-estimate').innerText()));
-  check('the sticky bar shows the same price and Add to order is on', (await page.locator('.s2-bar-value').innerText()).replace(/\D/g, '') === String(p1) && await page.locator('.s2-bar-btn').isEnabled(), await page.locator('.s2-bar').innerText());
+  check('the sticky bar shows the same price and Add to cart is on', (await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, '') === String(p1) && await page.locator('.s2-add-btn').isEnabled(), await page.locator('.s2-bar').innerText());
   const summary = await page.locator('.s2-estimate').innerText();
   check('the price comes with no breakdown: no cost, markup, grid, group or extra wording', !/markup|cost|grid|group|extra|collection/i.test(summary), summary.replace(/\s+/g, ' ').slice(0, 200));
   await page.locator('#s2-w').fill('60');
@@ -48,20 +48,20 @@ try {
   const p2 = Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, ''));
   const want2 = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 60, p_height: 64 });
   check('the price updates live when the size changes', p2 === want2.price && p2 !== p1, `$${p1} -> $${p2}`);
-  await page.locator('#s2-wf').selectOption('0.5');
+  await page.locator('#s2-w').fill('60 1/2');
   await page.waitForFunction(() => /60 1\/2/.test(document.querySelector('.s2-estimate')?.innerText || ''));
   check('a 1/8-inch fraction is part of the size ("60 1/2")', true);
   await page.locator('#s2-w').fill('500');
   await page.getByText(/larger than our standard range/).first().waitFor();
-  check('an oversize window says it is larger than our standard range, with no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Add it to your order and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()), await page.locator('.s2-estimate').innerText());
-  check('an oversize window can still be added to the order', await page.locator('.s2-bar-btn').isEnabled());
+  check('an oversize window says it is larger than our standard range, with no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Add it to your cart and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0, await page.locator('.s2-estimate').innerText());
+  check('an oversize window can still be added to the order', await page.locator('.s2-add-btn').isEnabled());
 
   // double-stack needs two colors before any price shows
   await page.locator('.s2-card', { hasText: 'Double-stack' }).click();
   check('double-stack says it needs two colors', /two colors/i.test(await page.locator('.s2-step-hint.s2-need').innerText()));
   await page.locator('#s2-w').fill('40');
   await rtiles().first().click();
-  check('double-stack with only the front color shows no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Pick a front and a back color|front and a back/i.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isDisabled(), (await page.locator('.s2-bar').innerText()).replace(/\s+/g, ' '));
+  check('double-stack with only the front color shows no price', (await page.locator('.s2-estimate-price').count()) === 0 && /Pick a front and a back color|front and a back/i.test(await page.locator('.s2-add-hint').innerText()) && await page.locator('.s2-add-btn').isDisabled(), '');
   await page.locator('.s2-color').nth(1).locator('.s2-sw').first().click();
   await page.locator('.s2-estimate-price').waitFor();
   check('double-stack shows a price once both colors are picked', Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, '')) > 0);

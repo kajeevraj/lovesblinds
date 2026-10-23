@@ -2,10 +2,16 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Nav, HomePage, ProductsPage, ContactPage, MeasureGuidePage, OrdersPage, ProfilePage } from './customer.jsx';
 import { useAuth } from './lib/useAuth.js';
 import { reconstructItem, serializeItem, newItemId } from './lib/orders.js';
-import { CartContext } from './lib/cart.js';
+import { CartContext, sameItem } from './lib/cart.js';
+import { useIncomplete, clearDraft, clearAllDrafts } from './lib/drafts.js';
+import { setCredentialHandler, promptOneTap, cancelOneTap, forgetGoogle, googleEnabled } from './lib/google.js';
+import { supabase } from './lib/supabase.js';
+import { clampQty } from './lib/limits.js';
+import { getActiveLine } from './data/lines.js';
 import { useItemPrices, totalsOf } from './lib/itemPrice.js';
 import { editPath } from './lib/itemView.js';
-import { OrderPanel, OrderOnlyBar } from './components/OrderBar.jsx';
+import { OrderPanel, OrderOnlyBar, IncompleteNote, AddFirstDialog } from './components/OrderBar.jsx';
+import ExitPrompt from './components/ExitPrompt.jsx';
 import { useMissingNames } from './lib/selection.js';
 import { resolvePath, routeFor, pathFor } from './lib/router.js';
 import { metaFor, applyMeta } from './lib/pageMeta.js';
@@ -18,6 +24,9 @@ const OrderPage = lazy(() => import('./orderpage.jsx'));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
+// Browser storage can be full, blocked or off (private windows): the cart still works, it just is not remembered.
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
 export default function App() {
   // Real paths: the URL is the source of truth, redirects are applied before first render.
@@ -61,7 +70,7 @@ export default function App() {
   const {
     supabaseEnabled,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
-    authLoading, signInWithGoogle, signOut, dbError,
+    authLoading, signInWithGoogle, signInWithIdToken, signOut, dbError,
     createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
   } = useAuth();
 
@@ -79,11 +88,11 @@ export default function App() {
     const dbItems = activeOrder.items.map((st, i) => reconstructItem(st, i)).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
     } else if (quoteRef.current.length > 0) {
       // New empty order, but we have guest items (from localStorage restore) — push them up.
       saveItems(activeOrderId, quoteRef.current);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
       // Leave quote as-is (already has the items).
     }
     // Both empty → leave quote alone.
@@ -109,7 +118,7 @@ export default function App() {
 
   // Keep localStorage in sync so guest items survive an OAuth redirect.
   const persistGuestQuote = (items) => {
-    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
+    if (!user) lsSet(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
   };
 
   const [flash, setFlash] = useState(null);                      // { msg, n }: "Added to your order" for a moment
@@ -140,21 +149,57 @@ export default function App() {
 
   const commit = (next) => { setQuote(next); syncToSupabase(next); persistGuestQuote(next); broadcast(next); };   // no-op saves when not logged in / no order yet
 
+  // The same product, options, size and room already in the cart: its quantity goes up. Anything different is a new line.
   const addToQuote = (item) => {
-    commit([...quote, { ...item, id: item.id || newItemId(), qty: item.qty || 1 }]);
-    showFlash('Added to your order');
+    const same = quote.find((it) => sameItem(it, item));
+    const add = item.qty || 1;
+    let result;
+    if (same) {
+      const qty = Math.min(99, clampQty(same.qty) + add);
+      commit(quote.map((it) => (it.id === same.id ? { ...it, qty } : it)));
+      result = { merged: true, qty };
+    } else {
+      commit([...quote, { ...item, id: item.id || newItemId(), qty: add }]);
+      result = { merged: false, qty: add };
+    }
+    return result;
   };
+  const setQty = (id, qty) => commit(quote.map((it) => (it.id === id ? { ...it, qty: clampQty(qty) } : it)));
   const saveItem = (id, item) => {
     commit(quote.map((it) => (it.id === id ? { ...it, ...item, id } : it)));
-    showFlash('Changes saved');
+    showNotice('Saved');
   };
-  const removeItem = (id) => commit(quote.filter((it) => it.id !== id));
+  // Remove can be undone for a few seconds
+  const [undo, setUndo] = useState(null);                      // { label, item, index, n }
+  const undoTimer = useRef(null);
+  const undoRef = useRef(null); undoRef.current = undo;
+  const removeItem = (id) => {
+    const index = quote.findIndex((it) => it.id === id);
+    if (index < 0) return;
+    const item = quote[index];
+    commit(quote.filter((it) => it.id !== id));
+    clearTimeout(undoTimer.current);
+    setUndo({ label: `Removed ${item.product.name}${item.roomLabel ? `, ${item.roomLabel}` : ''}`, item, index, n: Date.now() });
+    undoTimer.current = setTimeout(() => setUndo(null), 7000);
+  };
+  const undoRemove = () => {
+    const u = undoRef.current;
+    if (!u) return;
+    clearTimeout(undoTimer.current); setUndo(null);
+    if (quote.some((x) => x.id === u.item.id)) return;
+    const next = [...quote]; next.splice(Math.min(u.index, next.length), 0, u.item);
+    commit(next);
+  };
+  // a short confirmation ("Saved") shown on the cart page
+  const [notice, setNotice] = useState(null);
+  const noticeTimer = useRef(null);
+  const showNotice = (msg) => { clearTimeout(noticeTimer.current); setNotice({ msg, n: Date.now() }); noticeTimer.current = setTimeout(() => setNotice(null), 4000); };
   // a copy right after the original, opened for editing so only the size or room needs changing
   const duplicateItem = (it) => {
     const copy = { ...it, id: newItemId() };
     const at = quote.findIndex((x) => x.id === it.id);
     commit([...quote.slice(0, at + 1), copy, ...quote.slice(at + 1)]);
-    showFlash('Item duplicated. Change what is different, then save.');
+    showFlash('Copy added. Change what is different, then save.');
     navigate(editPath(copy));
   };
   const removeFromQuote = (idx) => commit(quote.filter((_, i) => i !== idx));
@@ -169,9 +214,10 @@ export default function App() {
     const id = user?.id || null;
     if (prevUserId.current && !id) {
       setQuote([]);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
       setSynced(false);
       setPanelOpen(false);
+      forgetGoogle();
     }
     prevUserId.current = id;
   }, [user]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -179,13 +225,14 @@ export default function App() {
   const clearQuote = () => {
     setQuote([]);
     broadcast([]);
-    localStorage.removeItem(GUEST_QUOTE_KEY);
+    lsDel(GUEST_QUOTE_KEY);
+    clearAllDrafts();                       // a sent order leaves nothing half finished behind
   };
 
   // Wrap signInWithGoogle to save guest quote before the OAuth page redirect wipes state.
   const handleSignIn = () => {
     if (quoteRef.current.length > 0) {
-      localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
+      lsSet(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
     }
     signInWithGoogle();
   };
@@ -208,20 +255,76 @@ export default function App() {
     navigate("quote");
   };
 
-  // "Order again": the items of a sent order are copied into a new draft, which becomes the order in progress.
-  const orderAgain = async (order) => {
-    const copies = (order.items || []).map((it) => ({ ...it, id: newItemId() }));
-    const draft = await createOrder(`Order ${orders.length + 1}`, copies);
-    if (draft) navigate('quote');
+  // "Order again": the blinds of a sent order are added to the cart (the same blind raises its quantity), and the cart page opens.
+  const orderAgain = (order) => {
+    let next = [...quote];
+    (order.items || []).forEach((st, i) => {
+      const it = reconstructItem(st, i);
+      if (!it) return;
+      const copy = { ...it, id: newItemId() };
+      const same = next.find((x) => sameItem(x, copy));
+      if (same) next = next.map((x) => (x.id === same.id ? { ...x, qty: Math.min(99, clampQty(x.qty) + clampQty(copy.qty)) } : x));
+      else next.push(copy);
+    });
+    commit(next);
+    navigate('/order');
   };
 
-  // the order in progress, shared with the order bar, the order panel, the product pages and the order page
+  // Product pages left part way stay in the cart as incomplete items (the page open right now is not one of them)
+  const editIdNow = route === 'line' ? new URLSearchParams(search).get('edit') : null;
+  const openLine = route === 'line' && !editIdNow ? getActiveLine(slug)?.id || null : null;
+  const incomplete = useIncomplete(openLine);
+  const removeIncomplete = (entry) => clearDraft(entry.lineId);
+  // "Finish choosing": back to the product page, scrolled to the first step that is still missing
+  const goIncomplete = (entry) => { setPanelOpen(false); try { sessionStorage.setItem('lb_scroll', 'missing'); } catch { /* ignore */ } navigate(`/products/${entry.product.slug}`); };
+  const [note, setNote] = useState(null);                       // the small note that tells them about an incomplete item
+  const notedRef = useRef(new Set((() => { try { return JSON.parse(sessionStorage.getItem('lb_noted') || '[]'); } catch { return []; } })()));
+  useEffect(() => {
+    const fresh = incomplete.filter((e) => !notedRef.current.has(e.key));
+    if (!fresh.length || route === 'admin') return;
+    fresh.forEach((e) => notedRef.current.add(e.key));
+    try { sessionStorage.setItem('lb_noted', JSON.stringify([...notedRef.current])); } catch { /* ignore */ }
+    setNote({ title: fresh[0].title, entry: fresh[0], n: Date.now() });
+  }, [incomplete]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (incomplete.length === 0) setNote(null); }, [incomplete.length]);
+
+  // Google: One Tap for a signed-out visitor, and the credential Google hands back becomes the Supabase session
+  useEffect(() => {
+    setCredentialHandler(async (credential, nonce) => {
+      if (quoteRef.current.length > 0) lsSet(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
+      const err = await signInWithIdToken(credential, nonce);
+      if (err) { console.error('[google sign-in]', err); showSnackbar('Sign-in with Google did not work the quick way. Trying another way…'); handleSignIn(); }
+    });
+  });
+  useEffect(() => {
+    if (!supabaseEnabled || user || authLoading || !googleEnabled || route === 'admin') return undefined;
+    promptOneTap();
+    return () => cancelOneTap();
+  }, [supabaseEnabled, user, authLoading, route]);
+
+  // Checkout: straight to the details step, unless something is still incomplete (then the cart page explains)
+  // If the blind on the open product page is ready but not added, ask first: "Add this blind to your cart first?" (Add or Skip)
+  const pageRef = useRef(null);
+  const [askAdd, setAskAdd] = useState(false);
+  const toCheckout = () => { setPanelOpen(false); setAskAdd(false); navigate(incomplete.length ? '/order' : '/order?checkout=1'); };
+  const goCheckout = () => { if (pageRef.current?.ready) { setPanelOpen(false); setAskAdd(true); return; } toCheckout(); };
+  const confirmAdd = {
+    open: askAdd,
+    add: () => { pageRef.current?.add(); toCheckout(); },
+    skip: () => { pageRef.current?.discard(); toCheckout(); },       // skipped: the blind is not kept either, so it cannot block checkout
+    cancel: () => setAskAdd(false),
+  };
+
+  // the cart, shared with the cart bar, the cart panel, the product pages and the cart page
   const prices = useItemPrices(quote);
   const totals = totalsOf(quote, prices);
   const cart = {
     items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
-    addItem: addToQuote, saveItem, removeItem, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
+    addItem: addToQuote, saveItem, removeItem, setQty, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
+    incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout, confirmAdd,
+    registerPage: (p) => { pageRef.current = p; }, undo, undoRemove, notice,
+    auth: { user, supabaseEnabled, authLoading, signIn: handleSignIn },
   };
 
   if (route === "admin") {
@@ -232,16 +335,17 @@ export default function App() {
     );
   }
 
-  const q = quote.length;
+  const q = quote.length + incomplete.length;
   const authProps = { supabaseEnabled, user, signInWithGoogle: handleSignIn, signOut, orders, authLoading };
 
   const onLinePage = route === "line";
   const onOrderPage = route === "quote" || route === "review";
-  const editId = onLinePage ? new URLSearchParams(search).get('edit') : null;
+  const editId = editIdNow;
 
   return (
     <CartContext.Provider value={cart}>
     <div>
+      <a className="s2-skip" href="#main">Skip to main content</a>
       <Nav route={route === 'line' ? 'products' : route} navigate={navigate} quoteCount={q} {...authProps} />
       {snackbar && (
         <div className="snackbar">
@@ -253,7 +357,7 @@ export default function App() {
           )}
         </div>
       )}
-      <main id="main">
+      <main id="main" tabIndex={-1}>
       {route === "home"     && <HomePage navigate={navigate} quoteCount={q} />}
       {route === "products" && <ProductsPage navigate={navigate} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "line"     && (
@@ -262,7 +366,7 @@ export default function App() {
         </Suspense>
       )}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
-      {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
+      {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage search={search} navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
       {route === "orders"   && <OrdersPage viewId={new URLSearchParams(search).get('view')} orderAgain={orderAgain} navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}
       {route === "profile"  && <ProfilePage navigate={navigate} user={user} authLoading={authLoading} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} />}
       {route === "contact"  && <ContactPage navigate={navigate} quoteCount={q} />}
@@ -270,6 +374,9 @@ export default function App() {
       {/* product pages have their own bar (the item being built plus the order); the other customer pages get the order part alone, never on the order page */}
       {!onLinePage && !onOrderPage && <OrderOnlyBar />}
       <OrderPanel navigate={navigate} />
+      {!onLinePage && !onOrderPage && <IncompleteNote note={note} onClose={() => setNote(null)} />}
+      <AddFirstDialog />
+      <ExitPrompt route={route} />
     </div>
     </CartContext.Provider>
   );

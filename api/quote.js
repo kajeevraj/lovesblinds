@@ -1,13 +1,13 @@
-import XLSX from 'xlsx';
 import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
 import { priceRequestFromItem } from '../src/lib/priceRequest.js';
 import { addressLine } from '../src/data/countries.js';
 import { checkSize, limitLineFor } from '../src/lib/limits.js';
+import { formatInches } from '../src/lib/inches.js';
+import { orderWorkbookBuffer } from './_orderSheet.js';
 import { LIMITS, SPAM_TRAP, clientIp, digest, tooLarge, friendly, rateLimit, validateOrder, oneLine } from './_guard.js';
 
 const BUSINESS_NAME    = "Loves Blinds and Window Treatments";
-const BUSINESS_ADDRESS = "512 Glenwyck Court, Fuquay-Varina, NC 27526";
 const BUSINESS_PHONE   = "262-434-0949";
 const BUSINESS_EMAIL   = "loveblindswindows@gmail.com";
 const INTERNAL_TO      = "loveblindswindows@gmail.com";
@@ -41,7 +41,7 @@ function nameCell(line) {
 // If the lookup fails, the estimate the customer saw is used and marked as unchecked.
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
-export const EMAIL_PRICE = 'Price sent by email';
+export const EMAIL_PRICE = 'Price by email';
 export const ESTIMATE_NOTE = "This is an estimate. We'll confirm details and your final price within 48 hours.";
 
 const kindOf = (res) => {
@@ -87,7 +87,7 @@ export async function withEstimates(lines, env = process.env) {
   return { lines: priced, total, byEmail };
 }
 
-// "$226 each · $678 for 3", "$226", or "Price sent by email"
+// "$226 each · $678 for 3", "$226", or "Price by email"
 export function priceText(l) {
   const q = Math.max(1, Number(l.qty) || 1);
   if (l.price?.kind !== 'price') return EMAIL_PRICE;
@@ -96,89 +96,15 @@ export function priceText(l) {
 export const totalText = (t) => (t.total > 0 ? money(t.total) : EMAIL_PRICE);
 
 // ── xlsx ─────────────────────────────────────────────────────────────────────
-
-export function buildWorkbook(customer, lines, notes, totals = null) {
-  const rows = [];
-
-  // Header block — all four lines always present
-  rows.push([BUSINESS_NAME]);
-  rows.push([BUSINESS_ADDRESS]);
-  rows.push([BUSINESS_PHONE]);
-  rows.push([BUSINESS_EMAIL]);
-  rows.push([
-    `Customer: ${customer.name}` +
-    ((addressLine(customer.address) || customer.shipTo) ? `    Ship to: ${addressLine(customer.address) || customer.shipTo}` : ''),
-  ]);
-  rows.push([]); // blank separator
-
-  // Column headers
-  rows.push([
-    'Description', 'Color', 'Quantity', 'Width', 'Length',
-    'Drive System', 'Location', 'Price per unit', 'Total',
-    'Supplier code', 'Display name',     // appended: the original columns stay where they were
-  ]);
-
-  // Line items
-  for (const line of lines) {
-    rows.push([
-      line.internalDescription || line.description,
-      supplierColorCell(line),
-      line.qty,
-      line.width  || '',
-      line.length || '',
-      line.mechName || '',
-      line.roomLabel || '',
-      line.price?.kind === 'price' ? line.price.unit : (line.price ? EMAIL_PRICE : ''),                       // Price per unit: the estimate the customer saw
-      line.price?.kind === 'price' ? line.price.unit * Math.max(1, Number(line.qty) || 1) : '',               // Total for the quantity
-      codeCell(line),
-      nameCell(line),
-    ]);
-  }
-
-  rows.push([]); // blank before totals
-
-  // Totals block
-  rows.push(['Subtotal (estimate)', '', '', '', '', '', '', '', totals && totals.total > 0 ? totals.total : '']);
-  if (totals && totals.byEmail > 0) rows.push([`Plus ${totals.byEmail} item${totals.byEmail === 1 ? '' : 's'} priced by email`]);
-  rows.push(['Tax',      '', '', '', '', '', '', '', '']);
-  rows.push(['Total',    '', '', '', '', '', '', '', '']);
-
-  // Notes
-  if (notes) {
-    rows.push([]);
-    rows.push([`Notes: ${notes}`]);
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-
-  // Merge the business name across the 9 original columns
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
-
-  // Column widths
-  ws['!cols'] = [
-    { wch: 36 }, // Description
-    { wch: 22 }, // Color
-    { wch: 10 }, // Quantity
-    { wch: 10 }, // Width
-    { wch: 10 }, // Length
-    { wch: 22 }, // Drive System
-    { wch: 12 }, // Location
-    { wch: 16 }, // Price per unit
-    { wch: 14 }, // Total
-    { wch: 28 }, // Supplier code (appended)
-    { wch: 28 }, // Display name (appended)
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Quote');
-  return wb;
-}
+// The order sheet follows our IABAT template (api/_orderSheet.js). The estimate and the customer's room and window are what the
+// customer saw; the supplier price group, color name and code come from the catalog lookup above.
+export { buildOrderWorkbook as buildWorkbook, orderWorkbookBuffer } from './_orderSheet.js';
 
 // ── HTML snippets ─────────────────────────────────────────────────────────────
 
 const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-const sizeText = (l) => (l.width ? `${esc(l.width)}"W × ${esc(l.length)}"H` : '');
+const sizeText = (l) => (l.width ? `${esc(formatInches(l.width))}"W × ${esc(formatInches(l.length))}"H` : '');
 
 // Customer email: description (display name + code). Internal email: internalDescription (supplier data too).
 // Each item ends with its estimate for one window and the total for all of them.
@@ -191,7 +117,7 @@ export function lineListHtml(lines, internal = false) {
       `, ${esc(q)} blind${q === 1 ? '' : 's'}` +
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
-      (l.roomLabel ? `, room: ${esc(l.roomLabel)}` : '') +
+      ([l.roomLabel, l.windowLabel].filter(Boolean).length ? `, room: ${esc([l.roomLabel, l.windowLabel].filter(Boolean).join(' - '))}` : '') +
       (l.price ? `: <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
       `</li>`;
   }).join('');
@@ -405,8 +331,7 @@ export async function handleQuote(req, res, deps = {}) {
     const { lines, total, byEmail } = await withEstimates(catalogLines, env);
     const totals = { total, byEmail };
     console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}, estimates ${lines.map(l => l.price.checked ? 'checked' : 'unchecked').join('/')}`);
-    const wb = buildWorkbook(customer, lines, notes || '', totals);
-    const xlsxBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const xlsxBuffer = await orderWorkbookBuffer(customer, lines, notes || '', totals);
 
     const resend = deps.resend || new Resend(env.RESEND_API_KEY);
     const date = new Date().toISOString().slice(0, 10);

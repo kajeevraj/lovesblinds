@@ -53,26 +53,26 @@ try {
   check('the quantity question says "How many blinds this size?" and cannot go below 1', /How many blinds this size\?/.test(await page.locator('.s2-qty').innerText()) && await page.getByRole('button', { name: 'One fewer blind' }).isDisabled());
   await page.locator('#s2-qty').fill('3');
   await page.getByText(/each · 3 blinds/).first().waitFor();
-  const barTotal = (await page.locator('.s2-bar-value').innerText()).trim(), barSub = (await page.locator('.s2-bar-sub').innerText()).trim();
+  const barTotal = (await page.locator('.s2-estimate-price').innerText()).trim(), barSub = (await page.locator('.s2-estimate-each').innerText()).trim();
   const estText = await page.locator('.s2-estimate').innerText();
-  check('with 3 blinds the total is the big number, with "$X each · 3 blinds" small under it (once per block)', barTotal === `$${noWrap * 3}` && barSub === `$${noWrap} each · 3 blinds` && new RegExp(`^YOUR ESTIMATE\\s*\\$${noWrap * 3}\\s*\\$${noWrap} each · 3 blinds`, 'i').test(estText.replace(/\n+/g, ' ')) && (estText.match(/3 blinds/g) || []).length === 1 && (await page.locator('.s2-bar-text').innerText()).match(/3 blinds/g).length === 1, `${barTotal} / ${barSub}`);
+  check('with 3 blinds the card total is the big number with "$X each · 3 blinds" under it, and the bar says "3 × $X = $total"', barTotal === `$${noWrap * 3}` && barSub === `$${noWrap} each · 3 blinds` && new RegExp(`^YOUR ESTIMATE\\s*\\$${noWrap * 3}\\s*\\$${noWrap} each · 3 blinds`, 'i').test(estText.replace(/\n+/g, ' ')) && (estText.match(/3 blinds/g) || []).length === 1 && new RegExp(`3 × \\$${noWrap} = \\$${noWrap * 3}`).test(await page.locator('.s2-bar-price').textContent()), `${barTotal} / ${barSub}`);
   await page.locator('#s2-qty').fill('0'); await page.locator('#s2-qty').blur();
   check('typing 0 becomes 1', (await page.locator('#s2-qty').inputValue()) === '1');
   await page.locator('#s2-qty').fill('3');
-  await page.locator('#s2-room').fill('Test room');
-  await page.locator('.s2-bar-btn').click();
+  await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Test room');
+  await page.locator('.s2-add-btn').click();
   await page.waitForTimeout(300);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('lb_guest_quote') || '[]'));
-  check('Add to order keeps the quantity, the size, the room and the top cover choice', saved.length === 1 && saved[0].qty === 3 && saved[0].width === 40 && saved[0].length === 64 && saved[0].roomLabel === 'Test room' && saved[0].selection?.cover === 'none', JSON.stringify({ qty: saved[0]?.qty, cover: saved[0]?.selection?.cover }));
+  check('Add to cart keeps the quantity, the size, the room and the top cover choice', saved.length === 1 && saved[0].qty === 3 && saved[0].width === 40 && saved[0].length === 64 && saved[0].roomLabel === 'Test room' && saved[0].selection?.cover === 'none', JSON.stringify({ qty: saved[0]?.qty, cover: saved[0]?.selection?.cover }));
 
   // oversize + early states
   await page.locator('#s2-w').fill('500');
   await page.getByText(/larger than our standard range/).first().waitFor();
-  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to order still works', /Add it to your order and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()) && await page.locator('.s2-bar-btn').isEnabled());
+  check('Roller oversize: the larger-than-standard wording, "Price sent by email", and Add to cart still works', /Add it to your cart and we'll reply with a price\./.test(await page.locator('.s2-estimate').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0 && await page.locator('.s2-add-btn').isEnabled());
 
   // ---------- Zebra ----------
   await open('zebra');
-  check('Zebra: no price and no Add to order before a color and size', (await estimate().count()) === 0 && await page.locator('.s2-bar-btn').isDisabled());
+  check('Zebra: no price and no Add to cart before a color and size', (await estimate().count()) === 0 && await page.locator('.s2-add-btn').isDisabled());
   const zt = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
   const zid = await swatchId('zebra', zt);
   const zdb = await dbPrice('zebra', zid, { control: 'chain' }, 40, 64);
@@ -96,7 +96,7 @@ try {
   // ---------- Roman ----------
   await open('roman');
   const mt = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
-  check('Roman: no price until a style and a lining are chosen', (await estimate().count()) === 0 && /Pick a style/.test(await page.locator('.s2-bar').innerText()));
+  check('Roman: no price until a style and a lining are chosen', (await estimate().count()) === 0 && /Pick a style/.test(await page.locator('.s2-add-hint').innerText()));
   const style = page.locator('.s2-step', { hasText: 'Style' }).locator('.s2-card:not([disabled])').first();
   await style.click();
   const lin = page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card:not([disabled])').first();
@@ -117,7 +117,7 @@ try {
   await page.locator('.s2-card', { hasText: 'Day & night' }).click();
   check('Cellular Day & Night says it needs two colors and shows no price yet', /two colors/i.test(await page.locator('.s2-step-hint.s2-need').innerText()) && (await estimate().count()) === 0);
   await page.locator('.s2-color').nth(0).locator('.s2-sw').first().click();
-  check('Cellular Day & Night with only the day color shows no price', (await estimate().count()) === 0 && /day and a night/.test(await page.locator('.s2-bar').innerText()));
+  check('Cellular Day & Night with only the day color shows no price', (await estimate().count()) === 0 && /day and a night/.test(await page.locator('.s2-add-hint').innerText()));
   const nightTile = page.locator('.s2-color').nth(1).locator('.s2-sw').first();
   const dayName = await tileInfo(0, page.locator('.s2-color').nth(0)); const nightName = await tileInfo(0, page.locator('.s2-color').nth(1));
   await nightTile.click();
@@ -132,11 +132,11 @@ try {
   await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
   await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
   await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
-  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar').innerText()) && /Price sent by email/.test(await page.locator('.s2-bar').innerText()));
-  check('Curtains need a size before they can be added', await page.locator('.s2-bar-btn').isDisabled());
+  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar-blind').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0);
+  check('Curtains need a size before they can be added', await page.locator('.s2-add-btn').isDisabled());
   await size(120, 96);
-  await page.waitForFunction(() => !document.querySelector('.s2-bar-btn').disabled);
-  check('Curtains can be added once a size is entered', await page.locator('.s2-bar-btn').isEnabled());
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+  check('Curtains can be added once a size is entered', await page.locator('.s2-add-btn').isEnabled());
   await page.getByRole('tab', { name: 'Dream Curtains' }).click();
   await page.locator('.s2-sw').first().waitFor();
   const dt = await tileInfo();
@@ -154,7 +154,7 @@ try {
   for (const slug of ['roller', 'zebra', 'shangri-la', 'roman', 'cellular', 'drapery']) {
     await open(slug);
     const sw = await page.evaluate(() => document.documentElement.scrollWidth);
-    const small = await page.evaluate(() => [...document.querySelectorAll('.s2-chip, .s2-card, .s2-sw, .s2-bar-btn, .s2-tab, .s2-input')].filter((e) => e.offsetParent && (e.getBoundingClientRect().height < 43.5)).length);
+    const small = await page.evaluate(() => [...document.querySelectorAll('.s2-chip, .s2-card, .s2-sw, .s2-add-btn, .s2-tab, .s2-input')].filter((e) => e.offsetParent && (e.getBoundingClientRect().height < 43.5)).length);
     check(`${slug}: no sideways scroll at 390 px and touch targets are at least 44 px`, sw <= 390 && small === 0, `${sw} px, ${small} small targets`);
     check(`${slug}: no price group names on the page`, leak(await page.content()).length === 0);
   }

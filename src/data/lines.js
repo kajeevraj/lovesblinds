@@ -38,7 +38,7 @@ export const LINES = [
     mounts: ["inside", "outside"],
   },
   {
-    id: "zebra", slug: "zebra", name: "Zebra / Dual Shades", icon: "zebra",
+    id: "zebra", slug: "zebra", name: "Zebra Shades", icon: "zebra",
     active: true, location: "indoor",
     blurb: "Alternating sheer and solid bands glide over one another for dial-in light and privacy control.",
     description: "Alternating sheer and solid bands glide over one another, so you can dial in exactly the light and privacy you want.",

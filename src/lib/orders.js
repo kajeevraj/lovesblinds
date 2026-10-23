@@ -16,6 +16,7 @@ export const serializeItem = (item) => ({
   length:    item.length ?? null,
   qty:       item.qty ?? 1,
   roomLabel: item.roomLabel ?? '',
+  windowLabel: item.windowLabel ?? '',
   addons:    item.addons ?? { blackout: false, install: false },
   price:     item.price ?? null,            // the estimate for one window, as shown when it was added or sent
   priceKind: item.priceKind ?? null,        // 'estimate' | 'email'; orders saved before Stage 2 have neither
@@ -46,6 +47,7 @@ export const reconstructItem = (stored, i = 0) => {
     length:    stored.length ?? null,
     qty:       stored.qty ?? 1,
     roomLabel: stored.roomLabel ?? '',
+    windowLabel: stored.windowLabel ?? '',
     addons:    stored.addons ?? { blackout: false, install: false },
   };
 };

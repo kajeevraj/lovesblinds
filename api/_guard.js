@@ -83,6 +83,7 @@ export function validateOrder(body) {
     const cut = { ...l, qty };
     for (const k of ['description', 'internalDescription', 'colorName', 'code', 'productName', 'mechName', 'roomLabel']) if (typeof cut[k] === 'string') cut[k] = cut[k].slice(0, LIMITS.text);
     if (typeof cut.roomLabel === 'string') cut.roomLabel = cut.roomLabel.slice(0, 100);
+    if (typeof cut.windowLabel === 'string') cut.windowLabel = cut.windowLabel.slice(0, 60);
     clean.push(cut);
   }
   return {
