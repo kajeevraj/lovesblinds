@@ -1,5 +1,5 @@
 // A sent order, to look at and nothing more: its items with the estimates they were sent with, the customer's details and
-// address, and "Order again", which copies the items into a new draft. A sent order is never edited or overwritten.
+// address, and "Order again", which adds the same blinds to the cart. A sent order is never edited or overwritten.
 import { reconstructItem } from './lib/orders.js';
 import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
 import { addressLine } from './data/countries.js';
@@ -18,7 +18,7 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
       <section className="s2-wrap s2-order-wrap">
         <a className="s2-link" href="/orders" onClick={(e) => { e.preventDefault(); navigate('orders'); }}>← My orders</a>
         <h1 className="s2-order-title">{order.name}</h1>
-        <p className="s2-order-sub">Sent on {when}. This order has been sent to us and can't be changed. To order the same blinds again, start a new order from it.</p>
+        <p className="s2-order-sub">Sent on {when}. This order has been sent to us and can't be changed. To get the same blinds again, add them to your cart with "Order again".</p>
 
         <ul className="s2-items">
           {items.map((it) => {

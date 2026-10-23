@@ -105,7 +105,7 @@ try {
   // a sent order opens to look at, never to change; "Order again" copies it into a new draft
   const beforeItems = JSON.stringify(sentOrder.items);
   await page.goto(`${BASE}/orders`); await page.locator('.order-card').first().waitFor();
-  await page.locator('.order-card', { has: page.locator('.order-pill-sent') }).first().click();
+  await page.locator('.order-card', { hasText: 'Sent' }).first().click();
   await page.getByRole('button', { name: 'Order again' }).waitFor();
   const view = await page.locator('main').innerText();
   check('opening a sent order shows it read-only: its items, "Order again", and no edit, remove or send buttons', /can't be changed/.test(view) && (await page.getByRole('button', { name: 'Order again' }).count()) === 1 && (await page.getByRole('link', { name: /^Edit/ }).count()) === 0 && (await page.getByRole('button', { name: /Remove|Duplicate|Send my order/ }).count()) === 0 && /\$\d+/.test(view), view.replace(/\s+/g, ' ').slice(0, 160));
