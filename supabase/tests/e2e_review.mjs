@@ -27,6 +27,12 @@ try {
     check(`[${label}] no sideways scroll`, ov <= 0);
     await page.close();
   }
+  // fonts come from our own site: nothing is requested from Google Fonts, and both families load
+  const page = await (await browser.newContext()).newPage(); page.setDefaultTimeout(30000);
+  const fontHosts = []; page.on('request', (r) => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontHosts.push(r.url()); });
+  await page.goto(`${BASE}/products/roller`); await page.waitForTimeout(1500);
+  const loaded = await page.evaluate(async () => { await document.fonts.ready; return [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')))]; });
+  check('fonts are served by the site itself: no request to Google Fonts, Playfair Display and Montserrat both load', fontHosts.length === 0 && loaded.includes('Playfair Display') && loaded.includes('Montserrat'), `${fontHosts.join()} ${loaded.join()}`);
 } catch (e) { console.log('TEST ERROR:', e.message); results.push({ name: 'script ran to completion', ok: false }); }
 await browser.close();
 const bad = results.filter((x) => !x.ok);
