@@ -20,16 +20,23 @@ const req = (b, h = {}) => ({ method: 'POST', headers: { 'x-forwarded-for': '203
 const mkResend = (result = {}) => { const sent = []; return { sent, emails: { send: async (m) => { sent.push(m); return result.error ? { error: { message: 'boom' } } : { data: { id: 'x' } }; } } }; };
 const noLimit = async () => ({ limited: false, checked: true });
 const okFetch = async () => ({ ok: true, json: async () => ({ min_width: 23, max_width: 118, min_height: 24, max_height: 120 }) });
-const run = async (b, o = {}) => { const res = fakeRes(); const resend = o.resend || mkResend(); await handleQuote(req(b, o.headers), res, { env: o.env || env, resend, rateLimit: o.rateLimit || noLimit }); return { res, resend }; };
+// the order store is faked (nothing is written to the real sent_orders table); every other request goes to the real service
+const orderStores = [];
+const storeFetch = (ok = true) => async (u, o) => (String(u).includes('/rest/v1/sent_orders') ? (orderStores.push(JSON.parse(o.body)), { ok, status: ok ? 201 : 404 }) : fetch(u, o));
+const run = async (b, o = {}) => { const res = fakeRes(); const resend = o.resend || mkResend(); await handleQuote(req(b, o.headers), res, { env: o.env || env, resend, rateLimit: o.rateLimit || noLimit, fetch: o.fetch || storeFetch(true) }); return { res, resend }; };
 
 // ---------- the order endpoint ----------
 let r = await run(body());
 check('a good order is sent (internal email and customer copy) and answers ok', r.res.code === 200 && r.res.body.ok && r.resend.sent.length === 2, `${r.res.code} ${JSON.stringify(r.res.body)}`);
+check('a sent order is also stored (customer, lines with estimates, totals, copy flag) and the answer says so', r.res.body.stored === true && orderStores.length === 1 && orderStores[0].customer.email === 'ada@example.com' && orderStores[0].lines.length === 1 && orderStores[0].customer_copy === true && 'total' in orderStores[0], JSON.stringify(orderStores[0] || {}).slice(0, 160));
+r = await run(body(), { fetch: storeFetch(false) });
+check('if the store fails the order still counts as sent (the email is the order)', r.res.code === 200 && r.res.body.ok && r.res.body.stored === false && r.resend.sent.length === 2);
+const before = orderStores.length;
 r = await run({ ...body(), zx_kv_q7: 'http://spam.example' });
 import { readFileSync } from 'node:fs';
 check('the spam-trap field name is meaningless (not name, email, phone, website, url or address)', !/name|email|phone|website|url|address|mail|tel/i.test(SPAM_TRAP), SPAM_TRAP);
 check('both forms send the spam-trap field under the same name the server checks', ['src/customer.jsx', 'src/orderpage.jsx'].every((f) => readFileSync(f, 'utf8').includes(`name="${SPAM_TRAP}"`)));
-check('the hidden spam-trap field: nothing is sent and it is never answered "ok"', r.res.code === 400 && !r.res.body.ok && r.resend.sent.length === 0);
+check('the hidden spam-trap field: nothing is sent and it is never answered "ok"', r.res.code === 400 && !r.res.body.ok && r.resend.sent.length === 0 && orderStores.length === before);
 r = await run(body(), { headers: { 'content-length': '999999' } });
 check('a request over the size cap is refused (413) and nothing is sent', r.res.code === 413 && r.resend.sent.length === 0);
 r = await run(body({ notes: 'x'.repeat(250000) }));
