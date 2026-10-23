@@ -24,6 +24,9 @@ const OrderPage = lazy(() => import('./orderpage.jsx'));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
+// Browser storage can be full, blocked or off (private windows): the cart still works, it just is not remembered.
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
 export default function App() {
   // Real paths: the URL is the source of truth, redirects are applied before first render.
@@ -85,11 +88,11 @@ export default function App() {
     const dbItems = activeOrder.items.map((st, i) => reconstructItem(st, i)).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
     } else if (quoteRef.current.length > 0) {
       // New empty order, but we have guest items (from localStorage restore) — push them up.
       saveItems(activeOrderId, quoteRef.current);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
       // Leave quote as-is (already has the items).
     }
     // Both empty → leave quote alone.
@@ -115,7 +118,7 @@ export default function App() {
 
   // Keep localStorage in sync so guest items survive an OAuth redirect.
   const persistGuestQuote = (items) => {
-    if (!user) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
+    if (!user) lsSet(GUEST_QUOTE_KEY, JSON.stringify(items.map(serializeItem)));
   };
 
   const [flash, setFlash] = useState(null);                      // { msg, n }: "Added to your order" for a moment
@@ -211,7 +214,7 @@ export default function App() {
     const id = user?.id || null;
     if (prevUserId.current && !id) {
       setQuote([]);
-      localStorage.removeItem(GUEST_QUOTE_KEY);
+      lsDel(GUEST_QUOTE_KEY);
       setSynced(false);
       setPanelOpen(false);
       forgetGoogle();
@@ -222,14 +225,14 @@ export default function App() {
   const clearQuote = () => {
     setQuote([]);
     broadcast([]);
-    localStorage.removeItem(GUEST_QUOTE_KEY);
+    lsDel(GUEST_QUOTE_KEY);
     clearAllDrafts();                       // a sent order leaves nothing half finished behind
   };
 
   // Wrap signInWithGoogle to save guest quote before the OAuth page redirect wipes state.
   const handleSignIn = () => {
     if (quoteRef.current.length > 0) {
-      localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
+      lsSet(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
     }
     signInWithGoogle();
   };
@@ -288,7 +291,7 @@ export default function App() {
   // Google: One Tap for a signed-out visitor, and the credential Google hands back becomes the Supabase session
   useEffect(() => {
     setCredentialHandler(async (credential, nonce) => {
-      if (quoteRef.current.length > 0) localStorage.setItem(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
+      if (quoteRef.current.length > 0) lsSet(GUEST_QUOTE_KEY, JSON.stringify(quoteRef.current.map(serializeItem)));
       const err = await signInWithIdToken(credential, nonce);
       if (err) { console.error('[google sign-in]', err); showSnackbar('Sign-in with Google did not work the quick way. Trying another way…'); handleSignIn(); }
     });
@@ -342,6 +345,7 @@ export default function App() {
   return (
     <CartContext.Provider value={cart}>
     <div>
+      <a className="s2-skip" href="#main">Skip to main content</a>
       <Nav route={route === 'line' ? 'products' : route} navigate={navigate} quoteCount={q} {...authProps} />
       {snackbar && (
         <div className="snackbar">
@@ -353,7 +357,7 @@ export default function App() {
           )}
         </div>
       )}
-      <main id="main">
+      <main id="main" tabIndex={-1}>
       {route === "home"     && <HomePage navigate={navigate} quoteCount={q} />}
       {route === "products" && <ProductsPage navigate={navigate} location={productLocation} setLocation={setProductLocation} quoteCount={q} />}
       {route === "line"     && (

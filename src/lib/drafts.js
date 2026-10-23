@@ -10,7 +10,16 @@ const PREFIX = 'lb_draft_v1:';
 const EVENT = 'lb-drafts';
 const keyOf = (lineId, editId = null) => `${PREFIX}${lineId}${editId ? `:edit:${editId}` : ''}`;
 
-const read = (key) => { try { const t = localStorage.getItem(key); return t ? JSON.parse(t) : null; } catch { return null; } };
+// A draft untouched for 30 days is forgotten (otherwise an old half-built blind would come back as "incomplete" for ever).
+const MAX_AGE_MS = 30 * 24 * 3600 * 1000;
+const read = (key) => {
+  try {
+    const t = localStorage.getItem(key);
+    const d = t ? JSON.parse(t) : null;
+    if (d && d.t && Date.now() - d.t > MAX_AGE_MS) { localStorage.removeItem(key); return null; }
+    return d;
+  } catch { return null; }
+};
 const notify = () => { try { window.dispatchEvent(new Event(EVENT)); } catch { /* ignore */ } };
 
 export const getDraft = (lineId, editId = null) => read(keyOf(lineId, editId));
