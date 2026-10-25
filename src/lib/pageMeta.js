@@ -22,6 +22,8 @@ export const PAGES = {
   // drafts until the owner fills in the [placeholders] (docs/legal-needs.md); remove noindex then
   privacy: { path: '/privacy', title: title('Privacy policy'), description: 'What Love\'s Blinds collects when you order, send a message or sign in with Google, and who helps us handle it.', noindex: true },
   terms: { path: '/terms', title: title('Terms of sale'), description: 'How ordering works at Love\'s Blinds: estimates, final prices, lead times, returns and warranty.', noindex: true },
+  // a test page for the scrolling 3D hero; not linked from anywhere
+  hero: { path: '/hero-lab', title: title('Hero lab'), description: 'A test page for the scrolling 3D hero.', noindex: true },
   notfound: { path: '/404', title: title('Page not found'), description: 'We could not find that page.', noindex: true },
   admin: { path: '/admin', title: title('Admin'), description: 'Admin.', noindex: true },
 };

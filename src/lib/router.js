@@ -12,6 +12,7 @@ const ROUTE_PATHS = {
   admin: '/admin',
   privacy: '/privacy',
   terms: '/terms',
+  hero: '/hero-lab',
 };
 const PATH_ROUTES = Object.fromEntries(Object.entries(ROUTE_PATHS).map(([r, p]) => [p, r]));
 

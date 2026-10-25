@@ -1,0 +1,95 @@
+/* /hero-lab: the scrolling 3D hero. Loaded only with that page (it is a lazy chunk), so no other page pays for it. */
+.hl { --hl-pad: max(24px, calc((100vw - 1280px) / 2 + 24px)); background: var(--s2-cream); color: var(--s2-ink); font-family: "Montserrat", sans-serif; overflow-x: clip; }
+
+/* The track is tall; the stage inside it stays on screen. The page starts under the top bar, so the stage is exactly one screen
+   and nothing shifts when the bar scrolls away. */
+.hl-track { position: relative; height: calc(var(--hl-screens, 10) * 100vh); height: calc(var(--hl-screens, 10) * 100svh); margin-top: calc(var(--hl-nav, 64px) * -1); }
+.hl-stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #efe6d6; isolation: isolate; }
+.hl-still, .hl-canvas, .hl-fade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hl-still picture, .hl-still img { display: block; width: 100%; height: 100%; }
+.hl-still img { object-fit: cover; object-position: 50% 50%; }
+.hl-canvas { display: block; opacity: 0; transition: opacity 0.7s ease; touch-action: pan-y; }
+.is-ready .hl-canvas { opacity: 1; }
+.hl-fade { pointer-events: none; opacity: var(--fade, 1); background: linear-gradient(to right, rgba(247, 242, 234, 0.82) 0%, rgba(247, 242, 234, 0.55) 22%, rgba(247, 242, 234, 0) 44%); }
+
+/* words */
+.hl-copy { position: absolute; z-index: 2; left: var(--hl-pad); top: 50%; width: min(440px, 38vw); margin-top: -140px; will-change: opacity, transform; }
+.hl-intro { margin-top: -150px; }
+.hl-words { visibility: hidden; opacity: 0; }
+.hl-headline { margin: 0; font-family: "Playfair Display", serif; font-weight: 500; font-size: clamp(40px, 5.2vw, 70px); line-height: 1.04; letter-spacing: -0.01em; }
+.hl-name { margin: 0; font-family: "Playfair Display", serif; font-weight: 500; font-size: clamp(34px, 4.2vw, 58px); line-height: 1.05; }
+.hl-line { margin: 16px 0 28px; font-size: 18px; line-height: 1.5; color: var(--s2-muted); max-width: 30ch; }
+.hl-build { gap: 10px; }
+.hl-arrow { transition: transform 0.2s ease; }
+.hl-build:hover .hl-arrow { transform: translateX(4px); }
+.hl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hl-hint { display: flex; align-items: center; gap: 14px; margin: 34px 0 0; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--s2-brass-text); }
+.hl-hint-line { position: relative; width: 44px; height: 1px; background: var(--s2-line); overflow: hidden; }
+.hl-hint-line::after { content: ""; position: absolute; inset: 0; background: var(--s2-brass); transform: translateX(-100%); animation: hl-hint 2.2s ease-in-out infinite; }
+@keyframes hl-hint { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+.hl-wall { position: absolute; z-index: 2; left: 0; right: 0; bottom: 118px; margin: 0; text-align: center; font-family: "Playfair Display", serif; font-style: italic; font-size: clamp(22px, 3vw, 34px); color: var(--s2-ink); visibility: hidden; opacity: 0; pointer-events: none; }
+
+/* progress list + skip link */
+.hl-progress { position: absolute; z-index: 3; left: var(--hl-pad); right: var(--hl-pad); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 28px; }
+.hl-progress ol { flex: 1; display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hl-progress li { flex: 1 1 0; min-width: 0; }
+.hl-progress button { all: unset; box-sizing: border-box; width: 100%; min-height: 44px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--s2-muted); text-align: left; transition: color 0.25s; }
+.hl-progress button:hover, .hl-progress button.is-active { color: var(--s2-ink); }
+.hl-progress button:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 2px; border-radius: 2px; }
+.hl-dot-bar { display: block; height: 3px; border-radius: 2px; background: rgba(30, 26, 22, 0.16); overflow: hidden; }
+.hl-dot-bar span { display: block; height: 100%; width: 100%; background: var(--s2-brass); transform: scaleX(var(--fill, 0)); transform-origin: left; }
+.hl-dot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-skip { flex: none; display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--s2-brass-text); text-decoration: none; border-bottom: 1px solid transparent; white-space: nowrap; }
+.hl-skip:hover { border-bottom-color: var(--s2-brass); }
+.hl-skip:focus-visible, .hl-build:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 3px; }
+.hl-status { position: absolute; z-index: 1; left: 0; right: 0; top: 46%; margin: 0; text-align: center; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--s2-muted); pointer-events: none; }
+.is-ready .hl-status { display: none; }
+
+/* the tiles that follow the pinned scene */
+.hl-tiles { padding-top: 96px; padding-bottom: 96px; background: var(--s2-cream); position: relative; z-index: 1; }
+.hl-tiles-lead { margin: 14px 0 40px; }
+.hl-tile { opacity: 0; transform: translateY(26px); transition: opacity 0.7s ease, transform 0.7s ease; transition-delay: calc(var(--i, 0) * 70ms); }
+.hl-tiles.in .hl-tile { opacity: 1; transform: none; }
+.hl-tile:hover { transform: translateY(-3px); transition-delay: 0s; }
+
+/* a single frame, for making the pictures */
+.hl-shot { position: fixed; inset: 0; z-index: 9999; width: 100vw; height: 100vh; display: block; background: #efe6d6; }
+
+/* the page of pictures (reduced motion, no WebGL) */
+.hl-still-head { padding-top: 56px; padding-bottom: 8px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.hl-still-list { display: flex; flex-wrap: wrap; gap: 4px 20px; padding-top: 16px; padding-bottom: 24px; }
+.hl-still-list a { min-height: 44px; display: inline-flex; align-items: center; color: var(--s2-ink); font-size: 14px; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
+.hl-still-list a:hover { border-bottom-color: var(--s2-brass); }
+.hl-slide { position: relative; max-width: 1600px; margin: 0 auto; }
+.hl-slide-art img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.hl-slide .hl-slide-words { position: static; width: auto; margin: 0; visibility: visible; opacity: 1; transform: none; will-change: auto; }
+@media (min-width: 760px) {
+  .hl-slide .hl-slide-words { position: absolute; left: var(--hl-pad); top: 50%; transform: translateY(-50%); width: min(440px, 38vw); }
+}
+
+/* phones: the scene on top, the words under it */
+@media (max-width: 759px) {
+  .hl-copy { left: 20px; right: 20px; top: auto; bottom: 150px; width: auto; margin-top: 0; }
+  .hl-intro { margin-top: 0; bottom: 150px; }
+  .hl-headline { font-size: clamp(34px, 10vw, 44px); }
+  .hl-name { font-size: 34px; }
+  .hl-line { margin: 10px 0 18px; font-size: 16px; max-width: none; }
+  .hl-hint { margin-top: 20px; }
+  .hl-fade { background: linear-gradient(to top, var(--s2-cream) 0%, var(--s2-cream) 36%, rgba(247, 242, 234, 0) 56%); }
+  .hl-progress { left: 12px; right: 12px; flex-direction: column; align-items: center; gap: 0; bottom: max(8px, env(safe-area-inset-bottom)); }
+  .hl-progress ol { width: 100%; gap: 0; }
+  .hl-progress button { align-items: center; justify-content: center; gap: 0; height: 44px; }
+  .hl-progress button .hl-dot-bar { width: 22px; height: 4px; transition: width 0.3s; }
+  .hl-progress button.is-active .hl-dot-bar { width: 34px; }
+  .hl-dot-name { display: none; }
+  .hl-skip { min-height: 40px; }
+  .hl-wall { bottom: 120px; }
+  .hl-slide-art img { aspect-ratio: 3 / 4; }
+  .hl-slide .hl-slide-words { padding: 24px 20px 8px; }
+  .hl-tiles { padding-top: 64px; padding-bottom: 64px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-hint-line::after { animation: none; transform: none; }
+  .hl-tile { opacity: 1; transform: none; transition: none; }
+}

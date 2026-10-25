@@ -23,6 +23,7 @@ const LinePage = lazy(() => import('./linepage.jsx'));
 const OrderPage = lazy(() => import('./orderpage.jsx'));
 const Legal = lazy(() => import('./legal.jsx').then((m) => ({ default: m.default })));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
+const HeroLab = lazy(() => import('./hero/HeroLab.jsx'));       // /hero-lab: test page for the scrolling 3D hero (not linked from anywhere)
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 // Browser storage can be full, blocked or off (private windows): the cart still works, it just is not remembered.
@@ -372,6 +373,7 @@ export default function App() {
           <LinePage key={slug} slug={slug} navigate={navigate} editId={editId} />
         </Suspense>
       )}
+      {route === "hero"     && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><HeroLab navigate={navigate} /></Suspense>}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage search={search} navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}
       {route === "orders"   && <OrdersPage viewId={new URLSearchParams(search).get('view')} orderAgain={orderAgain} navigate={navigate} orders={orders} activeOrderId={activeOrderId} openOrder={openOrder} createOrder={createOrder} renameOrder={renameOrder} deleteOrder={deleteOrder} user={user} signOut={signOut} signInWithGoogle={handleSignIn} supabaseEnabled={supabaseEnabled} quoteCount={q} ordersLength={orders.length} dbError={dbError} />}

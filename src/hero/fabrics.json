@@ -1,0 +1,86 @@
+{
+  "roller-blue": {
+    "line": "roller",
+    "code": "YS208608",
+    "name": "Blue",
+    "color": "#6d8098",
+    "texture": "/hero-lab/fabrics/roller-blue.webp",
+    "tile": [
+      0.34,
+      0.34
+    ],
+    "mirror": false
+  },
+  "zebra-granite-gray": {
+    "line": "zebra",
+    "code": "YZB3304",
+    "name": "Granite Gray",
+    "color": "#b2b4bb",
+    "texture": "/hero-lab/fabrics/zebra-granite-gray.webp",
+    "tile": [
+      0.36,
+      0.25
+    ],
+    "mirror": false
+  },
+  "shangri-la-linen": {
+    "line": "shangri-la",
+    "code": "YSLM605",
+    "name": "Linen",
+    "color": "#cbb79d",
+    "texture": "/hero-lab/fabrics/shangri-la-linen.webp",
+    "tile": [
+      0.2,
+      0.13
+    ],
+    "mirror": false
+  },
+  "cellular-avocado-green": {
+    "line": "cellular",
+    "code": "YHC38L003",
+    "name": "Avocado Green",
+    "color": "#e2e7d1",
+    "texture": "/hero-lab/fabrics/cellular-avocado-green.webp",
+    "tile": [
+      0.4,
+      0.05
+    ],
+    "mirror": false
+  },
+  "roman-hazelnut-beige": {
+    "line": "roman",
+    "code": "SP26041004",
+    "name": "Hazelnut Beige",
+    "color": "#a9a39a",
+    "texture": "/hero-lab/fabrics/roman-hazelnut-beige.webp",
+    "tile": [
+      0.4,
+      0.37
+    ],
+    "mirror": false
+  },
+  "curtains-mushroom-beige": {
+    "line": "drapery",
+    "code": "SP26029003",
+    "name": "Mushroom Beige",
+    "color": "#bfb3a7",
+    "texture": "/hero-lab/fabrics/curtains-mushroom-beige.webp",
+    "tile": [
+      0.4,
+      0.37
+    ],
+    "mirror": false
+  },
+  "dream-anchor-gray": {
+    "line": "drapery",
+    "code": "ZDS3001-17",
+    "name": "Anchor Gray",
+    "color": "#808587",
+    "texture": "/hero-lab/fabrics/dream-anchor-gray.webp",
+    "tile": [
+      0.9,
+      0.9
+    ],
+    "mirror": true
+  }
+}
