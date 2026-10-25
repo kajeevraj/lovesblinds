@@ -39,7 +39,7 @@ const seoPages = () => {
       const slugs = activeLines().map((l) => l.slug)
       const home = readFileSync(join(outDir, 'index.html'), 'utf8')
       const homeBlock = home.slice(home.indexOf(START), home.indexOf(END) + END.length)
-      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ...slugs.map((s) => ['line', s])]
+      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ['roomlab'], ...slugs.map((s) => ['line', s])]
       for (const [route, slug] of pages) {
         const m = metaFor(route, slug, photos())
         const file = join(outDir, m.path.slice(1), 'index.html')
