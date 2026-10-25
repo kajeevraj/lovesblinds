@@ -8,7 +8,7 @@
 // The canvas can show any rectangle of the photo (`view`), which is how the phone layout crops in and zooms to one window.
 // Rendering happens only when something changed (a drag, an eased move, a texture arriving) and only while the canvas is on screen.
 import * as THREE from 'three';
-import { CAM, ROOM, WINDOWS, FAR_WINDOW, PRODUCT_BY_ID, fabricOf, project, wallX, wallY } from './data.js';
+import { CAM, ROOM, WINDOWS, FAR_WINDOW, PRODUCT_BY_ID, CURTAIN_LAYER, project, wallX, wallY } from './data.js';
 import { createModel } from './models/index.js';
 
 const SHADE_Z = -0.045;          // the fabric plane of an inside-mount shade, behind the wall plane (m)
@@ -115,7 +115,7 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
     }
   };
 
-  function setSlot(id, { product, fabricKey, amount }) {
+  function setSlot(id, { product, fabric, amount }) {
     const slot = slots[id], p = PRODUCT_BY_ID[product];
     const kind = p?.kind || null;
     if (kind !== slot.kind) {
@@ -125,11 +125,12 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
       slot.fabricKey = null;
     }
     slot.product = product;
+    const fabricKey = fabric?.key;
     if (typeof amount === 'number') slot.target = amount;
     if (slot.model) {
       if (slot.fabricKey !== fabricKey || slot.productKey !== product) {
-        slot.fabricKey = fabricKey; slot.productKey = product;
-        slot.model.setFabric(fabricOf(fabricKey), p.optics);
+        slot.fabricKey = fabricKey; slot.productKey = product; slot.fabric = fabric;
+        slot.model.setFabric(fabric, p.optics);
       }
       place(slot);
       slot.model.setAmount(slot.current);
@@ -139,12 +140,45 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
   // move straight to an amount (a drag follows the finger, no easing)
   function snapAmount(id, a) { const s = slots[id]; s.target = s.current = a; s.model?.setAmount(a); recomputeDim(true); wake(); }
 
+  // ---- the curtain layer: one wide track across the three windows (and its own track on the side wall), panels that move together ---------
+  const curt = { on: false, fabric: null, key: null, target: 0.6, current: 0.6, main: null, far: null };
+  function placeCurtains() {
+    const l = WINDOWS.left.rect, r = WINDOWS.right.rect, hang = ROOM.ceilY - 0.022 - (ROOM.floorY + 0.012);
+    curt.main.wallDist = CURTAIN_Z;
+    curt.main.setSize((r[2] - l[0]) / CAM.scale + 2 * CURTAIN_OVERHANG, hang);
+    curt.main.group.position.set(wallX((l[0] + r[2]) / 2), ROOM.ceilY - 0.022, CURTAIN_Z);
+    const f = FAR_WINDOW;
+    curt.far.wallDist = CURTAIN_Z;
+    curt.far.group.rotation.set(0, -Math.PI / 2, 0);
+    curt.far.setSize(f.width + 2 * CURTAIN_OVERHANG, hang);
+    curt.far.group.position.set(f.x - CURTAIN_Z, ROOM.ceilY - 0.022, f.z0 + f.width / 2);
+  }
+  function setCurtains({ on, fabric, amount }) {
+    if (on && !curt.main) {
+      curt.main = createModel('curtains', env); curt.far = createModel('curtains', env);
+      scene.add(curt.main.group, curt.far.group);
+      curt.current = curt.target = typeof amount === 'number' ? amount : curt.target;
+    }
+    curt.on = !!on;
+    if (!curt.main) return;
+    curt.main.group.visible = curt.far.group.visible = curt.on;
+    if (typeof amount === 'number') curt.target = amount;
+    if (curt.on && fabric && curt.key !== fabric.key) {
+      curt.key = fabric.key; curt.fabric = fabric;
+      curt.main.setFabric(fabric, CURTAIN_LAYER.optics); curt.far.setFabric(fabric, CURTAIN_LAYER.optics);
+    }
+    if (curt.on) { placeCurtains(); curt.main.setAmount(curt.current); curt.far.setAmount(curt.current); }
+    recomputeDim(); wake();
+  }
+  function snapCurtains(a) { curt.target = curt.current = a; if (curt.main) { curt.main.setAmount(a); curt.far.setAmount(a); } recomputeDim(true); wake(); }
+
   // ---- room light ------------------------------------------------------------------------------------------------------------------
   let dimTarget = 0, dimCurrent = 0;
   const WEIGHT = { left: 1, middle: 1, right: 1, far: 0.35 };
   function recomputeDim(instant = false) {
     let sum = 0, tot = 0;
-    for (const s of Object.values(slots)) { tot += WEIGHT[s.id]; sum += WEIGHT[s.id] * (s.model ? s.model.block : 0); }
+    const cb = curt.on && curt.main ? curt.main.block : 0;                // curtains and a shade both stop light: 1 - (1 - a)(1 - b)
+    for (const s of Object.values(slots)) { tot += WEIGHT[s.id]; const sb = s.model ? s.model.block : 0; sum += WEIGHT[s.id] * (1 - (1 - sb) * (1 - cb)); }
     dimTarget = tot ? sum / tot : 0;
     if (instant) dimCurrent = dimTarget;
   }
@@ -195,6 +229,10 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
       if (Math.abs(s.target - s.current) > 0.0008) { s.current += (s.target - s.current) * k; s.model.setAmount(s.current); moving = true; dirty = true; }
       else if (s.current !== s.target) { s.current = s.target; s.model.setAmount(s.current); dirty = true; }
     }
+    if (curt.on && curt.main) {
+      if (Math.abs(curt.target - curt.current) > 0.0008) { curt.current += (curt.target - curt.current) * k; moving = true; dirty = true; } else curt.current = curt.target;
+      curt.main.setAmount(curt.current); curt.far.setAmount(curt.current);
+    }
     recomputeDim();
     if (Math.abs(dimTarget - dimCurrent) > 0.0008) { dimCurrent += (dimTarget - dimCurrent) * k; moving = true; dirty = true; } else if (dimCurrent !== dimTarget) { dimCurrent = dimTarget; dirty = true; }
     if (viewGoal) {
@@ -204,11 +242,12 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
       onVisualChange?.({ view });
       dirty = true;
     }
-    if (dirty) { dirty = false; draw(); onVisualChange?.({ amounts: Object.fromEntries(Object.values(slots).map((s) => [s.id, s.current])) }); }
+    if (dirty) { dirty = false; draw(); onVisualChange?.({ amounts: { ...Object.fromEntries(Object.values(slots).map((s) => [s.id, s.current])), curtains: curt.current } }); }
     if (moving) raf = requestAnimationFrame(frame); else last = 0;
   }
   function draw() {
     for (const s of Object.values(slots)) s.model?.applyEnv();
+    if (curt.on && curt.main) { curt.main.applyEnv(); curt.far.applyEnv(); }
     applyLight();
     projection();
     renderer.clear();
@@ -219,17 +258,17 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
   function setActive(on) { active = on; if (on) { last = 0; wake(); } else if (raf) { cancelAnimationFrame(raf); raf = 0; } }
 
   const onLost = (e) => { e.preventDefault(); setActive(false); };
-  const onRestored = () => { Object.values(slots).forEach((s) => { if (s.model) { s.model.setFabric(fabricOf(s.fabricKey), PRODUCT_BY_ID[s.product].optics); } }); wake(); };
+  const onRestored = () => { Object.values(slots).forEach((s) => { if (s.model && s.fabric) s.model.setFabric(s.fabric, PRODUCT_BY_ID[s.product].optics); }); if (curt.main && curt.fabric) { curt.main.setFabric(curt.fabric, CURTAIN_LAYER.optics); curt.far.setFabric(curt.fabric, CURTAIN_LAYER.optics); } wake(); };
   canvas.addEventListener('webglcontextlost', onLost);
   canvas.addEventListener('webglcontextrestored', onRestored);
 
   return {
-    setSlot, snapAmount, setView, resize, setActive, invalidate,
+    setSlot, snapAmount, setCurtains, snapCurtains, curtainModel: () => curt.main, setView, resize, setActive, invalidate,
     slot: (id) => slots[id], get view() { return view; },
     dispose() {
       setActive(false);
       canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored);
-      Object.values(slots).forEach((s) => s.model?.dispose());
+      Object.values(slots).forEach((s) => s.model?.dispose()); curt.main?.dispose(); curt.far?.dispose();
       renderer.dispose();
     },
   };

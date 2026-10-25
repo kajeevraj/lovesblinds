@@ -9,7 +9,7 @@
 // No cloth physics: each panel is a strip of cloth folded into soft waves. The waves are sine folds whose depth is worked out from the
 // length of cloth in each fold, so they get deeper and closer together as the panel gathers (a short distance with the same amount of cloth).
 import * as THREE from 'three';
-import { weaveTexture, fabricMaterial, applyGlow, shadowMesh, blobTexture, whenImage, clamp, lerp } from './common.js';
+import { weaveTexture, fabricMaterial, applyGlow, shadowMesh, blobTexture, whenFabric, clamp, lerp } from './common.js';
 
 const FULLNESS = 1.35;      // metres of cloth per metre of track when closed
 const FOLD = 0.19;          // metres of cloth per fold when closed
@@ -112,11 +112,11 @@ class Curtains {
   setFabric(fabric, optics) {
     this.fabric = fabric; this.optics = optics;
     this.mat?.dispose(); this.tex?.dispose();
-    this.tex = weaveTexture(fabric.url, fabric.tile, this.env);
+    this.tex = weaveTexture(fabric, this.env);
     this.mat = fabricMaterial({ map: this.tex, glow: optics.glow ?? 0.2, bump: 1.4, vertexColors: true, side: THREE.DoubleSide }, this.env);
     this.mat.color.set(fabric.color);
     const m = this.mat;
-    whenImage(fabric.url, () => { m.color.set(0xffffff); m.needsUpdate = true; });
+    whenFabric(fabric, () => { m.color.set(0xffffff); m.needsUpdate = true; });
     this.mat.userData.uHeight.value = this.height;
     this.panels.forEach((p) => { p.mesh.material = this.mat; });
     this.applyEnv();

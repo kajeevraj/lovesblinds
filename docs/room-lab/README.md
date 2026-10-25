@@ -14,3 +14,10 @@ This replaces the `/hero-lab` experiment (that code lives only on the unmerged b
 - **Room dimming:** a dark veil over the photo with holes at the glass, plus the furniture cutout's brightness, scaled by how much light the lowered products block.
 
 Roller names on this page: *Light filtering* = catalog family "solar" (translucent), *Solar* = catalog family "screen-view" (1-5% openness), *Blackout* = catalog "blackout".
+
+## Round 1.1 changes
+- **Controls on the windows:** each window has a pill above it (on the wall) with the product name and ‹ › to cycle (Bare, Light filtering, Solar, Blackout, Zebra); phones show the pill only on the selected window and a swipe on it cycles too. A compact toolbar above the room shows the selected window's product, 5 real-swatch color presets, "+ N more", "Build yours", and the "All windows" and "Curtains" toggles. "All windows" copies product and color to every window; off, each window is independent. The side-wall window follows the last "All windows" choice.
+- **Colors:** "+ N more" opens a bottom sheet (phones) or side panel (desktop) with every catalog swatch for that product, using the product pages' picker (`SwatchBrowser` in `src/components/s2.jsx`: search, color-family filters, magnifier, name and code). Swatches that are not presets are cut and flattened in the browser (`whenFabric` in `src/room/models/common.js`).
+- **Curtains are one layer:** a single track across all three windows (and a separate track on the side wall), panels that always move together, over shades or bare glass. Dragging sideways opens/closes; dragging vertically still moves the shade. Their own presets and swatch panel.
+- **No selection box;** nothing is drawn over the sofa (pills sit on the wall, handles are held above the sofa's top edge).
+- Keyboard: pills are buttons (←/→ cycle), sliders under the room move the shade and curtains.

@@ -51,10 +51,18 @@ export const PRODUCTS = [
   { id: 'zebra', label: 'Zebra shade', short: 'Zebra', kind: 'zebra', family: 'Zebra', photo: 'zebra-dining', slug: 'zebra',
     optics: { sheerAlpha: 0.3, glowSolid: 0.12, glowSheer: 0.9, block: 0.6 }, control: 'lower',
     fabrics: ['zeb-cream', 'zeb-camel-khaki', 'zeb-platinum-gray', 'zeb-cinnamon-latte', 'zeb-tuxedo-black'] },
-  { id: 'curtains', label: 'Curtains', short: 'Curtains', kind: 'curtains', family: 'Curtains', photo: 'drapery', slug: 'drapery',
-    optics: { glow: 0.4, block: 0.8 }, control: 'close',
-    fabrics: ['cur-gossamer-white', 'cur-mushroom-beige', 'cur-granola-beige', 'cur-anchor-gray', 'cur-cedar-brown'] },
 ];
+// Curtains are not a per-window product: one layer across all the windows (a track, panels that move together), over shades or bare glass.
+export const CURTAIN_LAYER = {
+  id: 'curtains', label: 'Curtains', kind: 'curtains', family: 'Curtains', photo: 'drapery', slug: 'drapery', control: 'close',
+  optics: { glow: 0.4, block: 0.8 },
+  fabrics: ['cur-gossamer-white', 'cur-mushroom-beige', 'cur-granola-beige', 'cur-anchor-gray', 'cur-cedar-brown'],
+};
+// Where each product's colors come from in the catalog: the line, and for Roller the fabric family
+export const CATALOG = {
+  'roller-lf': { line: 'roller', family: 'solar' }, 'roller-solar': { line: 'roller', family: 'screen-view' }, 'roller-blackout': { line: 'roller', family: 'blackout' },
+  zebra: { line: 'zebra' }, curtains: { line: 'drapery' },
+};
 export const PRODUCT_BY_ID = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
 export const fabricOf = (key) => ({ key, ...FABRICS[key], url: `/room-lab/fabrics/${key}.webp` });
 
