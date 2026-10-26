@@ -113,7 +113,13 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
             <>
               <div className="pv-drag" style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
               {!["cordless", "zero-gravity"].includes(parseMech(kind, mech).movement) && <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
-              {layout.motor && <span className="pv-xlabel" style={{ left: layout.motor.x, top: layout.motor.y, opacity: layout.xray ? 1 : 0 }} aria-hidden="true">Motor inside</span>}
+              {layout.motor && <span className="pv-xlabel" style={{ left: phone ? (layout.x0 + layout.x1) / 2 : layout.motor.x, top: layout.motor.y, opacity: layout.xray ? 1 : 0 }} aria-hidden="true">Motor inside</span>}
+              {layout.solar && (
+                <>
+                  <span className="pv-solar-line" style={{ left: (layout.solar.side > 0) !== !!phone ? layout.solar.x - 21 : layout.solar.x + 7, top: layout.solar.y }} aria-hidden="true" />
+                  <span className="pv-solar-label" style={{ left: (layout.solar.side > 0) !== !!phone ? layout.solar.x - 21 : layout.solar.x + 21, top: layout.solar.y, transform: (layout.solar.side > 0) !== !!phone ? 'translate(-100%, -50%)' : 'translateY(-50%)' }}>{phone ? <>Solar panel<br />on the glass</> : 'Solar panel on the glass'}</span>
+                </>
+              )}
               {sizes && wTxt && hTxt && (
                 <>
                   <span className="pv-dim pv-dim-w" style={{ left: layout.x0, width: layout.x1 - layout.x0, top: Math.max(8, layout.y0 - 30) }}><b>{wTxt}</b></span>
@@ -129,12 +135,14 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
                 <button type="button" className={lit === 'stop' ? 'lit' : ''} onClick={() => press('stop')} aria-label="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="3" rx="1.5" /></svg></button>
                 <button type="button" className={lit === 'down' ? 'lit' : ''} onClick={() => press('down')} aria-label="Lower the shade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18 4 6h16z" /></svg></button>
               </div>
-              <div className="pv-incl-row">
-                {drv.control !== 'remote-only' && <span title="Smart Life app"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg>App</span>}
-                {drv.control === 'zigbee' && <span title="Zigbee hub (needed; $35 from us)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg>Hub</span>}
-                {drv.control === 'matter' && <span title="Matter smart speaker (needed)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg>Speaker</span>}
-              </div>
-              <span className="pv-incl-title">Included</span>
+              <span className="pv-incl-title">Included: remote</span>
+            </div>
+          )}
+          {status === 'ready' && drv.movement === 'motorized' && drv.control !== 'remote-only' && (
+            <div className="pv-works">
+              {drv.control === 'app-remote' && <><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>Works with your phone (Smart Life app)</span></>}
+              {drv.control === 'zigbee' && <><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>Needs a Zigbee hub (sold separately, $35)</span></>}
+              {drv.control === 'matter' && <><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>Works with your Matter smart speaker or hub</span></>}
             </div>
           )}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}

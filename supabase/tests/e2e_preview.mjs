@@ -107,6 +107,54 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await ctx.close();
 }
 
+// the motor: "Motor inside" outline, the working remote, the solar label, and what the "Works with" box says
+for (const [vw, vh] of [[390, 844], [1280, 900]]) {
+  const tag = `[${vw}px]`;
+  const { ctx, page, errors } = await open(vw, vh, '/products/roller');
+  await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
+  await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
+  const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
+  const amount = async () => Number(await page.locator('#pv-amount').inputValue());
+  check(`${tag} no remote and no "Motor inside" label on a chain shade`, (await page.locator('.pv-remote').count()) === 0 && (await page.locator('.pv-xlabel').count()) === 0);
+  await card('Motorized').click(); await page.waitForTimeout(900);
+  const op = () => page.locator('.pv-xlabel').evaluate((e) => Number(e.style.opacity));
+  check(`${tag} Motorized shows the "Motor inside" label`, (await page.locator('.pv-xlabel').innerText()) === 'Motor inside' && (await op()) === 1);
+  check(`${tag} the remote has three real buttons, at least 44 px, and says "Included: remote"`, (await page.locator('.pv-remote button').count()) === 3 && await page.locator('.pv-remote button').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 44 && x.getBoundingClientRect().height >= 44)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
+  const works = () => page.locator('.pv-works').innerText().catch(() => '');
+  check(`${tag} "Works with" says the phone for App + Remote`, /Works with your phone \(Smart Life app\)/.test(await works()));
+  await card('App + Voice + Remote (Zigbee)').click(); await page.waitForTimeout(300);
+  check(`${tag} Zigbee says it needs a hub, sold separately, $35`, /Needs a Zigbee hub \(sold separately, \$35\)/.test(await works()));
+  await card('App + Voice + Remote (Matter)').click(); await page.waitForTimeout(300);
+  check(`${tag} Matter says it works with a Matter smart speaker or hub`, /Works with your Matter smart speaker or hub/.test(await works()));
+  await card('Remote control only').click(); await page.waitForTimeout(300);
+  check(`${tag} Remote control only has no "Works with" box`, (await page.locator('.pv-works').count()) === 0);
+  await card('App + Remote').click(); await page.waitForTimeout(300);
+  // the buttons move the shade; Stop holds it
+  const a0 = await amount();
+  await page.getByRole('button', { name: 'Lower the shade' }).click(); await page.waitForTimeout(150);
+  check(`${tag} the pressed remote button lights up`, (await page.locator('.pv-remote button.lit').count()) === 1);
+  await page.waitForTimeout(1500);
+  const a1 = await amount();
+  check(`${tag} Down lowers the shade at a steady speed`, a1 > a0 + 3, `${a0} -> ${a1}`);
+  check(`${tag} the "Motor inside" label fades out once the remote is used`, (await op()) === 0);
+  await page.getByRole('button', { name: 'Stop' }).click(); const s1 = await amount(); await page.waitForTimeout(900); const s2 = await amount();
+  check(`${tag} Stop holds the shade where it is`, s1 === s2 && s1 >= a1, `${s1} -> ${s2}`);
+  await page.getByRole('button', { name: 'Raise the shade' }).click(); await page.waitForTimeout(1500);
+  check(`${tag} Up raises it again`, (await amount()) < s2 - 3);
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await page.locator('#pv-amount').fill('30'); await page.waitForTimeout(300);
+  check(`${tag} the slider still works next to the remote`, (await amount()) === 30);
+  await page.getByRole('button', { name: 'Lower the shade' }).focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(700); await page.getByRole('button', { name: 'Stop' }).click();
+  check(`${tag} the remote works from the keyboard`, (await amount()) > 30);
+  check(`${tag} no solar label without a solar panel`, (await page.locator('.pv-solar-label').count()) === 0);
+  await card('Add a solar panel').click(); await page.waitForTimeout(900);
+  check(`${tag} a solar panel shows the "Solar panel on the glass" label with its pointer line`, (await page.locator('.pv-solar-label').innerText()).replace(/\s+/g, ' ') === 'Solar panel on the glass' && (await page.locator('.pv-solar-line').count()) === 1);
+  await page.locator('#pv-amount').fill('100'); await page.waitForTimeout(600);
+  check(`${tag} the label stays when the shade is fully down`, (await page.locator('.pv-solar-label').isVisible()));
+  check(`${tag} no console errors`, errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
 // the room lab
 for (const [vw, vh] of [[390, 844], [1280, 800]]) {
   const tag = `[${vw}px]`;

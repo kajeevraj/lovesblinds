@@ -1448,9 +1448,10 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .pv-remote button:hover { background: #66646c; }
 .pv-remote button:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .pv-remote button.lit { background: #ffd27a; color: #38373a; box-shadow: 0 0 0 3px rgba(255, 210, 122, .55), 0 0 14px rgba(255, 210, 122, .9); }
-.pv-incl-row { display: flex; gap: 8px; }
-.pv-incl-row span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.pv-incl-row svg { width: 20px; height: 20px; fill: none; stroke: #3a3228; stroke-width: 1.6; }
+.pv-works { position: absolute; right: 8px; width: 118px; display: flex; gap: 6px; align-items: flex-start; padding: 6px 8px; border-radius: 12px; background: rgba(255, 253, 249, .92); box-shadow: 0 1px 6px rgba(60, 45, 25, .18); font: 500 10px/1.3 "Montserrat", sans-serif; color: #3a3228; top: 196px; }
+.pv-works svg { flex: none; width: 20px; height: 20px; fill: none; stroke: #3a3228; stroke-width: 1.6; }
+.pv-solar-line { position: absolute; width: 14px; height: 0; border-top: 1px solid rgba(40, 40, 46, .8); pointer-events: none; }
+.pv-solar-label { position: absolute; padding: 3px 9px; border-radius: 99px; background: rgba(255, 253, 249, .95); color: #3a3228; box-shadow: 0 1px 4px rgba(60, 45, 25, .25); font: 600 11px/1.2 "Montserrat", sans-serif; white-space: nowrap; pointer-events: none; }
 .pv-incl-title { letter-spacing: .08em; text-transform: uppercase; font-size: 9px; color: var(--s2-brass-text); }
 .pv-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .pv-btn { min-height: 44px; padding: 0 18px; border-radius: 99px; border: 1px solid var(--s2-ink); background: var(--s2-ink); color: #fff; font: 600 14px/1 "Montserrat", sans-serif; cursor: pointer; }
@@ -1496,4 +1497,11 @@ body:is(:has(.has-preview), :has(.rl)) .s2-incnote { left: auto; right: 12px; tr
 body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; max-width: min(320px, calc(100vw - 24px)); }
 @media (max-width: 959px) and (orientation: landscape) and (max-height: 520px) {
   body:is(:has(.has-preview), :has(.rl)) .s2-incnote, body:is(:has(.has-preview), :has(.rl)) .snackbar { width: min(300px, 50vw); max-width: 50vw; }
+}
+
+/* phones: the remote and its note sit along the bottom, so they never cover the window */
+@media (max-width: 959px) {
+  .pv-incl { top: auto; bottom: 6px; right: 6px; flex-direction: column-reverse; padding: 4px 6px 5px; gap: 3px; }
+  .pv-remote { flex-direction: row; padding: 4px; gap: 4px; }
+  .pv-works { top: auto; bottom: 6px; left: 6px; right: auto; width: 112px; }
 }

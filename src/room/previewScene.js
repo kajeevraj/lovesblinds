@@ -43,7 +43,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const floorMat = new THREE.MeshStandardMaterial({ color: 0xb79c77, roughness: 0.75 });
   const baseMat = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.5 });
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x8f6f4d, roughness: 0.6 });
-  const handleMat = new THREE.MeshStandardMaterial({ color: 0x77736b, roughness: 0.45 });
+  const handleMat = new THREE.MeshStandardMaterial({ color: 0x5a564f, roughness: 0.45 });
   const cordMat = new THREE.MeshStandardMaterial({ color: 0xe4e0d6, roughness: 0.7 });
   const solarMat = new THREE.MeshStandardMaterial({ color: 0x23365c, roughness: 0.35, metalness: 0.3 });
   const screenMat = new THREE.MeshBasicMaterial({ color: 0x9fc4e8, toneMapped: false });
@@ -132,8 +132,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   }
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------
-  let accessory = null, xrayMats = [], driveDir = 0;
-  const xray = { target: 0, v: 0 }, xrayPt = new THREE.Vector3();
+  let accessory = null, xrayMats = [], driveDir = 0, hasSolar = false;
+  const xray = { target: 0, v: 0 }, xrayPt = new THREE.Vector3(), solarPt = new THREE.Vector3();
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
     if (accessory) { scene.remove(accessory); accessory.traverse((o) => o.geometry?.dispose()); accessory = null; }
@@ -167,9 +167,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       g.add(box(0.02, 0.018, 0.014, plasticMat, endX, sp.top - 0.07 - len - 0.01, z + 0.04));            // the weight that keeps the loop tight
     } else if (d.movement === 'cordless' || d.movement === 'zero-gravity') {
       // the optional center handle, on the middle of each bottom rail (it moves with the rail)
-      shades.forEach((sh) => { sh.rail.add(box(0.1, 0.02, 0.012, handleMat, 0, -0.015, 0.016)); });
+      shades.forEach((sh) => { sh.rail.add(box(0.13, 0.03, 0.016, handleMat, 0, -0.02, 0.018)); });
     } else if (d.movement === 'motorized') {
-      xrayMats = [];
+      xrayMats = []; hasSolar = false;
       const tabY = sp.top - CASS_H_ - 0.014;
       const ox = sx * (edge + 0.16), oyy = built.fy + 12 * IN;                                          // the wall outlet (12 in up), on the control side
       g.add(box(0.07, 0.115, 0.01, trimMat, ox, oyy, 0.005));
@@ -199,16 +199,15 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
         xrayMats.push([fill.material, 0.16], [lines.material, 0.7]);
         if (i === 0) xrayPt.set(cx, sp.top - CASS_H_ / 2, z);
       });
-      if (d.power === 'battery' && d.solar) {                             // a small solar panel on the glass near the top on the motor side, with a thin cable to the end cap; drawn over the shade so it shows up or down
-        const gz = -DEPTH + 0.03 - 0.02 + 0.008, px = sx * (sp.w / 2 - 0.1), py = sp.top - 0.24;
-        const ghost = (m, order) => { m.material.depthTest = false; m.material.transparent = true; m.renderOrder = order; g.add(m); return m; };
-        ghost(box(0.12, 0.16, 0.004, trimMat.clone(), px, py, gz), 8);
-        ghost(box(0.108, 0.148, 0.004, solarMat.clone(), px, py, gz + 0.003), 9);
-        const gl = trimMat.clone();
-        for (const vx of [-0.018, 0.018]) ghost(box(0.002, 0.148, 0.002, gl, px + vx, py, gz + 0.005), 10);
-        for (const vy of [-0.037, 0, 0.037]) ghost(box(0.108, 0.002, 0.002, gl, px, py + vy, gz + 0.005), 10);
-        const cab = new THREE.CatmullRomCurve3([new THREE.Vector3(px, py + 0.08, gz + 0.004), new THREE.Vector3(px + sx * 0.02, (py + tabY) / 2, gz + 0.01), new THREE.Vector3(endX, tabY - 0.012, zOf(0) + 0.019)]);
-        ghost(new THREE.Mesh(new THREE.TubeGeometry(cab, 24, 0.0018, 5), new THREE.MeshBasicMaterial({ color: 0x2b2b2e, toneMapped: false })), 11);
+      if (d.power === 'battery' && d.solar) {                             // the solar panel really goes on the glass behind the shade, near the top on the motor side (the page labels it)
+        const gz = -DEPTH + 0.03 - 0.02 + 0.006, px = sx * (sp.w / 2 - 0.1), py = sp.top - 0.24;
+        g.add(box(0.12, 0.16, 0.004, trimMat, px, py, gz));
+        g.add(box(0.108, 0.148, 0.004, solarMat, px, py, gz + 0.003));
+        for (const vx of [-0.018, 0.018]) g.add(box(0.002, 0.148, 0.002, trimMat, px + vx, py, gz + 0.005));
+        for (const vy of [-0.037, 0, 0.037]) g.add(box(0.108, 0.002, 0.002, trimMat, px, py + vy, gz + 0.005));
+        const cab = new THREE.CatmullRomCurve3([new THREE.Vector3(px, py + 0.08, gz + 0.004), new THREE.Vector3(px + sx * 0.02, (py + tabY) / 2, gz + 0.01), new THREE.Vector3(endX, tabY - 0.012, sp.z - 0.03)]);
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(cab, 24, 0.0018, 5), new THREE.MeshBasicMaterial({ color: 0x2b2b2e, toneMapped: false })));
+        solarPt.set(px, py, gz); hasSolar = true;
       }
       if (cfg.kind === 'shangri-la') {                                    // the wall bracket is confirmed for the Shangri-La remote only
         const rx = -sx * (edge + 0.07), ry = built.oy + 0.06;
@@ -236,7 +235,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const f = handleFraction(current, sp.h);
     let motor = null;
     if (cfg.drive.movement === 'motorized') { v.copy(xrayPt).project(camera); motor = { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h }; }
-    onLayout?.({ motor, xray: xray.target, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
+    let solar = null;
+    if (cfg.drive.movement === 'motorized' && hasSolar) { v.copy(solarPt).project(camera); solar = { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h, side: cfg.drive.side === 'left' ? -1 : 1 }; }
+    onLayout?.({ motor, solar, xray: xray.target, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
