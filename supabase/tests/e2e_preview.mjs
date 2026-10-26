@@ -115,11 +115,11 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
   const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
   const amount = async () => Number(await page.locator('#pv-amount').inputValue());
-  check(`${tag} no remote and no "Motor inside" label on a chain shade`, (await page.locator('.pv-remote').count()) === 0 && (await page.locator('.pv-xlabel').count()) === 0);
+  check(`${tag} no remote and no "Motor inside" label on a chain shade`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-xlabel').count()) === 0);
   await card('Motorized').click(); await page.waitForTimeout(900);
   const op = () => page.locator('.pv-xlabel').evaluate((e) => Number(e.style.opacity));
   check(`${tag} Motorized shows the "Motor inside" label`, (await page.locator('.pv-xlabel').innerText()) === 'Motor inside' && (await op()) === 1);
-  check(`${tag} the remote has three real buttons, at least 44 px, and says "Included: remote"`, (await page.locator('.pv-remote button').count()) === 3 && await page.locator('.pv-remote button').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 44 && x.getBoundingClientRect().height >= 44)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
+  check(`${tag} the remote has three real buttons, at least 44 px, and says "Included: remote"`, (await page.locator('.rm-btn').count()) === 3 && await page.locator('.rm-btn').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 44 && x.getBoundingClientRect().height >= 44)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
   const works = () => page.locator('.pv-works').innerText().catch(() => '');
   check(`${tag} "Works with" says the phone for App + Remote`, /Works with your phone \(Smart Life app\)/.test(await works()));
   await card('App + Voice + Remote (Zigbee)').click(); await page.waitForTimeout(300);
@@ -132,7 +132,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   // the buttons move the shade; Stop holds it
   const a0 = await amount();
   await page.getByRole('button', { name: 'Lower the shade' }).click(); await page.waitForTimeout(150);
-  check(`${tag} the pressed remote button lights up`, (await page.locator('.pv-remote button.lit').count()) === 1);
+  check(`${tag} the pressed remote button lights up`, (await page.locator('.rm-btn.lit').count()) === 1);
   await page.waitForTimeout(1500);
   const a1 = await amount();
   check(`${tag} Down lowers the shade at a steady speed`, a1 > a0 + 3, `${a0} -> ${a1}`);
