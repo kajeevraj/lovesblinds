@@ -97,7 +97,7 @@ export async function buildOrderWorkbook(customer, lines, notes, totals = null) 
     const total = unit != null ? unit * qty : 0;
     subtotal += total;
     const cells = l
-      ? [descriptionCell(l), colorCell(l), qty, sizeCell(l.width), sizeCell(l.length), l.mechName || '', locationCell(l), unit != null ? unit : (l.price ? EMAIL_PRICE : 0)]
+      ? [descriptionCell(l), colorCell(l), qty, sizeCell(l.width), sizeCell(l.length), [l.mechName, l.remote ? `remote: ${l.remote.name}` : ''].filter(Boolean).join(', '), locationCell(l), unit != null ? unit : (l.price ? EMAIL_PRICE : 0)]
       : ['', '', null, '', '', '', '', 0];
     cells.forEach((v, k) => { ws.getCell(r, k + 2).value = v === '' || v === null ? null : v; });
     ws.getCell(r, 10).value = { formula: `D${r}*I${r}`, result: total };

@@ -7,6 +7,8 @@ import { PRODUCT_BY_ID } from './data.js';
 import { presetSpec, specFromEntry } from './fabricSpec.js';
 import { amountFromHandle } from './models/shade.js';
 import { parseMech, SIDE_NAME, MOTOR_CONTROL_NAME } from '../lib/drive.js';
+import { Remote } from './remotes.jsx';
+import { SHARE_NOTE, WORKS_NOTE } from '../lib/remote.js';
 import RoomEmbed from './RoomEmbed.jsx';
 
 const SAMPLE = { roller: 'rlf-soft-cream', zebra: 'zeb-cream' };
@@ -34,7 +36,7 @@ export function webglAvailable() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
 }
 
-export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady }) {
+export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady, remoteType = 'ch1', shareNote = false }) {
   const [status, setStatus] = useState(() => (webglAvailable() ? 'loading' : 'nowebgl'));      // loading | ready | nowebgl
   const [amount, setAmount] = useState(0.55);
   const [layout, setLayout] = useState(null);
@@ -77,7 +79,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   }, [status, kind, w, h, mount, mech, cover, key, phone]);                            // eslint-disable-line react-hooks/exhaustive-deps
 
   const press = (k) => {
-    ctrlRef.current?.drive(k === 'up' ? -1 : k === 'down' ? 1 : 0);
+    if (k === 'up' || k === 'down' || k === 'stop') ctrlRef.current?.drive(k === 'up' ? -1 : k === 'down' ? 1 : 0);
     setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
   };
   useEffect(() => () => clearTimeout(litTimer.current), []);
@@ -130,19 +132,16 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           )}
           {status === 'ready' && drv.movement === 'motorized' && (
             <div className="pv-incl">
-              <div className="pv-remote" role="group" aria-label="Remote control">
-                <button type="button" className={lit === 'up' ? 'lit' : ''} onClick={() => press('up')} aria-label="Raise the shade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6 20 18H4z" /></svg></button>
-                <button type="button" className={lit === 'stop' ? 'lit' : ''} onClick={() => press('stop')} aria-label="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="3" rx="1.5" /></svg></button>
-                <button type="button" className={lit === 'down' ? 'lit' : ''} onClick={() => press('down')} aria-label="Lower the shade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18 4 6h16z" /></svg></button>
-              </div>
+              <Remote type={remoteType} lit={lit} onPress={(id) => press(id === 'up' ? 'up' : id === 'down' ? 'down' : id === 'stop' ? 'stop' : id)} />
               <span className="pv-incl-title">Included: remote</span>
             </div>
           )}
-          {status === 'ready' && drv.movement === 'motorized' && drv.control !== 'remote-only' && (
+          {status === 'ready' && drv.movement === 'motorized' && (drv.control !== 'remote-only' || shareNote) && (
             <div className="pv-works">
-              {drv.control === 'app-remote' && <><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>Works with your phone (Smart Life app)</span></>}
-              {drv.control === 'zigbee' && <><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>Needs a Zigbee hub (sold separately, $35)</span></>}
-              {drv.control === 'matter' && <><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>Works with your Matter smart speaker or hub</span></>}
+              {drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
+              {drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{WORKS_NOTE.zigbee}</span></div>}
+              {drv.control === 'matter' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>{WORKS_NOTE.matter}</span></div>}
+              {shareNote && <div className="pv-share">{SHARE_NOTE}</div>}
             </div>
           )}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}

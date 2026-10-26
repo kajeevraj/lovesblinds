@@ -10,6 +10,8 @@ import { buildSelection } from './lib/lineSelection.js';
 import { formatInches } from './lib/inches.js';
 import { summarize } from './lib/selection.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
+import { Remote } from './room/remotes.jsx';
+import { isMotorized, remoteFor, shadeCount, SHARE_NOTE, WORKS_NOTE } from './lib/remote.js';
 import { Step, Cards, MOUNT_PICTURES, EstimateCard, QtyField, priceView } from './components/s2.jsx';
 import SizeFields, { EMPTY_SIZE, sizeNumbers } from './components/SizeFields.jsx';
 import RoomFields, { splitRoom, roomLabelOf } from './components/RoomFields.jsx';
@@ -93,6 +95,12 @@ export default function LineShell({
 
   const mechObj = getMechanism(line, mech);
   const drive = parseMech(line.id, mech);
+  // the remote that comes with a motorized shade: its channels come from the motorized shades in the cart that share this room (never a customer choice)
+  const probe = { category: line.id, mech, selection: { ...selection, section: c.section, type: c.type, mode: c.mode }, qty: n, roomLabel: room };
+  const motorized = isMotorized(probe);
+  const remote = remoteFor(line.id, probe.selection, room, cart.items.filter((i) => i.id !== edit?.id), shadeCount(probe));
+  const [remoteLit, setRemoteLit] = useState(null);
+  const flashRemote = (id) => { setRemoteLit(id); setTimeout(() => setRemoteLit((l) => (l === id ? null : l)), 320); };
   // a section that offers fewer choices (regular Curtains: manual only, no motor yet) resets a choice it does not have
   useEffect(() => { if (mechList && !mechList.some((m) => m.id === mech)) setMech(mechList[0].id); }, [mechList, mech]);
   const mountObj = MOUNTS.find((m) => m.id === mount);
@@ -248,7 +256,7 @@ export default function LineShell({
                   <div className="pv-wrap">
                     <Suspense fallback={<div className="pv"><div className="pv-stage">{photoNode}</div></div>}>
                       <PreviewPane kind={preview.kind} picks={preview.picks} double={!!preview.double} width={parseFloat(width) || null} height={parseFloat(height) || null}
-                        mount={mount} mech={mech} cover={preview.cover} phone={phone} fallback={photoNode} />
+                        mount={mount} mech={mech} cover={preview.cover} phone={phone} fallback={photoNode} remoteType={remote.type} shareNote={motorized && remote.count >= 2} />
                     </Suspense>
                   </div>
                 ) : photoNode;
@@ -320,6 +328,17 @@ export default function LineShell({
                   <Cards label="Side" min={140} value={drive.side} onChange={(id) => setMech(formatMech(line.id, { ...drive, side: id }))}
                     options={Object.keys(SIDE_NAME).map((id) => ({ id, label: SIDE_NAME[id] }))} />
                 </Step>
+              )}
+
+              {!preview && motorized && (
+                <div className="rm-card">
+                  <Remote type={remote.type} lit={remoteLit} onPress={flashRemote} />
+                  <div className="rm-card-text">
+                    <strong>Included: remote</strong>
+                    {usesDrive(line.id) && WORKS_NOTE[drive.control] && <p>{WORKS_NOTE[drive.control]}</p>}
+                    {remote.count >= 2 && <p className="rm-share">{SHARE_NOTE}</p>}
+                  </div>
+                </div>
               )}
 
               {tailSteps.map((st) => (

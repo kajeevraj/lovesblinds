@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
 import { priceRequestFromItem } from '../src/lib/priceRequest.js';
 import { pricingOptions } from '../src/lib/drive.js';
+import { assignRemotes } from '../src/lib/remote.js';
 import { addressLine } from '../src/data/countries.js';
 import { checkSize, limitLineFor } from '../src/lib/limits.js';
 import { formatInches } from '../src/lib/inches.js';
@@ -118,6 +119,7 @@ export function lineListHtml(lines, internal = false) {
       `, ${esc(q)} blind${q === 1 ? '' : 's'}` +
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
+      (l.remote ? `, remote: ${esc(l.remote.name)}` : '') +
       ([l.roomLabel, l.windowLabel].filter(Boolean).length ? `, room: ${esc([l.roomLabel, l.windowLabel].filter(Boolean).join(' - '))}` : '') +
       (l.price ? `: <strong>${esc(priceText(l))}</strong>${esc(unchecked)}${esc(differs)}` : '') +
       `</li>`;
@@ -150,6 +152,7 @@ export function internalEmailHtml(customer, lines, notes, totals) {
           ${customer.callTime    ? `<strong>Best time to call:</strong> ${esc(customer.callTime)}<br>` : ''}
           ${customer.measureMethod ? `<strong>Measurement:</strong> ${esc(customer.measureMethod)}` : ''}
         </p>
+        ${lines.some((l) => l.remote?.over16) ? '<p style="color:#b3261e"><strong>Flag: over 16 motorized shades in one room (the 16 channel remote is not enough).</strong></p>' : ''}
         <h3 style="font-family:Georgia,serif;color:#2c2c2a">Items (${lines.length})</h3>
         <ul>${lineListHtml(lines, true)}</ul>
         ${totalsHtml(totals, false)}
@@ -342,7 +345,8 @@ export async function handleQuote(req, res, deps = {}) {
 
   try {
     const { lines: catalogLines, source } = await withCatalog(sentLines, env);
-    const { lines, total, byEmail } = await withEstimates(catalogLines, env);
+    const { lines: estimated, total, byEmail } = await withEstimates(catalogLines, env);
+    const lines = assignRemotes(estimated);                                                   // the remote and its channels, decided here from the order itself
     const totals = { total, byEmail };
     console.log(`[api/quote] ${lines.length} line(s), supplier data from ${source}, estimates ${lines.map(l => l.price.checked ? 'checked' : 'unchecked').join('/')}`);
     const xlsxBuffer = await orderWorkbookBuffer(customer, lines, notes || '', totals);
