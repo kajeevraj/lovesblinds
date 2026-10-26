@@ -2,24 +2,38 @@
 // Picture keys point into public/explainers/ (see src/data/explainers.json). Drop a photo with the same
 // name next to an svg and it wins, with no code change.
 
-const MOTORIZED = "Raise and lower with a remote, no pulling.";
-
 export const CONTROL_COPY = {
   chain: "Pull the beaded chain loop to raise and lower.",
-  cordless: "Lift or pull the bottom bar by hand. No cords.",
-  freestop: "Stop the shade at any height.",
-  remote: MOTORIZED,
+  cordless: "Lift or pull the bottom bar by hand. No cords. An optional center handle is included.",
+  "zero-gravity": "Grab the bottom rail and move it to any height. Let go and it stays right there. An optional center handle is included.",
+  motorized: "Raise and lower with a remote or your phone, no pulling.",
+  freestop: "Grab the bottom rail and move it to any height. Let go and it stays right there.",
+  remote: "Raise and lower with a remote, no pulling.",
   matter: "Smart-home motor, works with Alexa, Google and Apple Home.",
   motor: "Motor with remote, connects to a smart hub.",
   remote_wand: "A detachable rotating wand tilts and raises the shade.",
   manual: "Slide the curtain by hand along the track.",
 };
 
+// The motor choices, in plain words
+export const POWER_COPY = {
+  battery: "Rechargeable, about every 6 months.",
+  wired: "Plugs in, so it never needs charging.",
+};
+export const SOLAR_COPY = "Add a small solar panel on the window and the battery never needs charging.";
+export const MOTOR_CONTROL_COPY = {
+  "app-remote": "Bluetooth motor. Use the Smart Life app on your phone or the included remote.",
+  "remote-only": "A radio-remote motor. Works with the included remote.",
+  zigbee: "Control by app, voice and remote. Needs a Zigbee hub. Don\u2019t have one? You can buy one from us for $35.",
+  matter: "Control by app, voice and remote. Works with Alexa, Google Home and Apple Home. No hub needed, but you need a smart speaker or device that supports Matter.",
+};
+export const SIDE_NOTE_BATTERY = "Pick the side closest to an outlet for charging.";
+
 // Controls with a picture: [line][mechanism id] -> explainer key
 export const CONTROL_IMG = {
-  roller: { chain: "control/roller-chain", cordless: "control/roller-cordless", remote: "control/roller-motorized", matter: "control/roller-motorized", motor: "control/roller-motorized" },
-  zebra:  { chain: "control/zebra-chain", cordless: "control/zebra-cordless", remote: "control/zebra-motorized", matter: "control/zebra-motorized" },
-  roman:  { cordless: "control/roman-cordless", remote: "control/roman-motorized", motor: "control/roman-motorized" },
+  roller: { chain: "control/roller-chain", cordless: "control/roller-cordless", motorized: "control/roller-motorized" },
+  zebra:  { chain: "control/zebra-chain", cordless: "control/zebra-cordless", motorized: "control/zebra-motorized" },
+  roman:  { cordless: "control/roman-cordless", motorized: "control/roman-motorized" },
 };
 
 export const MOUNT_INFO = {

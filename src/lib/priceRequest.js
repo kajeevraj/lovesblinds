@@ -1,11 +1,12 @@
 // What to ask the database for when pricing a window. Pure code with no imports: the browser (product pages, order page)
 // and api/quote.js (which recomputes every estimate on the server before it goes into an email) use the same rules.
+import { pricingOptions } from './drive.js';
 
 // What to ask for, or null while the customer has not picked a color (and entered a size) yet.
 export function priceRequest(line, c, mech, width, height) {
   const w = parseFloat(width), h = parseFloat(height);
   const sized = w > 0 && h > 0;
-  const base = (pick, extra = {}, siteLine = line.id) => (pick ? { line: siteLine, swatchId: pick.swatchId, options: { control: mech, ...extra }, width: sized ? w : null, height: sized ? h : null, sized } : null);
+  const base = (pick, extra = {}, siteLine = line.id) => (pick ? { line: siteLine, swatchId: pick.swatchId, options: { ...pricingOptions(line.id, mech), ...extra }, width: sized ? w : null, height: sized ? h : null, sized } : null);
   let r = null;
   switch (line.id) {
     case 'roller':

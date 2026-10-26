@@ -102,7 +102,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.locator('.s2-color').nth(1).locator('.s2-sw').nth(4).click();
   await fill(page, 'w', '60'); await fill(page, 'h', '84');
   check('[1280px] Roller double-stack: the preview takes two colors', await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false) && errors.length === 0, errors.join(' | '));
-  await page.getByText('Remote control motor', { exact: true }).first().click(); await page.waitForTimeout(600);
+  await page.getByText('Motorized', { exact: true }).first().click(); await page.waitForTimeout(600);
   check('[1280px] Roller: choosing a motor keeps the preview and says so', /Motorized/.test(await page.locator('.pv-note').textContent()));
   await ctx.close();
 }

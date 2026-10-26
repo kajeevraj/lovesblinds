@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
 import { priceRequestFromItem } from '../src/lib/priceRequest.js';
+import { pricingOptions } from '../src/lib/drive.js';
 import { addressLine } from '../src/data/countries.js';
 import { checkSize, limitLineFor } from '../src/lib/limits.js';
 import { formatInches } from '../src/lib/inches.js';
@@ -286,11 +287,12 @@ export async function checkSizes(lines, env = process.env, fetchFn = fetch) {
   const cache = new Map();
   for (const [i, l] of lines.entries()) {
     const line = limitLineFor(l.category, l.selection?.section);
-    const k = `${line}|${l.mechId || ''}`;
+    const control = l.mechId ? pricingOptions(l.category, l.mechId).control : '';
+    const k = `${line}|${control}`;
     if (!cache.has(k)) {
       cache.set(k, fetchFn(`${url}/rest/v1/rpc/size_limits`, {
         method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ p_line: line, p_options: l.mechId ? { control: l.mechId } : {} }),
+        body: JSON.stringify({ p_line: line, p_options: control ? { control } : {} }),
       }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
     }
     const limits = await cache.get(k);

@@ -24,11 +24,11 @@ rows.product_lines.push({ id: 'woven-wood', name: 'Woven Wood Shades', blurb: ''
 
 // control -> price grid system (decisions in docs/pricing-stage1-plan.md)
 const GRID_SYSTEM = {
-  roller: { chain: 'cord', cordless: 'cordless', remote: 'motor', matter: 'motor', motor: 'motor' },
-  zebra: { chain: 'cord', cordless: 'cordless', remote: 'motor', matter: 'motor' },
-  'shangri-la': { remote_wand: 'cord', matter: 'cord' },
-  roman: { cordless: 'cordless', remote: 'motor', motor: 'motor' },
-  cellular: { cordless: 'cordless', freestop: 'cord', remote: 'cord', matter: 'cord', motor: 'cord' },
+  roller: { chain: 'cord', cordless: 'cordless', 'zero-gravity': 'cord', motorized: 'cord' },
+  zebra: { chain: 'cord', cordless: 'cordless', 'zero-gravity': 'cord', motorized: 'cord' },
+  'shangri-la': { chain: 'cord', motorized: 'cord' },
+  roman: { cordless: 'cordless', 'zero-gravity': 'cordless', motorized: 'cordless' },
+  cellular: { cordless: 'cordless', 'zero-gravity': 'cord', motorized: 'cord' },
   drapery: { manual: 'manual', remote: 'motor', matter: 'motor' },
   'woven-wood': { cord: 'cord', cordless: 'cordless', remote: 'motor' },
 };
@@ -93,12 +93,12 @@ const PL = [['roller', 'Roller Shades', 'roller', 'either'], ['zebra', 'Zebra / 
   ['roman', 'Roman Shades', 'roman', null], ['cellular', 'Cellular Shades', 'cellular', null], ['dream-curtains', 'Dream Curtains', 'drapery', null],
   ['drapery', 'Drapery (curtains)', 'drapery', null], ['woven-wood', 'Woven Wood Shades', 'woven-wood', null]];
 for (const [id, name, product_line_id, roll_rule] of PL) rows.pricing_lines.push({ id, name, product_line_id, markup: 0.5, roll_rule, notes: null });
-rows.price_adders.push({ line_id: 'dream-curtains', adder_key: 'motor-cost', label: 'Motor (not in the supplier sheet)', kind: 'add', amount: 90, unit: 'flat',
-  applies_when: { control: ['remote', 'matter'] }, origin: 'manual', status: 'from_supplier', source: 'confirmed by the supplier',
-  note: 'The Dream Curtains MOTOR sheet says: "The above quotation does not include the cost of the motor." The supplier confirmed about $90 (added to cost, before markup).' });
+rows.price_adders.push({ line_id: 'dream-curtains', adder_key: 'motor-cost', label: 'Motor (not in the supplier sheet)', kind: 'add', amount: 100, unit: 'flat',
+  applies_when: { control: ['remote', 'matter'] }, origin: 'manual', status: 'from_supplier', source: 'confirmed by the owner',
+  note: 'The Dream Curtains MOTOR sheet says: "The above quotation does not include the cost of the motor." The owner confirmed $100 (added to cost, before markup).' });
 
 const F = (line_id, flag_key, kind, title, detail) => rows.price_flags.push({ line_id, flag_key, kind, title, detail, resolved: false });
-F('dream-curtains', 'dream-motor-placeholder', 'placeholder', 'Motor cost: +$90 (confirmed by the supplier)', 'The motor sheet excludes the motor. The supplier confirmed about $90, added to cost before markup.');
+F('dream-curtains', 'dream-motor-placeholder', 'placeholder', 'Motor cost: +$100 (confirmed by the owner)', 'The motor sheet excludes the motor. The owner confirmed $100, added to cost before markup.');
 F('dream-curtains', 'dream-115-dip', 'anomaly', 'Price drops at 115 in', 'In both sheets every cell at 115 in is about $27.60 cheaper than at 114 in. Kept as printed. A taller curtain can price lower than a shorter one.');
 F('dream-curtains', 'dream-two-tracks', 'info', '"Divided to 2 tracks for following width"', 'The note sits beside the 100-101 in rows and names no width. The grid already steps up (about +$74, then about +$40) at a width that shrinks as height grows. Shown as a note, not an extra price.');
 F('cellular', 'cellular-day-night', 'confirm', 'Day & Night: which block prices the shade', 'Priced from the block (light-filtering or blackout) that matches the SECOND fabric the customer picks. The sheer layer is always white; the light-filtering block is labelled "White sheer only". The blocks are not added. Confirm with the supplier.');

@@ -169,7 +169,7 @@ try {
     await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw-zoom').first().waitFor();
     check('the magnifier has a 44 px tap area', await page.locator('.s2-sw-zoom').first().evaluate((e) => { const r = e.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
     const body = await page.locator('main').innerText();
-    check('plain lines under the jargon options (Matter, non-Matter, Cordless spring, cassette)', /Smart-home motor, works with Alexa, Google and Apple Home\./.test(body) && /Motor with remote, connects to a smart hub\./.test(body) && /Lift or pull the bottom bar by hand\./.test(body) && /The cassette is the cover over the top of the shade\./.test(body));
+    check('plain lines under the jargon options (Motorized, Zero gravity, Cordless, cassette)', /Raise and lower with a remote or your phone, no pulling\./.test(body) && /Grab the bottom rail and move it to any height\. Let go and it stays right there\./.test(body) && /Lift or pull the bottom bar by hand\./.test(body) && /The cassette is the cover over the top of the shade\./.test(body));
     await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
     check('"Manual track" has its plain line', /Slide the curtain by hand along the track\./.test(await page.locator('main').innerText()));
     // Day and Night on two lines

@@ -4,6 +4,8 @@
 // are archived with `active: false`: their data stays here, but every consumer
 // goes through the helpers below, so re-enabling one is a single flag change.
 
+import { parseMech } from "../lib/drive.js";
+
 export const MOUNTS = [
   { id: "inside",  name: "Inside mount",  desc: "Sits within the window frame, a clean recessed look" },
   { id: "outside", name: "Outside mount", desc: "Mounted over the trim, better light control" },
@@ -11,15 +13,17 @@ export const MOUNTS = [
 
 const MECH = {
   manual:      { id: "manual",      code: "MNL", name: "Manual cord/chain" },
-  cordless:    { id: "cordless",    code: "CDL", name: "Cordless spring" },
-  freestop:    { id: "freestop",    code: "FST", name: "Freestop lift" },
+  cordless:    { id: "cordless",    code: "CDL", name: "Cordless" },
+  "zero-gravity": { id: "zero-gravity", code: "ZGR", name: "Zero gravity" },
+  motorized:   { id: "motorized",   code: "MTZ", name: "Motorized" },
+  freestop:    { id: "freestop",    code: "FST", name: "Zero gravity" },
   wand:        { id: "wand",        code: "WND", name: "Wand / baton" },
   remote_wand: { id: "remote_wand", code: "RWD", name: "Remote wand" },
   hybrid:      { id: "hybrid",      code: "HYB", name: "2-in-1 hand + electric" },
   remote:      { id: "remote",      code: "RMT", name: "Remote control motor" },
   matter:      { id: "matter",      code: "MTR", name: "Matter smart motor" },
   motor:       { id: "motor",       code: "MOT", name: "Motor (non-Matter)" },
-  chain:       { id: "chain",       code: "CHN", name: "Continuous chain" },
+  chain:       { id: "chain",       code: "CHN", name: "Chain" },
 };
 const mechs = (...ids) => ids.map(id => ({ ...MECH[id] }));
 const named = (id, name) => ({ ...MECH[id], name });
@@ -34,7 +38,7 @@ export const LINES = [
     blurb: "Clean, minimal shades in fabrics from sheer to full blackout, available single or double-stack.",
     description: "Clean, minimal shades in three fabric families, from sheer to full blackout. Choose one shade, or pair two on a single window.",
     goodToKnow: [],
-    mechanisms: mechs("chain", "cordless", "remote", "matter", "motor"),
+    mechanisms: mechs("chain", "cordless", "zero-gravity", "motorized"),
     mounts: ["inside", "outside"],
   },
   {
@@ -47,7 +51,7 @@ export const LINES = [
       "Semi-blackout and blackout fabrics.",
       "Control: motorized, cordless or manual chain.",
     ],
-    mechanisms: mechs("chain", "cordless", "remote", "matter"),
+    mechanisms: mechs("chain", "cordless", "zero-gravity", "motorized"),
     mounts: ["inside", "outside"],
   },
   {
@@ -58,7 +62,7 @@ export const LINES = [
     goodToKnow: [
       "Soft vanes between two sheer layers. Tilt to diffuse daylight, close for privacy, or raise for a clear view.",
     ],
-    mechanisms: mechs("remote_wand", "matter"),
+    mechanisms: mechs("chain", "motorized"),
     mounts: ["inside", "outside"],
   },
   {
@@ -70,7 +74,7 @@ export const LINES = [
       "Fabric that folds into soft, even pleats as it rises.",
       "Choose a style, then a fabric and a light-filtering or blackout lining.",
     ],
-    mechanisms: mechs("cordless", "remote", "motor"),
+    mechanisms: mechs("cordless", "zero-gravity", "motorized"),
     mounts: ["inside", "outside"],
   },
   {
@@ -84,7 +88,7 @@ export const LINES = [
       "Light-filtering or blackout.",
       "Standard, top-down/bottom-up, or day & night (light-filtering by day, blackout by night).",
     ],
-    mechanisms: mechs("cordless", "freestop", "remote", "matter", "motor"),
+    mechanisms: mechs("cordless", "zero-gravity", "motorized"),
     mounts: ["inside", "outside"],
   },
   {
@@ -169,4 +173,5 @@ export const LEGACY_REDIRECTS = {
   "/products/outdoor": "/products",
 };
 
-export const getMechanism = (line, mechId) => line?.mechanisms?.find(m => m.id === mechId);
+// the mechanism card for a saved mech code (motorized shades save the motor choices in the code too: see lib/drive.js)
+export const getMechanism = (line, mechId) => line?.mechanisms?.find(m => m.id === parseMech(line.id, mechId).movement || m.id === mechId);

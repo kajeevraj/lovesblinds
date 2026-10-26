@@ -3,7 +3,8 @@
 // A line page supplies its own steps (fabric, color, style ...) and its price configuration; everything else is here.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { MOUNTS, getMechanism } from './data/lines.js';
-import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO } from './data/optionInfo.js';
+import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, POWER_COPY, SOLAR_COPY, MOTOR_CONTROL_COPY, SIDE_NOTE_BATTERY } from './data/optionInfo.js';
+import { usesDrive, mechName, parseMech, formatMech, pricingOptions, POWER_NAME, MOTOR_CONTROL_NAME, SIDE_NAME } from './lib/drive.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
 import { buildSelection } from './lib/lineSelection.js';
 import { formatInches } from './lib/inches.js';
@@ -54,12 +55,12 @@ export const PHOTOS = {
 
 export default function LineShell({
   line, navigate, edit = null, start = null, ui = null, title, intro, photo, photoNote, gallery, onGallery, chip,
-  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null, preview = null,
+  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null, preview = null, mechList = null,
 }) {
   const catalog = useLineCatalog(line.id);
   const cart = useCart();
   // every choice starts as it was saved: the draft from earlier on this page, else the item being edited
-  const [mech, setMech] = useState(start?.mech || edit?.mech || line.mechanisms[0].id);
+  const [mech, setMech] = useState(() => { const m = start?.mech || edit?.mech || line.mechanisms[0].id; return usesDrive(line.id) ? formatMech(line.id, parseMech(line.id, m)) : m; });
   const [mount, setMount] = useState(start?.mount || edit?.mount || line.mounts[0]);
   const [size, setSize] = useState(start ? { w: start.w, h: start.h } : EMPTY_SIZE);
   const [roomF, setRoomF] = useState(() => ({ ...splitRoom(start?.roomLabel), windowLabel: start?.windowLabel || '' }));
@@ -79,7 +80,7 @@ export default function LineShell({
   const sized = parseFloat(width) > 0 && parseFloat(height) > 0;
   // the smallest we can make (from the database): below it nothing is priced and nothing can be added; above the largest the
   // price function itself answers "larger than our standard range"; a size that looks like a typo only gets a warning
-  const limits = useSizeLimits(limitLineFor(line.id, c.section), mech);
+  const limits = useSizeLimits(limitLineFor(line.id, c.section), pricingOptions(line.id, mech).control);
   const chk = checkSize(limits, width, height);
   const tooSmall = chk.tooSmall.length > 0;
   const req = tooSmall ? null : priceRequest(line, c, mech, width, height);
@@ -91,6 +92,9 @@ export default function LineShell({
   const needs = !optionsReady ? colorNeeds : tooSmall ? chk.tooSmall.map((t) => t.text).join(' ') : !sized ? 'Enter your size' : 'Calculating…';
 
   const mechObj = getMechanism(line, mech);
+  const drive = parseMech(line.id, mech);
+  // a section that offers fewer choices (regular Curtains: manual only, no motor yet) resets a choice it does not have
+  useEffect(() => { if (mechList && !mechList.some((m) => m.id === mech)) setMech(mechList[0].id); }, [mechList, mech]);
   const mountObj = MOUNTS.find((m) => m.id === mount);
 
   // What is chosen is saved in this browser as it changes, so the back button or a refresh never loses it. Right after the item
@@ -98,7 +102,7 @@ export default function LineShell({
   const addedSig = useRef(null);
   const draftSig = JSON.stringify([selection, mech, mount, size.w, size.h, room, roomF.windowLabel]);
   const uiSig = JSON.stringify(ui || {});
-  const origSig = edit ? JSON.stringify([edit.selection ?? null, edit.mech, edit.mount, formatInches(edit.width), formatInches(edit.length), edit.roomLabel || '', edit.windowLabel || '']) : null;
+  const origSig = edit ? JSON.stringify([edit.selection ?? null, usesDrive(line.id) ? formatMech(line.id, parseMech(line.id, edit.mech)) : edit.mech, edit.mount, formatInches(edit.width), formatInches(edit.length), edit.roomLabel || '', edit.windowLabel || '']) : null;
   useEffect(() => {
     const data = { selection, mech, mount, w: size.w, h: size.h, roomLabel: room, windowLabel: roomF.windowLabel, qty, ui: ui || {} };
     if (draftSig === addedSig.current || (edit && draftSig === origSig) || (!edit && !hasProgress(data))) clearDraft(line.id, edit?.id || null);
@@ -202,7 +206,7 @@ export default function LineShell({
     ...pickLines,
     optionLine,
     `${formatInches(width)}" wide × ${formatInches(height)}" high${hideMount ? '' : ` · ${mountObj?.name}`}`,
-    mechObj?.name,
+    mechName(line.id, mech, mechObj?.name),
   ].filter(Boolean);
   if (!summary.length) summary.push(line.name);
 
@@ -291,9 +295,32 @@ export default function LineShell({
               )}
 
               <Step n={++k} title={controlTitle}>
-                <Cards label="Control" min={170} stack value={mech} onChange={setMech}
-                  options={line.mechanisms.map((m) => ({ id: m.id, label: m.name, desc: CONTROL_COPY[m.id], img: CONTROL_IMG[line.id]?.[m.id] }))} />
+                <Cards label="Control" min={170} stack value={usesDrive(line.id) ? drive.movement : mech} onChange={(id) => setMech(usesDrive(line.id) ? formatMech(line.id, { ...drive, movement: id }) : id)}
+                  options={(mechList || line.mechanisms).map((m) => ({ id: m.id, label: m.name, desc: CONTROL_COPY[m.id], img: CONTROL_IMG[line.id]?.[m.id] }))} />
               </Step>
+              {usesDrive(line.id) && drive.movement === 'motorized' && (
+                <>
+                  <Step n={++k} title="Power">
+                    <Cards label="Power" min={200} value={drive.power} onChange={(id) => setMech(formatMech(line.id, { ...drive, power: id }))}
+                      options={Object.keys(POWER_NAME).map((id) => ({ id, label: POWER_NAME[id], desc: POWER_COPY[id] }))} />
+                    {drive.power === 'battery' && (
+                      <Cards label="Solar panel" min={200} value={drive.solar ? 'solar' : 'none'} onChange={(id) => setMech(formatMech(line.id, { ...drive, solar: id === 'solar' }))}
+                        options={[{ id: 'none', label: 'No solar panel', desc: 'Recharge the battery about every 6 months.' }, { id: 'solar', label: 'Add a solar panel', desc: SOLAR_COPY }]} />
+                    )}
+                  </Step>
+                  <Step n={++k} title="How you control it">
+                    <Cards label="Motor control" min={220} stack value={drive.control} onChange={(id) => setMech(formatMech(line.id, { ...drive, control: id }))}
+                      options={Object.keys(MOTOR_CONTROL_NAME).map((id) => ({ id, label: MOTOR_CONTROL_NAME[id], desc: MOTOR_CONTROL_COPY[id] }))} />
+                  </Step>
+                </>
+              )}
+              {usesDrive(line.id) && (drive.movement === 'chain' || drive.movement === 'motorized') && (
+                <Step n={++k} title={drive.movement === 'chain' ? 'Chain side' : 'Control side'}
+                  hint={drive.movement === 'motorized' && drive.power === 'battery' && !drive.solar ? SIDE_NOTE_BATTERY : null}>
+                  <Cards label="Side" min={140} value={drive.side} onChange={(id) => setMech(formatMech(line.id, { ...drive, side: id }))}
+                    options={Object.keys(SIDE_NAME).map((id) => ({ id, label: SIDE_NAME[id] }))} />
+                </Step>
+              )}
 
               {tailSteps.map((st) => (
                 <Step key={st.title} n={++k} title={st.title} hint={st.hint}>{st.node}</Step>

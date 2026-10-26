@@ -3,6 +3,7 @@
 // confirmation screen. Once it is sent it is an order.
 import { useEffect, useState } from 'react';
 import { getMechanism } from './data/lines.js';
+import { mechName as mechNameOf } from './lib/drive.js';
 import { summarize, describeItem, describeInternal, displayNameOf } from './lib/selection.js';
 import { useCart } from './lib/cart.js';
 import { money, blinds, photoFor, detailsOf } from './lib/itemView.js';
@@ -75,7 +76,7 @@ function quoteLine(it, p) {
     details: sum.parts,
     selection: it.selection || null,
     mechId: it.mech,
-    mechName: getMechanism(it.product, it.mech)?.name || it.mech,
+    mechName: mechNameOf(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name),
     mountId: it.mount,
     width: it.width || null,
     length: it.length || it.height || null,

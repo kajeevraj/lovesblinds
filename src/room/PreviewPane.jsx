@@ -6,13 +6,21 @@ import { formatInches } from '../lib/inches.js';
 import { PRODUCT_BY_ID } from './data.js';
 import { presetSpec, specFromEntry } from './fabricSpec.js';
 import { amountFromHandle } from './models/shade.js';
+import { parseMech, SIDE_NAME, MOTOR_CONTROL_NAME } from '../lib/drive.js';
 import RoomEmbed from './RoomEmbed.jsx';
 
 const SAMPLE = { roller: 'rlf-soft-cream', zebra: 'zeb-cream' };
 const ROLLER_BY_FAMILY = { solar: 'roller-solar', 'screen-view': 'roller-screen', blackout: 'roller-blackout' };
-const MOTOR = new Set(['remote', 'matter', 'motor', 'hybrid']);
-const controlOf = (mech) => (mech === 'chain' ? 'chain' : MOTOR.has(mech) ? 'motor' : 'none');
-const CONTROL_NOTE = { chain: 'Continuous chain, on the right', motor: 'Motorized, with a charging port', none: 'Cordless, nothing hangs down' };
+// what the drawing shows, in a sentence
+function driveNote(d) {
+  const side = SIDE_NAME[d.side].toLowerCase();
+  if (d.movement === 'chain') return `Continuous chain, on the ${side}`;
+  if (d.movement === 'zero-gravity') return 'Zero gravity, nothing hangs down. The center handle is included and optional';
+  if (d.movement === 'cordless') return 'Cordless, nothing hangs down. The center handle is included and optional';
+  const power = d.power === 'wired' ? `wired, with a cord down the wall to an outlet on the ${side}`
+    : `battery, charging port on the ${side}${d.solar ? ', solar panel on the window glass' : ''}`;
+  return `Motorized, ${power}. ${MOTOR_CONTROL_NAME[d.control]}`;
+}
 
 // the product (optics, name) a pick belongs to
 export const productIdFor = (kind, pick) => (kind === 'zebra' ? 'zebra' : ROLLER_BY_FAMILY[pick?.family] || 'roller-solar');
@@ -63,7 +71,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
 
   useEffect(() => {
     const ctrl = ctrlRef.current; if (!ctrl || status !== 'ready') return;
-    ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, control: controlOf(mech), cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount });
+    ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, drive: parseMech(kind, mech), cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount });
   }, [status, kind, w, h, mount, mech, cover, key, phone]);                            // eslint-disable-line react-hooks/exhaustive-deps
 
   const setAmountNow = (a) => { ctrlRef.current?.snapAmount(a); setAmount(a); };
@@ -119,7 +127,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       </div>
       <p className="pv-note">
         {room ? 'Your blind in all three windows. Colors, control and cover are true to your choices; the size is fitted to the room’s windows.'
-          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{CONTROL_NOTE[controlOf(mech)]}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
+          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(parseMech(kind, mech))}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
       </p>
     </div>
   );

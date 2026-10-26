@@ -171,7 +171,7 @@ export function DraperyPage({ line, navigate, edit = null }) {
     <LineShell line={line} navigate={navigate} edit={edit} start={start} title={PAGE.drapery.title}
       intro={curtains ? 'Custom curtains in pleat styles from French pleat to ripple fold. Made to your exact size.' : 'Every vane hangs on its own, so you can walk through anywhere, with no opening or closing needed. Great for patio and balcony doors.'}
       header={tabs}
-      photo={PHOTOS[section][0]} photoNote={NOTE} chip={curtains ? pick : dream} hideMount controlTitle="How it opens and closes"
+      photo={PHOTOS[section][0]} photoNote={NOTE} chip={curtains ? pick : dream} hideMount controlTitle="How it opens and closes" mechList={curtains ? line.mechanisms.filter((m) => m.id === 'manual') : null}
       c={{ section, pick, pleat, lining, dream }}
       colorNeeds={curtains ? (!pick ? 'Pick a color' : !pleat ? 'Pick a pleat style' : 'Pick a lining') : 'Pick a color and style'}
       checks={curtains ? [{ label: 'Color', done: !!pick }, { label: 'Pleat style', done: !!pleat }, { label: 'Lining', done: !!lining }] : [{ label: 'Color and style', done: !!dream }]}
