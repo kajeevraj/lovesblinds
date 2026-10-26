@@ -207,15 +207,15 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
     wake();
   }
   function resize(w, h, dpr) {
-    size = { w, h };
-    const px = Math.min(dpr, 2, Math.sqrt(2.6e6 / Math.max(1, w * h)));       // keep the canvas under about 2.6 megapixels (phones)
+    size = { w, h }; lastSize = { w, h, dpr };
+    const px = Math.min(dpr, dprCap, Math.sqrt(2.6e6 / Math.max(1, w * h)));       // keep the canvas under about 2.6 megapixels (phones)
     renderer.setPixelRatio(px);
     renderer.setSize(w, h, false);
     wake();
   }
 
   // ---- the loop: draws when something changed, sleeps otherwise ---------------------------------------------------------------------------
-  let active = false, raf = 0, dirty = true, last = 0;
+  let active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2, lastSize = { w: 2, h: 2, dpr: 1 };
   const wake = () => { dirty = true; if (active && !raf) raf = requestAnimationFrame(frame); };
   function invalidate() { wake(); }
   function frame(t) {
@@ -223,7 +223,7 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
     if (!active) return;
     const dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
     let moving = false;
-    const k = 1 - Math.exp(-dt * 14);
+    const k = reduced ? 1 : 1 - Math.exp(-dt * 14);
     for (const s of Object.values(slots)) {
       if (!s.model) continue;
       if (Math.abs(s.target - s.current) > 0.0008) { s.current += (s.target - s.current) * k; s.model.setAmount(s.current); moving = true; dirty = true; }
@@ -236,13 +236,22 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
     recomputeDim();
     if (Math.abs(dimTarget - dimCurrent) > 0.0008) { dimCurrent += (dimTarget - dimCurrent) * k; moving = true; dirty = true; } else if (dimCurrent !== dimTarget) { dimCurrent = dimTarget; dirty = true; }
     if (viewGoal) {
-      const kv = 1 - Math.exp(-dt * 12), v = view, g = viewGoal;
+      const kv = reduced ? 1 : 1 - Math.exp(-dt * 12), v = view, g = viewGoal;
       view = { x: v.x + (g.x - v.x) * kv, y: v.y + (g.y - v.y) * kv, w: v.w + (g.w - v.w) * kv, h: v.h + (g.h - v.h) * kv };
       if (Math.abs(g.x - view.x) + Math.abs(g.y - view.y) + Math.abs(g.w - view.w) < 0.6) { view = { ...g }; viewGoal = null; } else moving = true;
       onVisualChange?.({ view });
       dirty = true;
     }
-    if (dirty) { dirty = false; draw(); onVisualChange?.({ amounts: { ...Object.fromEntries(Object.values(slots).map((s) => [s.id, s.current])), curtains: curt.current } }); }
+    if (dirty) {
+      dirty = false;
+      const t0 = performance.now();
+      draw();
+      if (moving) {                                                         // a slow device: after a run of slow frames, draw fewer pixels
+        slow = performance.now() - t0 > 30 ? slow + 1 : Math.max(0, slow - 1);
+        if (slow > 12 && dprCap > 1) { dprCap = Math.max(1, dprCap - 0.5); slow = 0; resize(lastSize.w, lastSize.h, lastSize.dpr); }
+      }
+ onVisualChange?.({ amounts: { ...Object.fromEntries(Object.values(slots).map((s) => [s.id, s.current])), curtains: curt.current } });
+    }
     if (moving) raf = requestAnimationFrame(frame); else last = 0;
   }
   function draw() {
@@ -263,7 +272,7 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
   canvas.addEventListener('webglcontextrestored', onRestored);
 
   return {
-    setSlot, snapAmount, setCurtains, snapCurtains, curtainModel: () => curt.main, setView, resize, setActive, invalidate,
+    setSlot, snapAmount, setReducedMotion: (v) => { reduced = !!v; }, setCurtains, snapCurtains, curtainModel: () => curt.main, setView, resize, setActive, invalidate,
     slot: (id) => slots[id], get view() { return view; },
     dispose() {
       setActive(false);

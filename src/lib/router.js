@@ -13,6 +13,7 @@ const ROUTE_PATHS = {
   privacy: '/privacy',
   terms: '/terms',
   roomlab: '/room-lab',
+  roomhero: '/room-lab/hero',
 };
 const PATH_ROUTES = Object.fromEntries(Object.entries(ROUTE_PATHS).map(([r, p]) => [p, r]));
 

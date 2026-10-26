@@ -1,7 +1,7 @@
 // The shared layout of every redesigned product page: sticky photo on the left, numbered steps on the right,
 // then size, mount, control, room, quantity, the estimate and the sticky price bar.
 // A line page supplies its own steps (fabric, color, style ...) and its price configuration; everything else is here.
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { MOUNTS, getMechanism } from './data/lines.js';
 import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO } from './data/optionInfo.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
@@ -21,6 +21,10 @@ import { useSizeLimits, limitLineFor } from './lib/sizeLimits.js';
 import { checkSize, clampQty, TYPO_TEXT } from './lib/limits.js';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
+
+// The 3D preview (three.js) is its own chunk, fetched after the page is up; the style photo shows until it is ready (or for good without WebGL).
+const PreviewPane = lazy(() => import('./room/PreviewPane.jsx'));
+const usePhoneMedia = (q) => { const [m, setM] = useState(() => matchMedia(q).matches); useEffect(() => { const mq = matchMedia(q); const f = () => setM(mq.matches); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, [q]); return m; };
 
 // Title, intro and photos of each line (names and photos from the approved mockup).
 export const PAGE = {
@@ -50,7 +54,7 @@ export const PHOTOS = {
 
 export default function LineShell({
   line, navigate, edit = null, start = null, ui = null, title, intro, photo, photoNote, gallery, onGallery, chip,
-  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null,
+  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null, preview = null,
 }) {
   const catalog = useLineCatalog(line.id);
   const cart = useCart();
@@ -63,6 +67,12 @@ export default function LineShell({
   const [qty, setQty] = useState(String(start?.qty || edit?.qty || 1));
   const [addedAt, setAddedAt] = useState(null);       // { key, merged, qty } for the choices that were just added
   const buildAnother = useContext(BuildAnotherContext);
+  // the left column: the live 3D preview (for lines that have a model) or the style photo; on a phone it docks under the top as you scroll
+  const [leftView, setLeftView] = useState('3d');
+  const phone = usePhoneMedia('(max-width: 959px)');
+  const [dock, setDock] = useState({ collapsed: false });
+  const leftRef = useRef(null);
+  // (the strip keeps one size and never moves by itself, so nothing on the page jumps under a finger; it has a button to fold it away)
 
   const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
@@ -206,26 +216,49 @@ export default function LineShell({
             <a href="/" onClick={(e) => { e.preventDefault(); navigate('home'); }}>Home</a> / <a href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>Products</a> / <span aria-current="page">{title}</span>
           </nav>
           <div className="s2-line-grid">
-            <div className="s2-line-photo">
-              <div className="s2-photo-frame">
-                <SitePhoto key={photo.name} name={photo.name} alt={photo.alt} sizes="(min-width: 960px) 45vw, 92vw" eager />
-                {chip && (
-                  <span className="s2-photo-chip">
-                    <img src={chip.thumb} alt="" width="36" height="36" />
-                    {chip.displayName} ({chip.code})
-                  </span>
-                )}
-              </div>
+            <div className={`s2-line-photo${preview ? ' has-preview' : ''}${preview && dock.collapsed ? ' collapsed' : ''}`} ref={leftRef}>
+              {preview && (
+                <div className="pv-tabs" role="tablist" aria-label="Preview">
+                  <button type="button" role="tab" aria-selected={leftView === '3d'} className={leftView === '3d' ? 'on' : ''} onClick={() => setLeftView('3d')}>Your blind</button>
+                  <button type="button" role="tab" aria-selected={leftView === 'photo'} className={leftView === 'photo' ? 'on' : ''} onClick={() => setLeftView('photo')}>Style photo</button>
+                  {phone && (
+                    <button type="button" className="pv-collapse" aria-expanded={!dock.collapsed} onClick={() => setDock((d) => ({ ...d, collapsed: !d.collapsed }))}>{dock.collapsed ? 'Show preview' : 'Hide preview'}</button>
+                  )}
+                </div>
+              )}
+              {(() => {
+                const photoNode = (
+                  <>
+                    <div className="s2-photo-frame">
+                      <SitePhoto key={photo.name} name={photo.name} alt={photo.alt} sizes="(min-width: 960px) 45vw, 92vw" eager />
+                      {chip && (
+                        <span className="s2-photo-chip">
+                          <img src={chip.thumb} alt="" width="36" height="36" />
+                          {chip.displayName} ({chip.code})
+                        </span>
+                      )}
+                    </div>
+                  </>
+                );
+                return preview && leftView === '3d' ? (
+                  <div className="pv-wrap">
+                    <Suspense fallback={<div className="pv"><div className="pv-stage">{photoNode}</div></div>}>
+                      <PreviewPane kind={preview.kind} picks={preview.picks} double={!!preview.double} width={parseFloat(width) || null} height={parseFloat(height) || null}
+                        mount={mount} mech={mech} cover={preview.cover} phone={phone} fallback={photoNode} />
+                    </Suspense>
+                  </div>
+                ) : photoNode;
+              })()}
               {gallery && gallery.length > 1 && (
                 <div className="s2-gallery" role="group" aria-label="More photos">
                   {gallery.map((g) => (
-                    <button key={g.name} type="button" className={g.name === photo.name ? 'on' : ''} aria-pressed={g.name === photo.name} aria-label={g.alt} onClick={() => onGallery(g.name)}>
+                    <button key={g.name} type="button" className={g.name === photo.name ? 'on' : ''} aria-pressed={g.name === photo.name} aria-label={g.alt} onClick={() => { onGallery(g.name); setLeftView('photo'); }}>
                       <SitePhoto name={g.name} alt="" sizes="88px" />
                     </button>
                   ))}
                 </div>
               )}
-              <div className="s2-photo-note"><span aria-hidden="true">ⓘ</span> {photoNote || 'Photo shows the style. Your color is shown in the swatch.'}</div>
+              {(!preview || leftView === 'photo') && <div className="s2-photo-note"><span aria-hidden="true">ⓘ</span> {photoNote || 'Photo shows the style. Your color is shown in the swatch.'}</div>}
             </div>
 
             <div className="s2-line-steps">

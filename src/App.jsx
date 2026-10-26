@@ -23,6 +23,7 @@ const LinePage = lazy(() => import('./linepage.jsx'));
 const OrderPage = lazy(() => import('./orderpage.jsx'));
 const Legal = lazy(() => import('./legal.jsx').then((m) => ({ default: m.default })));
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
+const HeroRoom = lazy(() => import('./room/HeroRoom.jsx'));       // /room-lab/hero: the self-playing room for the homepage hero (test page; the homepage is unchanged)
 const RoomLab = lazy(() => import('./room/RoomLab.jsx'));       // /room-lab: test page for the room visualizer (not linked from anywhere)
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
@@ -373,6 +374,7 @@ export default function App() {
           <LinePage key={slug} slug={slug} navigate={navigate} editId={editId} />
         </Suspense>
       )}
+      {route === "roomhero" && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><HeroRoom navigate={navigate} /></Suspense>}
       {route === "roomlab"  && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><RoomLab navigate={navigate} /></Suspense>}
       {route === "measure"  && <MeasureGuidePage navigate={navigate} quoteCount={q} />}
       {onOrderPage && <Suspense fallback={<div className="page-loading" aria-busy="true" />}><OrderPage search={search} navigate={navigate} activeOrderId={activeOrderId} onOrderSent={handleOrderSent} onSubmitted={clearQuote} user={user} /></Suspense>}

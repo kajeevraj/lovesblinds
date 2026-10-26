@@ -1420,3 +1420,60 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
 .legal li { margin: 6px 0; }
 .legal-todo { background: #fff3c4; color: #5a4300; padding: 0 4px; border-radius: 3px; }
 .notfound-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+
+/* ---- Product-page 3D preview (src/room/PreviewPane.jsx; the room visualizer's own styles are in src/room/room.css) ---- */
+.pv { display: flex; flex-direction: column; gap: 10px; --brass: #7A5C2E; --ink: #1E1A16; }
+.pv .rl-slider { accent-color: #7A5C2E; }
+.pv-stage { position: relative; width: 100%; aspect-ratio: 1 / 1.05; max-height: 70vh; border-radius: 4px; overflow: hidden; background: #E9E1D3; transition: height .25s ease; }
+.pv-stage.pv-room { aspect-ratio: auto; max-height: none; }
+.pv-stage.pv-room .rl-stage { box-shadow: none; border-radius: 0; }
+.pv-photo-under { position: absolute; inset: 0; transition: opacity .4s ease; }
+.pv-photo-under .s2-photo-frame { height: 100%; aspect-ratio: auto; border-radius: 0; }
+.pv-stage.ready .pv-photo-under { opacity: 0; pointer-events: none; }
+.pv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.pv-drag { position: absolute; cursor: grab; touch-action: pan-x; }
+.pv-drag:active { cursor: grabbing; }
+.pv-dim { position: absolute; display: flex; align-items: center; justify-content: center; pointer-events: none; font: 600 12px/1 "Montserrat", sans-serif; color: #3a3228; }
+.pv-dim b { position: relative; z-index: 1; background: rgba(255, 253, 249, 0.94); padding: 4px 9px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+.pv-dim-w { height: 14px; border-left: 1px solid rgba(60, 45, 25, .6); border-right: 1px solid rgba(60, 45, 25, .6); }
+.pv-dim-w::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(60, 45, 25, .6); }
+.pv-dim-h { width: 14px; flex-direction: column; border-top: 1px solid rgba(60, 45, 25, .6); border-bottom: 1px solid rgba(60, 45, 25, .6); }
+.pv-dim-h::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 1px solid rgba(60, 45, 25, .6); }
+.pv-dim-h b { writing-mode: vertical-rl; transform: rotate(180deg); padding: 9px 4px; }
+.pv-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.pv-btn { min-height: 44px; padding: 0 18px; border-radius: 99px; border: 1px solid var(--s2-ink); background: var(--s2-ink); color: #fff; font: 600 14px/1 "Montserrat", sans-serif; cursor: pointer; }
+.pv-btn:hover { background: var(--s2-brass-text); border-color: var(--s2-brass-text); }
+.pv-btn-quiet { background: transparent; color: var(--s2-ink); border-color: var(--s2-line); }
+.pv-btn-quiet:hover { background: transparent; color: var(--s2-brass-text); border-color: var(--s2-brass-text); }
+.pv-slide label { display: flex; justify-content: space-between; gap: 8px; font: 600 12px/1.2 "Montserrat", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.pv-slide label span { color: var(--s2-brass-text); letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 13px; }
+.pv-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--s2-muted); }
+.pv-tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.pv-tabs [role="tab"] { min-height: 44px; padding: 0 16px; border: 1px solid var(--s2-line); border-radius: 99px; background: var(--s2-card); color: var(--s2-ink); font: 600 13px/1 "Montserrat", sans-serif; cursor: pointer; }
+.pv-tabs [role="tab"].on { background: var(--s2-ink); border-color: var(--s2-ink); color: #fff; }
+.pv-collapse { margin-left: auto; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--s2-brass-text); font: 600 13px/1 "Montserrat", sans-serif; cursor: pointer; text-decoration: underline; }
+@media (max-width: 959px) {
+  /* phone: the preview comes first and stays under the top of the screen while you work through the steps. One size that never changes by itself, so
+     nothing jumps under a finger; a button folds it away. */
+  .s2-line-photo.has-preview { position: sticky; top: 0; z-index: 12; background: var(--s2-cream); margin: 0 -16px; padding: 4px 16px 8px; border-bottom: 1px solid var(--s2-line); }
+  .has-preview .pv-stage { aspect-ratio: auto; height: 25vh; min-height: 170px; max-height: none; }
+  .has-preview .pv-tabs { margin-bottom: 4px; }
+  .has-preview .pv-tabs [role="tab"] { min-height: 40px; padding: 0 14px; }
+  .has-preview .pv-tools { margin-top: 0; }
+  .has-preview .pv-btn { min-height: 40px; padding: 0 14px; font-size: 13px; }
+  .has-preview .pv-note, .has-preview .s2-gallery { display: none; }
+  .has-preview .pv-slide { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }       /* still there for the keyboard and screen readers */
+  .has-preview .pv-slide:focus-within { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .has-preview.collapsed .pv-wrap, .has-preview.collapsed .s2-photo-frame, .has-preview.collapsed .s2-gallery, .has-preview.collapsed .s2-photo-note { display: none; }
+  .has-preview.collapsed .pv-tabs { margin-bottom: 0; }
+  .s2-line-steps :is(.s2-step, input, button, a, textarea, .s2-sw-cell) { scroll-margin-top: 42vh; scroll-margin-bottom: 96px; }      /* focus and scrolling land clear of the strip and the price bar */
+}
+@media (max-width: 959px) and (orientation: landscape) and (max-height: 520px) {
+  /* a landscape phone: the preview on the left (it stays in view), the steps on the right */
+  .s2-line-grid { flex-wrap: nowrap; gap: 20px; }
+  .s2-line-photo.has-preview { flex: 0 0 44%; position: sticky; top: 8px; margin: 0; padding: 0; border: 0; background: none; }
+  .has-preview .pv-stage { height: calc(100vh - 150px); }
+  .has-preview .pv-collapse { display: none; }
+  .s2-line-steps { flex: 1 1 auto; }
+  .s2-line-steps :is(.s2-step, input, button, a, textarea, .s2-sw-cell) { scroll-margin-top: 16px; }
+}

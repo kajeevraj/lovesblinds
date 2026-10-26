@@ -1,0 +1,149 @@
+// Browser test of the product-page 3D preview (Roller and Zebra) and the room lab, at 390 and 1280 px. Needs a preview server (BASE_URL, default
+// http://localhost:4173). Runs with software WebGL. Checks: the preview comes up and replaces the photo; it follows the size, color, mount, control, cover and
+// double-stack choices; the size labels read the typed size and "Hide sizes" hides them; drag and slider move the shade; "See it in a room"; the photo tab;
+// the phone dock and its collapse button; no sideways scroll; no console errors; and the room lab's names, hidden handles and curtains.
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
+const BASE = process.env.BASE_URL || 'http://localhost:4173';
+const results = [];
+const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+
+async function open(vw, vh, path) {
+  const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 1, hasTouch: vw < 500, isMobile: vw < 500 });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errors.push(m.text().slice(0, 160)); });
+  await page.goto(BASE + path, { waitUntil: 'networkidle' });
+  return { ctx, page, errors };
+}
+const fill = async (page, id, v) => { await page.locator(`#s2-${id}`).fill(v); await page.locator(`#s2-${id}`).blur(); };
+
+for (const [vw, vh] of [[390, 844], [1280, 900]]) {
+  const tag = `[${vw}px]`;
+  for (const [path, label] of [['/products/roller', 'Roller'], ['/products/zebra', 'Zebra']]) {
+    const { ctx, page, errors } = await open(vw, vh, path);
+    await page.waitForSelector('.s2-sw', { timeout: 20000 });
+    await page.locator('.s2-sw').nth(2).click();
+    check(`${tag} ${label}: the 3D preview replaces the photo`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
+    await fill(page, 'w', '40'); await fill(page, 'h', '64');
+    await page.waitForTimeout(600);
+    const wLabel = await page.locator('.pv-dim-w b').first().textContent().catch(() => null);
+    const hLabel = await page.locator('.pv-dim-h b').first().textContent().catch(() => null);
+    check(`${tag} ${label}: size labels read the typed size`, wLabel === '40 in wide' && hLabel === '64 in high', `${wLabel} / ${hLabel}`);
+    await fill(page, 'w', '44 1/2'); await page.waitForTimeout(500);
+    check(`${tag} ${label}: a fraction shows in the label`, (await page.locator('.pv-dim-w b').first().textContent()) === '44 1/2 in wide');
+    await page.getByRole('button', { name: /Hide sizes/ }).click();
+    check(`${tag} ${label}: "Hide sizes" hides the labels`, (await page.locator('.pv-dim').count()) === 0);
+    await page.getByRole('button', { name: /Show sizes/ }).click();
+    // the slider moves the shade
+    const before = await page.$eval('#pv-amount', (e) => e.value);
+    await page.evaluate(() => { const el = document.getElementById('pv-amount'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '20'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+    check(`${tag} ${label}: the slider moves the shade`, before !== '20' && (await page.$eval('#pv-amount', (e) => e.value)) === '20');
+    // dragging the shade
+    if (vw > 700) {
+      const box = await page.locator('.pv-drag').boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.8, { steps: 6 }); await page.mouse.up();
+      const after = Number(await page.$eval('#pv-amount', (e) => e.value));
+      check(`${tag} ${label}: dragging the shade down lowers it`, after > 40, `slider ${after}`);
+    }
+    // options: outside mount, motor (not on every line), no fabric wrap
+    await page.getByText('Outside mount', { exact: true }).first().click(); await page.waitForTimeout(500);
+    await page.getByText('No fabric wrap', { exact: true }).first().click(); await page.waitForTimeout(500);
+    check(`${tag} ${label}: mount and top cover changes keep the preview up`, (await page.locator('.pv-stage.ready').count()) === 1);
+    // a very large and a very small size
+    await fill(page, 'w', '300'); await fill(page, 'h', '120'); await page.waitForTimeout(500);
+    await fill(page, 'w', '12'); await fill(page, 'h', '12'); await page.waitForTimeout(500);
+    check(`${tag} ${label}: very large and very small sizes still draw`, (await page.locator('.pv-stage.ready').count()) === 1 && errors.length === 0, errors.join(' | '));
+    // room
+    await fill(page, 'w', '40'); await fill(page, 'h', '64');
+    await page.getByRole('button', { name: 'See it in a room' }).click();
+    check(`${tag} ${label}: "See it in a room" shows the room`, await page.waitForSelector('.pv-room .rl-stage[data-status=ready]', { timeout: 30000 }).then(() => true).catch(() => false));
+    check(`${tag} ${label}: three handles in the room`, (await page.locator('.pv-room .rl-handle').count()) === 3);
+    await page.getByRole('button', { name: 'Back to my window' }).click();
+    check(`${tag} ${label}: back to the window`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
+    // photo tab
+    await page.getByRole('tab', { name: 'Style photo' }).click();
+    check(`${tag} ${label}: the style photo tab shows the photo`, (await page.locator('.s2-photo-frame img').count()) > 0 && (await page.locator('.pv-stage').count()) === 0);
+    await page.getByRole('tab', { name: 'Your blind' }).click();
+    if (vw < 700) {
+      await page.evaluate(() => window.scrollTo(0, 700)); await page.waitForTimeout(500);
+      const top = await page.locator('.s2-line-photo').evaluate((e) => Math.round(e.getBoundingClientRect().top));
+      check(`${tag} ${label}: the preview stays at the top of the screen while scrolling`, top === 0, `top ${top}`);
+      await page.getByRole('button', { name: 'Hide preview' }).click();
+      const h = await page.locator('.s2-line-photo').evaluate((e) => e.getBoundingClientRect().height);
+      check(`${tag} ${label}: the collapse button leaves a thin bar`, h < 90, `${Math.round(h)} px`);
+      await page.getByRole('button', { name: 'Show preview' }).click();
+    }
+    check(`${tag} ${label}: no sideways scrolling`, (await page.evaluate(() => document.documentElement.scrollWidth)) <= vw);
+    check(`${tag} ${label}: no console errors`, errors.length === 0, errors.join(' | '));
+    await ctx.close();
+  }
+}
+
+// Roller double-stack and the motor
+{
+  const { ctx, page, errors } = await open(1280, 900, '/products/roller');
+  await page.getByText('Double-stack', { exact: true }).first().click();
+  await page.waitForSelector('.s2-color');
+  await page.locator('.s2-color').nth(0).locator('.s2-sw').nth(1).click();
+  await page.locator('.s2-color').nth(1).locator('.s2-sw').nth(4).click();
+  await fill(page, 'w', '60'); await fill(page, 'h', '84');
+  check('[1280px] Roller double-stack: the preview takes two colors', await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false) && errors.length === 0, errors.join(' | '));
+  await page.getByText('Remote control motor', { exact: true }).first().click(); await page.waitForTimeout(600);
+  check('[1280px] Roller: choosing a motor keeps the preview and says so', /Motorized/.test(await page.locator('.pv-note').textContent()));
+  await ctx.close();
+}
+
+// the room lab
+for (const [vw, vh] of [[390, 844], [1280, 800]]) {
+  const tag = `[${vw}px]`;
+  const { ctx, page, errors } = await open(vw, vh, '/room-lab');
+  await page.waitForSelector('.rl-stage[data-status=ready]', { timeout: 30000 });
+  const first = await page.locator('.rl-pill-name').nth(1).textContent();
+  check(`${tag} room lab: the first roller is called Solar`, first === 'Solar', first);
+  await page.locator('.rl-pill').nth(1).getByRole('button', { name: /^Next/ }).dispatchEvent('click'); await page.waitForTimeout(300);
+  check(`${tag} room lab: the next one is Screen view`, (await page.locator('.rl-pill-name').nth(1).textContent()) === 'Screen view');
+  // the Solar color panel lists XS (solar family) codes, Screen view lists XSS / YSS / WSS codes
+  await page.locator('.rl-pill').nth(1).getByRole('button', { name: /^Previous/ }).dispatchEvent('click'); await page.waitForTimeout(300);
+  await page.locator('.rl-more').first().click(); await page.waitForSelector('.rl-dlg .s2-sw', { timeout: 20000 });
+  const codes = await page.locator('.rl-dlg .s2-sw-code').allTextContents();
+  check(`${tag} room lab: Solar colors are the solar family (no XSS codes)`, codes.length > 10 && !codes.some((c) => /^XSS|^YSS|^WSS/.test(c)), codes.slice(0, 4).join(', '));
+  await page.locator('.rl-dlg-close').click();
+  // handles hide when curtains cover the window
+  await page.getByRole('switch', { name: 'Curtains' }).click(); await page.waitForTimeout(600);
+  await page.evaluate(() => { const el = document.getElementById('rl-curt'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '95'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(1500);
+  const closed = await page.locator('.rl-handle.v').count();
+  await page.evaluate(() => { const el = document.getElementById('rl-curt'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '10'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(1500);
+  const open_ = await page.locator('.rl-handle.v').count();
+  check(`${tag} room lab: shade handles hide when the curtains cover the windows and return when they open`, closed < open_ && open_ === 3, `closed ${closed}, open ${open_}`);
+  check(`${tag} room lab: no sideways scrolling`, (await page.evaluate(() => document.documentElement.scrollWidth)) <= vw);
+  check(`${tag} room lab: no console errors`, errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
+// the hero test page
+{
+  const { ctx, page, errors } = await open(1280, 800, '/room-lab/hero');
+  check('[1280px] hero: headline and "Start shopping"', (await page.locator('h1').textContent()) === 'So many ways to dress a window.' && (await page.getByText('Start shopping').count()) === 1);
+  check('[1280px] hero: the sharp photo is there first', (await page.locator('.rl-room').evaluate((i) => i.complete && i.naturalWidth >= 1200)));
+  await page.waitForSelector('.rl-stage[data-status=ready]', { timeout: 30000 });
+  check('[1280px] hero: no controls on the room', (await page.locator('.rl-stage button, .rl-stage input, .rl-pill, .rl-handle').count()) === 0);
+  check('[1280px] hero: no console errors', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
+  const page = await ctx.newPage(); const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(BASE + '/room-lab/hero', { waitUntil: 'networkidle' });
+  await page.waitForSelector('.rl-stage[data-status=ready]', { timeout: 30000 });
+  const a = await page.locator('.rl-stage').screenshot(); await page.waitForTimeout(7000); const b = await page.locator('.rl-stage').screenshot();
+  check('[1280px] hero: reduced motion holds still', Buffer.compare(a, b) === 0 && errors.length === 0);
+  await ctx.close();
+}
+await browser.close();
+const failed = results.filter((r) => !r.ok);
+console.log(`\n${results.length - failed.length}/${results.length} passed`);
+process.exit(failed.length ? 1 : 0);

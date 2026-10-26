@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { LINE_SCOPE, edgePath } from './src/data/catalogQuery.js'
 import { activeLines } from './src/data/lines.js'
+import { ROOM_WIDTHS, PHONE_QUERY_PX } from './src/room/photoSize.js'
 import { metaFor, headTags, sitemapPaths, PAGES, SITE_URL } from './src/lib/pageMeta.js'
 
 // Line pages need their catalog. This asks for it from index.html, before the app script has even been downloaded:
@@ -19,6 +20,19 @@ const earlyCatalog = (env) => ({
     const script = `(function(){var m=location.pathname.match(/^\\/products\\/([^\\/]+)\\/?$/);var P=${JSON.stringify(paths)};if(!m||!P[m[1]])return;`
       + (base ? `var l=document.createElement('link');l.rel='preconnect';l.href=${JSON.stringify(base)};l.crossOrigin='anonymous';document.head.appendChild(l);` : '')
       + `window.__lbCatalog={line:m[1],promise:fetch(P[m[1]]).then(function(r){return r.ok?r.json():null}).catch(function(){return null})}})()`
+    return [{ tag: 'script', children: script, injectTo: 'head-prepend' }]
+  },
+})
+
+// The room photo on /room-lab (and its hero test page) is the first thing people see. Ask for the right-sized file from index.html, before the app
+// script and the page's own chunk have loaded; the page then asks for the very same file (src/room/photoSize.js).
+const earlyRoomPhoto = () => ({
+  name: 'early-room-photo',
+  transformIndexHtml() {
+    // the same arithmetic as pickWidth() in src/room/photoSize.js (supabase/tests/room_photo_size_tests.mjs checks they agree)
+    const script = `(function(){if(!/^\\/room-lab(\\/|$)/.test(location.pathname))return;var W=${JSON.stringify(ROOM_WIDTHS)},v=document.documentElement.clientWidth,d=window.devicePixelRatio||1;`
+      + `var s=Math.min(Math.max(v-32,280),1180),vp=v<=${PHONE_QUERY_PX}?1300:1890,n=s*d*2000/vp,w=W[W.length-1];for(var i=0;i<W.length;i++)if(W[i]>=n*0.92){w=W[i];break}`
+      + `var l=document.createElement('link');l.rel='preload';l.as='image';l.href='/room-lab/room-'+w+'.webp';l.setAttribute('fetchpriority','high');document.head.appendChild(l)})()`
     return [{ tag: 'script', children: script, injectTo: 'head-prepend' }]
   },
 })
@@ -39,7 +53,7 @@ const seoPages = () => {
       const slugs = activeLines().map((l) => l.slug)
       const home = readFileSync(join(outDir, 'index.html'), 'utf8')
       const homeBlock = home.slice(home.indexOf(START), home.indexOf(END) + END.length)
-      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ['roomlab'], ...slugs.map((s) => ['line', s])]
+      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ['roomlab'], ['roomhero'], ...slugs.map((s) => ['line', s])]
       for (const [route, slug] of pages) {
         const m = metaFor(route, slug, photos())
         const file = join(outDir, m.path.slice(1), 'index.html')
@@ -56,5 +70,5 @@ const seoPages = () => {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), earlyCatalog(loadEnv(mode, process.cwd(), 'VITE_')), seoPages()],
+  plugins: [react(), earlyCatalog(loadEnv(mode, process.cwd(), 'VITE_')), earlyRoomPhoto(), seoPages()],
 }))

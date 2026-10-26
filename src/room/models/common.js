@@ -1,75 +1,41 @@
 // Shared pieces of the window-treatment models (shade.js, curtains.js): image loading, fabric materials, soft shadows.
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
+import { makeTextureCanvas } from '../textureBrowser.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
 const imgCache = new Map();
-export function whenImage(url, cb, cross = false) {
+export function whenImage(url, cb, cross = false, fail = null) {
   const key = `${cross ? 'x:' : ''}${url}`;
   let e = imgCache.get(key);
   if (!e) {
-    e = { img: new Image(), ready: false, failed: false, cbs: [] };
+    e = { img: new Image(), ready: false, failed: false, cbs: [], fails: [] };
     if (cross) e.img.crossOrigin = 'anonymous';                       // catalog swatches come from the storage bucket, which allows any origin
     e.img.decoding = 'async';
     e.img.onload = () => { e.ready = true; e.cbs.splice(0).forEach((f) => f(e.img)); };
-    e.img.onerror = () => { e.failed = true; e.cbs.length = 0; };      // a missing picture: the model keeps its flat colour
+    e.img.onerror = () => { e.failed = true; e.cbs.length = 0; e.fails.splice(0).forEach((f) => f()); };      // a missing picture: the model keeps its flat colour (or `fail` makes a texture another way)
     e.img.src = url;
     imgCache.set(key, e);
   }
-  if (e.ready) cb(e.img); else if (!e.failed) e.cbs.push(cb);
+  if (e.ready) cb(e.img);
+  else if (e.failed) fail?.();
+  else { e.cbs.push(cb); if (fail) e.fails.push(fail); }
 }
 
-// Pictures of catalog swatches that are not presets are cut and flattened here (the presets were done ahead of time, see build-fabrics.mjs).
+// A color's 3D texture is normally ready-made (public/room-lab/fabrics for the presets, tex256/ in the storage bucket for every other swatch). If a
+// swatch has none yet, one is made here from its picture (same steps as the admin upload and the backfill: textureBrowser.js) as a fallback.
 const dynCache = new Map();
-const hexOf = (r, g, b) => `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
-function meanOf(ctx, w, h) {
-  const d = ctx.getImageData(0, 0, w, h).data; let r = 0, g = 0, b = 0, n = 0;
-  for (let i = 0; i < d.length; i += 16) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-  return [r / n, g / n, b / n];
-}
-function weaveTile(img) {
-  const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  const side = Math.min(img.naturalWidth, img.naturalHeight) * 0.75;
-  ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, N, N);
-  return { canvas: c, color: hexOf(...meanOf(ctx, N, N)) };
-}
-// A zebra swatch is a photo of stripes: find a dark (solid) band and the light (sheer) band beside it and stack them into one period.
-function zebraTile(img) {
-  const W = img.naturalWidth, H = img.naturalHeight;
-  const src = document.createElement('canvas'); src.width = W; src.height = H;
-  const sctx = src.getContext('2d', { willReadFrequently: true }); sctx.drawImage(img, 0, 0);
-  const x0 = Math.floor(W * 0.15), cw = Math.floor(W * 0.7);
-  const d = sctx.getImageData(x0, 0, cw, H).data;
-  const lum = new Float32Array(H);
-  for (let y = 0; y < H; y++) { let t = 0; for (let x = 0; x < cw; x += 4) { const i = (y * cw + x) * 4; t += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; } lum[y] = t / Math.ceil(cw / 4); }
-  const lo = Math.min(...lum), hi = Math.max(...lum), thr = (lo + hi) / 2;
-  const runs = []; let start = 0;
-  for (let y = 1; y <= H; y++) if (y === H || (lum[y] > thr) !== (lum[y - 1] > thr)) { runs.push({ light: lum[start] > thr, a: start, b: y }); start = y; }
-  const inner = runs.filter((r) => r.a > 2 && r.b < H - 2 && r.b - r.a > H * 0.08);
-  const solid = hi - lo > 25 ? inner.find((r) => !r.light) : null, sheer = inner.find((r) => r.light);
-  const N = 256, sh = Math.round(N * 0.6), c = document.createElement('canvas'); c.width = c.height = N;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  const pad = (r) => Math.max(4, Math.round((r.b - r.a) * 0.12));
-  if (solid) {
-    ctx.drawImage(src, x0, solid.a + pad(solid), cw, solid.b - solid.a - 2 * pad(solid), 0, 0, N, sh);
-    if (sheer) ctx.drawImage(src, x0, sheer.a + pad(sheer), cw, sheer.b - sheer.a - 2 * pad(sheer), 0, sh, N, N - sh);
-    else { ctx.fillStyle = '#f4f2ee'; ctx.fillRect(0, sh, N, N - sh); }
-  } else {                                                            // no clear bands: plain cloth with a pale sheer band
-    ctx.drawImage(src, x0, H * 0.2, cw, H * 0.6, 0, 0, N, sh);
-    ctx.fillStyle = '#f4f2ee'; ctx.fillRect(0, sh, N, N - sh);
-  }
-  return { canvas: c, color: hexOf(...meanOf(ctx, N, sh)) };
-}
-// the picture for a fabric spec (presets are ready-made files; other swatches are made here). cb(imageOrCanvas)
 export function whenFabric(spec, cb) {
-  if (!spec.dynamic) { whenImage(spec.url, cb); return; }
-  const hit = dynCache.get(spec.key);
-  if (hit) { cb(hit.canvas); return; }
-  whenImage(spec.url, (img) => {
-    let r; try { r = spec.kind === 'zebra' ? zebraTile(img) : weaveTile(img); } catch { return; }       // a tainted or broken picture: keep the flat colour
-    dynCache.set(spec.key, r); cb(r.canvas);
-  }, true);
+  const make = () => {
+    const hit = dynCache.get(spec.key);
+    if (hit) { cb(hit); return; }
+    whenImage(spec.fallbackUrl || spec.url, (img) => {
+      let r; try { r = makeTextureCanvas(img, spec.kind === 'zebra'); } catch { return; }       // a tainted or broken picture: keep the flat colour
+      dynCache.set(spec.key, r.canvas); cb(r.canvas);
+    }, true);
+  };
+  if (spec.dynamic) { make(); return; }
+  whenImage(spec.url, cb, !!spec.prepared, spec.prepared ? make : undefined);       // a prepared texture that is missing (404) falls back to making one
 }
 
 // A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Mirrored in u so the swatch edges never show a seam.

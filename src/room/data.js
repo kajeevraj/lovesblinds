@@ -39,10 +39,11 @@ export const FAR_WINDOW = (() => {
 // block = how much of the room's light the product stops when fully closed (the room in the photo dims by this).
 export const PRODUCTS = [
   { id: 'none', label: 'Bare window', short: 'Bare', kind: null, photo: null, slug: null },
-  { id: 'roller-lf', label: 'Light filtering roller', short: 'Light filtering', kind: 'roller', family: 'Roller', photo: 'solar', slug: 'roller',
+  // Our real names: Solar = the catalog's solar family, Screen view = the screen-view family, Blackout = the blackout family
+  { id: 'roller-solar', label: 'Solar roller', short: 'Solar', kind: 'roller', family: 'Roller', photo: 'solar', slug: 'roller',
     optics: { alpha: 1, glow: 0.7, block: 0.25 }, control: 'lower',
     fabrics: ['rlf-soft-cream', 'rlf-fawn-beige', 'rlf-mineral-gray', 'rlf-blue', 'rlf-iced-coffee'] },
-  { id: 'roller-solar', label: 'Solar roller', short: 'Solar', kind: 'roller', family: 'Roller', photo: 'screen-view', slug: 'roller',
+  { id: 'roller-screen', label: 'Screen view roller', short: 'Screen view', kind: 'roller', family: 'Roller', photo: 'screen-view', slug: 'roller',
     optics: { alpha: 0.72, glow: 0.42, block: 0.12 }, control: 'lower',
     fabrics: ['rsol-linen', 'rsol-latte', 'rsol-cement-gray', 'rsol-sterling-gray', 'rsol-basalt-charcoal'] },
   { id: 'roller-blackout', label: 'Blackout roller', short: 'Blackout', kind: 'roller', family: 'Roller', photo: 'blackout', slug: 'roller',
@@ -60,7 +61,7 @@ export const CURTAIN_LAYER = {
 };
 // Where each product's colors come from in the catalog: the line, and for Roller the fabric family
 export const CATALOG = {
-  'roller-lf': { line: 'roller', family: 'solar' }, 'roller-solar': { line: 'roller', family: 'screen-view' }, 'roller-blackout': { line: 'roller', family: 'blackout' },
+  'roller-solar': { line: 'roller', family: 'solar' }, 'roller-screen': { line: 'roller', family: 'screen-view' }, 'roller-blackout': { line: 'roller', family: 'blackout' },
   zebra: { line: 'zebra' }, curtains: { line: 'drapery' },
 };
 export const PRODUCT_BY_ID = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));

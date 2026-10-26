@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const WIDTHS = [800, 1200, 1600, 2000];
 mkdirSync('public/room-lab', { recursive: true });
 for (const w of WIDTHS) {
-  await sharp('assets/room-lab/room-bare.webp').resize({ width: w }).webp({ quality: 80, effort: 6 }).toFile(`public/room-lab/room-${w}.webp`);
+  await sharp('assets/room-lab/room-bare.webp').resize({ width: w }).webp({ quality: 86, effort: 6 }).toFile(`public/room-lab/room-${w}.webp`);
   await sharp('assets/room-lab/room-cutout.png').resize({ width: w }).webp({ quality: 86, alphaQuality: 100, effort: 6 }).toFile(`public/room-lab/cutout-${w}.webp`);
 }
 const tiny = await sharp('assets/room-lab/room-bare.webp').resize({ width: 40 }).webp({ quality: 60 }).toBuffer();

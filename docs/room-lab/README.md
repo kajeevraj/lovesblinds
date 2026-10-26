@@ -13,7 +13,7 @@ This replaces the `/hero-lab` experiment (that code lives only on the unmerged b
 - **Zebra:** one loop of cloth. Front and back layers slide past each other as the shade moves (`SLIDE` in `shade.js`), so it can be stopped where only cloth shows or where the sheer bands let the view through.
 - **Room dimming:** a dark veil over the photo with holes at the glass, plus the furniture cutout's brightness, scaled by how much light the lowered products block.
 
-Roller names on this page: *Light filtering* = catalog family "solar" (translucent), *Solar* = catalog family "screen-view" (1-5% openness), *Blackout* = catalog "blackout".
+Roller names (the site's own): *Solar* = catalog family "solar" (XS... / YS... codes), *Screen view* = family "screen-view" (XSS... codes), *Blackout* = family "blackout".
 
 ## Round 1.1 changes
 - **Controls on the windows:** each window has a pill above it (on the wall) with the product name and ‹ › to cycle (Bare, Light filtering, Solar, Blackout, Zebra); phones show the pill only on the selected window and a swipe on it cycles too. A compact toolbar above the room shows the selected window's product, 5 real-swatch color presets, "+ N more", "Build yours", and the "All windows" and "Curtains" toggles. "All windows" copies product and color to every window; off, each window is independent. The side-wall window follows the last "All windows" choice.
@@ -21,3 +21,12 @@ Roller names on this page: *Light filtering* = catalog family "solar" (transluce
 - **Curtains are one layer:** a single track across all three windows (and a separate track on the side wall), panels that always move together, over shades or bare glass. Dragging sideways opens/closes; dragging vertically still moves the shade. Their own presets and swatch panel.
 - **No selection box;** nothing is drawn over the sofa (pills sit on the wall, handles are held above the sofa's top edge).
 - Keyboard: pills are buttons (←/→ cycle), sliders under the room move the shade and curtains.
+
+## Round 1.2: product-page preview, hero test, textures
+- **Product-page preview** (`src/room/PreviewPane.jsx`, `previewScene.js`; wired in `src/lineshell.jsx` via the `preview` prop, Roller and Zebra only for now): the left photo becomes a live 3D view of the blind in a window at the typed size: inside or outside mount, chain or motor, wrapped cassette or none, double-stack (two shades), color from the page's pick. Size labels outside the frame ("Hide sizes" toggle), drag or slider to raise and lower, "See it in a room" (the same blind in all three windows, `RoomEmbed.jsx`), and a "Style photo" tab. A line without a model keeps its photo. No WebGL: the photo stays. The three.js chunk loads after the page is up; the photo is shown first.
+- **Phone:** the preview is a sticky strip (one size, so nothing jumps), with a "Hide preview" button; it folds away while a size box has the keyboard.
+- **Hero test page** `/room-lab/hero` (`HeroRoom.jsx`): the room plays by itself (7 scenes, a new one about every 5.6 s, shades rise, swap and lower in a stagger). Sharp photo first. Still for reduced motion; paused when off-screen or the tab is hidden. The homepage is unchanged: to use it, render `<HeroRoom navigate={navigate} />` in `HomePage` instead of the hero photo.
+- **3D fabric textures for every swatch:** `tex256/<line>/<name>.webp` in the `swatches` bucket (naming rule, no database column), made by `scripts/backfill-textures.mjs` (one-time, already run: 443 textures) and by the admin on upload or replace (`src/admin/lib/images.js`). The maths is shared (`src/room/textureCore.js`); the browser makes a texture on the spot only as a fallback (`whenFabric` in `models/common.js`).
+- **Shared swatch picker:** `SwatchBrowser` in `src/components/s2.jsx` (search, color-family filters, magnifier) is used by the product pages and the room lab's color panel.
+- **Room photo loading:** `index.html` preloads one right-sized file (`src/room/photoSize.js`, kept in step with the page by `supabase/tests/room_photo_size_tests.mjs`); the blurred placeholder goes as soon as it is in.
+- Tests: `supabase/tests/e2e_preview.mjs`.

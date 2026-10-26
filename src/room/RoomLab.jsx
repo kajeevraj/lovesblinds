@@ -8,12 +8,12 @@
 // State: three windows, each { p: product, fab: fabric, a: how far down }; the side-wall window copies the last "All windows" choice;
 // and one curtain layer { on, fab, a } across all the windows.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PHOTO, WINDOWS, WINDOW_IDS, PRODUCTS, PRODUCT_BY_ID, CURTAIN_LAYER, CATALOG, COPY, CAM, ROOM, project } from './data.js';
+import { WINDOWS, WINDOW_IDS, PRODUCTS, PRODUCT_BY_ID, CURTAIN_LAYER, CATALOG, COPY, CAM, ROOM, project } from './data.js';
 import { presetSpec, specFromEntry } from './fabricSpec.js';
 import SwatchPanel from './SwatchPanel.jsx';
 import { entriesFor, fabricsFor } from '../data/swatchData.js';
 import { loadLineCatalog, isLineLoaded } from '../data/catalogApi.js';
-import ROOM_TINY from './roomTiny.js';
+import RoomStage from './RoomStage.jsx';
 import './room.css';
 
 const WIDE = { x: 110, y: 20, w: 1890, h: 1136 };           // desktop: the windows, sofa, lamp, plant and the side window
@@ -27,7 +27,7 @@ const TRACK = (() => { const l = WINDOWS.left.rect, r = WINDOWS.right.rect; retu
 const OPENING_H = (WINDOWS.left.rect[3] - WINDOWS.left.rect[1]) / CAM.scale;
 const PRESETS = Object.fromEntries([...PRODUCTS, CURTAIN_LAYER].filter((p) => p.fabrics).map((p) => [p.id, p.fabrics.map(presetSpec)]));
 const mk = (p, a = DEFAULT_A) => ({ p, fab: PRESETS[p]?.[0] || null, a });
-const START = mk('roller-lf');
+const START = mk('roller-solar');
 
 const useMedia = (q) => {
   const [m, setM] = useState(() => (typeof matchMedia === 'function' ? matchMedia(q).matches : false));
@@ -60,11 +60,11 @@ export default function RoomLab({ navigate }) {
   const [curt, setCurt] = useState({ on: false, fab: PRESETS.curtains[0], a: CURTAIN_A });
   const [panel, setPanel] = useState(null);                           // null | 'shade' | 'curtains'
   const [zoom, setZoom] = useState(false);
-  const [view, setView] = useState(base);
-  const [bright, setBright] = useState(1);
-  const [amounts, setAmounts] = useState({});
-  const [status, setStatus] = useState('loading');                    // loading | ready | nowebgl
-  const stageRef = useRef(null), canvasRef = useRef(null), ctrlRef = useRef(null), dragRef = useRef(null), swipeRef = useRef(null);
+  const [ctrl, setCtrl] = useState(null);
+  const [st, setSt] = useState({ status: 'loading', view: base, bright: 1, amounts: {} });
+  const { status, view, bright, amounts } = st;
+  const stageRef = useRef(null), dragRef = useRef(null), swipeRef = useRef(null);
+  const ctrlRef = useRef(null); ctrlRef.current = ctrl;
 
   const cur = wins[sel];
   const product = PRODUCT_BY_ID[cur.p];
@@ -99,53 +99,14 @@ export default function RoomLab({ navigate }) {
   const curtEntries = useMemo(() => (curtStatus === 'ready' ? entriesFor(fabricsFor(CATALOG.curtains.line)) : []), [curtStatus]);
   const codeId = (entries, fab) => entries.find((e) => e.swatch.code === fab?.code)?.swatch.id ?? null;
 
-  // ---- the 3D scene: load after first paint, keep it in step with the state ------------------------------------------------------------------
+  // ---- keep the 3D scene in step with the state ----------------------------------------------------------------------------------------------
   useEffect(() => {
-    let dead = false, ctrl = null, io = null, ro = null;
-    const start = async () => {
-      let mod;
-      try { mod = await import('./scene.js'); } catch { if (!dead) setStatus('nowebgl'); return; }
-      if (dead) return;
-      try {
-        ctrl = mod.createRoomScene(canvasRef.current, { onVisualChange: (v) => {
-          if (v.brightness != null) setBright(v.brightness);
-          if (v.view) setView(v.view);
-          if (v.amounts) setAmounts(v.amounts);
-        } });
-      } catch { if (!dead) setStatus('nowebgl'); return; }
-      ctrlRef.current = ctrl;
-      const stage = stageRef.current;
-      ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); ctrl.resize(Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)), window.devicePixelRatio || 1); });
-      ro.observe(stage);
-      let visible = true;
-      const sync = () => ctrl.setActive(visible && !document.hidden);
-      io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; sync(); }, { rootMargin: '80px' });
-      io.observe(stage);
-      document.addEventListener('visibilitychange', sync);
-      ctrl.cleanupVisibility = () => document.removeEventListener('visibilitychange', sync);
-      setStatus('ready');
-    };
-    const t = setTimeout(start, 30);                                  // let the photo paint first
-    return () => {
-      dead = true; clearTimeout(t);
-      ro?.disconnect(); io?.disconnect();
-      ctrl?.cleanupVisibility?.(); ctrl?.dispose(); ctrlRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const ctrl = ctrlRef.current; if (!ctrl || status !== 'ready') return;
+    if (!ctrl) return;
     const shown = { ...wins, far };
     for (const id of ['left', 'middle', 'right', 'far']) ctrl.setSlot(id, { product: shown[id].p, fabric: shown[id].fab, amount: shown[id].a });
     ctrl.setCurtains({ on: curt.on, fabric: curt.fab, amount: curt.a });
-  }, [wins, far, curt, status]);
-
-  // the view follows the layout (phone / desktop) and the zoom button
+  }, [wins, far, curt, ctrl]);
   const goal = useMemo(() => (phone && zoom ? zoomOn(sel) : base), [phone, zoom, sel, base]);
-  useEffect(() => {
-    const ctrl = ctrlRef.current;
-    if (ctrl && status === 'ready') ctrl.setView(goal, true); else setView(goal);
-  }, [goal, status]);
 
   // ---- dragging: a vertical drag moves the shade, a sideways drag moves the curtains (always all together) -----------------------------------
   const setShadeAmount = (id, a) => {
@@ -202,11 +163,8 @@ export default function RoomLab({ navigate }) {
   const pillKey = (e, id) => { if (e.key === 'ArrowRight') { e.preventDefault(); cycle(id, 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); cycle(id, -1); } };
 
   // ---- layout helpers: photo pixels -> percentages of the stage ------------------------------------------------------------------------------
-  const layer = { left: pct(-view.x / view.w), top: pct(-view.y / view.h), width: pct(PHOTO.w / view.w), height: pct(PHOTO.h / view.h) };
   const box = ([x0, y0, x1, y1]) => ({ left: pct((x0 - view.x) / view.w), top: pct((y0 - view.y) / view.h), width: pct((x1 - x0) / view.w), height: pct((y1 - y0) / view.h) });
   const at = (u, v) => ({ left: pct((u - view.x) / view.w), top: pct((v - view.y) / view.h) });
-  const srcSet = (fn) => PHOTO.widths.map((w) => `${fn(w)} ${w}w`).join(', ');
-  const sizes = `(min-width: 1240px) ${Math.round((PHOTO.w / WIDE.w) * 1180)}px, ${((PHOTO.w / base.w) * 100).toFixed(0)}vw`;
 
   const shadeHandle = (id) => {
     const p = PRODUCT_BY_ID[wins[id].p], slot = ctrlRef.current?.slot(id);
@@ -220,7 +178,16 @@ export default function RoomLab({ navigate }) {
     const [u, v] = project(m.group.position.x + m.leadX(amounts.curtains ?? curt.a), ROOM.floorY + 1.0, 0.1);
     return { u, v: Math.min(SOFA_TOP, v), dir: 'h' };
   };
-  const handles = [...(all ? WINDOW_IDS : [sel]).map(shadeHandle), curtainHandle()].filter(Boolean);
+  // a shade's handle is hidden while the curtains cover more than half of its window, and comes back when they open
+  const curtainCovers = (id) => {
+    const m = ctrlRef.current?.curtainModel(); if (!curt.on || !m) return false;
+    const e = m.leadX(amounts.curtains ?? curt.a) + m.width / 2, half = m.width / 2;      // how far each panel reaches in from its end
+    const local = (px) => ((px - CAM.cx) * (CAM.dist - 0.1)) / CAM.focal - m.group.position.x;
+    const l = local(WINDOWS[id].rect[0]), r = local(WINDOWS[id].rect[2]);
+    const over = Math.max(0, Math.min(r, -half + e) - Math.max(l, -half)) + Math.max(0, Math.min(r, half) - Math.max(l, half - e));
+    return over / (r - l) > 0.5;
+  };
+  const handles = [...(all ? WINDOW_IDS : [sel]).filter((id) => !curtainCovers(id)).map(shadeHandle), curtainHandle()].filter(Boolean);
 
   // ---- toolbar numbers ---------------------------------------------------------------------------------------------------------------------------------
   const presets = PRESETS[cur.p] || [];
@@ -274,13 +241,7 @@ export default function RoomLab({ navigate }) {
           )}
         </div>
 
-        <div className="rl-stage" ref={stageRef} style={{ aspectRatio: `${base.w} / ${base.h}`, backgroundImage: `url(${ROOM_TINY})` }} data-status={status}>
-          <img className="rl-layer rl-room" style={layer} src={PHOTO.src(1200)} srcSet={srcSet(PHOTO.src)} sizes={sizes} width={PHOTO.w} height={PHOTO.h}
-            alt="A bright living room with a cream sofa, a wooden coffee table, a brass floor lamp, a tall plant and three tall windows." fetchPriority="high" decoding="async" draggable="false" />
-          <canvas className="rl-layer rl-canvas" ref={canvasRef} aria-hidden="true" />
-          <img className="rl-layer rl-cutout" style={{ ...layer, filter: bright < 0.999 ? `brightness(${bright.toFixed(3)})` : undefined }} src={PHOTO.cutout(1200)}
-            srcSet={srcSet(PHOTO.cutout)} sizes={sizes} width={PHOTO.w} height={PHOTO.h} alt="" aria-hidden="true" decoding="async" draggable="false" />
-
+        <RoomStage base={base} goal={goal} onCtrl={setCtrl} onState={setSt} stageRef={stageRef}>
           {status !== 'nowebgl' && curt.on && (
             <div className="rl-hit rl-hit-curtain" style={{ ...box(TRACK), touchAction: 'pan-y' }} aria-hidden="true"
               onPointerDown={(e) => onDown(e, 'curtain')} onPointerMove={onMove} onPointerUp={(e) => onUp(e, 'curtain')} onPointerCancel={() => { dragRef.current = null; }} />
@@ -304,9 +265,7 @@ export default function RoomLab({ navigate }) {
               </div>
             );
           })}
-          {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
-          {status === 'nowebgl' && <span className="rl-loading" role="status">Your browser could not start the 3D preview. The room is shown without it.</span>}
-        </div>
+        </RoomStage>
 
         <div className="rl-sliders">
           <div className="rl-slide">

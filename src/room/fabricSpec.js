@@ -18,7 +18,9 @@ export function specFromEntry(entry, kind) {
   if (curated) return presetSpec(curated);
   const zebra = kind === 'zebra';
   return {
-    key: `sw:${s.id}`, name: s.displayName, code: s.code, url: s.thumb || s.image || s.tile, thumbUrl: s.tile || s.thumb || s.image,
-    color: FAMILY_HEX[entry.color] || DEFAULT_HEX, tile: zebra ? [0.16, 0.17] : [0.075, 0.075], kind: zebra ? 'zebra' : 'weave', split: 0.6, dynamic: true, swatchId: s.id,
+    key: `sw:${s.id}`, name: s.displayName, code: s.code, thumbUrl: s.tile || s.thumb || s.image,
+    url: s.tex || s.thumb || s.image,                       // the ready-made texture (tex256/); without one, a texture is made from the picture in the browser
+    prepared: !!s.tex, fallbackUrl: s.image || s.thumb,
+    color: FAMILY_HEX[entry.color] || DEFAULT_HEX, tile: zebra ? [0.16, 0.17] : [0.075, 0.075], kind: zebra ? 'zebra' : 'weave', split: 0.6, dynamic: !s.tex, swatchId: s.id,
   };
 }

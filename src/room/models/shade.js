@@ -17,6 +17,10 @@ const CASS_H = 0.064, CASS_D = 0.054;
 const RAIL_H = 0.03, RAIL_D = 0.02;
 
 export function createShade(kind, env) { return new Shade(kind, env); }
+// where the bottom rail's grab handle sits (as a fraction of the opening's height) for a shade `a` lowered, and the other way round
+export const handleFraction = (a, h) => (CASS_H + a * (h - CASS_H - RAIL_H) + RAIL_H / 2) / h;
+export const amountFromHandle = (f, h) => clamp((f * h - CASS_H - RAIL_H / 2) / (h - CASS_H - RAIL_H));
+export const CASSETTE = { h: CASS_H, d: CASS_D, rail: RAIL_H };
 
 class Shade {
   constructor(kind, env) {
@@ -114,7 +118,8 @@ class Shade {
     this.disposables.push(tex);
     const flat = new THREE.Color(fabric.color);
     const solid = fabricMaterial({ map: zebra ? null : tex, emissiveMap: zebra ? null : tex, glow: (optics.glow ?? optics.glowSolid ?? 0.1) * 0.3, bump: 1.2 }, env);
-    this.cassette.material = this.rail.material = solid;
+    this.solid = solid;
+    this._applyCover();
     this.mats = [solid];
     const base = [];
     if (zebra) {
@@ -154,16 +159,26 @@ class Shade {
     env.invalidate();
   }
 
+  // the cassette and bottom rail: wrapped in the shade's fabric (the default), or a plain bar ("No fabric wrap")
+  setCover(cover) { this.cover = cover; this._applyCover(); this.env.invalidate(); }
+  _applyCover() {
+    if (!this.plain) this.plain = new THREE.MeshStandardMaterial({ color: 0xe6e2d9, roughness: 0.5, metalness: 0.05 });
+    const m = this.cover === 'none' || !this.solid ? this.plain : this.solid;
+    this.cassette.material = this.rail.material = m;
+  }
+
   applyEnv() { this.mats.forEach((m) => applyGlow(m, this.env)); }
 
   _disposeMaterials() {
     this.mats.forEach((m) => m.dispose());
+    this.solid = null;
     this.disposables.forEach((t) => t.dispose());
     this.mats = []; this.disposables = [];
   }
 
   dispose() {
     this._disposeMaterials();
+    this.plain?.dispose();
     this.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.isMesh && o.material && o.material.isMeshBasicMaterial) o.material.dispose(); });
     this.group.removeFromParent();
   }
