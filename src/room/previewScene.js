@@ -178,21 +178,33 @@ export function createPreviewScene(canvas, { onLayout, onAmount } = {}) {
         g.add(plane(0.1, 0.14, solarMat, px, py, gz + 0.0095));
         g.add(box(0.012, 0.012, 0.012, plasticMat, px + sx * -0.045, py + 0.082, gz + 0.006));
       }
-      // the remote in its wall bracket, on the right (the size labels are on the left); further out when the cord is on that side
-      const rx = edge + (d.power === 'wired' && sx === 1 ? 0.15 : 0.07), ry = built.oy + 0.06;
-      g.add(box(0.06, 0.16, 0.008, trimMat, rx, ry, 0.004));                                              // the bracket
-      g.add(box(0.044, 0.125, 0.014, motorMat, rx, ry, 0.015));                                           // the remote
-      for (const [bx, by] of [[0, 0.04], [-0.012, 0.012], [0.012, 0.012], [-0.012, -0.016], [0.012, -0.016], [0, -0.044]]) g.add(box(0.009, 0.009, 0.004, jambTopMat, rx + bx, ry + by, 0.023));
-      reach = Math.max(reach, rx + 0.045);
+      // the remote: in a wall bracket only for Shangri-La (confirmed); every other line draws it on its own, on the sill
+      const remote = (grp) => {
+        {
+          grp.add(box(0.044, 0.125, 0.014, motorMat, 0, 0, 0));
+          for (const [bx, by] of [[0, 0.04], [-0.012, 0.012], [0.012, 0.012], [-0.012, -0.016], [0.012, -0.016], [0, -0.044]]) grp.add(box(0.009, 0.009, 0.004, jambTopMat, bx, by, 0.009));
+        }
+        return grp;
+      };
+      const bracketed = cfg.kind === 'shangri-la';
+      if (bracketed) {
+        const rx = edge + (d.power === 'wired' && sx === 1 ? 0.15 : 0.07), ry = built.oy + 0.06;
+        g.add(box(0.06, 0.16, 0.008, trimMat, rx, ry, 0.004));
+        const rg = remote(new THREE.Group()); rg.position.set(rx, ry, 0.015); g.add(rg);
+        reach = Math.max(reach, rx + 0.045);
+      }
       // the phone, hub or smart speaker on the sill, by control type
       const sill = built.bottom + 0.0005, lx = -sx * (built.ow / 2 - 0.1);
       const items = [];
+      if (!bracketed) items.push('remote');
       if (d.control !== 'remote-only') items.push('phone');
       if (d.control === 'zigbee') items.push('hub');
       if (d.control === 'matter') items.push('speaker');
       items.forEach((it, i) => {
         const x = lx - sx * i * 0.09;
-        if (it === 'phone') {
+        if (it === 'remote') {
+          const rg = remote(new THREE.Group()); rg.position.set(x, sill + 0.058, 0.05); rg.rotation.x = -0.28; g.add(rg);
+        } else if (it === 'phone') {
           const ph = new THREE.Group(); ph.add(box(0.062, 0.12, 0.008, motorMat, 0, 0, 0)); ph.add(plane(0.054, 0.108, screenMat, 0, 0, 0.0045));
           ph.position.set(x, sill + 0.058, 0.05); ph.rotation.x = -0.28; g.add(ph);
         } else if (it === 'hub') {
