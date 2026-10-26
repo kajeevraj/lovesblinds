@@ -40,6 +40,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const [layout, setLayout] = useState(null);
   const [sizes, setSizes] = useState(true);
   const [room, setRoom] = useState(false);
+  const [lit, setLit] = useState(null);                                           // the remote button that was just pressed
+  const litTimer = useRef(0);
   const canvasRef = useRef(null), ctrlRef = useRef(null), stageRef = useRef(null), dragRef = useRef(null);
 
   const w = Number(width) > 0 ? Number(width) : null, h = Number(height) > 0 ? Number(height) : null;
@@ -55,7 +57,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     const t = setTimeout(async () => {
       let mod; try { mod = await import('./previewScene.js'); } catch { if (!dead) setStatus('nowebgl'); return; }
       if (dead) return;
-      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onAmount: setAmount }); } catch { if (!dead) setStatus('nowebgl'); return; }
+      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onAmount: setAmount, onDrive: () => {} }); } catch { if (!dead) setStatus('nowebgl'); return; }
       ctrlRef.current = ctrl;
       const stage = stageRef.current;
       ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); ctrl.resize(Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)), window.devicePixelRatio || 1); });
@@ -74,6 +76,11 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, drive: parseMech(kind, mech), cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount });
   }, [status, kind, w, h, mount, mech, cover, key, phone]);                            // eslint-disable-line react-hooks/exhaustive-deps
 
+  const press = (k) => {
+    ctrlRef.current?.drive(k === 'up' ? -1 : k === 'down' ? 1 : 0);
+    setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
+  };
+  useEffect(() => () => clearTimeout(litTimer.current), []);
   const setAmountNow = (a) => { ctrlRef.current?.snapAmount(a); setAmount(a); };
   const down = (e) => { const r = e.currentTarget.getBoundingClientRect(); dragRef.current = { rect: r, y0: e.clientY, moved: false, grab: 0 }; e.currentTarget.setPointerCapture?.(e.pointerId); };
   const move = (e) => {
@@ -85,6 +92,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const up = (e) => { dragRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
 
   if (status === 'nowebgl') return <div className="pv pv-photo">{fallback}</div>;
+  const drv = parseMech(kind, mech);
   const roomBlind = { product: layers[0].product, fabric: layers[0].fabric };
   const pct = Math.round(amount * 100);
   const sample = layers.some((l) => l.sample);
@@ -104,7 +112,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           {status === 'ready' && layout && (
             <>
               <div className="pv-drag" style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
-              <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>
+              {!["cordless", "zero-gravity"].includes(parseMech(kind, mech).movement) && <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
+              {layout.motor && <span className="pv-xlabel" style={{ left: layout.motor.x, top: layout.motor.y, opacity: layout.xray ? 1 : 0 }} aria-hidden="true">Motor inside</span>}
               {sizes && wTxt && hTxt && (
                 <>
                   <span className="pv-dim pv-dim-w" style={{ left: layout.x0, width: layout.x1 - layout.x0, top: Math.max(8, layout.y0 - 30) }}><b>{wTxt}</b></span>
@@ -112,6 +121,21 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
                 </>
               )}
             </>
+          )}
+          {status === 'ready' && drv.movement === 'motorized' && (
+            <div className="pv-incl">
+              <div className="pv-remote" role="group" aria-label="Remote control">
+                <button type="button" className={lit === 'up' ? 'lit' : ''} onClick={() => press('up')} aria-label="Raise the shade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6 20 18H4z" /></svg></button>
+                <button type="button" className={lit === 'stop' ? 'lit' : ''} onClick={() => press('stop')} aria-label="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="3" rx="1.5" /></svg></button>
+                <button type="button" className={lit === 'down' ? 'lit' : ''} onClick={() => press('down')} aria-label="Lower the shade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18 4 6h16z" /></svg></button>
+              </div>
+              <div className="pv-incl-row">
+                {drv.control !== 'remote-only' && <span title="Smart Life app"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg>App</span>}
+                {drv.control === 'zigbee' && <span title="Zigbee hub (needed; $35 from us)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg>Hub</span>}
+                {drv.control === 'matter' && <span title="Matter smart speaker (needed)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg>Speaker</span>}
+              </div>
+              <span className="pv-incl-title">Included</span>
+            </div>
           )}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
         </div>
@@ -127,7 +151,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       </div>
       <p className="pv-note">
         {room ? 'Your blind in all three windows. Colors, control and cover are true to your choices; the size is fitted to the room’s windows.'
-          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(parseMech(kind, mech))}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
+          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(parseMech(kind, mech))}. The floor, baseboard, outlet and side table are shown at real size.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
       </p>
     </div>
   );

@@ -31,9 +31,9 @@ export const SIDE_NOTE_BATTERY = "Pick the side closest to an outlet for chargin
 
 // Controls with a picture: [line][mechanism id] -> explainer key
 export const CONTROL_IMG = {
-  roller: { chain: "control/roller-chain", cordless: "control/roller-cordless", motorized: "control/roller-motorized" },
-  zebra:  { chain: "control/zebra-chain", cordless: "control/zebra-cordless", motorized: "control/zebra-motorized" },
-  roman:  { cordless: "control/roman-cordless", motorized: "control/roman-motorized" },
+  roller: { chain: "control/roller-chain", cordless: "control/roller-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/roller-motorized" },
+  zebra:  { chain: "control/zebra-chain", cordless: "control/zebra-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/zebra-motorized" },
+  roman:  { cordless: "control/roman-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/roman-motorized" },
 };
 
 export const MOUNT_INFO = {
