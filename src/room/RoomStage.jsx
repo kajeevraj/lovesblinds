@@ -1,5 +1,5 @@
 // The room photo with the 3D canvas and the furniture cutout laid over it, plus whatever the page puts on top (drag areas, pills, handles).
-// Shared by the room lab, the product page's "See it in a room" and the homepage hero test. It owns: the photo (one right-sized file, the same
+// Shared by the room lab, the product page's "See it in a room". It owns: the photo (one right-sized file, the same
 // one index.html preloads), loading the three.js scene after the photo is shown, resizing, pausing when off-screen or hidden, and the animated view.
 //
 //   <RoomStage base={view} goal={view} onCtrl={(ctrl) => ...}>{(api) => overlays}</RoomStage>

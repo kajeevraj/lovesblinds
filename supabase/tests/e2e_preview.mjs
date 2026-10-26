@@ -26,6 +26,16 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     await page.waitForSelector('.s2-sw', { timeout: 20000 });
     await page.locator('.s2-sw').nth(2).click();
     check(`${tag} ${label}: the 3D preview replaces the photo`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
+    check(`${tag} ${label}: no size labels before a real size is entered`, (await page.locator('.pv-dim').count()) === 0);
+    if (vw < 700) {
+      const sh = await page.locator('.pv-stage').evaluate((e) => e.getBoundingClientRect().height);
+      check(`${tag} ${label}: the phone strip is about 4:3 and at most 40% of the screen`, sh >= 220 && sh <= vh * 0.41 && sh >= vw * 0.55, `${Math.round(sh)} px of ${vh}`);
+    }
+    // a note or toast (they are fixed to the bottom right) must not sit on the preview
+    await page.evaluate(() => { const n = document.createElement('div'); n.className = 's2-incnote'; n.id = 'fake-note'; n.innerHTML = '<p>Your <strong>x</strong> is in your cart, marked incomplete.</p>'; document.body.appendChild(n); const t = document.createElement('div'); t.className = 'snackbar'; t.id = 'fake-toast'; t.textContent = 'Added'; document.body.appendChild(t); });
+    const clash = await page.evaluate(() => { const p = document.querySelector('.pv-stage').getBoundingClientRect(); return ['fake-note', 'fake-toast'].filter((id) => { const r = document.getElementById(id).getBoundingClientRect(); return !(r.right <= p.left || r.left >= p.right || r.bottom <= p.top || r.top >= p.bottom); }); });
+    check(`${tag} ${label}: notes and toasts stay off the preview`, clash.length === 0, clash.join(', '));
+    await page.evaluate(() => { document.getElementById('fake-note')?.remove(); document.getElementById('fake-toast')?.remove(); });
     await fill(page, 'w', '40'); await fill(page, 'h', '64');
     await page.waitForTimeout(600);
     const wLabel = await page.locator('.pv-dim-w b').first().textContent().catch(() => null);
@@ -59,6 +69,8 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     await fill(page, 'w', '40'); await fill(page, 'h', '64');
     await page.getByRole('button', { name: 'See it in a room' }).click();
     check(`${tag} ${label}: "See it in a room" shows the room`, await page.waitForSelector('.pv-room .rl-stage[data-status=ready]', { timeout: 30000 }).then(() => true).catch(() => false));
+    const crop = await page.locator('.pv-room .rl-room').evaluate((i) => ({ top: i.style.top, height: i.style.height, stage: i.parentElement.getBoundingClientRect().height, img: i.getBoundingClientRect().height }));
+    check(`${tag} ${label}: the room view is never cropped top or bottom (windows and sills show whole)`, (vw > 700 ? crop.top !== '' : parseFloat(crop.top) === 0 && parseFloat(crop.height) === 100), JSON.stringify(crop));
     check(`${tag} ${label}: three handles in the room`, (await page.locator('.pv-room .rl-handle').count()) === 3);
     await page.getByRole('button', { name: 'Back to my window' }).click();
     check(`${tag} ${label}: back to the window`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
@@ -124,25 +136,6 @@ for (const [vw, vh] of [[390, 844], [1280, 800]]) {
   await ctx.close();
 }
 
-// the hero test page
-{
-  const { ctx, page, errors } = await open(1280, 800, '/room-lab/hero');
-  check('[1280px] hero: headline and "Start shopping"', (await page.locator('h1').textContent()) === 'So many ways to dress a window.' && (await page.getByText('Start shopping').count()) === 1);
-  check('[1280px] hero: the sharp photo is there first', (await page.locator('.rl-room').evaluate((i) => i.complete && i.naturalWidth >= 1200)));
-  await page.waitForSelector('.rl-stage[data-status=ready]', { timeout: 30000 });
-  check('[1280px] hero: no controls on the room', (await page.locator('.rl-stage button, .rl-stage input, .rl-pill, .rl-handle').count()) === 0);
-  check('[1280px] hero: no console errors', errors.length === 0, errors.join(' | '));
-  await ctx.close();
-}
-{
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
-  const page = await ctx.newPage(); const errors = []; page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(BASE + '/room-lab/hero', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.rl-stage[data-status=ready]', { timeout: 30000 });
-  const a = await page.locator('.rl-stage').screenshot(); await page.waitForTimeout(7000); const b = await page.locator('.rl-stage').screenshot();
-  check('[1280px] hero: reduced motion holds still', Buffer.compare(a, b) === 0 && errors.length === 0);
-  await ctx.close();
-}
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);

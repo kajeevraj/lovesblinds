@@ -24,7 +24,7 @@ const earlyCatalog = (env) => ({
   },
 })
 
-// The room photo on /room-lab (and its hero test page) is the first thing people see. Ask for the right-sized file from index.html, before the app
+// The room photo on /room-lab is the first thing people see. Ask for the right-sized file from index.html, before the app
 // script and the page's own chunk have loaded; the page then asks for the very same file (src/room/photoSize.js).
 const earlyRoomPhoto = () => ({
   name: 'early-room-photo',
@@ -53,7 +53,7 @@ const seoPages = () => {
       const slugs = activeLines().map((l) => l.slug)
       const home = readFileSync(join(outDir, 'index.html'), 'utf8')
       const homeBlock = home.slice(home.indexOf(START), home.indexOf(END) + END.length)
-      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ['roomlab'], ['roomhero'], ...slugs.map((s) => ['line', s])]
+      const pages = [['products'], ['measure'], ['contact'], ['quote'], ['orders'], ['profile'], ['privacy'], ['terms'], ['roomlab'], ...slugs.map((s) => ['line', s])]
       for (const [route, slug] of pages) {
         const m = metaFor(route, slug, photos())
         const file = join(outDir, m.path.slice(1), 'index.html')

@@ -6,13 +6,22 @@ import RoomStage from './RoomStage.jsx';
 import { amountFromHandle, handleFraction } from './models/shade.js';
 
 const WIDE = { x: 110, y: 20, w: 1890, h: 1136 };
-const PHONE = { x: 300, y: 0, w: 1300, h: 1333 };
 const SOFA_TOP = 690;
+// phone: the full height of the photo (nothing cropped top or bottom, so windows and sills show whole), as wide as the strip allows: the sides are cropped
+function phoneBase(width) {
+  const vh = typeof window === 'undefined' ? 800 : window.innerHeight, vw = typeof window === 'undefined' ? 390 : window.innerWidth;
+  const H = vw > vh ? Math.max(180, vh - 150) : Math.max(200, Math.min(width, 0.5 * vh));
+  const aspect = Math.min(1.5, Math.max(0.8, width / H)), w = Math.min(2000, 1333 * aspect);
+  return { x: Math.min(2000 - w, Math.max(0, 966 - w / 2)), y: 0, w, h: 1333 };
+}
 const OPENING_H = (WINDOWS.left.rect[3] - WINDOWS.left.rect[1]) / CAM.scale;
 
 // blind = { product (a PRODUCTS id), fabric (a fabric spec) }, amount 0..1, phone: use the phone crop
 export default function RoomEmbed({ blind, amount, onAmount, phone }) {
-  const base = phone ? PHONE : WIDE;
+  const holder = useRef(null);
+  const [width, setWidth] = useState(358);
+  useEffect(() => { const el = holder.current; if (!el) return undefined; const ro = new ResizeObserver(() => setWidth(Math.round(el.getBoundingClientRect().width) || 358)); ro.observe(el); return () => ro.disconnect(); }, []);
+  const base = useMemo(() => (phone ? phoneBase(width) : WIDE), [phone, width]);
   const [ctrl, setCtrl] = useState(null);
   const [st, setSt] = useState({ status: 'loading', view: base, amounts: {} });
   const drag = useRef(null);
@@ -37,11 +46,13 @@ export default function RoomEmbed({ blind, amount, onAmount, phone }) {
     return { id, u: (r[0] + r[2]) / 2, v: Math.min(SOFA_TOP, r[1] + f * (r[3] - r[1])) };
   });
   return (
+    <div ref={holder}>
     <RoomStage base={base} goal={base} onCtrl={setCtrl} onState={setSt} alt="The same blind in all three windows of a living room">
       {status !== 'nowebgl' && WINDOW_IDS.map((id) => (
         <div key={id} className="rl-hit on" style={{ ...box(WINDOWS[id].rect), touchAction: 'pan-x' }} aria-hidden="true" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { drag.current = null; }} />
       ))}
       {status === 'ready' && handles.map((h) => <span key={h.id} className="rl-handle v" style={at(h.u, h.v)} aria-hidden="true"><i /></span>)}
     </RoomStage>
+    </div>
   );
 }

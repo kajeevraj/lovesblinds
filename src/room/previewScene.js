@@ -49,7 +49,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount } = {}) {
   })));
   vig.children[0].frustumCulled = false;
 
-  const cfg = { kind: 'roller', w: 1, h: 1.5, mount: 'inside', control: 'chain', cover: 'wrapped', layers: [], amount: 0.55 };
+  const cfg = { tight: false, kind: 'roller', w: 1, h: 1.5, mount: 'inside', control: 'chain', cover: 'wrapped', layers: [], amount: 0.55 };
   let built = null, shades = [], current = 0.55, size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
   let dispDpr = 1;
 
@@ -97,7 +97,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount } = {}) {
     else built.shade = { w, h, x: 0, top: h / 2, z: 0.05 };
     // camera: the whole window (trim, sill) with a margin for the labels
     const bw = (mount === 'inside' ? ow + 2 * TRIM + 0.08 : w), bh = (mount === 'inside' ? oh + TRIM + 0.024 + TRIM * 0.8 + 0.05 : h);
-    built.fit = { w: bw * 1.5, h: bh * 1.45, cy: mount === 'inside' ? oy - (TRIM * 0.8 + 0.024 - TRIM) / 2 : 0 };
+    const wide = cfg.tight ? 1.22 : 1.5, tall = cfg.tight ? 1.25 : 1.45;          // tight: the window fills about 80% of the picture's height
+    built.fit = { w: bw * wide, h: bh * tall, cy: mount === 'inside' ? oy - (TRIM * 0.8 + 0.024 - TRIM) / 2 : 0 };
     fitCamera();
   }
 
@@ -161,7 +162,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount } = {}) {
     if (n.width != null) n.w = clampInches(n.width) * IN;
     if (n.height != null) n.h = clampInches(n.height) * IN;
     delete n.width; delete n.height;
-    const geometryChanged = ['w', 'h', 'mount'].some((k) => n[k] != null && n[k] !== cfg[k]);
+    const geometryChanged = ['w', 'h', 'mount', 'tight'].some((k) => n[k] != null && n[k] !== cfg[k]);
     const shadesChanged = geometryChanged || ['kind', 'cover', 'control'].some((k) => n[k] != null && n[k] !== cfg[k])
       || (n.layers && JSON.stringify(n.layers.map((l) => [l.fabric?.key, l.optics])) !== JSON.stringify(cfg.layers.map((l) => [l.fabric?.key, l.optics])));
     Object.assign(cfg, Object.fromEntries(Object.entries(n).filter(([, v]) => v != null)));

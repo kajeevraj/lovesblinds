@@ -24,7 +24,6 @@ export const PAGES = {
   terms: { path: '/terms', title: title('Terms of sale'), description: 'How ordering works at Love\'s Blinds: estimates, final prices, lead times, returns and warranty.', noindex: true },
   // a test page for the room visualizer; not linked from anywhere
   roomlab: { path: '/room-lab', title: title('Room visualizer test'), description: 'A test page for the room visualizer.', noindex: true },
-  roomhero: { path: '/room-lab/hero', title: title('Hero test'), description: 'A test page for the self-playing room hero.', noindex: true },
   notfound: { path: '/404', title: title('Page not found'), description: 'We could not find that page.', noindex: true },
   admin: { path: '/admin', title: title('Admin'), description: 'Admin.', noindex: true },
 };

@@ -1456,7 +1456,8 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
   /* phone: the preview comes first and stays under the top of the screen while you work through the steps. One size that never changes by itself, so
      nothing jumps under a finger; a button folds it away. */
   .s2-line-photo.has-preview { position: sticky; top: 0; z-index: 12; background: var(--s2-cream); margin: 0 -16px; padding: 4px 16px 8px; border-bottom: 1px solid var(--s2-line); }
-  .has-preview .pv-stage { aspect-ratio: auto; height: 25vh; min-height: 170px; max-height: none; }
+  .has-preview .pv-stage { aspect-ratio: auto; height: min(75vw, 40vh); min-height: 220px; max-height: none; }        /* about 4:3, never more than 40% of the screen */
+  .has-preview .pv-stage.pv-room { height: auto; min-height: 0; }                                                          /* the room view takes the height its own crop needs */
   .has-preview .pv-tabs { margin-bottom: 4px; }
   .has-preview .pv-tabs [role="tab"] { min-height: 40px; padding: 0 14px; }
   .has-preview .pv-tools { margin-top: 0; }
@@ -1476,4 +1477,11 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
   .has-preview .pv-collapse { display: none; }
   .s2-line-steps { flex: 1 1 auto; }
   .s2-line-steps :is(.s2-step, input, button, a, textarea, .s2-sw-cell) { scroll-margin-top: 16px; }
+}
+
+/* Notes and toasts on a page with a preview: bottom right, small, so they never cover the 3D view (which is on the left, or at the top on a phone) */
+body:is(:has(.has-preview), :has(.rl)) .s2-incnote { left: auto; right: 12px; transform: none; bottom: 84px; width: min(320px, calc(100vw - 24px)); }
+body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; max-width: min(320px, calc(100vw - 24px)); }
+@media (max-width: 959px) and (orientation: landscape) and (max-height: 520px) {
+  body:is(:has(.has-preview), :has(.rl)) .s2-incnote, body:is(:has(.has-preview), :has(.rl)) .snackbar { width: min(300px, 50vw); max-width: 50vw; }
 }

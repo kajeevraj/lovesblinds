@@ -63,8 +63,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
 
   useEffect(() => {
     const ctrl = ctrlRef.current; if (!ctrl || status !== 'ready') return;
-    ctrl.configure({ kind, width: w || 36, height: h || 60, mount, control: controlOf(mech), cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount });
-  }, [status, kind, w, h, mount, mech, cover, key]);                            // eslint-disable-line react-hooks/exhaustive-deps
+    ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, control: controlOf(mech), cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount });
+  }, [status, kind, w, h, mount, mech, cover, key, phone]);                            // eslint-disable-line react-hooks/exhaustive-deps
 
   const setAmountNow = (a) => { ctrlRef.current?.snapAmount(a); setAmount(a); };
   const down = (e) => { const r = e.currentTarget.getBoundingClientRect(); dragRef.current = { rect: r, y0: e.clientY, moved: false, grab: 0 }; e.currentTarget.setPointerCapture?.(e.pointerId); };
@@ -97,7 +97,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
             <>
               <div className="pv-drag" style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
               <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>
-              {sizes && wTxt && (
+              {sizes && wTxt && hTxt && (
                 <>
                   <span className="pv-dim pv-dim-w" style={{ left: layout.x0, width: layout.x1 - layout.x0, top: Math.max(8, layout.y0 - 30) }}><b>{wTxt}</b></span>
                   <span className="pv-dim pv-dim-h" style={{ top: layout.y0, height: layout.y1 - layout.y0, left: Math.max(8, layout.x0 - 30) }}><b>{hTxt || ''}</b></span>
@@ -119,7 +119,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       </div>
       <p className="pv-note">
         {room ? 'Your blind in all three windows. Colors, control and cover are true to your choices; the size is fitted to the room’s windows.'
-          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Enter your size to see it to scale. ' : ''}{CONTROL_NOTE[controlOf(mech)]}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
+          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{CONTROL_NOTE[controlOf(mech)]}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
       </p>
     </div>
   );
