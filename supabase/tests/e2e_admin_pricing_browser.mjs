@@ -39,7 +39,7 @@ try {
   await noOverflow('products list'); await page.screenshot({ path: `${OUT}/p1-products.png`, fullPage: true });
   await page.getByRole('button', { name: 'Zebra / Dual Shades' }).first().click();
   await page.getByRole('tab', { name: 'Options' }).click();
-  await page.getByRole('heading', { name: /^Control/ }).waitFor();
+  await page.getByRole('heading', { name: /^Control \(control\)/ }).waitFor();
   const firstExpl = page.locator('input[aria-label="One-line explanation"]').first();
   const oldExpl = await firstExpl.inputValue();
   await firstExpl.fill(oldExpl + ' (edited by test)');
