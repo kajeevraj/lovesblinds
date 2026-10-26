@@ -10,7 +10,7 @@ import { buildSelection } from './lib/lineSelection.js';
 import { formatInches } from './lib/inches.js';
 import { summarize } from './lib/selection.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
-import { Remote } from './room/remotes.jsx';
+import { SimpleRemote } from './room/remotes.jsx';
 import { isMotorized, remoteFor, shadeCount, SHARE_NOTE, WORKS_NOTE } from './lib/remote.js';
 import { Step, Cards, MOUNT_PICTURES, EstimateCard, QtyField, priceView } from './components/s2.jsx';
 import SizeFields, { EMPTY_SIZE, sizeNumbers } from './components/SizeFields.jsx';
@@ -332,7 +332,7 @@ export default function LineShell({
 
               {!preview && motorized && (
                 <div className="rm-card">
-                  <Remote type={remote.type} lit={remoteLit} onPress={flashRemote} />
+                  <SimpleRemote type={remote.type} lit={remoteLit} onPress={flashRemote} />
                   <div className="rm-card-text">
                     <strong>Included: remote</strong>
                     {usesDrive(line.id) && WORKS_NOTE[drive.control] && <p>{WORKS_NOTE[drive.control]}</p>}

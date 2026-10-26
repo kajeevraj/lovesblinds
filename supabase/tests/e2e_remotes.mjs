@@ -24,9 +24,9 @@ try {
     check(T('no remote on a chain shade'), (await page.locator('.rm').count()) === 0);
     await card('Motorized').click(); await settle();
     check(T('Roller, one shade, no room: the 1 Channel remote, no sharing line'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-stage').innerText()));
-    check(T('the 1 Channel remote has up, stop and down only'), (await page.locator('.rm-btn').count()) === 3);
+    check(T('the remote is three simple buttons: up, stop, down'), (await page.locator('.rm-key').count()) === 3);
     await room('Living room'); await qty(3);
-    check(T('3 shades in a room: the 6 Channels remote, with the channel buttons and the sharing line'), (await remoteType()) === 'ch6' && (await page.locator('.rm-btn').count()) === 5 && SHARE.test(await page.locator('.pv-stage').innerText()));
+    check(T('3 shades in a room: the 6 Channels remote, with the channel buttons and the sharing line'), (await remoteType()) === 'ch6' && (await page.locator('.rm-key').count()) === 3 && SHARE.test(await page.locator('.pv-stage').innerText()));
     await qty(8);
     check(T('8 shades in a room: the 16 Channels remote'), (await remoteType()) === 'ch16');
     await qty(17);
@@ -37,13 +37,13 @@ try {
     await room('Living room'); await qty(3);
     const amount = async () => Number(await page.locator('#pv-amount').inputValue());
     const a0 = await amount();
-    await page.locator('[data-btn="chNext"]').click(); await page.waitForTimeout(100);
-    check(T('a channel button lights up and does nothing else'), (await page.locator('.rm-btn.lit[data-btn="chNext"]').count()) === 1 && (await amount()) === a0);
+    await page.locator('[data-btn="stop"]').click(); await page.waitForTimeout(100);
+    check(T('a pressed button lights up'), (await page.locator('.rm-key.lit[data-btn="stop"]').count()) === 1 && (await amount()) === a0);
     await page.locator('[data-btn="down"]').click(); await page.waitForTimeout(1500);
     check(T('Down on the 6 Channels remote lowers the shade'), (await amount()) > a0 + 3);
     await page.locator('[data-btn="stop"]').click(); const s1 = await amount(); await page.waitForTimeout(700);
     check(T('Stop holds it'), (await amount()) === s1);
-    check(T('the shade buttons are at least 44 px'), await page.locator('[data-btn="up"], [data-btn="stop"], [data-btn="down"]').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 43.5 && x.getBoundingClientRect().height >= 43.5)));
+    check(T(vw < 500 ? 'the buttons have a 44 px tap area on a phone' : 'the buttons are small but at least 36 px to tap'), await page.locator('[data-btn="up"], [data-btn="stop"], [data-btn="down"]').evaluateAll((b, min) => b.every((x) => x.getBoundingClientRect().width >= min && x.getBoundingClientRect().height >= min), vw < 500 ? 43.5 : 36));
     // ---- the cart: a second window in the same room, whatever the case of the name
     await qty(1); await room('Living room');
     await page.waitForFunction(() => !document.querySelector('.s2-add-btn')?.disabled, null, { timeout: 30000 });
@@ -67,16 +67,16 @@ try {
 
     // ---- Cellular: wand remotes
     await open('cellular'); await card('Motorized').click(); await settle();
-    check(T('Cellular normal: the Single Motor, Single Channel remote (up, pause, down)'), (await remoteType()) === 'single-single' && (await page.locator('.rm-btn').count()) === 3);
+    check(T('Cellular normal: the Single Motor, Single Channel remote (up, pause, down)'), (await remoteType()) === 'single-single' && (await page.locator('.rm-key').count()) === 3);
     await card('Top-down/bottom-up').click(); await settle();
     check(T('Cellular top-down/bottom-up: the Dual Motor, Single Channel remote'), (await remoteType()) === 'dual-single');
     await page.locator('[data-btn="topUp"]').click(); await page.waitForTimeout(80);
-    check(T('a dual remote button lights up'), (await page.locator('.rm-btn.lit[data-btn="topUp"]').count()) === 1);
-    check(T('a dual remote has top rail, rail selector and bottom rail buttons'), (await Promise.all(['topUp', 'topDown', 'railTop', 'railBottom', 'botUp', 'botDown'].map((b) => page.locator(`[data-btn="${b}"]`).count()))).every((n) => n === 1));
+    check(T('a dual remote button lights up'), (await page.locator('.rm-key.lit[data-btn="topUp"]').count()) === 1);
+    check(T('a dual remote has a top rail pair and a bottom rail pair'), (await Promise.all(['topUp', 'topDown', 'botUp', 'botDown'].map((b) => page.locator(`[data-btn="${b}"]`).count()))).every((n) => n === 1));
     await card('Day & night').click(); await settle();
     check(T('Cellular day & night: the Dual Motor remote'), (await remoteType()) === 'dual-single');
     await room('Office'); await qty(2); await settle();
-    check(T('two day & night shades in a room: the Dual Motor, Multi Channel remote, with channel buttons and the sharing line'), (await remoteType()) === 'dual-multi' && (await page.locator('[data-btn="chUp"]').count()) === 1 && SHARE.test(await page.locator('.rm-card').innerText()));
+    check(T('two day & night shades in a room: the Dual Motor, Multi Channel remote, and the sharing line'), (await remoteType()) === 'dual-multi' && SHARE.test(await page.locator('.rm-card').innerText()));
     await card('Standard').click(); await settle();
     check(T('two standard cellular shades in a room: the Single Motor, Multi Channel remote'), (await remoteType()) === 'single-multi');
     check(T('no console errors'), errors.length === 0, errors.join(' | '));

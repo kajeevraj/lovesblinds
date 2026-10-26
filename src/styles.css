@@ -1510,3 +1510,27 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .rm-card-text strong { display: block; font: 600 12px/1.2 "Montserrat", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--s2-brass-text); }
 .rm-card-text p { margin: 6px 0 0; }
 .rm-share { font-style: italic; }
+
+.rm-simple { display: flex; flex-direction: column; gap: 6px; }
+.rm-row { display: flex; align-items: center; gap: 6px; }
+.rm-row-label { min-width: 70px; font: 600 11px/1.2 "Montserrat", sans-serif; color: var(--s2-muted); }
+.rm-key { position: relative; width: 38px; height: 38px; padding: 0; border: 0; background: none; color: #3a3228; display: grid; place-items: center; cursor: pointer; }
+.rm-key::before { content: ''; position: absolute; inset: 4px; border: 1px solid #cfccc4; border-radius: 8px; background: #fff; transition: background .12s ease, box-shadow .12s ease; }
+.rm-key svg { position: relative; width: 16px; height: 16px; }
+.rm-key:hover::before { background: #f4f1ea; }
+.rm-key:focus-visible { outline: 2px solid #2f7fe0; outline-offset: -1px; border-radius: 10px; }
+.rm-key.lit::before { background: #ffd27a; border-color: #e3b45e; box-shadow: 0 0 0 2px rgba(255, 210, 122, .55), 0 0 8px rgba(255, 210, 122, .9); }
+.rm-simple { gap: 2px; }
+.rm-row { gap: 0; }
+.rm-row-label { min-width: 62px; font-size: 10px; }
+.pv-incl { padding: 4px 6px 5px; gap: 0; border-radius: 12px; }
+.pv-incl-title { font-size: 8px; }
+.pv-works { font-size: 9.5px; padding: 5px 8px; width: 118px; }
+.pv-works-row svg { width: 16px; height: 16px; }
+.pv-works { top: 74px; }
+@media (max-width: 959px) {
+  .pv-incl { top: auto; bottom: 6px; right: 6px; }
+  .pv-works { top: auto; bottom: 6px; left: 6px; right: auto; width: 118px; }
+  .rm-key { width: 44px; height: 44px; }                       /* phones: a 44 px tap area around the small button */
+  .rm-key::before { inset: 6px; }
+}

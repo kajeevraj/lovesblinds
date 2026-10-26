@@ -159,3 +159,34 @@ export function Remote({ type = 'ch1', lit = null, onPress, active = 1, classNam
     </div>
   );
 }
+
+// ---- the simple remote: just the buttons ----------------------------------------------------------------------------------------------------------
+// What the product pages use now: a row of plain 44 px buttons (up, stop, down); two small rows for a two-motor cellular shade (top rail, bottom rail).
+// Same wrapper and ids as <Remote>, so the picture version above can come back for a photo any time.
+const GLYPH = {
+  up: <path d="M6 15l6-6 6 6" />, down: <path d="M6 9l6 6 6-6" />, stop: <path d="M6 12h12" />,
+};
+const glyphOf = (id) => (/up$/i.test(id) ? GLYPH.up : /down$/i.test(id) ? GLYPH.down : GLYPH.stop);
+const NAMES = {
+  up: 'Raise the shade', stop: 'Stop', down: 'Lower the shade',
+  topUp: 'Raise the top rail', topDown: 'Lower the top rail', botUp: 'Raise the bottom rail', botDown: 'Lower the bottom rail',
+};
+
+export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '' }) {
+  const dual = type.startsWith('dual');
+  const rows = dual ? [['Top rail', ['topUp', 'topDown']], ['Bottom rail', ['botUp', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
+  return (
+    <div className={`rm rm-simple ${className}`} role="group" aria-label="Remote control" data-remote={type}>
+      {rows.map(([label, ids]) => (
+        <div className="rm-row" key={label || 'main'}>
+          {label && <span className="rm-row-label">{label}</span>}
+          {ids.map((id) => (
+            <button key={id} type="button" className={`rm-key${lit === id ? ' lit' : ''}`} aria-label={NAMES[id]} data-btn={id} onClick={() => onPress?.(id)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{glyphOf(id)}</svg>
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}

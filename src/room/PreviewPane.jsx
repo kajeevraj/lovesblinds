@@ -7,7 +7,7 @@ import { PRODUCT_BY_ID } from './data.js';
 import { presetSpec, specFromEntry } from './fabricSpec.js';
 import { amountFromHandle } from './models/shade.js';
 import { parseMech, SIDE_NAME, MOTOR_CONTROL_NAME } from '../lib/drive.js';
-import { Remote } from './remotes.jsx';
+import { SimpleRemote } from './remotes.jsx';
 import { SHARE_NOTE, WORKS_NOTE } from '../lib/remote.js';
 import RoomEmbed from './RoomEmbed.jsx';
 
@@ -132,7 +132,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           )}
           {status === 'ready' && drv.movement === 'motorized' && (
             <div className="pv-incl">
-              <Remote type={remoteType} lit={lit} onPress={(id) => press(id === 'up' ? 'up' : id === 'down' ? 'down' : id === 'stop' ? 'stop' : id)} />
+              <SimpleRemote type={remoteType} lit={lit} onPress={press} />
               <span className="pv-incl-title">Included: remote</span>
             </div>
           )}
