@@ -1521,3 +1521,9 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .pv-incl-under .rm { grid-row: 1 / span 3; }
 .pv-incl-under .pv-incl-title { margin: 0; align-self: end; }
 .pv-incl-under .pv-works-row, .pv-incl-under .pv-share { margin-top: 0; }
+
+/* the drag pill: small and see-through, and gone for the rest of the visit after the first drag, remote press or slider move */
+.pv-handle { transition: opacity .6s ease, visibility 0s linear 0s; }
+.rl-handle.pv-handle i { width: 24px; height: 12px; background: rgba(255, 253, 249, .6); box-shadow: 0 1px 4px -1px rgba(40, 25, 5, .3); }
+.rl-handle.pv-handle i::before { left: 6px; right: 6px; top: 3px; height: 4px; }
+.pv-handle.gone { opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s linear .6s; }

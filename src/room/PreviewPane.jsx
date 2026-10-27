@@ -42,6 +42,9 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const [layout, setLayout] = useState(null);
   const [sizes, setSizes] = useState(true);
   const [room, setRoom] = useState(false);
+  // the drag pill is only a first hint: after the first drag, remote press or slider move it fades away for the rest of the visit
+  const [touched, setTouched] = useState(() => { try { return sessionStorage.getItem('lb_pv_touched') === '1'; } catch { return false; } });
+  const touch = () => { setTouched(true); try { sessionStorage.setItem('lb_pv_touched', '1'); } catch { /* private mode */ } };
   const [lit, setLit] = useState(null);                                           // the remote button that was just pressed
   const litTimer = useRef(0);
   const canvasRef = useRef(null), ctrlRef = useRef(null), stageRef = useRef(null), dragRef = useRef(null);
@@ -79,11 +82,13 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   }, [status, kind, w, h, mount, mech, cover, key, phone]);                            // eslint-disable-line react-hooks/exhaustive-deps
 
   const press = (k) => {
+    touch();
     if (k === 'up' || k === 'down' || k === 'stop') ctrlRef.current?.drive(k === 'up' ? -1 : k === 'down' ? 1 : 0);
     setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
   };
   useEffect(() => () => clearTimeout(litTimer.current), []);
-  const setAmountNow = (a) => { ctrlRef.current?.snapAmount(a); setAmount(a); };
+  const setAmountNow = (a) => {
+    touch(); ctrlRef.current?.snapAmount(a); setAmount(a); };
   const down = (e) => { const r = e.currentTarget.getBoundingClientRect(); dragRef.current = { rect: r, y0: e.clientY, moved: false, grab: 0 }; e.currentTarget.setPointerCapture?.(e.pointerId); };
   const move = (e) => {
     const d = dragRef.current; if (!d) return;
@@ -96,7 +101,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   if (status === 'nowebgl') return <div className="pv pv-photo">{fallback}</div>;
   const drv = parseMech(kind, mech);
   const tile = status === 'ready' && drv.movement === 'motorized' && (
-            <div className={`pv-incl${phone ? ' pv-incl-under' : ''}`}>
+            <div className="pv-incl pv-incl-under">
               <SimpleRemote type={remoteType} lit={lit} onPress={press} />
               <span className="pv-incl-title">Included: remote</span>
               {drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
@@ -123,15 +128,14 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           {status === 'ready' && layout && (
             <>
               <div className="pv-drag" style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
-              {!["cordless", "zero-gravity"].includes(parseMech(kind, mech).movement) && <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
+              {!["cordless", "zero-gravity"].includes(parseMech(kind, mech).movement) && <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
               {sizes && w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
             </>
           )}
-          {!phone && tile}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
         </div>
       )}
-      {phone && !room && tile}
+      {!room && tile}
 
       <div className="pv-tools">
         <button type="button" className="pv-btn" onClick={() => setRoom((r) => !r)} aria-pressed={room}>{room ? 'Back to my window' : 'See it in a room'}</button>

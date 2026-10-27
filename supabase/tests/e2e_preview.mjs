@@ -115,7 +115,9 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
   const amount = async () => Number(await page.locator('#pv-amount').inputValue());
   check(`${tag} no remote tile on a chain shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
+  check(`${tag} the drag pill starts small and see-through, and is shown`, (await page.locator('.pv-handle:not(.gone)').count()) === 1 && await page.locator('.pv-handle i').evaluate((e) => e.getBoundingClientRect().width <= 26 && getComputedStyle(e).backgroundColor.endsWith(', 0.6)')));
   await card('Motorized').click(); await page.waitForTimeout(900);
+  check(`${tag} the remote tile is not on the picture: it sits below the preview, and the window has only the size label on it`, (await page.locator('.pv-stage .pv-incl').count()) === 0 && await page.evaluate(() => { const t = document.querySelector('.pv-incl').getBoundingClientRect(), st = document.querySelector('.pv-stage').getBoundingClientRect(); return t.top >= st.bottom - 1; }));
   check(`${tag} Motorized puts no label or pointer line on the picture (only the size label and the remote tile)`, (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0 && (await page.locator('.pv-stage .pv-size').count()) === 1);
   check(`${tag} the remote has three real, small buttons, and says "Included: remote"`, (await page.locator('.rm-key').count()) === 3 && await page.locator('.rm-key').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 32 && x.getBoundingClientRect().height >= 32)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
   const works = () => page.locator('.pv-incl').innerText().catch(() => '');
@@ -130,6 +132,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   // the buttons move the shade; Stop holds it
   const a0 = await amount();
   await page.getByRole('button', { name: 'Lower the shade' }).click(); await page.waitForTimeout(150);
+  check(`${tag} the drag pill fades away after the first remote press`, (await page.locator('.pv-handle.gone').count()) === 1);
   check(`${tag} the pressed remote button lights up`, (await page.locator('.rm-key.lit').count()) === 1);
   await page.waitForTimeout(1500);
   const a1 = await amount();
@@ -148,6 +151,20 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.locator('#pv-amount').fill('100'); await page.waitForTimeout(600);
   check(`${tag} the picture still has just the size label and the remote tile when the shade is fully down`, (await page.locator('.pv-stage .pv-size').count()) === 1 && (await page.locator('.pv-incl').count()) === 1);
   check(`${tag} no console errors`, errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
+// the drag pill: gone after the first slider move, and it stays gone for the rest of the visit
+{
+  const { ctx, page } = await open(1280, 900, '/products/roller');
+  await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
+  await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
+  check('[1280px] the drag pill is shown before anything is touched', (await page.locator('.pv-handle:not(.gone)').count()) === 1);
+  await page.locator('#pv-amount').fill('30'); await page.waitForTimeout(900);
+  check('[1280px] the drag pill fades out after the first slider move', (await page.locator('.pv-handle.gone').count()) === 1 && (await page.locator('.pv-handle').evaluate((e) => getComputedStyle(e).visibility)) === 'hidden');
+  await page.reload({ waitUntil: 'networkidle' }); await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
+  await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
+  check('[1280px] and it stays gone for the rest of the visit (after a reload)', (await page.locator('.pv-handle.gone').count()) === 1);
   await ctx.close();
 }
 
