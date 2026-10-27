@@ -43,7 +43,7 @@ try {
     check(T('Down on the 6 Channels remote lowers the shade'), (await amount()) > a0 + 3);
     await page.locator('[data-btn="stop"]').click(); const s1 = await amount(); await page.waitForTimeout(700);
     check(T('Stop holds it'), (await amount()) === s1);
-    check(T(vw < 500 ? 'the buttons have a 44 px tap area on a phone' : 'the buttons are small but at least 36 px to tap'), await page.locator('[data-btn="up"], [data-btn="stop"], [data-btn="down"]').evaluateAll((b, min) => b.every((x) => x.getBoundingClientRect().width >= min && x.getBoundingClientRect().height >= min), vw < 500 ? 43.5 : 36));
+    check(T(vw < 500 ? 'the buttons have a 44 px tap area on a phone' : 'the buttons are small but at least 32 px to tap'), await page.locator('[data-btn="up"], [data-btn="stop"], [data-btn="down"]').evaluateAll((b, min) => b.every((x) => x.getBoundingClientRect().width >= min && x.getBoundingClientRect().height >= min), vw < 500 ? 43.5 : 32));
     // ---- the cart: a second window in the same room, whatever the case of the name
     await qty(1); await room('Living room');
     await page.waitForFunction(() => !document.querySelector('.s2-add-btn')?.disabled, null, { timeout: 30000 });

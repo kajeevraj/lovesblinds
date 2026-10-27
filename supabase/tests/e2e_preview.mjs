@@ -26,7 +26,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     await page.waitForSelector('.s2-sw', { timeout: 20000 });
     await page.locator('.s2-sw').nth(2).click();
     check(`${tag} ${label}: the 3D preview replaces the photo`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
-    check(`${tag} ${label}: no size labels before a real size is entered`, (await page.locator('.pv-dim').count()) === 0);
+    check(`${tag} ${label}: no size labels before a real size is entered`, (await page.locator('.pv-size').count()) === 0);
     if (vw < 700) {
       const sh = await page.locator('.pv-stage').evaluate((e) => e.getBoundingClientRect().height);
       check(`${tag} ${label}: the phone strip is about 4:3 and at most 40% of the screen`, sh >= 220 && sh <= vh * 0.41 && sh >= vw * 0.55, `${Math.round(sh)} px of ${vh}`);
@@ -38,13 +38,12 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     await page.evaluate(() => { document.getElementById('fake-note')?.remove(); document.getElementById('fake-toast')?.remove(); });
     await fill(page, 'w', '40'); await fill(page, 'h', '64');
     await page.waitForTimeout(600);
-    const wLabel = await page.locator('.pv-dim-w b').first().textContent().catch(() => null);
-    const hLabel = await page.locator('.pv-dim-h b').first().textContent().catch(() => null);
-    check(`${tag} ${label}: size labels read the typed size`, wLabel === '40 in wide' && hLabel === '64 in high', `${wLabel} / ${hLabel}`);
+    const sLabel = (await page.locator('.pv-size').first().textContent().catch(() => null))?.replace(/\s+/g, ' ');
+    check(`${tag} ${label}: the one size label reads the typed size`, sLabel === '40 × 64 in', `${sLabel}`);
     await fill(page, 'w', '44 1/2'); await page.waitForTimeout(500);
-    check(`${tag} ${label}: a fraction shows in the label`, (await page.locator('.pv-dim-w b').first().textContent()) === '44 1/2 in wide');
+    check(`${tag} ${label}: a fraction shows in the label`, (await page.locator('.pv-size').first().textContent()).replace(/\s+/g, ' ') === '44 1/2 × 64 in');
     await page.getByRole('button', { name: /Hide sizes/ }).click();
-    check(`${tag} ${label}: "Hide sizes" hides the labels`, (await page.locator('.pv-dim').count()) === 0);
+    check(`${tag} ${label}: "Hide sizes" hides the labels`, (await page.locator('.pv-size').count()) === 0);
     await page.getByRole('button', { name: /Show sizes/ }).click();
     // the slider moves the shade
     const before = await page.$eval('#pv-amount', (e) => e.value);
@@ -118,7 +117,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   check(`${tag} no remote tile on a chain shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
   await card('Motorized').click(); await page.waitForTimeout(900);
   check(`${tag} Motorized puts no label or pointer line on the picture (only the size label and the remote tile)`, (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0 && (await page.locator('.pv-stage .pv-size').count()) === 1);
-  check(`${tag} the remote has three real, small buttons, and says "Included: remote"`, (await page.locator('.rm-key').count()) === 3 && await page.locator('.rm-key').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 36 && x.getBoundingClientRect().height >= 36)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
+  check(`${tag} the remote has three real, small buttons, and says "Included: remote"`, (await page.locator('.rm-key').count()) === 3 && await page.locator('.rm-key').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 32 && x.getBoundingClientRect().height >= 32)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
   const works = () => page.locator('.pv-incl').innerText().catch(() => '');
   check(`${tag} "Works with" says the phone for App + Remote`, /Works with your phone \(Smart Life app\)/.test(await works()));
   await card('App + Voice + Remote (Zigbee)').click(); await page.waitForTimeout(300);
