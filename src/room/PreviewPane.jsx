@@ -19,8 +19,8 @@ function driveNote(d) {
   if (d.movement === 'chain') return `Continuous chain, on the ${side}`;
   if (d.movement === 'zero-gravity') return 'Zero gravity, nothing hangs down. The center handle is included and optional';
   if (d.movement === 'cordless') return 'Cordless, nothing hangs down. The center handle is included and optional';
-  const power = d.power === 'wired' ? `wired, with a cord down the wall to an outlet on the ${side}`
-    : `battery, charging port on the ${side}${d.solar ? ', solar panel on the window glass' : ''}`;
+  const power = d.power === 'wired' ? `wired; the motor is inside the roller and the cord leaves the end cap on the ${side}`
+    : `battery; the motor is inside the roller and charges through a small port on the end cap on the ${side}${d.solar ? ', and the solar panel goes on the window glass near the top' : ''}`;
   return `Motorized, ${power}. ${MOTOR_CONTROL_NAME[d.control]}`;
 }
 
@@ -95,10 +95,19 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
 
   if (status === 'nowebgl') return <div className="pv pv-photo">{fallback}</div>;
   const drv = parseMech(kind, mech);
+  const tile = status === 'ready' && drv.movement === 'motorized' && (
+            <div className={`pv-incl${phone ? ' pv-incl-under' : ''}`}>
+              <SimpleRemote type={remoteType} lit={lit} onPress={press} />
+              <span className="pv-incl-title">Included: remote</span>
+              {drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
+              {drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{WORKS_NOTE.zigbee}</span></div>}
+              {drv.control === 'matter' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>{WORKS_NOTE.matter}</span></div>}
+              {shareNote && <div className="pv-share">{SHARE_NOTE}</div>}
+            </div>
+  );
   const roomBlind = { product: layers[0].product, fabric: layers[0].fabric };
   const pct = Math.round(amount * 100);
   const sample = layers.some((l) => l.sample);
-  const wTxt = w ? `${formatInches(w)} in wide` : null, hTxt = h ? `${formatInches(h)} in high` : null;
   const clamped = (w && (w < 12 || w > 300)) || (h && (h < 12 || h > 300));
 
   return (
@@ -115,38 +124,14 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
             <>
               <div className="pv-drag" style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
               {!["cordless", "zero-gravity"].includes(parseMech(kind, mech).movement) && <span className="rl-handle v" style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
-              {layout.motor && <span className="pv-xlabel" style={{ left: phone ? (layout.x0 + layout.x1) / 2 : layout.motor.x, top: layout.motor.y, opacity: layout.xray ? 1 : 0 }} aria-hidden="true">Motor inside</span>}
-              {layout.solar && (
-                <>
-                  <span className="pv-solar-line" style={{ left: (layout.solar.side > 0) !== !!phone ? layout.solar.x - 21 : layout.solar.x + 7, top: layout.solar.y }} aria-hidden="true" />
-                  <span className="pv-solar-label" style={{ left: (layout.solar.side > 0) !== !!phone ? layout.solar.x - 21 : layout.solar.x + 21, top: layout.solar.y, transform: (layout.solar.side > 0) !== !!phone ? 'translate(-100%, -50%)' : 'translateY(-50%)' }}>{phone ? <>Solar panel<br />on the glass</> : 'Solar panel on the glass'}</span>
-                </>
-              )}
-              {sizes && wTxt && hTxt && (
-                <>
-                  <span className="pv-dim pv-dim-w" style={{ left: layout.x0, width: layout.x1 - layout.x0, top: Math.max(8, layout.y0 - 30) }}><b>{wTxt}</b></span>
-                  <span className="pv-dim pv-dim-h" style={{ top: layout.y0, height: layout.y1 - layout.y0, left: Math.max(8, layout.x0 - 30) }}><b>{hTxt || ''}</b></span>
-                </>
-              )}
+              {sizes && w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
             </>
           )}
-          {status === 'ready' && drv.movement === 'motorized' && (
-            <div className="pv-incl">
-              <SimpleRemote type={remoteType} lit={lit} onPress={press} />
-              <span className="pv-incl-title">Included: remote</span>
-            </div>
-          )}
-          {status === 'ready' && drv.movement === 'motorized' && (drv.control !== 'remote-only' || shareNote) && (
-            <div className="pv-works">
-              {drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
-              {drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{WORKS_NOTE.zigbee}</span></div>}
-              {drv.control === 'matter' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>{WORKS_NOTE.matter}</span></div>}
-              {shareNote && <div className="pv-share">{SHARE_NOTE}</div>}
-            </div>
-          )}
+          {!phone && tile}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
         </div>
       )}
+      {phone && !room && tile}
 
       <div className="pv-tools">
         <button type="button" className="pv-btn" onClick={() => setRoom((r) => !r)} aria-pressed={room}>{room ? 'Back to my window' : 'See it in a room'}</button>
@@ -158,7 +143,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       </div>
       <p className="pv-note">
         {room ? 'Your blind in all three windows. Colors, control and cover are true to your choices; the size is fitted to the room’s windows.'
-          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(parseMech(kind, mech))}. The floor, baseboard, outlet and side table are shown at real size.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
+          : <>{sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(parseMech(kind, mech))}.{clamped ? ' Shown at the nearest size we can draw.' : ''}</>}
       </p>
     </div>
   );

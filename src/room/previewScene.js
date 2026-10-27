@@ -29,32 +29,25 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   };
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 60);
-  scene.add(new THREE.HemisphereLight(0xfff4e6, 0xb9a687, 1.5));
-  const sun = new THREE.DirectionalLight(0xffeedd, 1.5); sun.position.set(-2.6, 2.4, 4.4); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xfffaf2, 0xe7dfd0, 1.9));
+  const sun = new THREE.DirectionalLight(0xfff3e4, 0.9); sun.position.set(-2.6, 2.4, 4.4); scene.add(sun);
   const plaster = plasterTexture(env.maxAniso), sky = skyTexture(), wash = washTexture();
   const trimMat = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.5 });
   const jambMat = new THREE.MeshStandardMaterial({ color: 0xe9e3d6, roughness: 0.7 });
   const jambTopMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c0, roughness: 0.8 });
-  const wallMat = new THREE.MeshStandardMaterial({ map: plaster, bumpMap: plaster, bumpScale: 1.4, roughness: 1 });
+  const wallMat = new THREE.MeshBasicMaterial({ color: 0xf3ede2, toneMapped: false });          // plain, evenly lit
   const glassMat = new THREE.MeshBasicMaterial({ map: sky, toneMapped: false });
   const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6d1c6, metalness: 0.35, roughness: 0.4 });
   const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 0.5 });
-  const motorMat = new THREE.MeshStandardMaterial({ color: 0x38373a, roughness: 0.6 });
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0xb79c77, roughness: 0.75 });
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.5 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x8f6f4d, roughness: 0.6 });
-  const handleMat = new THREE.MeshStandardMaterial({ color: 0x5a564f, roughness: 0.45 });
-  const cordMat = new THREE.MeshStandardMaterial({ color: 0xe4e0d6, roughness: 0.7 });
-  const solarMat = new THREE.MeshStandardMaterial({ color: 0x23365c, roughness: 0.35, metalness: 0.3 });
-  const screenMat = new THREE.MeshBasicMaterial({ color: 0x9fc4e8, toneMapped: false });
-  const speakerMat = new THREE.MeshStandardMaterial({ color: 0x8a8984, roughness: 0.9 });
+  const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b655c, roughness: 0.7 });
+  const solarMat = new THREE.MeshStandardMaterial({ color: 0x3a404c, roughness: 0.5, metalness: 0.1 });
 
   // vignette: the corners of the picture fall off a little, like the room photo
   const vig = new THREE.Scene(), ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   vig.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false,
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-    fragmentShader: 'varying vec2 vUv; void main(){ float d = distance(vUv, vec2(0.5, 0.46)); gl_FragColor = vec4(0.11, 0.075, 0.04, smoothstep(0.35, 0.95, d) * 0.3); }',
+    fragmentShader: 'varying vec2 vUv; void main(){ float d = distance(vUv, vec2(0.5, 0.46)); gl_FragColor = vec4(0.11, 0.075, 0.04, smoothstep(0.45, 1.0, d) * 0.09); }',
   })));
   vig.children[0].frustumCulled = false;
 
@@ -76,15 +69,12 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     shape.holes.push(new THREE.Path([new THREE.Vector2(-ow / 2, bottom), new THREE.Vector2(-ow / 2, top), new THREE.Vector2(ow / 2, top), new THREE.Vector2(ow / 2, bottom)]));
     const wallGeo = new THREE.ShapeGeometry(shape);
     g.add(new THREE.Mesh(wallGeo, wallMat));
-    const washMat = new THREE.MeshBasicMaterial({ color: 0xfff1d6, alphaMap: wash, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-    const washTex = wash.clone(); washTex.needsUpdate = true;
-    const washMesh = plane(Math.max(w, h) * 4, Math.max(w, h) * 4, washMat, -Math.max(w, h) * 0.3, Math.max(w, h) * 0.3, 0.002); g.add(washMesh);
     // trim: head, sides, sill and apron
     g.add(box(ow + 2 * TRIM, TRIM, 0.02, trimMat, 0, top + TRIM / 2, 0.01));
     for (const sx of [-1, 1]) g.add(box(TRIM, oh, 0.02, trimMat, sx * (ow / 2 + TRIM / 2), oy, 0.01));
     g.add(box(ow + 2 * TRIM + 0.07, 0.024, 0.07, trimMat, 0, bottom - 0.012, 0.035));
     g.add(box(ow + 2 * TRIM, TRIM * 0.8, 0.02, trimMat, 0, bottom - 0.024 - TRIM * 0.4, 0.01));
-    const under = shadowMesh(blobTexture(), 0.34); under.scale.set(ow + 2 * TRIM + 0.34, 0.36, 1); under.position.set(0.02, bottom - 0.024 - TRIM * 0.8 - 0.05, 0.003); g.add(under);
+    const under = shadowMesh(blobTexture(), 0.13); under.scale.set(ow + 2 * TRIM + 0.34, 0.36, 1); under.position.set(0.02, bottom - 0.024 - TRIM * 0.8 - 0.05, 0.003); g.add(under);
     // the recess
     g.add(plane(ow, DEPTH, jambTopMat, 0, top, -DEPTH / 2, Math.PI / 2));
     g.add(plane(ow, DEPTH, jambMat, 0, bottom, -DEPTH / 2, -Math.PI / 2));
@@ -100,26 +90,17 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const sl = shadowMesh(rampTexture([[0, 1], [1, 0]], true), 0.28); sl.scale.set(0.1, oh - F * 2, 1); sl.position.set(-ow / 2 + F + 0.05, oy, gz + 0.016); g.add(sl);
     const sr = shadowMesh(rampTexture([[0, 1], [1, 0]], true), 0.14); sr.scale.set(-0.07, oh - F * 2, 1); sr.position.set(ow / 2 - F - 0.035, oy, gz + 0.016); g.add(sr);
     scene.add(g);
-    built = { group: g, ow, oh, oy, top, bottom, washTex };
+    built = { group: g, ow, oh, oy, top, bottom };
     // where the shade goes
     if (mount === 'inside') built.shade = { w: ow, h: oh, x: 0, top, z: -0.032 };
     else built.shade = { w, h, x: 0, top: h / 2, z: 0.05 };
-    // true-scale references under the window: floor, baseboard (5 1/2 in) and a side table (24 in high, 20 in wide, 14 in deep); the sill is 36 in above the floor
-    const fy = bottom - 36 * IN;
-    built.fy = fy;
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, 9), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(0, fy, 4.5); g.add(floor);
-    g.add(box(R * 2, 5.5 * IN, 0.018, baseMat, 0, fy + 2.75 * IN, 0.009));
-    if (ow >= 24 * IN) {
-      const tx = -ow * 0.15, tz = 0.02 + 7 * IN, th = 24 * IN, tw = 20 * IN, td = 14 * IN;
-      g.add(box(tw, 1.4 * IN, td, woodMat, tx, fy + th - 0.7 * IN, tz));
-      for (const lx of [-1, 1]) for (const lz of [-1, 1]) g.add(box(1.4 * IN, th - 1.4 * IN, 1.4 * IN, woodMat, tx + lx * (tw / 2 - 1.2 * IN), fy + (th - 1.4 * IN) / 2, tz + lz * (td / 2 - 1.2 * IN)));
-    }
-    const shadeTop = Math.max(top, built.shade.top);
-    // camera: the window, the trim and the floor below it, with a margin for the labels
+    // camera: a straight-on view of the one window, with plenty of plain wall around it and room under it for the size
+    const shadeTop = Math.max(top, built.shade.top), shadeBottom = Math.min(bottom, built.shade.top - built.shade.h);
     const bw = (mount === 'inside' ? ow + 2 * TRIM + 0.08 : w);
-    const topExt = shadeTop + TRIM + 0.12, botExt = fy - 0.05;
-    const wide = cfg.tight ? 1.22 : 1.5, tall = cfg.tight ? 1.04 : 1.08;
+    const topExt = shadeTop + TRIM + 0.08, botExt = shadeBottom - 0.024 - TRIM * 0.8 - 0.16;
+    const wide = cfg.tight ? 1.5 : 1.75, tall = cfg.tight ? 1.1 : 1.18;
     built.fit = { w: bw * wide, h: (topExt - botExt) * tall, cy: (topExt + botExt) / 2 };
+    built.shadeBottom = shadeBottom;
     built.fit0 = built.fit;
     fitCamera();
   }
@@ -166,54 +147,28 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       g.add(mesh);
       g.add(box(0.02, 0.018, 0.014, plasticMat, endX, sp.top - 0.07 - len - 0.01, z + 0.04));            // the weight that keeps the loop tight
     } else if (d.movement === 'cordless' || d.movement === 'zero-gravity') {
-      // the optional center handle, on the middle of each bottom rail (it moves with the rail)
-      shades.forEach((sh) => { sh.rail.add(box(0.13, 0.03, 0.016, handleMat, 0, -0.02, 0.018)); });
+      // the optional center handle: small, in the bottom bar's own material, on the middle of each bottom rail (it moves with the rail)
+      shades.forEach((sh) => sh.rail.add(box(0.07, 0.014, 0.01, sh.rail.material, 0, -0.015, 0.013)));
     } else if (d.movement === 'motorized') {
-      xrayMats = []; hasSolar = false;
-      const tabY = sp.top - CASS_H_ - 0.014;
-      const ox = sx * (edge + 0.16), oyy = built.fy + 12 * IN;                                          // the wall outlet (12 in up), on the control side
-      g.add(box(0.07, 0.115, 0.01, trimMat, ox, oyy, 0.005));
-      for (const dy of [0.028, -0.028]) g.add(box(0.034, 0.03, 0.004, jambTopMat, ox, oyy + dy, 0.011));
-      reach = Math.max(reach, Math.abs(ox) + 0.08);
+      xrayMats = [];
       shades.forEach((sh, i) => {                                         // a motor in every shade (double-stack: two), hidden inside the roller
         const z = zOf(i);
-        g.add(box(0.04, 0.028, 0.036, plasticMat, endX, tabY, z));                                         // the plastic end cap under the cassette
-        if (d.power === 'battery') {
-          g.add(box(0.019, 0.008, 0.002, motorMat, endX, tabY, z + 0.0185));                               // the USB-C charging port
-          g.add(box(0.012, 0.0035, 0.0012, cordMat, endX, tabY, z + 0.0196));
-        } else {
-          const path = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(endX, tabY, z + 0.019), new THREE.Vector3(endX + sx * 0.02, tabY - 0.03, z + 0.03),
-            new THREE.Vector3(sx * (sp.w / 2 + 0.01), tabY - 0.07, Math.max(0.03, z + 0.03)), new THREE.Vector3(sx * (edge + 0.1), tabY - 0.2, 0.02 + i * 0.004),
-            new THREE.Vector3(ox, (tabY + oyy) / 2, 0.016 + i * 0.004), new THREE.Vector3(ox, oyy + 0.06, 0.016 + i * 0.004),
-          ]);
-          g.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, 0.0032, 6), cordMat));                    // the cord leaves the end cap and runs down the wall to the outlet
-          g.add(box(0.026, 0.04, 0.018, cordMat, ox, oyy + 0.03, 0.02));                                   // the plug
-        }
-        // the x-ray: a soft outline of the motor inside the roller, on the chosen side
+        // a soft, thin outline of the motor inside the roller tube, on the chosen side: just darker than the cassette, low opacity
         const len = 0.27, cx = sx * (sp.w / 2 - 0.02 - len / 2);
         const body = new THREE.CylinderGeometry(0.017, 0.017, len, 20); body.rotateZ(Math.PI / 2);
-        const fill = new THREE.Mesh(body, new THREE.MeshBasicMaterial({ color: 0x5aa9ff, transparent: true, opacity: 0, depthTest: false, depthWrite: false, toneMapped: false }));
-        const lines = new THREE.LineSegments(new THREE.EdgesGeometry(body), new THREE.LineBasicMaterial({ color: 0x2f7fe0, transparent: true, opacity: 0, depthTest: false, toneMapped: false }));
-        for (const m of [fill, lines]) { m.position.set(cx, sp.top - CASS_H_ / 2, z); m.renderOrder = 20; g.add(m); }
-        xrayMats.push([fill.material, 0.16], [lines.material, 0.7]);
-        if (i === 0) xrayPt.set(cx, sp.top - CASS_H_ / 2, z);
+        const lines = new THREE.LineSegments(new THREE.EdgesGeometry(body), new THREE.LineBasicMaterial({ color: 0x3a3228, transparent: true, opacity: 0, depthTest: false, toneMapped: false }));
+        lines.position.set(cx, sp.top - CASS_H_ / 2, z); lines.renderOrder = 20; g.add(lines);
+        xrayMats.push([lines.material, 0.2]);
+        if (d.power === 'battery') g.add(box(0.005, 0.005, 0.001, motorMat, endX, sp.top - 0.05, z + 0.0275));   // the charging port: a tiny, barely visible dot
       });
-      if (d.power === 'battery' && d.solar) {                             // the solar panel really goes on the glass behind the shade, near the top on the motor side (the page labels it)
-        const gz = -DEPTH + 0.03 - 0.02 + 0.006, px = sx * (sp.w / 2 - 0.1), py = sp.top - 0.24;
-        g.add(box(0.12, 0.16, 0.004, trimMat, px, py, gz));
-        g.add(box(0.108, 0.148, 0.004, solarMat, px, py, gz + 0.003));
-        for (const vx of [-0.018, 0.018]) g.add(box(0.002, 0.148, 0.002, trimMat, px + vx, py, gz + 0.005));
-        for (const vy of [-0.037, 0, 0.037]) g.add(box(0.108, 0.002, 0.002, trimMat, px, py + vy, gz + 0.005));
-        const cab = new THREE.CatmullRomCurve3([new THREE.Vector3(px, py + 0.08, gz + 0.004), new THREE.Vector3(px + sx * 0.02, (py + tabY) / 2, gz + 0.01), new THREE.Vector3(endX, tabY - 0.012, sp.z - 0.03)]);
-        g.add(new THREE.Mesh(new THREE.TubeGeometry(cab, 24, 0.0018, 5), new THREE.MeshBasicMaterial({ color: 0x2b2b2e, toneMapped: false })));
-        solarPt.set(px, py, gz); hasSolar = true;
+      if (d.power === 'battery' && d.solar) {                             // a small, dark, thin solar panel on the glass near the top on the motor side (behind the shade)
+        const gz = -DEPTH + 0.03 - 0.02 + 0.006;
+        g.add(box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz));
       }
       if (cfg.kind === 'shangri-la') {                                    // the wall bracket is confirmed for the Shangri-La remote only
         const rx = -sx * (edge + 0.07), ry = built.oy + 0.06;
         g.add(box(0.06, 0.16, 0.008, trimMat, rx, ry, 0.004));
         g.add(box(0.044, 0.125, 0.014, motorMat, rx, ry, 0.015));
-        for (const [bx, by] of [[0, 0.04], [-0.012, 0.012], [0.012, 0.012], [-0.012, -0.016], [0.012, -0.016], [0, -0.044]]) g.add(box(0.009, 0.009, 0.004, jambTopMat, rx + bx, ry + by, 0.023));
         reach = Math.max(reach, Math.abs(rx) + 0.045);
       }
     }
@@ -233,11 +188,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     for (const [x, y] of pts) { v.set(x, y, sp.z + 0.03).project(camera); xs.push(((v.x + 1) / 2) * size.w); ys.push(((1 - v.y) / 2) * size.h); }
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const f = handleFraction(current, sp.h);
-    let motor = null;
-    if (cfg.drive.movement === 'motorized') { v.copy(xrayPt).project(camera); motor = { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h }; }
-    let solar = null;
-    if (cfg.drive.movement === 'motorized' && hasSolar) { v.copy(solarPt).project(camera); solar = { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h, side: cfg.drive.side === 'left' ? -1 : 1 }; }
-    onLayout?.({ motor, solar, xray: xray.target, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
+    v.set(0, built.shadeBottom - 0.024 - TRIM * 0.8 - 0.07, 0.03).project(camera);
+    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -259,7 +211,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   }
   // double-stack: the back shade hangs a little lower, so its bottom rail shows under the front one
   function setShadeAmounts(a) { shades.forEach((s, i) => s.setAmount(i === 0 ? a : Math.min(1, a + 0.07 * (1 - a)))); }
-  function snapAmount(a) { driveDir = 0; xray.target = 0; cfg.amount = current = a; setShadeAmounts(a); emit(); wake(); }
+  function snapAmount(a) { driveDir = 0; cfg.amount = current = a; setShadeAmounts(a); emit(); wake(); }
 
   // ---- loop -----------------------------------------------------------------------------------------------------------------------------------------------
   const wake = () => { dirty = true; if (active && !raf) raf = requestAnimationFrame(frame); };
@@ -302,7 +254,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
 
   return {
     configure, snapAmount, resize,
-    drive(dir) { xray.target = 0; driveDir = (dir > 0 && current >= 1) || (dir < 0 && current <= 0) ? 0 : dir; if (!dir) cfg.amount = current; emit(); wake(); },
+    drive(dir) { driveDir = (dir > 0 && current >= 1) || (dir < 0 && current <= 0) ? 0 : dir; if (!dir) cfg.amount = current; emit(); wake(); },
     setXray(on) { xray.target = on ? 1 : 0; emit(); wake(); }, setActive, setReducedMotion: (v) => { reduced = !!v; },
     get amount() { return current; }, get shadeHeight() { return built?.shade.h || cfg.h; },
     dispose() {

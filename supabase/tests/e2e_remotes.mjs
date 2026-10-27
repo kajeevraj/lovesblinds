@@ -23,16 +23,16 @@ try {
     await open('roller'); await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
     check(T('no remote on a chain shade'), (await page.locator('.rm').count()) === 0);
     await card('Motorized').click(); await settle();
-    check(T('Roller, one shade, no room: the 1 Channel remote, no sharing line'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-stage').innerText()));
+    check(T('Roller, one shade, no room: the 1 Channel remote, no sharing line'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     check(T('the remote is three simple buttons: up, stop, down'), (await page.locator('.rm-key').count()) === 3);
     await room('Living room'); await qty(3);
-    check(T('3 shades in a room: the 6 Channels remote, with the channel buttons and the sharing line'), (await remoteType()) === 'ch6' && (await page.locator('.rm-key').count()) === 3 && SHARE.test(await page.locator('.pv-stage').innerText()));
+    check(T('3 shades in a room: the 6 Channels remote, with the channel buttons and the sharing line'), (await remoteType()) === 'ch6' && (await page.locator('.rm-key').count()) === 3 && SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     await qty(8);
     check(T('8 shades in a room: the 16 Channels remote'), (await remoteType()) === 'ch16');
     await qty(17);
     check(T('17 shades in a room: still the 16 Channels remote'), (await remoteType()) === 'ch16');
     await room('', ''); await qty(5);
-    check(T('a blank room: every shade counts alone (1 Channel, no sharing line)'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-stage').innerText()));
+    check(T('a blank room: every shade counts alone (1 Channel, no sharing line)'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     // the channel buttons light up and change nothing; the shade buttons still move it
     await room('Living room'); await qty(3);
     const amount = async () => Number(await page.locator('#pv-amount').inputValue());
@@ -50,7 +50,7 @@ try {
     await page.locator('.s2-add-btn').click(); await page.waitForTimeout(800);
     await open('roller'); await card('Motorized').click(); await settle();
     await room('Other', '  LIVING ROOM '); await settle();
-    check(T('a second window in the same room (different case): the 6 Channels remote and the sharing line'), (await remoteType()) === 'ch6' && SHARE.test(await page.locator('.pv-stage').innerText()));
+    check(T('a second window in the same room (different case): the 6 Channels remote and the sharing line'), (await remoteType()) === 'ch6' && SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     await room('Bedroom');
     check(T('another room starts again at 1 Channel'), (await remoteType()) === 'ch1');
 
