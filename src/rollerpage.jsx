@@ -71,6 +71,7 @@ export default function RollerPage({ line, navigate, edit = null }) {
       photo={{ name: ROLLER_FAMILY_CARD[front.family].photo, alt: ROLLER_FAMILY_CARD[front.family].alt }}
       photoNote={`Photo shows ${FAMILY_LABELS[front.family]} fabric. Your color is shown in the swatch.`}
       chip={front.pick}
+      preview={{ kind: 'roller', picks: double ? [front.pick, back.pick] : [front.pick], double, cover: wrap }}
       leadSteps={leadSteps} tailSteps={tailSteps} c={c}
       colorNeeds={double ? 'Pick a front and a back color' : 'Pick a color'}
       checks={double

@@ -39,7 +39,7 @@ try {
   await noOverflow('products list'); await page.screenshot({ path: `${OUT}/p1-products.png`, fullPage: true });
   await page.getByRole('button', { name: 'Zebra / Dual Shades' }).first().click();
   await page.getByRole('tab', { name: 'Options' }).click();
-  await page.getByRole('heading', { name: /^Control/ }).waitFor();
+  await page.getByRole('heading', { name: /^Control \(control\)/ }).waitFor();
   const firstExpl = page.locator('input[aria-label="One-line explanation"]').first();
   const oldExpl = await firstExpl.inputValue();
   await firstExpl.fill(oldExpl + ' (edited by test)');
@@ -108,13 +108,13 @@ try {
   const byCode = await (async () => { await page.getByLabel(/Find a color/).fill('xss'); await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().waitFor(); return page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').count(); })();
   check('searching by a supplier code works', byCode > 0, `${byCode} results for "xss"`);
   await page.getByLabel(/Find a color/).fill('');
-  // dream curtains motor: from the supplier, +$90
-  await page.getByLabel('Control').selectOption('remote');
+  // dream curtains motor: from the supplier, +$100
+  await page.getByLabel('Control').selectOption('remote');   // Dream Curtains keeps its remote and Matter motors
   await page.getByLabel('Width (in)').fill('100'); await page.getByLabel('Height / drop (in)').fill('100');
   await page.getByText('from the supplier').first().waitFor();
   const dtxt = await page.locator('.adm-kv').first().innerText();
   check('the breakdown shows the price group and the extra cost apart', /Price group\s+Sunflower/.test(dtxt) && /Extra cost\s+\+\$0\.00/.test(dtxt) && /Price before extra cost/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 200));
-  check('Dream Curtains motor shows the +$90 adder marked "from the supplier"', /\+\$90/.test(dtxt) && /from the supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
+  check('Dream Curtains motor shows the +$100 adder marked "from the supplier"', /\+\$100/.test(dtxt) && /from the supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
   // option labels show the customer amount, not the supplier cost
   await page.getByLabel('Product line').selectOption('roller');
   await page.getByLabel(/Find a color/).fill('XSS000105'); await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().getByRole('button').click();
@@ -144,9 +144,9 @@ try {
   const ft = await page.locator('.adm-flags').innerText();
   check('flags list the supplier questions (axis orientation, double-stack, Day & Night, Dream motor placeholder)', /Which sheet axis is the width/.test(ft) && /Double-stack/.test(ft) && /Day & Night/.test(ft) && /Motor cost/i.test(ft), ft.length + ' chars');
   const at = (await page.locator('.adm-table').last().innerText()) + ' ' + (await page.locator('input[aria-label^="Amount for"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')} = ${e.value}`).join(' ; ')));
-  const parts = { wraps: /No fabric wrap on the cassette/i, matter: /Bluetooth \(Matter\) motor/i, shangri140: /Bluetooth \/ Matter \(smart\) motor = 140/i, cellular: /Motor \(standard\)/i, woven: /No coating/i, dream: /not in the supplier sheet/i };
+  const parts = { wraps: /No fabric wrap on the cassette/i, motor70: /Motor \(any type[^=]*= 70/i, solar30: /Solar panel[^=]*= 30/i, woven: /No coating/i, dream: /not in the supplier sheet/i };
   const missing = Object.entries(parts).filter(([, re]) => !re.test(at)).map(([k]) => k);
-  check('adders include roller wraps, Matter +$40, Shangri-La +$140, cellular motors, woven wood, and the Dream +$90 motor', missing.length === 0, missing.length ? `missing: ${missing.join(', ')}; text: ${at.replace(/\s+/g, ' ').slice(0, 400)}` : 'all present');
+  check('adders include roller wraps, the $70 motor, the $30 solar panel, woven wood, and the Dream motor', missing.length === 0, missing.length ? `missing: ${missing.join(', ')}; text: ${at.replace(/\s+/g, ' ').slice(0, 400)}` : 'all present');
   await noOverflow('adders and flags');
   // re-import: an unchanged workbook shows nothing to apply; dream curtains has the "--" tab
   await page.getByRole('tab', { name: 'Re-import' }).click();

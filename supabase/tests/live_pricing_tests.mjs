@@ -71,7 +71,7 @@ try {
 
     // what a customer may learn
     const samples = [SARGS(), SARGS({ p_width: 10, p_height: 10 }), SARGS({ p_width: 500 }), SARGS({ p_line: 'nope' }), SARGS({ p_line: 'drapery', p_swatch_id: SW.orsay, p_options: { control: 'manual' } }),
-      SARGS({ p_options: { control: 'matter', mode: 'double-stack', back_swatch_id: SW.purity } }), SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'matter' }, p_width: 50, p_height: 90 })];
+      SARGS({ p_options: { control: 'motorized', power: 'battery', solar: 'none', motor_control: 'matter', mode: 'double-stack', back_swatch_id: SW.purity } }), SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'motorized', power: 'wired', solar: 'none', motor_control: 'zigbee' }, p_width: 50, p_height: 90 })];
     const outs = []; for (const s of samples) outs.push(await est(hdr, 'estimate_price_for_swatch', s));
     const keysOk = outs.every((o) => o.status === 200 && o.body && typeof o.body === 'object' && Object.keys(o.body).sort().join() === 'custom_size,price,price_on_request');
     check(`${label}: estimate_price_for_swatch answers with only {price, custom_size, price_on_request}`, keysOk, outs.map((o) => JSON.stringify(o.body)).join('\n      '));
@@ -89,10 +89,25 @@ try {
   check('admin reads the price grids', total >= 130, `${total} grids`);
   const dbg = await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS()); const cust = await est(anon, 'estimate_price_for_swatch', SARGS());
   check('admin price checker returns cost, grid cell, adders and markup, and the same final price a customer gets', dbg.status === 200 && dbg.body.grid_cost > 0 && dbg.body.markup === 0.5 && dbg.body.price === cust.body.price, `cost ${dbg.body.grid_cost}, markup ${dbg.body.markup}, price ${dbg.body.price} vs customer ${cust.body.price}`);
-  const known = [[SARGS(), 121], [SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'matter' }, p_width: 50, p_height: 90 }), 390],
+  const known = [[SARGS(), 121], [SARGS({ p_line: 'shangri-la', p_swatch_id: SW.hermes, p_options: { control: 'motorized', power: 'battery', solar: 'none', motor_control: 'app-remote' }, p_width: 50, p_height: 90 }), 285],
     [SARGS({ p_line: 'dream-curtains', p_swatch_id: SW.sun, p_options: { control: 'manual' }, p_width: 100, p_height: 100 }), 421]];
   const got = []; for (const [a, want] of known) got.push([(await est(admin.hdr, 'estimate_price_debug_for_swatch', a)).body.price, want]);
-  check('three known prices match the spreadsheets (roller 121, shangri-la 390, dream curtains 421)', got.every(([g, w]) => g === w), JSON.stringify(got));
+  check('three known prices (roller 121, shangri-la motorized 285 = plain table + $70 motor, dream curtains 421)', got.every(([g, w]) => g === w), JSON.stringify(got));
+
+  // motor restructure (migrations 17 and 18): Motorized = the plain (chain) table + one $70 motor, Solar panel +$30, double-stack = two of each (all before the 1.5x markup)
+  {
+    const price = async (opts, extra = {}) => (await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS({ p_options: { mode: 'single', ...opts }, ...extra }))).body;
+    const chain = await price({ control: 'chain' });
+    const motor = await price({ control: 'motorized', power: 'battery', solar: 'none', motor_control: 'app-remote' });
+    const wired = await price({ control: 'motorized', power: 'wired', solar: 'none', motor_control: 'matter' });
+    const solar = await price({ control: 'motorized', power: 'battery', solar: 'panel', motor_control: 'zigbee' });
+    const near = (a, b) => Math.abs(a - b) <= 1;
+    check('motorized = chain price + $70 motor (x1.5 = +$105), the same for battery and wired and every control', near(motor.price - chain.price, 105) && motor.price === wired.price && motor.price === solar.price - 45, `chain $${chain.price}, battery $${motor.price}, wired $${wired.price}, solar $${solar.price}`);
+    check('a solar panel adds $30 cost (+$45), and Zero gravity costs nothing extra over the plain table', near(solar.price - motor.price, 45) && (await price({ control: 'zero-gravity' })).price === chain.price, `solar +${solar.price - motor.price}`);
+    const dbl = (o) => est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS({ p_options: { mode: 'double-stack', back_swatch_id: SW.purity, ...o } }));
+    const d0 = (await dbl({ control: 'chain' })).body.price, d1 = (await dbl({ control: 'motorized', power: 'battery', solar: 'panel', motor_control: 'app-remote' })).body.price;
+    check('double-stack with a motor and solar = two motors ($140) and two panels ($60) at cost (+$300)', near(d1 - d0, 300), `$${d0} -> $${d1}`);
+  }
 
   // markup: change, see the price move, restore
   r = await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: 0.6 });
@@ -108,8 +123,8 @@ try {
   const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 130 });
   const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 90 });
-  check('the Dream Curtains motor (+$90) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 90 && Math.abs(after.subtotal - before.subtotal - 40) < 0.01, `adders ${JSON.stringify(before.adders)}; +$40 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 100 });
+  check('the Dream Curtains motor (+$100) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 100 && Math.abs(after.subtotal - before.subtotal - 30) < 0.01, `adders ${JSON.stringify(before.adders)}; +$30 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
   // options
   r = await call('POST', '/rest/v1/option_values', { ...admin.hdr, ...REP }, { id: 'roller:mode:zz-triple', group_id: 'roller:mode', code: 'zz-triple', label: 'Triple', sort_order: 99 });
   check('admin cannot add an option to a group tied to the site\'s code (roller mode)', r.status >= 400, short(r));

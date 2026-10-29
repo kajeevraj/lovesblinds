@@ -69,45 +69,20 @@ export function TopCoverStep({ value, onChange }) {
 const FIRST_SHOWN = 48;
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-// One search box (name or code), color-family filters, and swatches showing name and code only.
-// `fabrics` are the price groups to list (the customer never sees them); `family` limits Roller/Cellular fabric types.
-export function ColorStep({ id, lineKey, family = null, role = null, value, onChange }) {
-  const catalog = useCatalogStatus();
-  // read after the catalog has loaded (the status in the context changes when it arrives)
-  const entries = useMemo(() => (catalog.status === "ready" ? entriesFor(fabricsFor(lineKey), family) : []), [catalog.status, lineKey, family]);
+// The color picker itself: one search box (name or code), color-family filters, swatches showing name and code only, a magnifier on
+// each swatch that opens it larger. Used by the product pages (ColorStep) and by the room visualizer's color panel.
+// `entries` come from entriesFor(); `activeId` is the picked swatch id; `onChoose(entry)` is called when a swatch is picked.
+export function SwatchBrowser({ id, entries, activeId, role = null, onChoose, codeText }) {
   const [query, setQuery] = useState("");
   const [color, setColor] = useState(null);
   const [all, setAll] = useState(false);
   const [view, setView] = useState(null);
-  const [pendingId, setPendingId] = useState(null);       // a Dream Curtains color waiting for its style (A or B)
-
   const families = COLOR_FAMILY_ORDER.filter((f) => entries.some((e) => e.color === f));
   const q = norm(query);
   const results = entries.filter((e) => (!color || e.color === color) && (!q || norm(e.swatch.displayName).includes(q) || norm(e.swatch.code).includes(q)));
   const shown = all || q || color ? results : results.slice(0, FIRST_SHOWN);
-  const activeId = pendingId ?? value?.swatchId ?? null;
-  const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
-  const styles = picked?.swatch.styles || [];
   // a color with Classic and Slim has two codes until a style is picked; then the picked style's code is shown
-  const codeOf = (s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code);
-
-  if (catalog.status !== "ready") {
-    return catalog.status === "loading" ? (
-      <div className="s2-swatches s2-skeleton" role="status" aria-label="Loading colors">
-        {Array.from({ length: 12 }, (_, i) => <span key={i} className="s2-skel" aria-hidden="true" />)}
-      </div>
-    ) : (
-      <div className="s2-empty" role="alert">Colors are temporarily unavailable. <button type="button" className="s2-link" onClick={catalog.retry}>Try again</button></div>
-    );
-  }
-
-  const choose = (e) => {
-    setPendingId(null);
-    // Dream Curtains: Classic is preselected (Slim is one tap away)
-    if (e.swatch.styles?.length) { onChange(makePick(e.swatch, role, e.swatch.styles.find((x) => x.style === "A") || e.swatch.styles[0])); return; }
-    onChange(makePick(e.swatch, role, null));
-  };
-  const chooseStyle = (st) => onChange(makePick(picked.swatch, role, styles.find((x) => x.style === st)));
+  const codeOf = codeText || ((s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code));
   return (
     <div className="s2-color">
       <div className="s2-color-tools">
@@ -132,10 +107,10 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             const on = activeId === s.id;
             return (
               <div key={s.id} className="s2-sw-cell">
-                <button type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s)}`} onClick={() => choose(e)}>
+                <button type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s, on)}`} onClick={() => onChoose(e)}>
                   <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
                   <span className="s2-sw-name">{labelOf(e)}</span>
-                  <span className="s2-sw-code">{on && value?.style && value.swatchId === s.id ? value.code : codeOf(s)}</span>
+                  <span className="s2-sw-code">{codeOf(s, on)}</span>
                 </button>
                 <button type="button" className="s2-sw-zoom" aria-label={`View ${labelOf(e)} larger`} onClick={() => setView(e)}><span className="s2-sw-zoom-dot"><MagnifierIcon /></span></button>
               </div>
@@ -146,8 +121,44 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
       {!all && !q && !color && results.length > FIRST_SHOWN && (
         <button type="button" className="s2-btn-more" onClick={() => setAll(true)}>Show all {results.length} colors</button>
       )}
+      <SwatchDialog entry={view} role={role} chosen={!!view && view.swatch.id === activeId} onChoose={(e) => { onChoose(e); setView(null); }} onClose={() => setView(null)} />
+    </div>
+  );
+}
 
-      <p className="s2-sr" aria-live="polite">{picked ? `${role ? `${role}: ` : "Selected: "}${labelOf(picked)} (${value?.code || codeOf(picked.swatch)})` : ""}</p>
+// One color step on a product page: the picker above, the catalog's loading and error states, and the Classic / Slim choice for Dream Curtains.
+// `fabrics` are the price groups to list (the customer never sees them); `family` limits Roller/Cellular fabric types.
+export function ColorStep({ id, lineKey, family = null, role = null, value, onChange }) {
+  const catalog = useCatalogStatus();
+  // read after the catalog has loaded (the status in the context changes when it arrives)
+  const entries = useMemo(() => (catalog.status === "ready" ? entriesFor(fabricsFor(lineKey), family) : []), [catalog.status, lineKey, family]);
+  const [pendingId, setPendingId] = useState(null);       // a Dream Curtains color waiting for its style (A or B)
+  const activeId = pendingId ?? value?.swatchId ?? null;
+  const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
+  const styles = picked?.swatch.styles || [];
+  const codeOf = (s, on) => (on && value?.style && value.swatchId === s.id ? value.code : (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code));
+
+  if (catalog.status !== "ready") {
+    return catalog.status === "loading" ? (
+      <div className="s2-swatches s2-skeleton" role="status" aria-label="Loading colors">
+        {Array.from({ length: 12 }, (_, i) => <span key={i} className="s2-skel" aria-hidden="true" />)}
+      </div>
+    ) : (
+      <div className="s2-empty" role="alert">Colors are temporarily unavailable. <button type="button" className="s2-link" onClick={catalog.retry}>Try again</button></div>
+    );
+  }
+
+  const choose = (e) => {
+    setPendingId(null);
+    // Dream Curtains: Classic is preselected (Slim is one tap away)
+    if (e.swatch.styles?.length) { onChange(makePick(e.swatch, role, e.swatch.styles.find((x) => x.style === "A") || e.swatch.styles[0])); return; }
+    onChange(makePick(e.swatch, role, null));
+  };
+  const chooseStyle = (st) => onChange(makePick(picked.swatch, role, styles.find((x) => x.style === st)));
+  return (
+    <>
+      <SwatchBrowser id={id} entries={entries} activeId={activeId} role={role} onChoose={choose} codeText={codeOf} />
+      <p className="s2-sr" aria-live="polite">{picked ? `${role ? `${role}: ` : "Selected: "}${labelOf(picked)} (${value?.code || (picked.swatch.styles?.length ? picked.swatch.styles.map((x) => x.code).join(" / ") : picked.swatch.code)})` : ""}</p>
       {picked && styles.length > 0 && (
         <div className="s2-color-style">
           <p className="s2-step-hint">Choose a style for this color.</p>
@@ -157,8 +168,7 @@ export function ColorStep({ id, lineKey, family = null, role = null, value, onCh
             }))} />
         </div>
       )}
-      <SwatchDialog entry={view} role={role} chosen={!!view} onChoose={(e) => { choose(e); setView(null); }} onClose={() => setView(null)} />
-    </div>
+    </>
   );
 }
 

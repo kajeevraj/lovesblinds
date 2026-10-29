@@ -88,8 +88,8 @@ try {
   await open('shangri-la');
   const st = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
   const sid = await swatchId('shangri-la', st);
-  const sdb = await dbPrice('shangri-la', sid, { control: 'remote_wand' }, 40, 64);
-  check('Shangri-La: the page price is the database price (Remote wand)', (await pagePrice()) === sdb.price, `$${sdb.price}`);
+  const sdb = await dbPrice('shangri-la', sid, { control: 'chain' }, 40, 64);
+  check('Shangri-La: the page price is the database price (Chain)', (await pagePrice()) === sdb.price, `$${sdb.price}`);
   const sl = await page.locator('main').innerText();
   check('Shangri-La is horizontal only: no format or vertical choice anywhere', !/vertical|sheer vertical|format/i.test(sl));
 

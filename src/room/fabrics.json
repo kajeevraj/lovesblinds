@@ -1,0 +1,287 @@
+{
+ "rlf-soft-cream": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YS205908",
+  "name": "Soft Cream",
+  "color": "#ded7d5",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rlf-fawn-beige": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YS120002",
+  "name": "Fawn Beige",
+  "color": "#e3d4c7",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rlf-mineral-gray": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YS200804",
+  "name": "Mineral Gray",
+  "color": "#8e8d93",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rlf-blue": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YS208608",
+  "name": "Blue",
+  "color": "#6d7f97",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rlf-iced-coffee": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YS120004",
+  "name": "Iced Coffee",
+  "color": "#b3a898",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rsol-linen": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "XSS050M16",
+  "name": "Linen",
+  "color": "#dad6d3",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rsol-latte": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YSS-L2-503",
+  "name": "Latte",
+  "color": "#c6c0b2",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rsol-cement-gray": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YSS-A12-106",
+  "name": "Cement Gray",
+  "color": "#9b99a3",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rsol-sterling-gray": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YSS-L2-505",
+  "name": "Sterling Gray",
+  "color": "#767377",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rsol-basalt-charcoal": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "WSS660864",
+  "name": "Basalt Charcoal",
+  "color": "#373430",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rbo-plaster-white": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YB203905",
+  "name": "Plaster White",
+  "color": "#dadbd7",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rbo-haze-gray": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YB203504",
+  "name": "Haze Gray",
+  "color": "#cccbd1",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rbo-blue": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YB208608",
+  "name": "Blue",
+  "color": "#547198",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rbo-caramel-brown": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YB202905",
+  "name": "Caramel Brown",
+  "color": "#ac978e",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "rbo-thunder-gray": {
+  "kind": "weave",
+  "line": "roller",
+  "code": "YB200804",
+  "name": "Thunder Gray",
+  "color": "#8f8e94",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "cur-gossamer-white": {
+  "kind": "weave",
+  "line": "drapery",
+  "code": "SP26029001",
+  "name": "Gossamer White",
+  "color": "#e2dfd5",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "cur-mushroom-beige": {
+  "kind": "weave",
+  "line": "drapery",
+  "code": "SP26029003",
+  "name": "Mushroom Beige",
+  "color": "#bfb4a8",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "cur-granola-beige": {
+  "kind": "weave",
+  "line": "drapery",
+  "code": "SP26015008",
+  "name": "Granola Beige",
+  "color": "#999087",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "cur-anchor-gray": {
+  "kind": "weave",
+  "line": "drapery",
+  "code": "SP26003005",
+  "name": "Anchor Gray",
+  "color": "#8d8f94",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "cur-cedar-brown": {
+  "kind": "weave",
+  "line": "drapery",
+  "code": "SP26030009",
+  "name": "Cedar Brown",
+  "color": "#605c53",
+  "tile": [
+   0.075,
+   0.075
+  ]
+ },
+ "zeb-cream": {
+  "kind": "zebra",
+  "line": "zebra",
+  "code": "YZB202",
+  "name": "Cream",
+  "color": "#f8f0e4",
+  "sheerColor": "#f2f0eb",
+  "tile": [
+   0.16,
+   0.17
+  ],
+  "split": 0.6
+ },
+ "zeb-camel-khaki": {
+  "kind": "zebra",
+  "line": "zebra",
+  "code": "YZB5003",
+  "name": "Camel Khaki",
+  "color": "#c8c0b0",
+  "sheerColor": "#f5f4fb",
+  "tile": [
+   0.16,
+   0.17
+  ],
+  "split": 0.6
+ },
+ "zeb-platinum-gray": {
+  "kind": "zebra",
+  "line": "zebra",
+  "code": "YZB5004",
+  "name": "Platinum Gray",
+  "color": "#b6b9c2",
+  "sheerColor": "#f7f7fd",
+  "tile": [
+   0.16,
+   0.17
+  ],
+  "split": 0.6
+ },
+ "zeb-cinnamon-latte": {
+  "kind": "zebra",
+  "line": "zebra",
+  "code": "YZB5005",
+  "name": "Cinnamon Latte",
+  "color": "#695e4e",
+  "sheerColor": "#fcfcfd",
+  "tile": [
+   0.16,
+   0.17
+  ],
+  "split": 0.6
+ },
+ "zeb-tuxedo-black": {
+  "kind": "zebra",
+  "line": "zebra",
+  "code": "YZB5006",
+  "name": "Tuxedo Black",
+  "color": "#323137",
+  "sheerColor": "#faf9fe",
+  "tile": [
+   0.16,
+   0.17
+  ],
+  "split": 0.6
+ }
+}

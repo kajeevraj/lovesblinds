@@ -50,6 +50,8 @@ export default function PriceChecker({ data, catalog }) {
   const [fabric, setFabric] = useState('');
   const [swatch, setSwatch] = useState('');
   const [control, setControl] = useState('');
+  const [power, setPower] = useState('battery');
+  const [solar, setSolar] = useState(false);
   const [type, setType] = useState('standard');
   const [lining, setLining] = useState('light-filtering');
   const [mode, setMode] = useState('single');
@@ -98,7 +100,7 @@ export default function PriceChecker({ data, catalog }) {
   };
   const controls = useMemo(() => {
     const g = data.groups.find((x) => x.line_id === pl?.product_line_id && x.key === 'control');
-    return g ? data.values.filter((v) => v.group_id === g.id) : [];
+    return g ? data.values.filter((v) => v.group_id === g.id && v.active !== false) : [];   // retired codes (migration 18) stay out of the list
   }, [data.groups, data.values, pl]);
   useEffect(() => { const want = pendingSel.current; pendingSel.current = null; setFabric(want?.fabric || fabrics[0]?.id || ''); setSwatch(want?.swatch || ''); setBack(''); }, [line]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setControl(controls.find((c) => c.is_default)?.code || controls[0]?.code || ''); }, [controls]);
@@ -107,6 +109,7 @@ export default function PriceChecker({ data, catalog }) {
   // what the customer's colors add to a call: the swatch ids for the swatch route, the group ids for the group route
   const options = useMemo(() => {
     const o = { control };
+    if (control === 'motorized') { o.power = power; o.solar = power === 'battery' && solar ? 'panel' : 'none'; }      // the motor choices that carry add-ons
     if (line === 'cellular') { o.type = type; o.lining = lining; }
     if (line === 'roman') o.lining = lining;
     if (line === 'roller') { o.mode = mode; }
@@ -114,7 +117,7 @@ export default function PriceChecker({ data, catalog }) {
     if (wrapB) o.wrap_bottom_rail = 'none';
     if (coating) o.coating = 'none';
     return o;
-  }, [control, type, lining, mode, back, wrapC, wrapB, coating, line]);
+  }, [control, power, solar, type, lining, mode, back, wrapC, wrapB, coating, line]);
 
   useEffect(() => {
     let live = true;
@@ -178,6 +181,8 @@ export default function PriceChecker({ data, catalog }) {
             </div>
           )}
           <label className="adm-field"><span>Control</span><select value={control} onChange={(e) => setControl(e.target.value)}>{controls.map((c) => <option key={c.code} value={c.code}>{c.label}{c.grid_system ? ` → ${SYSTEM_LABEL[c.grid_system]} grid` : ''}</option>)}</select></label>
+          {control === 'motorized' && <label className="adm-field"><span>Motor power</span><select value={power} onChange={(e) => setPower(e.target.value)}><option value="battery">Battery</option><option value="wired">Wired</option></select></label>}
+          {control === 'motorized' && power === 'battery' && <label className="adm-field"><span>Solar panel</span><select value={solar ? 'panel' : 'none'} onChange={(e) => setSolar(e.target.value === 'panel')}><option value="none">None</option><option value="panel">Solar panel (+$30 cost)</option></select></label>}
           {line === 'cellular' && <label className="adm-field"><span>Type</span><select value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
           {showFamily && <label className="adm-field"><span>{line === 'cellular' ? (type === 'day-night' ? 'Second (night) fabric' : 'Fabric') : 'Lining'}</span><select value={lining} onChange={(e) => setLining(e.target.value)}>{LINING.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
           {line === 'roller' && <label className="adm-field"><span>Single or double-stack</span><select value={mode} onChange={(e) => setMode(e.target.value)}><option value="single">Single</option><option value="double-stack">Double-stack (front + back)</option></select></label>}

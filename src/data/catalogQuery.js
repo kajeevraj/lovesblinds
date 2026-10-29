@@ -37,3 +37,7 @@ export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swat
 // Small tile picture, by naming rule: thumb/<line>/<name>.webp has a 200 px sibling at thumb200/<line>/<name>.webp
 // (made when a color is uploaded in the admin, and for older colors by scripts/backfill-thumbs.mjs). No database column.
 export const thumb200Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp') : null);
+
+// 256 px 3D fabric texture (room visualizer, product-page preview), by naming rule: thumb/<line>/<name>.webp has tex256/<line>/<name>.webp
+// (made when a color is uploaded in the admin, and for older colors by scripts/backfill-textures.mjs). No database column.
+export const tex256Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'tex256/').replace(/\.[^./]+$/, '.webp') : null);

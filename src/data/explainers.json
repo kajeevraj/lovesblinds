@@ -71,6 +71,12 @@
   "width": 491,
   "height": 640
  },
+ "control/zero-gravity": {
+  "src": "/explainers/control/zero-gravity.png",
+  "webp": "/explainers-opt/control/zero-gravity.webp",
+  "width": 452,
+  "height": 640
+ },
  "drapery-pleats/euro-pleat-2": {
   "src": "/explainers/drapery-pleats/euro-pleat-2.png",
   "webp": "/explainers-opt/drapery-pleats/euro-pleat-2.webp",

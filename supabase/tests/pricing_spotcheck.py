@@ -4,7 +4,7 @@ Each case picks a size, finds the workbook cell with its own small lookup (separ
 importer), works out the expected customer price by hand (cost x multiplier + adders, x 1.5, rounded to whole dollars) and
 compares it with what estimate_price_debug() returns for a temporary admin. Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
 SUPABASE_SERVICE_ROLE_KEY and the workbooks in private/supplier-sheets/. The temporary admin is deleted afterwards.
-Usage: python3 supabase/tests/pricing_spotcheck.py
+Needs migrations 17 and 18 applied. Usage: python3 supabase/tests/pricing_spotcheck.py
 """
 import openpyxl, json, os, sys, time, uuid, urllib.request, urllib.error
 from openpyxl.utils import get_column_letter as L
@@ -66,15 +66,16 @@ def check(name,line,fab,opts,w,h,expected_cost,adders_add=0,adders_sub=0,mult=1.
     print(('PASS' if ok else 'FAIL'),name,f"| cell {addr} = {expected_cost:.4f}"+(f" x{mult}" if mult!=1 else '')+(f" +{adders_add}" if adders_add else '')+(f" -{adders_sub}" if adders_sub else '')+f" -> expected ${exp}, database ${got}")
     return ok
 allok=True
+MOTOR={'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'}
 # 1 roller cord SAG chain width 40 drop 56
 ws=wb('roller')['Roller shades-cord']; a,v,_,_=cell_rowsAreWidth(ws,'SAG(SOLAR)',40,56)
 allok&=check('1 Roller cord SAG chain 40x56','roller','roller:solar:sag',{'control':'chain'},40,56,v,addr=f"Roller shades-cord!{a}")
 # 2 roller cordless Purity, rounds up width 50->50 (rows every inch), drop 70->72
 ws=wb('roller')['Roller shades-cordless']; a,v,_,_=cell_rowsAreWidth(ws,'Purity(Screenview)',50,70)
 allok&=check('2 Roller cordless Purity 50x70 (drop rounds up to 72)','roller','roller:screen-view:purity',{'control':'cordless'},50,70,v,addr=f"Roller shades-cordless!{a}")
-# 3 roller motor Taurus matter: +40 ; width 61 drop 100 -> 104
-ws=wb('roller')['Roller shades-Motor']; a,v,_,_=cell_rowsAreWidth(ws,'Taurus(SOLAR)',61,100)
-allok&=check('3 Roller motor Taurus Matter 61x100 (+$40)','roller','roller:solar:taurus',{'control':'matter'},61,100,v,adders_add=40,addr=f"Roller shades-Motor!{a}")
+# 3 roller motorized Taurus: the plain cord table cell + the $70 motor (replaces the supplier motor table); width 61 drop 100 -> 104
+ws=wb('roller')['Roller shades-cord']; a,v,_,_=cell_rowsAreWidth(ws,'Taurus(SOLAR)',61,100)
+allok&=check('3 Roller motorized Taurus 61x100 (cord table + $70 motor)','roller','roller:solar:taurus',{'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'},61,100,v,adders_add=70,addr=f"Roller shades-cord!{a}")
 # 4 roller too wide -> custom
 allok&=check('4 Roller cord SAG 119 wide','roller','roller:solar:sag',{'control':'chain'},119,60,0,expect_status='custom_size')
 # 5 roller Pansy (priced from Taurus block), cord, width 70 drop 80
@@ -83,12 +84,11 @@ allok&=check('5 Roller cord Pansy (Taurus block) 70x80','roller','roller:blackou
 # 6 roller Gaea (ex Gare) blackout cord: Gaea/sundance block
 ws=wb('roller')['Roller shades-cord']; a,v,_,_=cell_rowsAreWidth(ws,'Gaea/sundance',45,90)
 allok&=check('6 Roller cord Gaea blackout (ex Gare) 45x90','roller','roller:blackout:gare',{'control':'chain'},45,90,v,addr=f"Roller shades-cord!{a}")
-# 7 zebra motor Uranus, standard grid, Matter +40: width 90 drop 100
-ws=wb('zebra')['Zebra-motor']; a,v,_,_=cell_rowsAreWidth(ws,'Uranus',90,100)
-allok&=check('7 Zebra motor Uranus Matter 90x100 (+$40)','zebra','zebra:-:uranus',{'control':'matter'},90,100,v,adders_add=40,addr=f"Zebra-motor!{a}")
-# 8 zebra special size: Uranus motor, drop 140 (standard grid ends 118.2) -> special grid x1.1
-ws=wb('zebra')['特殊尺寸']; a,v,_,_=cell_rowsAreWidth(ws,'Uranus',90,140)
-allok&=check('8 Zebra special size Uranus motor 90x140 (x1.1)','zebra','zebra:-:uranus',{'control':'remote'},90,140,v,mult=1.1,addr=f"特殊尺寸!{a}")
+# 7 zebra motorized Uranus: the plain cord table cell + the $70 motor: width 90 drop 100
+ws=wb('zebra')['Zebra-cord']; a,v,_,_=cell_rowsAreWidth(ws,'Uranus',90,100)
+allok&=check('7 Zebra motorized Uranus 90x100 (cord table + $70 motor)','zebra','zebra:-:uranus',{'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'},90,100,v,adders_add=70,addr=f"Zebra-cord!{a}")
+# 8 zebra special size: Uranus drop 140 is past the plain table, and the x1.1 special-size sheet was built on the motor table, so motorized now says "Price by email"
+allok&=check('8 Zebra Uranus motorized 90x140 (only the old motor table covered it: price by email)','zebra','zebra:-:uranus',{'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'},90,140,0,expect_status='custom_size')
 # 9 zebra Moon width 111 > roll 112? cap rows<=110 -> custom
 allok&=check('9 Zebra cord Moon 111 wide (roll 112, sheet stops at 110)','zebra','zebra:-:moon',{'control':'chain'},111,60,0,expect_status='custom_size')
 # 10 shangri-la Hermes Matter: width 50 drop 90 ; +140
@@ -101,8 +101,8 @@ def shang(ws,col_title,w,h):
     while isinstance(ws.cell(r,1).value,(int,float)): rows.append(ws.cell(r,1).value);r+=1
     ri,rv=up(rows,w);ci,cv=up(cols,h); addr=f"{L(c0+ci)}{6+ri}"; return addr,ws[addr].value
 a,v=shang(ws,'Hermes',50,90)
-allok&=check('10 Shangri-La Hermes Matter 50x90 (+$140)','shangri-la','shangri-la:-:hermes',{'control':'matter'},50,90,v,adders_add=140,addr=f"SHRL-CORD+MOTOR!{a}")
-allok&=check('11 Shangri-La Hermes drop 100 > Max Length 98.4','shangri-la','shangri-la:-:hermes',{'control':'remote_wand'},50,100,0,expect_status='custom_size')
+allok&=check('10 Shangri-La Hermes motorized 50x90 (+$70 motor)','shangri-la','shangri-la:-:hermes',{'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'},50,90,v,adders_add=70,addr=f"SHRL-CORD+MOTOR!{a}")
+allok&=check('11 Shangri-La Hermes drop 100 > Max Length 98.4','shangri-la','shangri-la:-:hermes',{'control':'chain'},50,100,0,expect_status='custom_size')
 # 12 cellular standard blackout cordless: widths cols (B=24..), rows heights; width 40 height 60 -> col D row 45
 ws=wb('cellular')['Normal cellular']
 def cell_cols_width(ws,c_axis0,w,h):  # axis row 4 starting at column c_axis0, heights col c_axis0-1 from row 6
@@ -114,7 +114,8 @@ def cell_cols_width(ws,c_axis0,w,h):  # axis row 4 starting at column c_axis0, h
 a,v=cell_cols_width(ws,16,40,60)  # blackout block starts col P=16
 allok&=check('12 Cellular standard blackout cordless 40x60','cellular','cellular:-:cellular-shades',{'control':'cordless','type':'standard','lining':'blackout'},40,60,v,addr=f"Normal cellular!{a}")
 ws=wb('cellular')['Top down bottom up']; a,v=cell_cols_width(ws,2,70,88)  # LF block B
-allok&=check('13 Cellular top-down motor light-filtering 70x88 (+$120)','cellular','cellular:-:cellular-shades',{'control':'matter','type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,adders_add=120,addr=f"Top down bottom up!{a}")
+allok&=check('13 Cellular top-down motorized light-filtering 70x88 (+$70 motor)','cellular','cellular:-:cellular-shades',{**MOTOR,'type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,adders_add=70,addr=f"Top down bottom up!{a}")
+allok&=check('13b Cellular top-down Zero gravity 70x88 ($0 extra until the supplier price is confirmed)','cellular','cellular:-:cellular-shades',{'control':'zero-gravity','type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,addr=f"Top down bottom up!{a}")
 ws=wb('cellular')['DAY&NIGHT']; a,v=cell_cols_width(ws,16,50,70)   # second fabric blackout -> blackout block
 allok&=check('14 Cellular day & night, 2nd fabric blackout, cordless 50x70','cellular','cellular:-:cellular-shades',{'control':'cordless','type':'day-night','lining':'blackout'},50,70,v,addr=f"DAY&NIGHT!{a}")
 # 15 roman cord blackout width 50 drop 60 -> rows width
@@ -129,7 +130,9 @@ ws2=wb('roman')['Roman shades-cord']; c0=find_block(ws2,'Blackout Fabric').colum
 a,v=roman(ws2,c0,50,60)
 allok&=check('15 Roman cord blackout lining 50x60','roman','drapery:orsay',{'control':'cordless','lining':'blackout'},50,60,0,expect_status='ok') if False else True
 
-allok&=check('15 Roman motor light-filtering 60x70 (cell includes the $100)','roman','drapery:orsay',{'control':'remote','lining':'light-filtering'},60,70,wb('roman')['Roman shades-motor'][roman(wb('roman')['Roman shades-motor'],2,60,70)[0]].value,addr='Roman shades-motor!'+roman(wb('roman')['Roman shades-motor'],2,60,70)[0])
+# Roman: the supplier motor table = cord table + $100 on every cell; motorized now = the plain table + $70
+ar,vr=roman(wb('roman')['Roman shades-cord'],2,60,70)
+allok&=check('15 Roman motorized light-filtering 60x70 (plain table + $70 motor)','roman','drapery:orsay',{**MOTOR,'lining':'light-filtering'},60,70,vr,adders_add=70,addr='Roman shades-cord!'+ar)
 # 16 dream manual: heights rows (B), widths cols (C..). width 100 -> 104, height 100
 ws=wb('dream-curtains')['MANUL-DREAM CURTAIN']
 def dream(ws,w,h):
@@ -138,7 +141,7 @@ def dream(ws,w,h):
 a,v=dream(ws,100,100)
 allok&=check('16 Dream Curtains manual 100x100 (width rounds up to 104)','dream-curtains','dream-curtains:-:sunflower',{'control':'manual'},100,100,v,addr=f"MANUL-DREAM CURTAIN!{a}")
 ws=wb('dream-curtains')['MOTOR-DREAM CURTAIN']; a,v=dream(ws,100,100)
-allok&=check('17 Dream Curtains motor 100x100 (+$90 from the supplier)','dream-curtains','dream-curtains:-:sunflower',{'control':'remote'},100,100,v,adders_add=90,addr=f"MOTOR-DREAM CURTAIN!{a}")
+allok&=check('17 Dream Curtains motor 100x100 (+$100 from the owner)','dream-curtains','dream-curtains:-:sunflower',{'control':'remote'},100,100,v,adders_add=100,addr=f"MOTOR-DREAM CURTAIN!{a}")
 # 18 woven wood remote
 ws=wb('woven-wood').worksheets[0]
 rows=[(r,ws.cell(r,2).value) for r in range(172,249)]; cols=[(c,ws.cell(170,c).value) for c in range(3,16)]
@@ -150,8 +153,15 @@ r=est('drapery','drapery:orsay',{'control':'manual'},60,80); print('PASS' if r.g
 r=est('roller','roller:solar:sag',{'control':'chain','mode':'double-stack','back_fabric_id':'roller:screen-view:purity'},50,60)
 f=est('roller','roller:solar:sag',{'control':'chain'},50,60); b=est('roller','roller:screen-view:purity',{'control':'chain'},50,60)
 ok=r.get('price')==f['price']+b['price']; print('PASS' if ok else 'FAIL','20 Roller double-stack = front + back ->',r.get('price'),'=',f['price'],'+',b['price']); allok&=ok
-# 21 shangri-la remote wand = base grid + Remote control +$100 (same as motorized)
-allok&=check('21 Shangri-La Hermes Remote wand 50x90 (+$100)','shangri-la','shangri-la:-:hermes',{'control':'remote_wand'},50,90,v,adders_add=100,addr=f"SHRL-CORD+MOTOR!{a}")
+# 21 shangri-la chain = the base grid, no extra
+allok&=check('21 Shangri-La Hermes Chain 50x90 (base grid)','shangri-la','shangri-la:-:hermes',{'control':'chain'},50,90,v,addr=f"SHRL-CORD+MOTOR!{a}")
+# 22 solar panel +$30 on a battery motor, and 23 double-stack with motor and solar = two motors and two panels
+ws=wb('roller')['Roller shades-cord']; a2,v2,_,_=cell_rowsAreWidth(ws,'SAG(SOLAR)',40,56)
+allok&=check('22 Roller motorized + solar panel SAG 40x56 (+$70 motor, +$30 solar)','roller','roller:solar:sag',{**MOTOR,'solar':'panel'},40,56,v2,adders_add=100,addr=f"Roller shades-cord!{a2}")
+SOL={**MOTOR,'solar':'panel'}
+r=est('roller','roller:solar:sag',{**SOL,'mode':'double-stack','back_fabric_id':'roller:screen-view:purity'},50,60)
+f=est('roller','roller:solar:sag',SOL,50,60); b=est('roller','roller:screen-view:purity',SOL,50,60)
+ok=r.get('price')==f['price']+b['price']; print('PASS' if ok else 'FAIL','23 Roller double-stack motorized + solar = front + back (two motors, two panels) ->',r.get('price'),'=',f['price'],'+',b['price']); allok&=ok
 print('\nALL PASS' if allok else '\nSOME FAILED')
 http('DELETE', f'/rest/v1/admins?id=eq.{admin_row}', SVC); http('DELETE', f'/auth/v1/admin/users/{uid}', SVC)
 sys.exit(0 if allok else 1)

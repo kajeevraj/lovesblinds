@@ -49,9 +49,9 @@ try {
     await page.locator('.s2-sw-zoom').first().click();
     await page.locator('dialog.swatch-dialog[open]').waitFor();
     const dlg = await page.locator('dialog.swatch-dialog').innerText();
-    check(T('the magnifier opens the swatch bigger, with "Keep this color" (not "swatch")'), /keep this color/i.test(dlg) && !/swatch/i.test(dlg), dlg.replace(/\s+/g, ' ').slice(0, 120));
-    await page.locator('dialog.swatch-dialog button', { hasText: 'Keep this color' }).click();
-    check(T('"Keep this color" picks that color'), (await page.locator('.s2-sw.on').count()) === 1);
+    check(T('the magnifier opens the swatch bigger, with "Choose this color" (not "swatch")'), /(keep|choose) this color/i.test(dlg) && !/swatch/i.test(dlg), dlg.replace(/\s+/g, ' ').slice(0, 120));
+    await page.locator('dialog.swatch-dialog button', { hasText: /(Keep|Choose) this color/ }).click();
+    check(T('"Choose this color" picks that color'), (await page.locator('.s2-sw.on').count()) === 1);
 
     await page.locator('#s2-w').scrollIntoViewIfNeeded();
     await page.locator('#s2-w').click(); await page.keyboard.type('3');

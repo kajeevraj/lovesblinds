@@ -1,3 +1,5 @@
+> **Motor prices were replaced later (migrations 17 and 18; see `docs/project-handoff.md`, "Movement and motors"): one $70 motor on the plain table, solar panel $30, Dream Curtains motor $100.**
+>
 > **Superseded in part by what was built (see `docs/supabase-handoff.md`, "Stage 1").** Decisions applied: the owner's answers (Gare renamed Gaea; Pansy and Violet priced from the Taurus block; smaller roll width wins; Dream motor placeholder +$110; Day & Night priced from the second fabric's block; double-stack = front + back; Shangri-La remote wand = base grid, Matter +$140). **Correction to section 4:** after testing which sheet axis is the width, Roller, Zebra, Roman, Shangri-La and Woven wood read ROWS = width and COLUMNS = drop (Cellular and Dream Curtains the other way). The corrected limits are in the handoff.
 
 # Stage 1 plan: supplier pricing and product options (admin only)

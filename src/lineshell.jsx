@@ -1,14 +1,17 @@
 // The shared layout of every redesigned product page: sticky photo on the left, numbered steps on the right,
 // then size, mount, control, room, quantity, the estimate and the sticky price bar.
 // A line page supplies its own steps (fabric, color, style ...) and its price configuration; everything else is here.
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { MOUNTS, getMechanism } from './data/lines.js';
-import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO } from './data/optionInfo.js';
+import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, POWER_COPY, SOLAR_COPY, MOTOR_CONTROL_COPY, SIDE_NOTE_BATTERY } from './data/optionInfo.js';
+import { usesDrive, mechName, parseMech, formatMech, pricingOptions, POWER_NAME, MOTOR_CONTROL_NAME, SIDE_NAME } from './lib/drive.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
 import { buildSelection } from './lib/lineSelection.js';
 import { formatInches } from './lib/inches.js';
 import { summarize } from './lib/selection.js';
 import { CatalogStatusContext, useLineCatalog } from './lib/useCatalog.js';
+import { SimpleRemote } from './room/remotes.jsx';
+import { isMotorized, remoteFor, shadeCount, SHARE_NOTE, WORKS_NOTE } from './lib/remote.js';
 import { Step, Cards, MOUNT_PICTURES, EstimateCard, QtyField, priceView } from './components/s2.jsx';
 import SizeFields, { EMPTY_SIZE, sizeNumbers } from './components/SizeFields.jsx';
 import RoomFields, { splitRoom, roomLabelOf } from './components/RoomFields.jsx';
@@ -21,6 +24,10 @@ import { useSizeLimits, limitLineFor } from './lib/sizeLimits.js';
 import { checkSize, clampQty, TYPO_TEXT } from './lib/limits.js';
 import SitePhoto from './components/SitePhoto.jsx';
 import { Footer } from './customer.jsx';
+
+// The 3D preview (three.js) is its own chunk, fetched after the page is up; the style photo shows until it is ready (or for good without WebGL).
+const PreviewPane = lazy(() => import('./room/PreviewPane.jsx'));
+const usePhoneMedia = (q) => { const [m, setM] = useState(() => matchMedia(q).matches); useEffect(() => { const mq = matchMedia(q); const f = () => setM(mq.matches); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, [q]); return m; };
 
 // Title, intro and photos of each line (names and photos from the approved mockup).
 export const PAGE = {
@@ -50,12 +57,12 @@ export const PHOTOS = {
 
 export default function LineShell({
   line, navigate, edit = null, start = null, ui = null, title, intro, photo, photoNote, gallery, onGallery, chip,
-  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null,
+  leadSteps, c, colorNeeds, checks, tailSteps = [], tail, controlTitle = 'How you raise and lower it', hideMount = false, header = null, preview = null, mechList = null,
 }) {
   const catalog = useLineCatalog(line.id);
   const cart = useCart();
   // every choice starts as it was saved: the draft from earlier on this page, else the item being edited
-  const [mech, setMech] = useState(start?.mech || edit?.mech || line.mechanisms[0].id);
+  const [mech, setMech] = useState(() => { const m = start?.mech || edit?.mech || line.mechanisms[0].id; return usesDrive(line.id) ? formatMech(line.id, parseMech(line.id, m)) : m; });
   const [mount, setMount] = useState(start?.mount || edit?.mount || line.mounts[0]);
   const [size, setSize] = useState(start ? { w: start.w, h: start.h } : EMPTY_SIZE);
   const [roomF, setRoomF] = useState(() => ({ ...splitRoom(start?.roomLabel), windowLabel: start?.windowLabel || '' }));
@@ -63,13 +70,19 @@ export default function LineShell({
   const [qty, setQty] = useState(String(start?.qty || edit?.qty || 1));
   const [addedAt, setAddedAt] = useState(null);       // { key, merged, qty } for the choices that were just added
   const buildAnother = useContext(BuildAnotherContext);
+  // the left column: the live 3D preview (for lines that have a model) or the style photo; on a phone it docks under the top as you scroll
+  const [leftView, setLeftView] = useState('3d');
+  const phone = usePhoneMedia('(max-width: 959px)');
+  const [dock, setDock] = useState({ collapsed: false });
+  const leftRef = useRef(null);
+  // (the strip keeps one size and never moves by itself, so nothing on the page jumps under a finger; it has a button to fold it away)
 
   const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
   const sized = parseFloat(width) > 0 && parseFloat(height) > 0;
   // the smallest we can make (from the database): below it nothing is priced and nothing can be added; above the largest the
   // price function itself answers "larger than our standard range"; a size that looks like a typo only gets a warning
-  const limits = useSizeLimits(limitLineFor(line.id, c.section), mech);
+  const limits = useSizeLimits(limitLineFor(line.id, c.section), pricingOptions(line.id, mech).control);
   const chk = checkSize(limits, width, height);
   const tooSmall = chk.tooSmall.length > 0;
   const req = tooSmall ? null : priceRequest(line, c, mech, width, height);
@@ -81,6 +94,15 @@ export default function LineShell({
   const needs = !optionsReady ? colorNeeds : tooSmall ? chk.tooSmall.map((t) => t.text).join(' ') : !sized ? 'Enter your size' : 'Calculating…';
 
   const mechObj = getMechanism(line, mech);
+  const drive = parseMech(line.id, mech);
+  // the remote that comes with a motorized shade: its channels come from the motorized shades in the cart that share this room (never a customer choice)
+  const probe = { category: line.id, mech, selection: { ...selection, section: c.section, type: c.type, mode: c.mode }, qty: n, roomLabel: room };
+  const motorized = isMotorized(probe);
+  const remote = remoteFor(line.id, probe.selection, room, cart.items.filter((i) => i.id !== edit?.id), shadeCount(probe));
+  const [remoteLit, setRemoteLit] = useState(null);
+  const flashRemote = (id) => { setRemoteLit(id); setTimeout(() => setRemoteLit((l) => (l === id ? null : l)), 320); };
+  // a section that offers fewer choices (regular Curtains: manual only, no motor yet) resets a choice it does not have
+  useEffect(() => { if (mechList && !mechList.some((m) => m.id === mech)) setMech(mechList[0].id); }, [mechList, mech]);
   const mountObj = MOUNTS.find((m) => m.id === mount);
 
   // What is chosen is saved in this browser as it changes, so the back button or a refresh never loses it. Right after the item
@@ -88,7 +110,7 @@ export default function LineShell({
   const addedSig = useRef(null);
   const draftSig = JSON.stringify([selection, mech, mount, size.w, size.h, room, roomF.windowLabel]);
   const uiSig = JSON.stringify(ui || {});
-  const origSig = edit ? JSON.stringify([edit.selection ?? null, edit.mech, edit.mount, formatInches(edit.width), formatInches(edit.length), edit.roomLabel || '', edit.windowLabel || '']) : null;
+  const origSig = edit ? JSON.stringify([edit.selection ?? null, usesDrive(line.id) ? formatMech(line.id, parseMech(line.id, edit.mech)) : edit.mech, edit.mount, formatInches(edit.width), formatInches(edit.length), edit.roomLabel || '', edit.windowLabel || '']) : null;
   useEffect(() => {
     const data = { selection, mech, mount, w: size.w, h: size.h, roomLabel: room, windowLabel: roomF.windowLabel, qty, ui: ui || {} };
     if (draftSig === addedSig.current || (edit && draftSig === origSig) || (!edit && !hasProgress(data))) clearDraft(line.id, edit?.id || null);
@@ -192,7 +214,7 @@ export default function LineShell({
     ...pickLines,
     optionLine,
     `${formatInches(width)}" wide × ${formatInches(height)}" high${hideMount ? '' : ` · ${mountObj?.name}`}`,
-    mechObj?.name,
+    mechName(line.id, mech, mechObj?.name),
   ].filter(Boolean);
   if (!summary.length) summary.push(line.name);
 
@@ -206,26 +228,49 @@ export default function LineShell({
             <a href="/" onClick={(e) => { e.preventDefault(); navigate('home'); }}>Home</a> / <a href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>Products</a> / <span aria-current="page">{title}</span>
           </nav>
           <div className="s2-line-grid">
-            <div className="s2-line-photo">
-              <div className="s2-photo-frame">
-                <SitePhoto key={photo.name} name={photo.name} alt={photo.alt} sizes="(min-width: 960px) 45vw, 92vw" eager />
-                {chip && (
-                  <span className="s2-photo-chip">
-                    <img src={chip.thumb} alt="" width="36" height="36" />
-                    {chip.displayName} ({chip.code})
-                  </span>
-                )}
-              </div>
+            <div className={`s2-line-photo${preview ? ' has-preview' : ''}${preview && dock.collapsed ? ' collapsed' : ''}`} ref={leftRef}>
+              {preview && (
+                <div className="pv-tabs" role="tablist" aria-label="Preview">
+                  <button type="button" role="tab" aria-selected={leftView === '3d'} className={leftView === '3d' ? 'on' : ''} onClick={() => setLeftView('3d')}>Your blind</button>
+                  <button type="button" role="tab" aria-selected={leftView === 'photo'} className={leftView === 'photo' ? 'on' : ''} onClick={() => setLeftView('photo')}>Style photo</button>
+                  {phone && (
+                    <button type="button" className="pv-collapse" aria-expanded={!dock.collapsed} onClick={() => setDock((d) => ({ ...d, collapsed: !d.collapsed }))}>{dock.collapsed ? 'Show preview' : 'Hide preview'}</button>
+                  )}
+                </div>
+              )}
+              {(() => {
+                const photoNode = (
+                  <>
+                    <div className="s2-photo-frame">
+                      <SitePhoto key={photo.name} name={photo.name} alt={photo.alt} sizes="(min-width: 960px) 45vw, 92vw" eager />
+                      {chip && (
+                        <span className="s2-photo-chip">
+                          <img src={chip.thumb} alt="" width="36" height="36" />
+                          {chip.displayName} ({chip.code})
+                        </span>
+                      )}
+                    </div>
+                  </>
+                );
+                return preview && leftView === '3d' ? (
+                  <div className="pv-wrap">
+                    <Suspense fallback={<div className="pv"><div className="pv-stage">{photoNode}</div></div>}>
+                      <PreviewPane kind={preview.kind} picks={preview.picks} double={!!preview.double} width={parseFloat(width) || null} height={parseFloat(height) || null}
+                        mount={mount} mech={mech} cover={preview.cover} phone={phone} fallback={photoNode} remoteType={remote.type} shareNote={motorized && remote.count >= 2} />
+                    </Suspense>
+                  </div>
+                ) : photoNode;
+              })()}
               {gallery && gallery.length > 1 && (
                 <div className="s2-gallery" role="group" aria-label="More photos">
                   {gallery.map((g) => (
-                    <button key={g.name} type="button" className={g.name === photo.name ? 'on' : ''} aria-pressed={g.name === photo.name} aria-label={g.alt} onClick={() => onGallery(g.name)}>
+                    <button key={g.name} type="button" className={g.name === photo.name ? 'on' : ''} aria-pressed={g.name === photo.name} aria-label={g.alt} onClick={() => { onGallery(g.name); setLeftView('photo'); }}>
                       <SitePhoto name={g.name} alt="" sizes="88px" />
                     </button>
                   ))}
                 </div>
               )}
-              <div className="s2-photo-note"><span aria-hidden="true">ⓘ</span> {photoNote || 'Photo shows the style. Your color is shown in the swatch.'}</div>
+              {(!preview || leftView === 'photo') && <div className="s2-photo-note"><span aria-hidden="true">ⓘ</span> {photoNote || 'Photo shows the style. Your color is shown in the swatch.'}</div>}
             </div>
 
             <div className="s2-line-steps">
@@ -258,9 +303,43 @@ export default function LineShell({
               )}
 
               <Step n={++k} title={controlTitle}>
-                <Cards label="Control" min={170} stack value={mech} onChange={setMech}
-                  options={line.mechanisms.map((m) => ({ id: m.id, label: m.name, desc: CONTROL_COPY[m.id], img: CONTROL_IMG[line.id]?.[m.id] }))} />
+                <Cards label="Control" min={170} stack value={usesDrive(line.id) ? drive.movement : mech} onChange={(id) => setMech(usesDrive(line.id) ? formatMech(line.id, { ...drive, movement: id }) : id)}
+                  options={(mechList || line.mechanisms).map((m) => ({ id: m.id, label: m.name, desc: CONTROL_COPY[m.id], img: CONTROL_IMG[line.id]?.[m.id] }))} />
               </Step>
+              {usesDrive(line.id) && drive.movement === 'motorized' && (
+                <>
+                  <Step n={++k} title="Power">
+                    <Cards label="Power" min={200} value={drive.power} onChange={(id) => setMech(formatMech(line.id, { ...drive, power: id }))}
+                      options={Object.keys(POWER_NAME).map((id) => ({ id, label: POWER_NAME[id], desc: POWER_COPY[id] }))} />
+                    {drive.power === 'battery' && (
+                      <Cards label="Solar panel" min={200} value={drive.solar ? 'solar' : 'none'} onChange={(id) => setMech(formatMech(line.id, { ...drive, solar: id === 'solar' }))}
+                        options={[{ id: 'none', label: 'No solar panel', desc: 'Recharge the battery about every 6 months.' }, { id: 'solar', label: 'Add a solar panel', desc: SOLAR_COPY }]} />
+                    )}
+                  </Step>
+                  <Step n={++k} title="How you control it">
+                    <Cards label="Motor control" min={220} stack value={drive.control} onChange={(id) => setMech(formatMech(line.id, { ...drive, control: id }))}
+                      options={Object.keys(MOTOR_CONTROL_NAME).map((id) => ({ id, label: MOTOR_CONTROL_NAME[id], desc: MOTOR_CONTROL_COPY[id] }))} />
+                  </Step>
+                </>
+              )}
+              {usesDrive(line.id) && (drive.movement === 'chain' || drive.movement === 'motorized') && (
+                <Step n={++k} title={drive.movement === 'chain' ? 'Chain side' : 'Control side'}
+                  hint={drive.movement === 'motorized' && drive.power === 'battery' && !drive.solar ? SIDE_NOTE_BATTERY : null}>
+                  <Cards label="Side" min={140} value={drive.side} onChange={(id) => setMech(formatMech(line.id, { ...drive, side: id }))}
+                    options={Object.keys(SIDE_NAME).map((id) => ({ id, label: SIDE_NAME[id] }))} />
+                </Step>
+              )}
+
+              {!preview && motorized && (
+                <div className="rm-card">
+                  <SimpleRemote type={remote.type} lit={remoteLit} onPress={flashRemote} />
+                  <div className="rm-card-text">
+                    <strong>Included: remote</strong>
+                    {usesDrive(line.id) && WORKS_NOTE[drive.control] && <p>{WORKS_NOTE[drive.control]}</p>}
+                    {remote.count >= 2 && <p className="rm-share">{SHARE_NOTE}</p>}
+                  </div>
+                </div>
+              )}
 
               {tailSteps.map((st) => (
                 <Step key={st.title} n={++k} title={st.title} hint={st.hint}>{st.node}</Step>

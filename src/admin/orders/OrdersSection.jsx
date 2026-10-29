@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase.js';
 import { formatInches } from '../../lib/inches.js';
 import { explain } from '../lib/errors.js';
 import { updateRow } from '../lib/db.js';
+import { REMOTE_NAME, REMOTE_TYPES } from '../../lib/remote.js';
 
 // Orders the site accepted (table sent_orders, migration 14). Admins read them and change only the status and a note;
 // the database refuses any other change to a sent order.
@@ -13,7 +14,8 @@ export const STATUSES = [
   { id: 'shipped', label: 'Shipped' },
 ];
 const LIMIT = 200;
-const COLUMNS = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note';
+const COLUMNS = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note,remote_overrides';
+const COLUMNS_OLD = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note';      // before migration 19
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 const when = (iso) => new Date(iso).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -36,7 +38,8 @@ export default function OrdersSection() {
   const [q, setQ] = useState('');
 
   const reload = useCallback(async () => {
-    const { data, error: err } = await supabase.from('sent_orders').select(COLUMNS).order('created_at', { ascending: false }).limit(LIMIT);
+    let { data, error: err } = await supabase.from('sent_orders').select(COLUMNS).order('created_at', { ascending: false }).limit(LIMIT);
+    if (err && /remote_overrides/.test(err.message || '')) ({ data, error: err } = await supabase.from('sent_orders').select(COLUMNS_OLD).order('created_at', { ascending: false }).limit(LIMIT));     // migration 19 not run yet
     if (err) { setError(/sent_orders/.test(err.message || '') ? 'The orders table is not set up yet (run migration 14 in Supabase).' : explain(err)); return; }
     setOrders(data); setError('');
   }, []);
@@ -96,6 +99,14 @@ function OrderDetail({ order, onBack, onSaved }) {
   const [note, setNote] = useState(order.admin_note || '');
   const [msg, setMsg] = useState(''); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const c = order.customer || {};
+  const [overrides, setOverrides] = useState(order.remote_overrides || {});
+  const canOverride = order.remote_overrides !== undefined;                                    // false until migration 19 has been run
+  const over16 = (order.lines || []).some((l) => l.remote?.over16);
+  const setRemote = async (i, type) => {
+    const next = { ...overrides }; if (type) next[i] = type; else delete next[i];
+    setErr(''); setMsg('');
+    try { await updateRow('sent_orders', order.id, { remote_overrides: next }); setOverrides(next); setMsg('Remote saved.'); } catch (e) { setErr(explain(e)); }
+  };
   const dirty = status !== order.status || note.trim() !== (order.admin_note || '');
 
   const save = async () => {
@@ -135,7 +146,9 @@ function OrderDetail({ order, onBack, onSaved }) {
       </div>
       <div className="adm-card">
         <h2 className="adm-h2">Items ({itemCount(order)})</h2>
-        <table className="adm-table"><thead><tr><th>Item</th><th>Size</th><th>Qty</th><th>Room</th><th>Estimate</th></tr></thead><tbody>
+        {over16 && <p className="adm-error" role="alert">Over 16 motorized shades in one room: the 16 channel remote is not enough.</p>}
+        {!canOverride && (order.lines || []).some((l) => l.remote) && <p className="adm-muted adm-small">To change a remote, run migration 19 in Supabase.</p>}
+        <table className="adm-table"><thead><tr><th>Item</th><th>Size</th><th>Qty</th><th>Room</th><th>Remote</th><th>Estimate</th></tr></thead><tbody>
           {(order.lines || []).map((l, i) => {
             const unit = l.price?.kind === 'price' ? l.price.unit : null;
             const qty = Number(l.qty) || 1;
@@ -145,6 +158,16 @@ function OrderDetail({ order, onBack, onSaved }) {
                 <td data-label="Size">{sizeText(l) || '—'}</td>
                 <td data-label="Qty">{qty}</td>
                 <td data-label="Room">{[l.roomLabel, l.windowLabel].filter(Boolean).join(' · ') || '—'}</td>
+                <td data-label="Remote">{l.remote ? (
+                  <>
+                    <div>{REMOTE_NAME[overrides[i]] || l.remote.name}{overrides[i] && <span className="adm-small adm-muted"> (changed; was {l.remote.name})</span>}</div>
+                    <div className="adm-small adm-muted">{l.remote.count} motorized shade{l.remote.count === 1 ? '' : 's'} in this room</div>
+                    {canOverride && <select aria-label={`Remote for item ${i + 1}`} value={overrides[i] || ''} onChange={(e) => setRemote(i, e.target.value)}>
+                      <option value="">Automatic ({l.remote.name})</option>
+                      {REMOTE_TYPES.map((t) => <option key={t} value={t}>{REMOTE_NAME[t]}</option>)}
+                    </select>}
+                  </>
+                ) : '—'}</td>
                 <td data-label="Estimate">{unit != null ? (qty > 1 ? `${money(unit)} each · ${money(unit * qty)}` : money(unit)) : 'Price by email'}</td>
               </tr>
             );
