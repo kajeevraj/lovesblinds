@@ -613,6 +613,32 @@ do $$ begin
   end if;
 end $$;
 
+-- the Zigbee hub choice is saved with the cart (the signed-in account's order), so it follows the customer across devices; when the order is sent,
+-- the price it was sent at is kept next to it, and neither can change afterwards (the sent-order guard below)
+do $$ begin
+  if to_regclass('public.orders') is not null then
+    alter table public.orders add column if not exists hub boolean not null default false;
+    alter table public.orders add column if not exists hub_price numeric(10,2);
+    comment on column public.orders.hub is 'The customer ticked the Zigbee hub in the cart (one hub per order).';
+    comment on column public.orders.hub_price is 'The hub price the order was sent with (set when the order is sent).';
+    create or replace function public.orders_sent_guard() returns trigger
+    language plpgsql set search_path = public as $g$
+    begin
+      if old.status = 'sent' then
+        if new.items is distinct from old.items or new.customer is distinct from old.customer or new.user_id is distinct from old.user_id
+           or new.hub is distinct from old.hub or new.hub_price is distinct from old.hub_price then
+          raise exception 'a sent order cannot be changed' using errcode = 'check_violation';
+        end if;
+        if new.status = 'draft' then
+          raise exception 'a sent order cannot go back to a draft' using errcode = 'check_violation';
+        end if;
+      end if;
+      return new;
+    end $g$;
+    revoke all on function public.orders_sent_guard() from public, anon, authenticated;
+  end if;
+end $$;
+
 update public.swatches set active = false where supplier_code = 'SP26030004';
 
 -- ---------------------------------------------------------------------------------------------------------------------

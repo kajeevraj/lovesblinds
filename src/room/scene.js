@@ -27,7 +27,7 @@ export function createRoomScene(canvas, { onVisualChange } = {}) {
 
   const env = {
     invalidate: () => invalidate(),
-    maxAniso: Math.min(8, renderer.capabilities.getMaxAnisotropy()),
+    maxAniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()),
     backlight: new THREE.Color(1, 1, 1),
     glowTop: { value: new THREE.Vector3(1.0, 1.0, 1.04) },       // the sky is brightest at the top of the window ...
     glowBottom: { value: new THREE.Vector3(0.72, 0.8, 0.62) },   // ... and the trees below it are darker and greener

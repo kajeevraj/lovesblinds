@@ -78,12 +78,14 @@ export default function App() {
   useMissingNames(quote);                       // names for picks saved before display names existed
   const quoteRef = useRef(quote);
   useEffect(() => { quoteRef.current = quote; });
+  const hubRef = useRef(hubChoice);
+  useEffect(() => { hubRef.current = hubChoice; });
 
   const {
     supabaseEnabled,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
     authLoading, signInWithGoogle, signInWithIdToken, signOut, dbError,
-    createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
+    createOrder, saveItems, saveHub, renameOrder, markOrderSent, deleteOrder,
   } = useAuth();
 
   // Show DB errors as snackbars so we can see what's going wrong.
@@ -100,10 +102,12 @@ export default function App() {
     const dbItems = activeOrder.items.map((st, i) => reconstructItem(st, i)).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
+      setHubChoice(!!activeOrder.hub); if (activeOrder.hub) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY);     // the hub tick follows the account's cart
       lsDel(GUEST_QUOTE_KEY);
     } else if (quoteRef.current.length > 0) {
       // New empty order, but we have guest items (from localStorage restore) — push them up.
       saveItems(activeOrderId, quoteRef.current);
+      if (hubRef.current) saveHub(activeOrderId, true);
       lsDel(GUEST_QUOTE_KEY);
       // Leave quote as-is (already has the items).
     }
@@ -112,7 +116,7 @@ export default function App() {
 
   // After an order is sent, the next window goes into a fresh order, so the sent one keeps exactly what was sent.
   const [justSent, setJustSent] = useState(false);
-  const handleOrderSent = async (orderId, items, customer) => { setHubChoice(false); lsDel(HUB_KEY); await markOrderSent(orderId, items, customer); setJustSent(true); };
+  const handleOrderSent = async (orderId, items, customer, hub) => { setHubChoice(false); lsDel(HUB_KEY); await markOrderSent(orderId, items, customer, hub); setJustSent(true); };
   useEffect(() => {
     if (!justSent || quote.length > 0) return;
     setJustSent(false);
@@ -333,8 +337,9 @@ export default function App() {
   const hubPrice = useHubPrice();
   const zigbee = quote.some(isZigbeeItem);
   const hubOn = hubChoice && zigbee;
-  useEffect(() => { if (!zigbee && hubChoice) { setHubChoice(false); lsDel(HUB_KEY); } }, [zigbee, hubChoice]);
-  const setHubOn = (on) => { setHubChoice(on); if (on) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY); };
+  const saveHubTick = (on) => { if (user && activeOrderId) saveHub(activeOrderId, on); };
+  useEffect(() => { if (!zigbee && hubChoice && !(user && !synced)) { setHubChoice(false); lsDel(HUB_KEY); saveHubTick(false); } }, [zigbee, hubChoice]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setHubOn = (on) => { setHubChoice(on); if (on) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY); saveHubTick(on); };
   const base = totalsOf(quote, prices);
   const totals = { ...base, total: base.total + (hubOn ? hubPrice : 0), hub: hubOn ? hubPrice : 0 };
   const cart = {

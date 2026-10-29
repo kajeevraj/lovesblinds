@@ -59,6 +59,7 @@ export function sentEstimate(order) {
   if (order.status !== 'sent' || !items.some((it) => it.priceKind)) return null;
   let total = 0, byEmail = 0;
   for (const it of items) { if (it.priceKind === 'estimate' && it.price > 0) total += it.price * Math.max(1, it.qty || 1); else byEmail += 1; }
+  if (order.hub && order.hub_price > 0) total += Number(order.hub_price);
   const plus = byEmail ? `plus ${byEmail} item${byEmail === 1 ? '' : 's'} priced by email` : '';
   return total > 0 ? `Estimated total $${total.toLocaleString('en-US')}${plus ? ` · ${plus}` : ''}` : (plus ? plus.charAt(0).toUpperCase() + plus.slice(1).replace('plus ', '') : null);
 }

@@ -23,7 +23,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping;
   const env = {
-    invalidate: () => wake(), maxAniso: Math.min(8, renderer.capabilities.getMaxAnisotropy()),
+    invalidate: () => wake(), maxAniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()),
     backlight: new THREE.Color(0.62, 0.62, 0.62),         // less daylight through the cloth than in the room: here the color has to be accurate
     glowTop: { value: new THREE.Vector3(1.0, 1.0, 1.04) }, glowBottom: { value: new THREE.Vector3(0.78, 0.84, 0.7) },
   };
@@ -40,7 +40,11 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6d1c6, metalness: 0.35, roughness: 0.4 });
   const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 0.5 });
   const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b655c, roughness: 0.7 });
-  const solarMat = new THREE.MeshStandardMaterial({ color: 0x3a404c, roughness: 0.5, metalness: 0.1 });
+  // the solar panel is stuck on the glass, behind the cloth: it shows only below the lowest shade's bottom edge (a clip plane that follows the shade),
+  // so no fabric (transparent or not) ever has it drawn over or through it
+  renderer.localClippingEnabled = true;
+  const solarClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e3);
+  const solarMat = new THREE.MeshStandardMaterial({ color: 0x3a404c, roughness: 0.5, metalness: 0.1, clippingPlanes: [solarClip] });
 
   // vignette: the corners of the picture fall off a little, like the room photo
   const vig = new THREE.Scene(), ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -164,7 +168,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       });
       if (d.movement === 'motorized' && d.power === 'battery' && d.solar) {                             // a small, dark, thin solar panel on the glass near the top on the motor side (behind the shade)
         const gz = -DEPTH + 0.03 - 0.02 + 0.006;
-        g.add(box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz));
+        const panel = box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz); panel.renderOrder = -1; g.add(panel);
       }
       if (cfg.kind === 'shangri-la') {                                    // the wall bracket is confirmed for the Shangri-La remote only
         const rx = -sx * (edge + 0.07), ry = built.oy + 0.06;
@@ -215,7 +219,10 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     if (shadesChanged || geometryChanged || !shades.length) buildShades();
     wake();
   }
-  function setShadeAmounts(a) { shades.forEach((s, i) => s.setAmount(a[i] ?? a[0] ?? 0)); }
+  function setShadeAmounts(a) {
+    shades.forEach((s, i) => s.setAmount(a[i] ?? a[0] ?? 0));
+    if (built?.shade) solarClip.constant = shades.length ? Math.min(...shades.map((s) => built.shade.top - s.coverage * s.height)) : -1e3;      // the panel is clipped above this height
+  }
   function snapAmount(a, i = 0) { driveDirs[i] = 0; cfg.amounts[i] = current[i] = a; setShadeAmounts(current); emit(); wake(); }
 
   // ---- loop -----------------------------------------------------------------------------------------------------------------------------------------------

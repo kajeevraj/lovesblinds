@@ -153,7 +153,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
       // it reached us: a problem saving it to the customer's account is only logged and never turns the success into an error
-      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
+      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() }, { on: cart.hub.on, price: cart.hub.price })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
       catch (e) { console.error('[order] not saved to the account:', e); }
       setSent({ copySent: !!data.customerCopy, total, byEmail, lines: [...items.map((it, i) => ({ id: it.id, title: detailsOf(it).title, room: roomText(it), qty: Math.max(1, it.qty || 1), p: prices[i], blinds: true })), ...(cart.hub.on ? [{ id: 'hub', title: 'Zigbee hub', room: '', qty: 1, p: { kind: 'price', price: cart.hub.price }, blinds: false }] : [])] });
     } catch (err) {

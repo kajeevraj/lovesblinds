@@ -137,3 +137,24 @@ do $$ begin
   raise notice 'ok: anon cannot read the rates, the breakdown or the cost parts; can call hardware_estimate and public_options';
 end $$;
 reset role;
+
+-- the Zigbee hub choice is saved with the account's order, and neither it nor the price it was sent at can change once the order is sent.
+-- (The local orders table is a two-column stub, so the columns migration 13 relies on are added here and the guard trigger is attached.)
+do $$
+declare v_hub boolean;
+begin
+  alter table public.orders add column if not exists status text default 'draft', add column if not exists customer jsonb, add column if not exists user_id uuid;
+  drop trigger if exists orders_sent_guard on public.orders;
+  create trigger orders_sent_guard before update on public.orders for each row execute function public.orders_sent_guard();
+  if not exists (select 1 from information_schema.columns where table_name = 'orders' and column_name = 'hub' and data_type = 'boolean') then raise exception 'orders.hub missing'; end if;
+  insert into public.orders (id, items, status) values ('00000000-0000-0000-0000-0000000000a1', '[]', 'draft');
+  update public.orders set hub = true where id = '00000000-0000-0000-0000-0000000000a1';
+  select hub into v_hub from public.orders where id = '00000000-0000-0000-0000-0000000000a1';
+  if v_hub is not true then raise exception 'the hub tick was not saved'; end if;
+  update public.orders set hub = false where id = '00000000-0000-0000-0000-0000000000a1';
+  update public.orders set status = 'sent', hub = true, hub_price = 35 where id = '00000000-0000-0000-0000-0000000000a1';
+  begin update public.orders set hub = false where id = '00000000-0000-0000-0000-0000000000a1'; raise exception 'a sent order lost its hub'; exception when check_violation then null; end;
+  begin update public.orders set hub_price = 1 where id = '00000000-0000-0000-0000-0000000000a1'; raise exception 'a sent order changed its hub price'; exception when check_violation then null; end;
+  delete from public.orders where id = '00000000-0000-0000-0000-0000000000a1';
+  raise notice 'ok: orders.hub saves on a draft, is set with hub_price when sent, and is frozen after sending';
+end $$;

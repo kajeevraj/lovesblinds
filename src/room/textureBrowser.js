@@ -1,7 +1,7 @@
 // The browser side of the 3D fabric textures: the same steps as scripts/room-lab/texture-node.mjs (the maths is shared in textureCore.js).
 // Used in two places: the admin makes the texture when a color is uploaded or replaced, and the room visualizer makes one on the spot for a
 // color whose prepared texture is not there yet. `src` is any image source (ImageBitmap, <img>, canvas).
-import { TEX, SPLIT, flatten, findBands, meanHex } from './textureCore.js';
+import { TEX, SPLIT, flatten, findBands, meanHex, retarget, retargetZebra } from './textureCore.js';
 
 const sizeOf = (s) => ({ W: s.naturalWidth || s.width, H: s.naturalHeight || s.height });
 const rgbOf = (ctx, w, h) => { const d = ctx.getImageData(0, 0, w, h).data, out = new Uint8ClampedArray(w * h * 3); for (let i = 0, j = 0; i < d.length; i += 4, j += 3) { out[j] = d[i]; out[j + 1] = d[i + 1]; out[j + 2] = d[i + 2]; } return out; };
@@ -33,3 +33,20 @@ export function makeTextureCanvas(src, zebra = false) {
   return { canvas: c, color: meanHex(flat) };
 }
 export const textureBlob = (canvas) => new Promise((resolve) => canvas.toBlob((b) => resolve(b && b.type === 'image/webp' ? b : null), 'image/webp', 0.8));
+
+// The texture re-centred on `hex` with its contrast capped (see retarget in textureCore.js); one copy per fabric
+// the room's light lifts every cloth a little (measured on black / gray / white: rendered = 1.04 x texture + 8), so the texture is set a touch darker
+// and the shade on screen lands on the swatch's own color
+const LIGHT_GAIN = 1.04, LIGHT_LIFT = 8, ZEBRA_GAIN = 0.89;     // a zebra's solid band is lit less (rendered = 0.89 x texture)
+const tuned = new Map();
+export function tunedCanvas(src, key, hex, zebra = false) {
+  const hit = tuned.get(key); if (hit) return hit;
+  const w = sizeOf(src).W, h = sizeOf(src).H;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(src, 0, 0);
+  const target = [1, 3, 5].map((i) => { const v = parseInt(hex.slice(i, i + 2), 16); return Math.min(255, Math.max(0, zebra ? v / ZEBRA_GAIN : (v - LIGHT_LIFT) / LIGHT_GAIN)); });
+  const rgb = zebra ? retargetZebra(rgbOf(ctx, w, h), target, w) : retarget(rgbOf(ctx, w, h), target);
+  const out = ctx.createImageData(w, h);
+  for (let i = 0, j = 0; i < out.data.length; i += 4, j += 3) { out.data[i] = rgb[j]; out.data[i + 1] = rgb[j + 1]; out.data[i + 2] = rgb[j + 2]; out.data[i + 3] = 255; }
+  ctx.putImageData(out, 0, 0); tuned.set(key, c); return c;
+}

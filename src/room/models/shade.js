@@ -9,7 +9,7 @@
 // The shade has a fabric-wrapped cassette at the top and a bottom rail. A Zebra has two layers of banded cloth that slide past each other
 // as it moves, because it is a loop of cloth (the stripes line up at some stopping points and close to solid at others). Soft shadows: under the cassette, down the jambs, and under the rail.
 import * as THREE from 'three';
-import { weaveTexture, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { weaveTexture, tuneFabric, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
 
 const SLIDE = 1;            // how far the zebra layers slide past each other per metre of drop
 const GAP = 0.003;          // clearance each side, like a real inside mount
@@ -130,7 +130,7 @@ class Shade {
       const m = fabricMaterial({ map: tex, emissiveMap: emTex, alphaMap: alphaTex, glow: 1, bump: 0.9, opacity: 1 }, env);
       m.color.copy(flat); m.userData.zebra = true;
       whenFabric(fabric, (img) => {
-        const { alphaCanvas, emissiveCanvas } = zebraMaps(img, fabric.split || 0.6, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
+        const { alphaCanvas, emissiveCanvas } = zebraMaps(tuneFabric(img, fabric), fabric.split || 0.6, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
         alphaTex.image = alphaCanvas; alphaTex.needsUpdate = true;
         emTex.image = emissiveCanvas; emTex.needsUpdate = true;
         m.color.set(0xffffff); m.needsUpdate = true; env.invalidate();

@@ -87,6 +87,17 @@ try {
   await api('PATCH', '/rest/v1/hardware_rates?id=eq.ship_per_kg', SVC, { amount: Number(rate.amount) * 2 });
   const doubled = await hw('arc-rail', 'pleated', 100);
   check('the $/kg rate is editable and moves the price', doubled.price > arc.price, `${arc.price} -> ${doubled.price}`);
+  // the Zigbee hub: $35 flat, a selling price (no markup), stored in hardware_rates, editable, and its edit is undone
+  const hubRow = (await api('GET', '/rest/v1/hardware_rates?select=id,amount&id=eq.zigbee_hub', SVC)).body[0];
+  const hubNow = async () => (await rpc('zigbee_hub_price', {})).body?.price;
+  check('the Zigbee hub is stored in the database at $35 and the customer price function returns exactly that (no 1.5x markup)', Number(hubRow?.amount) === 35 && (await hubNow()) === 35, JSON.stringify(hubRow));
+  check('the hub price answer holds only the price', Object.keys((await rpc('zigbee_hub_price', {})).body || {}).join() === 'price');
+  restore.push(() => api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount }));
+  await api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: 41 });
+  check('an admin edit of the hub price moves what customers see', (await hubNow()) === 41, String(await hubNow()));
+  await api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount });
+  check('the hub price is back to the value read at the start', (await hubNow()) === Number(hubRow.amount), String(await hubNow()));
+  check('the account order carries the hub tick (orders.hub and orders.hub_price exist) and the sent order store has qty_overrides', (await api('GET', '/rest/v1/orders?select=hub,hub_price&limit=1', SVC)).status === 200 && (await api('GET', '/rest/v1/sent_orders?select=qty_overrides&limit=1', SVC)).status === 200);
 } catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
 finally { for (const f of restore.reverse()) await f().catch(() => {}); }
 const bad = results.filter((x) => !x.ok);
