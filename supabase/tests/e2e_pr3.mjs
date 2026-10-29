@@ -13,6 +13,14 @@ const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Typ
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const stamp = Date.now(); let userId, browser;
 const shot = async (page, name) => { if (SHOTS) { await page.waitForTimeout(800); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
 // a picture for the signed-in avatar (an inline SVG, so no network is needed)
@@ -45,32 +53,36 @@ try {
 
     // ---------- product page: swatch zoom, size entry, room
     await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw').first().waitFor();
-    check(T('each swatch has a magnifying glass, and "View larger" is gone'), (await page.locator('.s2-sw-zoom').count()) >= 6 && !/View larger/.test(await page.locator('body').innerText()));
-    await page.locator('.s2-sw-zoom').first().click();
+    check(T('the swatches are a grid of fabric squares (no magnifier on each), 52 px, with a preview of the picked one below'), (await page.locator('.s2-sw-zoom').count()) === 0 && (await page.locator('.s2-swgrid .s2-sw').count()) >= 6 && await page.locator('.s2-swgrid .s2-sw').first().evaluate((e) => e.getBoundingClientRect().width >= 44 && e.getBoundingClientRect().width <= 56) && /Pick a color to see it here/.test(await page.locator('.s2-swprev').innerText()));
+    await page.locator('.s2-swgrid .s2-sw').first().click();
+    check(T('the preview shows the picked swatch larger, with its name and code, and a "View larger" link'), (await page.locator('.s2-swprev-name').innerText()).length > 2 && (await page.locator('.s2-swprev-code').innerText()).length > 3 && (await page.locator('.s2-swprev-zoom').count()) === 1);
+    await page.locator('.s2-swprev-zoom').click();
     await page.locator('dialog.swatch-dialog[open]').waitFor();
     const dlg = await page.locator('dialog.swatch-dialog').innerText();
-    check(T('the magnifier opens the swatch bigger, with "Choose this color" (not "swatch")'), /(keep|choose) this color/i.test(dlg) && !/swatch/i.test(dlg), dlg.replace(/\s+/g, ' ').slice(0, 120));
+    check(T('"View larger" opens the swatch bigger, with "Keep this color" (not "swatch")'), /(keep|choose) this color/i.test(dlg) && !/swatch/i.test(dlg), dlg.replace(/\s+/g, ' ').slice(0, 120));
     await page.locator('dialog.swatch-dialog button', { hasText: /(Keep|Choose) this color/ }).click();
-    check(T('"Choose this color" picks that color'), (await page.locator('.s2-sw.on').count()) === 1);
+    check(T('"Keep this color" keeps that color'), (await page.locator('.s2-sw.on').count()) === 1);
 
+    // size: whole inches in a box, a "+ fraction" dropdown (0, 1/8 ... 7/8) next to it, one line per side
     await page.locator('#s2-w').scrollIntoViewIfNeeded();
     await page.locator('#s2-w').click(); await page.keyboard.type('3');
-    check(T('size: typing "3" first gives "3", not "03"'), (await page.locator('#s2-w').inputValue()) === '3');
+    check(T('size: typing "3" first gives "3", not "03"'), (await sizeOf(page, 'w')) === '3');
+    check(T('size: no "1/2" icon buttons any more; a dropdown labeled "+ fraction" with 0, 1/8 ... 7/8 (default 0)'), (await page.getByRole('button', { name: /Add a fraction/ }).count()) === 0 && (await page.locator('.s2-frac-btn').count()) === 0 && (await page.locator('#s2-w-frac option').allInnerTexts()).join() === '0,1/8,1/4,3/8,1/2,5/8,3/4,7/8' && (await page.locator('label[for="s2-w-frac"]').innerText()).includes('+ fraction') && (await page.locator('#s2-h-frac').inputValue()) === '');
+    check(T('size: one line per side: "Width [ box ] in [ + fraction ]"'), await page.locator('.s2-size-line').evaluateAll((rows) => rows.every((r) => { const k = [...r.querySelectorAll('.s2-size-whole, .s2-size-unit, .s2-size-frac')].map((x) => Math.round(x.getBoundingClientRect().top)); return k.length === 3 && Math.max(...k) - Math.min(...k) < 20; })));
     const cases = [['35', '35 in'], ['35.5', '35 1/2 in'], ['35 1/2', '35 1/2 in'], ['35-1/2', '35 1/2 in'], ['35.3', '35 1/4 in'], ['40.05', '40 in'], ['1/2', '1/2 in']];
     const got = [];
+    await page.locator('#s2-w-frac').selectOption('');
     for (const [typed, want] of cases) { await page.locator('#s2-w').fill(typed); got.push([typed, (await page.locator('#s2-w-echo').innerText()).replace(/\s*\(nearest 1\/8\)/, '').trim(), want]); }
-    check(T('size: 35, 35.5, 35 1/2, 35-1/2 and others show back as a fraction'), got.every(([, a, b]) => a === b), got.map(([t, a]) => `${t} -> ${a}`).join(' | '));
-    await page.locator('#s2-w').fill('abc');
-    check(T('size: text that is not a size shows a message and no price'), /Enter a size like/.test(await page.locator('#s2-w-echo').innerText()));
-    await page.locator('#s2-w').fill('35.5'); await page.locator('#s2-h').click(); 
-    check(T('size: leaving the box tidies it to the fraction'), (await page.locator('#s2-w').inputValue()) === '35 1/2');
-    check(T('size: a label explains what to type'), /35 1\/2 or 35-1\/2/.test(await page.locator('.s2-size-help').innerText()));
-    await page.getByRole('button', { name: 'Add a fraction to the width' }).click();
-    const fr = await page.locator('.s2-frac-opt').allInnerTexts();
-    check(T('size: the fraction helper lists 1/8 to 7/8'), fr.join(',') === '1/8,1/4,3/8,1/2,5/8,3/4,7/8', fr.join(','));
+    check(T('size: typing or pasting 35.5, 35 1/2 or 35-1/2 still reads as a fraction (the dropdown follows)'), got.every(([, a, b]) => a === b), got.map(([t, a]) => `${t} -> ${a}`).join(' | '));
+    await page.locator('#s2-w').fill('35.5'); await page.locator('#s2-h').click();
+    check(T('size: 35.5 shows as 35 in the box and 1/2 in the dropdown'), (await page.locator('#s2-w').inputValue()) === '35' && (await page.locator('#s2-w-frac').inputValue()) === '1/2' && (await sizeOf(page, 'w')) === '35 1/2');
+    check(T('size: a label explains what to do'), /Whole inches in the box, then add a fraction/.test(await page.locator('.s2-size-help').innerText()));
     await shot(page, `${phone ? 'phone' : 'desktop'}-size-entry`);
-    await page.locator('.s2-frac-opt', { hasText: '7/8' }).click();
-    check(T('size: picking 7/8 adds it to the whole inches already typed'), (await page.locator('#s2-w').inputValue()) === '35 7/8' && (await page.locator('#s2-w-echo').innerText()).startsWith('35 7/8 in'));
+    await page.locator('#s2-w-frac').selectOption('7/8');
+    check(T('size: picking 7/8 adds it to the whole inches already typed'), (await sizeOf(page, 'w')) === '35 7/8' && (await page.locator('#s2-w-echo').innerText()).startsWith('35 7/8 in'));
+    await page.locator('#s2-w').focus(); await page.keyboard.press('Control+A'); await page.keyboard.type('36');
+    check(T('size: the box works from the keyboard and the price/preview size follow at once'), (await sizeOf(page, 'w')) === '36 7/8' && (await page.locator('#s2-w-echo').innerText()).startsWith('36 7/8 in'));
+    await page.locator('#s2-w').fill('35 7/8');
     await page.locator('#s2-h').fill('64');
 
     const opts = await page.locator('#s2-room option').allInnerTexts();
@@ -106,10 +118,10 @@ try {
     await page.locator('#s2-qty').fill('1');
     await page.locator('.s2-added-card').getByRole('button', { name: 'Add another like this' }).click();
     await page.locator('.s2-sw').first().waitFor();
-    check(T('Add another like this keeps the color and room and clears the size'), (await page.locator('.s2-sw.on').count()) === 1 && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === 'Other');
+    check(T('Add another like this keeps the color and room and clears the size'), (await page.locator('.s2-sw.on').count()) === 1 && (await sizeOf(page, 'w')) === '' && (await page.locator('.s2-estimate .s2-add-btn').isDisabled()) && (await page.locator('#s2-room').inputValue()) === 'Other');
     check(T('...and the first blind is still in the cart (and no incomplete item was left behind)'), /Your cart: 1 item/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')) && (await page.locator('.s2-order-pill').innerText()).includes('(1)'));
     // the same blind again merges into the first line
-    await page.locator('.s2-sw-zoom').first().click(); await page.locator('dialog.swatch-dialog[open]').waitFor(); await page.locator('dialog.swatch-dialog button', { hasText: 'Keep this color' }).click();
+    await page.locator('.s2-swprev-zoom').first().click(); await page.locator('dialog.swatch-dialog[open]').waitFor(); await page.locator('dialog.swatch-dialog button', { hasText: 'Keep this color' }).click();
     await page.locator('#s2-w').fill('35 7/8'); await page.locator('#s2-h').fill('64'); await page.locator('#s2-room').selectOption('Other'); await page.locator('#s2-room-custom').fill('Sunroom'); await page.locator('#s2-window').fill('Left');
     await ready();
     await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
@@ -173,16 +185,16 @@ try {
     const top = await page.locator('.s2-editing').evaluate((e) => e.getBoundingClientRect().top);
     check(T('Edit: "You’re changing: ..." message names the item'), /You’re changing: /.test(await page.locator('.s2-editing').innerText()));
     check(T(phone ? 'Edit on a phone: the message is at the top of the screen' : 'Edit on desktop: the message is visible near the top'), top >= 0 && top <= (phone ? 24 : 300), `top ${Math.round(top)}px`);
-    check(T('Edit: size and room come back as they were'), (await page.locator('#s2-w').inputValue()) === '35 7/8' && (await page.locator('#s2-room').inputValue()) === 'Other' && (await page.locator('#s2-room-custom').inputValue()) === 'Sunroom' && (await page.locator('#s2-window').inputValue()) === 'Left');
+    check(T('Edit: size and room come back as they were'), (await sizeOf(page, 'w')) === '35 7/8' && (await page.locator('#s2-room').inputValue()) === 'Other' && (await page.locator('#s2-room-custom').inputValue()) === 'Sunroom' && (await page.locator('#s2-window').inputValue()) === 'Left');
     await page.locator('.s2-editing .s2-link').click();
 
     // ---------- autosave and incomplete items
     await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-sw').first().click(); await page.locator('#s2-w').fill('30 1/4');
     await page.reload(); await page.locator('.s2-sw.on').waitFor();
-    check(T('autosave: a refresh keeps the color and the size'), (await page.locator('.s2-sw.on').count()) === 1 && (await page.locator('#s2-w').inputValue()) === '30 1/4');
+    check(T('autosave: a refresh keeps the color and the size'), (await page.locator('.s2-sw.on').count()) === 1 && (await sizeOf(page, 'w')) === '30 1/4');
     await page.goto(`${BASE}/`); await page.goto(`${BASE}/products/zebra`); await page.locator('.s2-sw.on').waitFor();
-    check(T('autosave: leaving and coming back keeps them'), (await page.locator('#s2-w').inputValue()) === '30 1/4');
+    check(T('autosave: leaving and coming back keeps them'), (await sizeOf(page, 'w')) === '30 1/4');
     check(T('the page that is open is not listed as incomplete (cart still counts 3)'), (await page.locator('.s2-order-pill').innerText()).includes('(3)'));
     await page.evaluate(() => sessionStorage.removeItem('lb_noted')); await page.goto(`${BASE}/measure`); await page.locator('.s2-incnote').waitFor();
     check(T('leaving partway: a small note says it was kept in the cart as incomplete'), /marked incomplete/.test(await page.locator('.s2-incnote').innerText()));
@@ -201,7 +213,7 @@ try {
     check(T('the checkout address cannot be used to get round the block'), (await page.locator('#s2-details-title').count()) === 0);
     await page.locator('.s2-incomplete a', { hasText: 'Finish choosing' }).click();
     await page.locator('.s2-sw.on').waitFor();
-    check(T('"Finish choosing" returns to the page with the choices kept'), (await page.locator('#s2-w').inputValue()) === '30 1/4' && page.url().endsWith('/products/zebra'));
+    check(T('"Finish choosing" returns to the page with the choices kept'), (await sizeOf(page, 'w')) === '30 1/4' && page.url().endsWith('/products/zebra'));
     await page.goto(`${BASE}/order`); await page.locator('.s2-incomplete').waitFor();
     await page.locator('.s2-incomplete').getByRole('button', { name: /Remove/ }).click();
     check(T('removing the incomplete item unblocks Checkout'), (await page.locator('.s2-incomplete').count()) === 0 && !(await page.locator('.s2-cart-actions .s2-send').isDisabled()));

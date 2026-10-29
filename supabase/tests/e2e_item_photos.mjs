@@ -4,6 +4,14 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const browser = await chromium.launch();
 try {
   for (const [w, h] of [[390, 844], [1280, 900]]) {
@@ -22,9 +30,10 @@ try {
     await open('cellular'); await page.locator('.s2-sw').first().click(); await size(); await add();
     await open('cellular'); await page.locator('.s2-card', { hasText: 'Top-down/bottom-up' }).click(); await page.locator('.s2-sw').first().click(); await size(); await add();
     await open('drapery'); await page.locator('.s2-sw').first().click();
-    await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click(); await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click(); await size(); await add();
+    await pickCurtains(page); await size(); await add();
     await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-sw').first().click();
     if (await page.locator('.s2-color-style .s2-card').count()) await page.locator('.s2-color-style .s2-card').first().click();
+    for (const n of ['Ceiling install', 'Inside', 'Left stack']) await page.locator('.s2-card', { has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n}$`) }) }).click();
     await size(); await add();
 
     const loaded = (sel) => page.evaluate(async (s) => {

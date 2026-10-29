@@ -4,9 +4,11 @@
 
 export const CONTROL_COPY = {
   chain: "Pull the beaded chain loop to raise and lower.",
-  cordless: "Lift or pull the bottom bar by hand. No cords. An optional center handle is included.",
-  "zero-gravity": "Grab the bottom rail and move it to any height. Let go and it stays right there. An optional center handle is included.",
+  cordless: "Grab the bottom rail and move it to any height. Let go and it stays right there.",       // saved orders only: Cordless is Zero gravity now
+  "zero-gravity": "Grab the bottom rail and move it to any height. Let go and it stays right there. A center handle is included.",
   motorized: "Raise and lower with a remote or your phone, no pulling.",
+  "two-in-one": "Use the remote, or just move the shade by hand. It stays wherever you leave it.",
+  "pull-rod": "Draw the curtain open and closed with a rod. Left or right stack only.",
   freestop: "Grab the bottom rail and move it to any height. Let go and it stays right there.",
   remote: "Raise and lower with a remote, no pulling.",
   matter: "Smart-home motor, works with Alexa, Google and Apple Home.",
@@ -27,13 +29,16 @@ export const MOTOR_CONTROL_COPY = {
   zigbee: "Control by app, voice and remote. Needs a Zigbee hub. Don\u2019t have one? You can buy one from us for $35.",
   matter: "Control by app, voice and remote. Works with Alexa, Google Home and Apple Home. No hub needed, but you need a smart speaker or device that supports Matter.",
 };
-export const SIDE_NOTE_BATTERY = "Pick the side closest to an outlet for charging.";
+export const SIDE_NOTE_BATTERY = "The motor sits on this side, and so does the charging port. Pick the side closest to an outlet.";
+export const SIDE_NOTE_WIRED = "The motor and its power cord sit on this side.";
+export const SIDE_NOTE_TWO_IN_ONE = "The 2 in 1 motor goes on the right side only.";
 
 // Controls with a picture: [line][mechanism id] -> explainer key
 export const CONTROL_IMG = {
-  roller: { chain: "control/roller-chain", cordless: "control/roller-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/roller-motorized" },
-  zebra:  { chain: "control/zebra-chain", cordless: "control/zebra-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/zebra-motorized" },
-  roman:  { cordless: "control/roman-cordless", "zero-gravity": "control/zero-gravity", motorized: "control/roman-motorized" },
+// (Chain has no picture on purpose: it stays available, but plain)
+  roller: { "zero-gravity": "control/zero-gravity", motorized: "control/roller-motorized" },
+  zebra:  { "zero-gravity": "control/zero-gravity", motorized: "control/zebra-motorized" },
+  roman:  { "zero-gravity": "control/zero-gravity", motorized: "control/roman-motorized" },
 };
 
 export const MOUNT_INFO = {

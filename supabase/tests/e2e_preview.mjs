@@ -1,7 +1,9 @@
 // Browser test of the product-page 3D preview (Roller and Zebra) and the room lab, at 390 and 1280 px. Needs a preview server (BASE_URL, default
-// http://localhost:4173). Runs with software WebGL. Checks: the preview comes up and replaces the photo; it follows the size, color, mount, control, cover and
-// double-stack choices; the size labels read the typed size and "Hide sizes" hides them; drag and slider move the shade; "See it in a room"; the photo tab;
-// the phone dock and its collapse button; no sideways scroll; no console errors; and the room lab's names, hidden handles and curtains.
+// http://localhost:4173). Runs with software WebGL. Checks: the preview comes up and is the first picture of the gallery; it follows the size, color, mount,
+// control, cover and double-stack choices; the one quiet size label reads the typed size and is always on; the Zero gravity handle is always visible and
+// the shade moves by dragging the handle or the bottom bar or with the arrow keys (there is no slider bar and no "See it in a room", "Hide sizes" or
+// "Style photo" button); the gallery (dots, arrows, a style photo and back keeps the configurator state); the phone dock and its collapse button;
+// no sideways scroll; no console errors; and the room lab's names, hidden handles and curtains (the room view code is unused on the product page).
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
@@ -18,6 +20,15 @@ async function open(vw, vh, path) {
   return { ctx, page, errors };
 }
 const fill = async (page, id, v) => { await page.locator(`#s2-${id}`).fill(v); await page.locator(`#s2-${id}`).blur(); };
+// the shade's position is read from the handle (or the bottom bar) and set with the keyboard: there is no slider bar any more
+const mover = (page) => page.locator('.pv-grip, .pv-bar').first();
+const readAmount = async (page) => Number(await mover(page).getAttribute('aria-valuenow'));
+const setAmount = async (page, target) => {
+  const m = mover(page); await m.focus();
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 40 && (await readAmount(page)) < target - 1; i++) { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(15); }
+  await page.waitForTimeout(150);
+};
 
 for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   const tag = `[${vw}px]`;
@@ -42,19 +53,19 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     check(`${tag} ${label}: the one size label reads the typed size`, sLabel === '40 × 64 in', `${sLabel}`);
     await fill(page, 'w', '44 1/2'); await page.waitForTimeout(500);
     check(`${tag} ${label}: a fraction shows in the label`, (await page.locator('.pv-size').first().textContent()).replace(/\s+/g, ' ') === '44 1/2 × 64 in');
-    await page.getByRole('button', { name: /Hide sizes/ }).click();
-    check(`${tag} ${label}: "Hide sizes" hides the labels`, (await page.locator('.pv-size').count()) === 0);
-    await page.getByRole('button', { name: /Show sizes/ }).click();
-    // the slider moves the shade
-    const before = await page.$eval('#pv-amount', (e) => e.value);
-    await page.evaluate(() => { const el = document.getElementById('pv-amount'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '20'); el.dispatchEvent(new Event('input', { bubbles: true })); });
-    check(`${tag} ${label}: the slider moves the shade`, before !== '20' && (await page.$eval('#pv-amount', (e) => e.value)) === '20');
-    // dragging the shade
+    check(`${tag} ${label}: there is no "Hide sizes", "See it in a room" or "Style photo" button, and no slider bar`, (await page.getByRole('button', { name: /Hide sizes|Show sizes|See it in a room/ }).count()) === 0 && (await page.getByRole('tab', { name: 'Style photo', exact: true }).count()) === 0 && (await page.locator('#pv-amount, .pv-slide, input[type=range]').count()) === 0);
+    check(`${tag} ${label}: the size label stays on`, (await page.locator('.pv-size').count()) === 1);
+    // the handle (Zero gravity, the default) is always visible; the shade moves by it, by dragging, and with the arrow keys
+    const zg = (await page.locator('.pv-grip').count()) === 1;
+    check(`${tag} ${label}: Zero gravity is the default and its center handle is visible`, zg && await page.locator('.pv-grip i').evaluate((e) => { const r = e.getBoundingClientRect(), c = getComputedStyle(e); return r.width >= 30 && r.height >= 10 && c.visibility === 'visible' && c.opacity === '1'; }));
+    const before = await readAmount(page);
+    await setAmount(page, 20);
+    check(`${tag} ${label}: the arrow keys move the shade from the handle`, before !== 20 && Math.abs((await readAmount(page)) - 20) <= 3, `${before} -> ${await readAmount(page)}`);
     if (vw > 700) {
-      const box = await page.locator('.pv-drag').boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.8, { steps: 6 }); await page.mouse.up();
-      const after = Number(await page.$eval('#pv-amount', (e) => e.value));
-      check(`${tag} ${label}: dragging the shade down lowers it`, after > 40, `slider ${after}`);
+      const g = await page.locator('.pv-grip').boundingBox(), sh = await page.locator('.pv-drag').boundingBox();
+      await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await page.mouse.down(); await page.mouse.move(g.x + g.width / 2, sh.y + sh.height * 0.8, { steps: 8 }); await page.mouse.up();
+      const after = await readAmount(page);
+      check(`${tag} ${label}: dragging the handle down lowers the shade`, after > 40, `amount ${after}`);
     }
     // options: outside mount, motor (not on every line), no fabric wrap
     await page.getByText('Outside mount', { exact: true }).first().click(); await page.waitForTimeout(500);
@@ -64,19 +75,22 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     await fill(page, 'w', '300'); await fill(page, 'h', '120'); await page.waitForTimeout(500);
     await fill(page, 'w', '12'); await fill(page, 'h', '12'); await page.waitForTimeout(500);
     check(`${tag} ${label}: very large and very small sizes still draw`, (await page.locator('.pv-stage.ready').count()) === 1 && errors.length === 0, errors.join(' | '));
-    // room
-    await fill(page, 'w', '40'); await fill(page, 'h', '64');
-    await page.getByRole('button', { name: 'See it in a room' }).click();
-    check(`${tag} ${label}: "See it in a room" shows the room`, await page.waitForSelector('.pv-room .rl-stage[data-status=ready]', { timeout: 30000 }).then(() => true).catch(() => false));
-    const crop = await page.locator('.pv-room .rl-room').evaluate((i) => ({ top: i.style.top, height: i.style.height, stage: i.parentElement.getBoundingClientRect().height, img: i.getBoundingClientRect().height }));
-    check(`${tag} ${label}: the room view is never cropped top or bottom (windows and sills show whole)`, (vw > 700 ? crop.top !== '' : parseFloat(crop.top) === 0 && parseFloat(crop.height) === 100), JSON.stringify(crop));
-    check(`${tag} ${label}: three handles in the room`, (await page.locator('.pv-room .rl-handle').count()) === 3);
-    await page.getByRole('button', { name: 'Back to my window' }).click();
-    check(`${tag} ${label}: back to the window`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
-    // photo tab
-    await page.getByRole('tab', { name: 'Style photo' }).click();
-    check(`${tag} ${label}: the style photo tab shows the photo`, (await page.locator('.s2-photo-frame img').count()) > 0 && (await page.locator('.pv-stage').count()) === 0);
-    await page.getByRole('tab', { name: 'Your blind' }).click();
+    // the gallery: picture 1 is the configurator; the next ones are style photos; going there and back keeps the choices
+    await page.locator('#s2-w-frac').selectOption(''); await fill(page, 'w', '40'); await fill(page, 'h', '64'); await page.waitForTimeout(400);
+    const dots = page.locator('.gal-dots [role=tab]');
+    check(`${tag} ${label}: the gallery has small dots (the configurator first, then style photos)`, (await dots.count()) >= 2 && (await dots.first().getAttribute('aria-selected')) === 'true');
+    if (vw > 900) check(`${tag} ${label}: arrows on desktop`, (await page.getByRole('button', { name: 'Next picture' }).isVisible()) && (await page.getByRole('button', { name: 'Previous picture' }).isVisible()));
+    await setAmount(page, 60); const keep = await readAmount(page);
+    await dots.nth(1).click(); await page.waitForTimeout(800);
+    check(`${tag} ${label}: a style photo shows, and the configurator is only hidden`, (await page.locator('.gal-photo .s2-photo-frame > img').count()) === 1 && (await page.locator('.gal-config').isHidden()) && (await page.locator('.gal-config').count()) === 1);
+    await dots.first().click(); await page.waitForTimeout(500);
+    check(`${tag} ${label}: back on the configurator, the size, color and shade position are kept`, (await page.locator('.pv-size').first().textContent()).replace(/\s+/g, ' ') === '40 × 64 in' && Math.abs((await readAmount(page)) - keep) <= 1 && (await page.locator('.s2-swgrid .s2-sw.on').count()) === 1, `${keep} -> ${await readAmount(page)}; size ${await page.locator('.pv-size').first().textContent()}; on ${await page.locator('.s2-swgrid .s2-sw.on').count()}`);
+    if (vw < 700) {                                   // swipe on a phone
+      await page.locator('.gal-stage').evaluate((el) => { const t = (type, x) => el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [new Touch({ identifier: 1, target: el, clientX: x, clientY: 200 })], changedTouches: [new Touch({ identifier: 1, target: el, clientX: x, clientY: 200 })] })); t('touchstart', 300); t('touchend', 100); });
+      await page.waitForTimeout(400);
+      check(`${tag} ${label}: a swipe moves to the next picture`, (await dots.nth(1).getAttribute('aria-selected')) === 'true');
+      await dots.first().click();
+    }
     if (vw < 700) {
       await page.evaluate(() => window.scrollTo(0, 700)); await page.waitForTimeout(500);
       const top = await page.locator('.s2-line-photo').evaluate((e) => Math.round(e.getBoundingClientRect().top));
@@ -113,9 +127,11 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
   const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
-  const amount = async () => Number(await page.locator('#pv-amount').inputValue());
-  check(`${tag} no remote tile on a chain shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
-  check(`${tag} the drag pill starts small and see-through, and is shown`, (await page.locator('.pv-handle:not(.gone)').count()) === 1 && await page.locator('.pv-handle i').evaluate((e) => e.getBoundingClientRect().width <= 26 && getComputedStyle(e).backgroundColor.endsWith(', 0.6)')));
+  const amount = () => readAmount(page);
+  check(`${tag} no remote tile on a Zero gravity shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
+  check(`${tag} no drag pill when the shade has a handle`, (await page.locator('.pv-handle').count()) === 0 && (await page.locator('.pv-grip').count()) === 1);
+  await card('Chain').click(); await page.waitForTimeout(500);
+  check(`${tag} a Chain shade has no handle: the bottom bar moves it, and a small first-use hint shows`, (await page.locator('.pv-grip').count()) === 0 && (await page.locator('.pv-bar').count()) === 1 && (await page.locator('.pv-handle:not(.gone)').count()) === 1 && await page.locator('.pv-handle i').evaluate((e) => e.getBoundingClientRect().width <= 26));
   await card('Motorized').click(); await page.waitForTimeout(900);
   check(`${tag} the remote tile is not on the picture: it sits below the preview, and the window has only the size label on it`, (await page.locator('.pv-stage .pv-incl').count()) === 0 && await page.evaluate(() => { const t = document.querySelector('.pv-incl').getBoundingClientRect(), st = document.querySelector('.pv-stage').getBoundingClientRect(); return t.top >= st.bottom - 1; }));
   check(`${tag} Motorized puts no label or pointer line on the picture (only the size label and the remote tile)`, (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0 && (await page.locator('.pv-stage .pv-size').count()) === 1);
@@ -126,13 +142,13 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   check(`${tag} Zigbee says it needs a hub, sold separately, $35`, /Needs a Zigbee hub \(sold separately, \$35\)/.test(await works()));
   await card('App + Voice + Remote (Matter)').click(); await page.waitForTimeout(300);
   check(`${tag} Matter says it works with a Matter smart speaker or hub`, /Works with your Matter smart speaker or hub/.test(await works()));
-  await card('Remote control only').click(); await page.waitForTimeout(300);
-  check(`${tag} Remote control only has no "Works with" box`, !/Works with|Needs a Zigbee/.test(await works()));
-  await card('App + Remote').click(); await page.waitForTimeout(300);
+  await card('Remote only').click(); await page.waitForTimeout(300);
+  check(`${tag} Remote only has no "Works with" box`, !/Works with|Needs a Zigbee/.test(await works()));
+  await card('App + Remote (Bluetooth)').click(); await page.waitForTimeout(300);
   // the buttons move the shade; Stop holds it
   const a0 = await amount();
   await page.getByRole('button', { name: 'Lower the shade' }).click(); await page.waitForTimeout(150);
-  check(`${tag} the drag pill fades away after the first remote press`, (await page.locator('.pv-handle.gone').count()) === 1);
+  check(`${tag} the remote press counts as the first use (the hint is gone)`, (await page.locator('.pv-handle.gone').count()) === 1);
   check(`${tag} the pressed remote button lights up`, (await page.locator('.rm-key.lit').count()) === 1);
   await page.waitForTimeout(1500);
   const a1 = await amount();
@@ -142,27 +158,29 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.getByRole('button', { name: 'Raise the shade' }).click(); await page.waitForTimeout(1500);
   check(`${tag} Up raises it again`, (await amount()) < s2 - 3);
   await page.getByRole('button', { name: 'Stop' }).click();
-  await page.locator('#pv-amount').fill('30'); await page.waitForTimeout(300);
-  check(`${tag} the slider still works next to the remote`, (await amount()) === 30);
+  await setAmount(page, 30);
+  check(`${tag} the bottom bar's arrow keys still work next to the remote`, Math.abs((await amount()) - 30) <= 3);
   await page.getByRole('button', { name: 'Lower the shade' }).focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(700); await page.getByRole('button', { name: 'Stop' }).click();
   check(`${tag} the remote works from the keyboard`, (await amount()) > 30);
   await card('Add a solar panel').click(); await page.waitForTimeout(900);
   check(`${tag} a solar panel adds no label and no pointer line to the picture`, (await page.locator('.pv-solar-label, .pv-solar-line').count()) === 0);
-  await page.locator('#pv-amount').fill('100'); await page.waitForTimeout(600);
+  await setAmount(page, 99); await page.waitForTimeout(400);
   check(`${tag} the picture still has just the size label and the remote tile when the shade is fully down`, (await page.locator('.pv-stage .pv-size').count()) === 1 && (await page.locator('.pv-incl').count()) === 1);
   check(`${tag} no console errors`, errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
 
-// the drag pill: gone after the first slider move, and it stays gone for the rest of the visit
+// the first-use hint (only on shades with no handle): gone after the first move, and it stays gone for the rest of the visit
 {
   const { ctx, page } = await open(1280, 900, '/products/roller');
   await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
-  check('[1280px] the drag pill is shown before anything is touched', (await page.locator('.pv-handle:not(.gone)').count()) === 1);
-  await page.locator('#pv-amount').fill('30'); await page.waitForTimeout(900);
-  check('[1280px] the drag pill fades out after the first slider move', (await page.locator('.pv-handle.gone').count()) === 1 && (await page.locator('.pv-handle').evaluate((e) => getComputedStyle(e).visibility)) === 'hidden');
+  await page.getByText('Chain', { exact: true }).first().click(); await page.waitForTimeout(500);
+  check('[1280px] the hint is shown before anything is touched', (await page.locator('.pv-handle:not(.gone)').count()) === 1);
+  await setAmount(page, 30); await page.waitForTimeout(900);
+  check('[1280px] the hint fades out after the first move', (await page.locator('.pv-handle.gone').count()) === 1 && (await page.locator('.pv-handle').evaluate((e) => getComputedStyle(e).visibility)) === 'hidden');
   await page.reload({ waitUntil: 'networkidle' }); await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
+  await page.getByText('Chain', { exact: true }).first().click();
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
   check('[1280px] and it stays gone for the rest of the visit (after a reload)', (await page.locator('.pv-handle.gone').count()) === 1);
   await ctx.close();
@@ -180,7 +198,7 @@ for (const [vw, vh] of [[390, 844], [1280, 800]]) {
   // the Solar color panel lists XS (solar family) codes, Screen view lists XSS / YSS / WSS codes
   await page.locator('.rl-pill').nth(1).getByRole('button', { name: /^Previous/ }).dispatchEvent('click'); await page.waitForTimeout(300);
   await page.locator('.rl-more').first().click(); await page.waitForSelector('.rl-dlg .s2-sw', { timeout: 20000 });
-  const codes = await page.locator('.rl-dlg .s2-sw-code').allTextContents();
+  const codes = await page.locator('.rl-dlg .s2-sw').evaluateAll((els) => els.map((e) => (e.getAttribute('aria-label') || '').split(' ').pop()));
   check(`${tag} room lab: Solar colors are the solar family (no XSS codes)`, codes.length > 10 && !codes.some((c) => /^XSS|^YSS|^WSS/.test(c)), codes.slice(0, 4).join(', '));
   await page.locator('.rl-dlg-close').click();
   // handles hide when curtains cover the window

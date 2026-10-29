@@ -1,14 +1,13 @@
 // Shared building blocks of the redesigned product pages (Stage 2): numbered steps, choice cards, the color step,
 // the size step, mount pictures, the estimate card and the sticky price bar.
 import { useMemo, useState } from 'react';
-import { entriesFor, fabricsFor, COLOR_FAMILY_ORDER, tileSrc, tileFallbacks } from '../data/swatchData.js';
+import { entriesFor, fabricsFor, tileSrc, tileFallbacks } from '../data/swatchData.js';
 import { ExplainerImg, hasExplainer } from './ExplainerImg.jsx';
 import { SwatchImg, SwatchDialog, makePick, labelOf } from './SwatchPicker.jsx';
 import { useCatalogStatus } from '../lib/useCatalog.js';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { blinds } from '../lib/itemView.js';
 import { MAX_QTY, clampQty } from '../lib/limits.js';
-import { MagnifierIcon } from '../icons.jsx';
 
 // ---- Steps -------------------------------------------------------------------------------------------------------
 
@@ -24,24 +23,64 @@ export function Step({ n, title, hint, children }) {
 }
 
 // Cards for a simple choice: name, one-line explanation, and a picture when one exists.
+// An option can carry a quiet `badge` ("Best value") and can be `plain` (no picture emphasis: used for Chain).
 export function Cards({ label, options, value, onChange, min = 200, disabledIds = [], stack = false }) {
   return (
     <div className="s2-cards" role="group" aria-label={label} style={{ "--min": `${min}px` }}>
       {options.map((o) => {
         const on = value === o.id;
-        const pic = o.picture || (o.img && hasExplainer(o.img) ? <ExplainerImg name={o.img} alt="" /> : null);
+        const pic = !o.plain && (o.picture || (o.img && hasExplainer(o.img) ? <ExplainerImg name={o.img} alt="" /> : null));
         return (
-          <button key={o.id} type="button" className={`s2-card${on ? " on" : ""}${pic ? " with-pic" : ""}${stack && pic ? " stack" : ""}`} aria-pressed={on}
+          <button key={o.id} type="button" className={`s2-card${on ? " on" : ""}${pic ? " with-pic" : ""}${stack && pic ? " stack" : ""}${o.plain ? " plain" : ""}`} aria-pressed={on}
             disabled={disabledIds.includes(o.id)} onClick={() => onChange(o.id)}>
             {pic && <span className="s2-card-pic">{pic}</span>}
             <span className="s2-card-text">
               <span className="s2-card-name">{o.label}</span>
+              {o.badge && [].concat(o.badge).length > 0 && <span className="s2-badges">{[].concat(o.badge).map((b) => <span key={b} className="s2-badge">{b}</span>)}</span>}
               {o.desc && <span className="s2-card-desc">{o.desc}</span>}
             </span>
           </button>
         );
       })}
     </div>
+  );
+}
+
+// A row of small round color dots (chain color, cord loop color, bottom bar color, metal finish): the name is always written next to the dot.
+export function ColorDots({ label, options, value, onChange }) {
+  return (
+    <div className="s2-cdots" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.id} type="button" className={`s2-cdot${value === o.id ? " on" : ""}`} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
+          <span className="s2-cdot-chip" style={{ background: o.hex }} aria-hidden="true" />
+          <span className="s2-cdot-name">{o.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// "More options": the small choices with sensible defaults, folded away until asked for. `summary` says what is chosen now.
+export function MoreOptions({ summary, children }) {
+  return (
+    <details className="s2-more">
+      <summary><span className="s2-more-title">More options</span><span className="s2-more-sum">{summary}</span></summary>
+      <div className="s2-more-body">{children}</div>
+    </details>
+  );
+}
+
+// A small side-on drawing for the roll direction: the glass on the left, the room on the right, the roller, and where the fabric hangs.
+export function RollDiagram({ dir }) {
+  const front = dir === "reverse";
+  return (
+    <svg className="s2-roll" width="72" height="56" viewBox="0 0 72 56" fill="none" aria-hidden="true">
+      <rect x="6" y="4" width="3" height="48" fill="#CFE0EA" />
+      <circle cx="34" cy="13" r="8" fill="#E9E1D3" stroke="#5E554B" strokeWidth="1.6" />
+      <path d={front ? "M42 13 V48" : "M26 13 V48"} stroke="#7A5C2E" strokeWidth="3" strokeLinecap="round" />
+      <path d="M12 52 H66" stroke="#CDBFA6" strokeWidth="1.5" />
+      <text x="8" y="3" fontSize="0">glass</text>
+    </svg>
   );
 }
 
@@ -66,61 +105,81 @@ export function TopCoverStep({ value, onChange }) {
 
 // ---- Color step ----------------------------------------------------------------------------------------------------
 
-const FIRST_SHOWN = 48;
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-// The color picker itself: one search box (name or code), color-family filters, swatches showing name and code only, a magnifier on
-// each swatch that opens it larger. Used by the product pages (ColorStep) and by the room visualizer's color panel.
+// The color picker's filter chips, mapped from the catalog's finer color families
+const FILTERS = [
+  { id: "White", members: ["White", "Cream/Ivory"] },
+  { id: "Beige", members: ["Beige/Tan"] },
+  { id: "Grey", members: ["Gray"] },
+  { id: "Black", members: ["Charcoal/Black"] },
+  { id: "Brown", members: ["Brown"] },
+  { id: "Color", members: ["Blue", "Green", "Pink/Red", "Purple", "Pattern/Multi"] },
+];
+const MANY = 12;     // from this many colors on, the filter chips and the search box appear
+
+// The color picker itself: a grid of real fabric swatches (soft rounded squares), a larger preview of the picked one with its name and code,
+// a row of color-family filters and the search when a line has many colors. Used by the product pages (ColorStep) and the room visualizer's panel.
 // `entries` come from entriesFor(); `activeId` is the picked swatch id; `onChoose(entry)` is called when a swatch is picked.
 export function SwatchBrowser({ id, entries, activeId, role = null, onChoose, codeText }) {
   const [query, setQuery] = useState("");
   const [color, setColor] = useState(null);
-  const [all, setAll] = useState(false);
   const [view, setView] = useState(null);
-  const families = COLOR_FAMILY_ORDER.filter((f) => entries.some((e) => e.color === f));
+  const many = entries.length > MANY;
+  const filters = FILTERS.filter((f) => entries.some((e) => f.members.includes(e.color)));
   const q = norm(query);
-  const results = entries.filter((e) => (!color || e.color === color) && (!q || norm(e.swatch.displayName).includes(q) || norm(e.swatch.code).includes(q)));
-  const shown = all || q || color ? results : results.slice(0, FIRST_SHOWN);
+  const inFilter = (e) => { const f = FILTERS.find((x) => x.id === color); return !f || f.members.includes(e.color); };
+  const results = entries.filter((e) => inFilter(e) && (!q || norm(e.swatch.displayName).includes(q) || norm(e.swatch.code).includes(q)));
   // a color with Classic and Slim has two codes until a style is picked; then the picked style's code is shown
   const codeOf = codeText || ((s) => (s.styles?.length ? s.styles.map((x) => x.code).join(" / ") : s.code));
+  const picked = activeId ? entries.find((e) => e.swatch.id === activeId) : null;
   return (
     <div className="s2-color">
-      <div className="s2-color-tools">
-        <label className="s2-sr" htmlFor={`${id}-search`}>Search colors by name or code</label>
-        <input id={`${id}-search`} className="s2-input s2-search" type="search" placeholder="Search name or code" value={query} onChange={(e) => setQuery(e.target.value)} />
-        {families.length > 1 && (
-          <div className="s2-chips" role="group" aria-label="Filter by color">
-            <button type="button" className={`s2-chip${color == null ? " on" : ""}`} aria-pressed={color == null} onClick={() => setColor(null)}>All</button>
-            {families.map((f) => (
-              <button key={f} type="button" className={`s2-chip${color === f ? " on" : ""}`} aria-pressed={color === f} onClick={() => setColor(color === f ? null : f)}>{f}</button>
-            ))}
-          </div>
-        )}
-      </div>
+      {many && (
+        <div className="s2-color-tools">
+          <label className="s2-sr" htmlFor={`${id}-search`}>Search colors by name or code</label>
+          <input id={`${id}-search`} className="s2-input s2-search" type="search" placeholder="Search name or code" value={query} onChange={(e) => setQuery(e.target.value)} />
+          {filters.length > 1 && (
+            <div className="s2-chips" role="group" aria-label="Filter by color">
+              <button type="button" className={`s2-chip${color == null ? " on" : ""}`} aria-pressed={color == null} onClick={() => setColor(null)}>All</button>
+              {filters.map((f) => (
+                <button key={f.id} type="button" className={`s2-chip${color === f.id ? " on" : ""}`} aria-pressed={color === f.id} onClick={() => setColor(color === f.id ? null : f.id)}>{f.id}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {results.length === 0 ? (
         <div className="s2-empty">No colors match. Try another name or code.</div>
       ) : (
-        <div className="s2-swatches" role="group" aria-label="Colors">
-          {shown.map((e) => {
+        <div className="s2-swgrid" role="group" aria-label="Colors">
+          {results.map((e) => {
             const s = e.swatch;
             const on = activeId === s.id;
             return (
-              <div key={s.id} className="s2-sw-cell">
-                <button type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s, on)}`} onClick={() => onChoose(e)}>
-                  <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={200} /></span>
-                  <span className="s2-sw-name">{labelOf(e)}</span>
-                  <span className="s2-sw-code">{codeOf(s, on)}</span>
-                </button>
-                <button type="button" className="s2-sw-zoom" aria-label={`View ${labelOf(e)} larger`} onClick={() => setView(e)}><span className="s2-sw-zoom-dot"><MagnifierIcon /></span></button>
-              </div>
+              <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s, on)}`} title={labelOf(e)} onClick={() => onChoose(e)}>
+                <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={96} /></span>
+                <span className="s2-sw-name s2-sr">{labelOf(e)}</span><span className="s2-sw-code s2-sr">{codeOf(s, on)}</span>
+              </button>
             );
           })}
         </div>
       )}
-      {!all && !q && !color && results.length > FIRST_SHOWN && (
-        <button type="button" className="s2-btn-more" onClick={() => setAll(true)}>Show all {results.length} colors</button>
-      )}
+
+      <div className="s2-swprev" aria-live="polite">
+        {picked ? (
+          <>
+            <span className="s2-swprev-img"><SwatchImg src={picked.swatch.image || tileSrc(picked.swatch)} fallback={[tileSrc(picked.swatch), ...tileFallbacks(picked.swatch)]} alt="" code={picked.swatch.code} size={160} /></span>
+            <span className="s2-swprev-text">
+              {role && <span className="s2-swprev-role">{role}</span>}
+              <span className="s2-swprev-name">{labelOf(picked)}</span>
+              <span className="s2-swprev-code">{codeOf(picked.swatch, true)}</span>
+              <button type="button" className="s2-link s2-swprev-zoom" onClick={() => setView(picked)}>View larger</button>
+            </span>
+          </>
+        ) : <span className="s2-swprev-empty">Pick a color to see it here.</span>}
+      </div>
       <SwatchDialog entry={view} role={role} chosen={!!view && view.swatch.id === activeId} onChoose={(e) => { onChoose(e); setView(null); }} onClose={() => setView(null)} />
     </div>
   );

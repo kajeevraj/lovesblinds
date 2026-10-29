@@ -8,6 +8,14 @@ const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const H = (k) => ({ apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' });
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const groups = (await (await fetch(`${URL_}/rest/v1/fabrics?select=collection_name`, { headers: H(SVC) })).json()).map((f) => f.collection_name);
 const WORDS = /Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades|Drapery/gi;
@@ -42,8 +50,7 @@ try {
   // window 2: curtains, 2 windows
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click();
-  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
-  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await pickCurtains(page);
   await size(120, 96); await page.locator('#s2-qty').fill('2');
   await add();
   // window 3: Dream Curtains with a style
@@ -55,6 +62,7 @@ try {
   check('Classic is preselected and the color tile shows only the Classic code (ZDS30xx)', (await page.locator('.s2-color-style .s2-card.on').innerText()).includes('Classic') && /^ZDS30\d+-\d+$/.test((await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim()));
   await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click();
   check('after picking Slim the tile shows the Slim code (ZDS3902-1)', (await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim() === 'ZDS3902-1', await page.locator('.s2-sw.on .s2-sw-code').innerText());
+  for (const n of ['Ceiling install', 'Inside', 'Left stack']) await page.locator('.s2-card', { has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n}$`) }) }).click();
   await size(60, 84); await page.locator('#s2-qty').fill('2'); await add();
 
   // the order page
@@ -76,12 +84,12 @@ try {
   // the Edit link opens the same page as clicking the item
   await items.nth(2).getByRole('link', { name: /^Edit / }).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-color-style .s2-card.on').waitFor();
-  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
+  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
   await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   // clicking an item opens its product page with every choice filled in; Save changes updates the same item
   await items.nth(0).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-sw.on .s2-sw-name').innerText()).includes(rName));
+  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-sw.on .s2-sw-name').innerText()).includes(rName));
   const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#s2-qty').fill('4');

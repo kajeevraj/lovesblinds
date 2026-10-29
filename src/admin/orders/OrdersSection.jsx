@@ -154,7 +154,7 @@ function OrderDetail({ order, onBack, onSaved }) {
             const qty = Number(l.qty) || 1;
             return (
               <tr key={i}>
-                <td data-label="Item">{l.internalDescription || l.description || l.productName}{l.mountId && <div className="adm-small adm-muted">{l.mountId} mount</div>}</td>
+                <td data-label="Item">{l.internalDescription || l.description || l.productName}{l.mechName && <div className="adm-small">Control: {l.mechName}</div>}{l.mountId && <div className="adm-small adm-muted">{l.mountId} mount</div>}</td>
                 <td data-label="Size">{sizeText(l) || '—'}</td>
                 <td data-label="Qty">{qty}</td>
                 <td data-label="Room">{[l.roomLabel, l.windowLabel].filter(Boolean).join(' · ') || '—'}</td>

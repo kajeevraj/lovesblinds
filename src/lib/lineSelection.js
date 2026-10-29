@@ -1,9 +1,17 @@
 // The selection a line page turns into an order item, plus what is still missing.
+import { parseMech, usesDrive, cellularMotorName } from './drive.js';
+import { extrasFor } from './choices.js';
+import { styleById, cleanHardware, RETURNS } from './hardware.js';
 
 export function buildSelection(line, c) {
   const missing = [];
   const need = (v, what) => { if (!v) missing.push(what); return v; };
   let sel = { lineId: line.id, picks: [] };
+  // the small $0 choices (chain color, bottom bar, roll direction ...) that apply to this line and movement
+  const drive = usesDrive(line.id) ? parseMech(line.id, c.mech, { double: c.mode === 'double-stack' }) : null;
+  const extras = drive ? extrasFor(line.id, drive.movement, { ...c.extras, bottomWrap: c.bottomWrap }, { double: c.mode === 'double-stack' }) : {};
+  if (Object.keys(extras).length) sel.extras = extras;
+  if (line.id === 'cellular' && drive?.movement === 'motorized') sel.motorType = cellularMotorName(c.type);   // the motor follows the style
   switch (line.id) {
     case "roller":
       sel.mode = c.mode;
@@ -50,14 +58,27 @@ export function buildSelection(line, c) {
     case "drapery":
       sel.section = c.section;
       if (c.section === "curtains") {
+        const st = styleById(c.styleId);
         need(c.pick, "a color");
-        need(c.pleat, "a pleat style");
-        need(c.lining, "a lining");
-        sel.pleat = c.pleat || undefined;
+        need(st, "a style");
+        need(st && c.fullness, "a fullness");
+        need(c.lining, "a liner");
+        need(c.panels, "single or pair");
+        sel.pleat = st ? st.label : undefined;
+        sel.fullness = c.fullness || undefined;
+        sel.returnTo = RETURNS.some((r) => r.id === c.returnTo) ? c.returnTo : undefined;
+        sel.panels = c.panels || undefined;
         sel.lining = c.lining || undefined;
+        need(!c.hardwareIncomplete, "a track or rod");
+        const hw = cleanHardware(c.hardware, c.styleId);
+        if (hw) sel.hardware = hw;
         if (c.pick) sel.picks = [c.pick];
       } else {
         need(c.dream, "a fabric and color");
+        need(c.dreamOpts?.install, "an install type");
+        need(c.dreamOpts?.fit, "inside or outside");
+        need(c.dreamOpts?.stack, "a stack");
+        if (c.dreamOpts) sel.dreamOpts = { install: c.dreamOpts.install, fit: c.dreamOpts.fit, stack: c.dreamOpts.stack };
         if (c.dream) sel.picks = [c.dream];
       }
       break;

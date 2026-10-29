@@ -12,6 +12,14 @@ const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Typ
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${!ok && detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 let browser, userId;
 const ready = (page) => page.waitForFunction(() => { const b = document.querySelector('.s2-add-btn'); return b && !b.disabled; });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -122,7 +130,7 @@ try {
     await page.locator('.s2-add-btn').click(); await page.locator('.s2-added-card').waitFor();
     check(T('the card says "Add another like this" (no "Build another")'), (await page.getByRole('button', { name: 'Add another like this' }).count()) === 1 && (await page.getByRole('button', { name: 'Build another' }).count()) === 0);
     await page.getByRole('button', { name: 'Add another like this' }).click(); await page.locator('#s2-w').waitFor(); await sleep(500);
-    check(T('Add another like this keeps the product, color, options and room, and clears the size and window label'), (await page.locator('.s2-sw.on').count()) === 1 && (await page.locator('#s2-room').inputValue()) === 'Kitchen' && (await page.locator('#s2-w').inputValue()) === '' && (await page.locator('#s2-h').inputValue()) === '' && (await page.locator('#s2-window').inputValue()) === '' && await page.locator('.s2-add-btn').isDisabled());
+    check(T('Add another like this keeps the product, color, options and room, and clears the size and window label'), (await page.locator('.s2-sw.on').count()) === 1 && (await page.locator('#s2-room').inputValue()) === 'Kitchen' && (await sizeOf(page, 'w')) === '' && (await sizeOf(page, 'h')) === '' && (await page.locator('#s2-window').inputValue()) === '' && await page.locator('.s2-add-btn').isDisabled());
     check(T('...and scrolls to the Size step'), await page.evaluate(() => { const e = [...document.querySelectorAll('.s2-step')].find((x) => /Size/.test(x.querySelector('.s2-step-title').innerText)); const r = e.getBoundingClientRect(); return r.top >= -5 && r.top < innerHeight * 0.4; }));
 
     // ---------- Finish choosing: the note's button, and scroll to the first missing step
@@ -152,7 +160,7 @@ try {
     check('the panel says "Price by email" (not "Price sent by email" or "Price on request")', /Price by email/.test(await page.locator('.s2-panel').innerText()) && !/sent by email|on request/i.test(await page.locator('.s2-panel').innerText()));
     await page.keyboard.press('Escape');
     await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-    await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click(); await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+    await pickCurtains(page);
     await page.locator('#s2-w').fill('120'); await page.locator('#s2-h').fill('96'); await page.waitForFunction(() => document.querySelector('.s2-estimate-title')?.innerText === 'Price by email');
     check('curtains: the card heading is "Price by email"', (await page.locator('.s2-estimate-title').innerText()) === 'Price by email');
     // Dream Curtains: Classic preselected, no empty picture boxes, no "Selected:" line, both codes only until a style is chosen
@@ -166,12 +174,13 @@ try {
     check('Dream Curtains: no picture boxes on the style cards and no "Selected:" line', (await page.locator('.s2-color-style .s2-card-pic').count()) === 0 && (await page.locator('.s2-picked').count()) === 0);
     await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click(); check('...and Slim is one tap away', (await page.locator('.s2-color-style .s2-card.on').innerText()).includes('Slim'));
     // swatch magnifier tap area, jargon lines
-    await page.goto(`${BASE}/products/roller`); await page.locator('.s2-sw-zoom').first().waitFor();
-    check('the magnifier has a 44 px tap area', await page.locator('.s2-sw-zoom').first().evaluate((e) => { const r = e.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
+    await page.goto(`${BASE}/products/roller`); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
+    check('every swatch has at least a 44 px tap area, and 4 to 5 fit on a row at 390 px', await page.locator('.s2-swgrid .s2-sw').first().evaluate((e) => { const r = e.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }) && await page.locator('.s2-swgrid').evaluate((g) => { const tops = [...g.querySelectorAll('.s2-sw')].slice(0, 12).map((e) => Math.round(e.getBoundingClientRect().top)); const perRow = tops.filter((t) => t === tops[0]).length; return perRow >= 4 && perRow <= 5; }));
     const body = await page.locator('main').innerText();
-    check('plain lines under the jargon options (Motorized, Zero gravity, Cordless, cassette)', /Raise and lower with a remote or your phone, no pulling\./.test(body) && /Grab the bottom rail and move it to any height\. Let go and it stays right there\./.test(body) && /Lift or pull the bottom bar by hand\./.test(body) && /The cassette is the cover over the top of the shade\./.test(body));
+    check('plain lines under the jargon options (Motorized, Zero gravity, cassette)', /Raise and lower with a remote or your phone, no pulling\./.test(body) && /Grab the bottom rail and move it to any height\. Let go and it stays right there\./.test(body) && !/Cordless/.test(body) && /The cassette is the cover over the top of the shade\./.test(body));
     await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
-    check('"Manual track" has its plain line', /Slide the curtain by hand along the track\./.test(await page.locator('main').innerText()));
+    await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.waitForTimeout(500);
+    check('"Manual" has its plain line (Dream Curtains)', /Slide the curtain by hand along the track\./.test(await page.locator('main').innerText()));
     // Day and Night on two lines
     await page.goto(`${BASE}/products/cellular`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-card', { hasText: 'Day & night' }).click(); await page.locator('#c-day-search').waitFor();
     await page.locator('#c-day-search').locator('xpath=ancestor::div[contains(@class,"s2-color")]').locator('.s2-sw').first().click(); await page.locator('#c-night-search').locator('xpath=ancestor::div[contains(@class,"s2-color")]').locator('.s2-sw').first().click();

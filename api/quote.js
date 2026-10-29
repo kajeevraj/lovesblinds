@@ -290,7 +290,7 @@ export async function checkSizes(lines, env = process.env, fetchFn = fetch) {
   const cache = new Map();
   for (const [i, l] of lines.entries()) {
     const line = limitLineFor(l.category, l.selection?.section);
-    const control = l.mechId ? pricingOptions(l.category, l.mechId).control : '';
+    const control = l.mechId ? pricingOptions(l.category, l.mechId, { double: l.selection?.mode === 'double-stack' }).control : '';
     const k = `${line}|${control}`;
     if (!cache.has(k)) {
       cache.set(k, fetchFn(`${url}/rest/v1/rpc/size_limits`, {

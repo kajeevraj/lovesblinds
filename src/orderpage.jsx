@@ -76,7 +76,7 @@ function quoteLine(it, p) {
     details: sum.parts,
     selection: it.selection || null,
     mechId: it.mech,
-    mechName: mechNameOf(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name),
+    mechName: mechNameOf(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name, it.selection),
     mountId: it.mount,
     width: it.width || null,
     length: it.length || it.height || null,

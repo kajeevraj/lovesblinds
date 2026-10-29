@@ -26,6 +26,8 @@ function ValueRow({ v, group, siblings, idx, adders, reload, setErr, setMsg }) {
   const removeImg = () => run(async () => { const old = v.image_path; await patch('option_values', { id: v.id }, { image_path: null }); await removeOptionImage(old); }, 'Picture removed; the built-in picture (if any) shows again.');
   const staticImg = v.image_key && EXPLAINERS[v.image_key]?.src;
   const shown = v.image_path ? optionImageUrl(v.image_path) : staticImg;
+  const makeBest = () => run(() => patch('option_values', { id: v.id }, { best_value: !v.best_value }), v.best_value ? 'Best value removed.' : `“${v.label}” is now the Best value option for this line (any other one lost the badge).`);
+  const makeTop = () => run(() => patch('option_values', { id: v.id }, { top_of_line: !v.top_of_line }), v.top_of_line ? 'Top of the line removed.' : `“${v.label}” is now the Top of the line option for this line (any other one lost the tag).`);
   const linked = group.key === 'control' ? adders.filter((a) => [].concat(a.applies_when?.control || []).includes(v.code)) : [];
   return (
     <tr className={v.active ? '' : 'is-hidden'}>
@@ -40,6 +42,8 @@ function ValueRow({ v, group, siblings, idx, adders, reload, setErr, setMsg }) {
         <select aria-label="Price grid system" value={sys} onChange={(e) => setSys(e.target.value)}><option value="">None</option>{Object.entries(SYSTEM_LABEL).map(([k, l]) => <option key={k} value={k}>{l} grid</option>)}</select>
         <div className="adm-small adm-muted">{linked.length ? `+ adders: ${linked.map((a) => `${a.kind === 'add' ? '+' : '−'}$${Number(a.amount ?? 0)} ${a.label}${when({ ...a.applies_when, control: undefined }) ? ` (${when({ ...a.applies_when, control: undefined })})` : ''}`).join('; ')}` : 'no adders'}</div></td>}
       <td data-label="Default"><label className="adm-check"><input type="radio" name={`def-${group.id}`} checked={v.is_default} readOnly onClick={makeDefault} disabled={busy} /> Default</label></td>
+      {group.key === 'control' && <td data-label="Best value"><label className="adm-check"><input type="checkbox" checked={!!v.best_value} onChange={makeBest} disabled={busy || !v.active} aria-label={`Best value: ${v.label}`} /> Best value</label>
+        <label className="adm-check"><input type="checkbox" checked={!!v.top_of_line} onChange={makeTop} disabled={busy || !v.active} aria-label={`Top of the line: ${v.label}`} /> Top of the line</label></td>}
       <td className="adm-actions">
         <button className="adm-btn adm-btn-sm" disabled={!dirty || busy} onClick={save}>Save</button>{' '}
         <button className="adm-btn adm-btn-sm" disabled={busy} onClick={() => run(() => patch('option_values', { id: v.id }, { active: !v.active }), `“${v.label}” is now ${v.active ? 'hidden' : 'visible'}.`)}>{v.active ? 'Hide' : 'Show'}</button>{' '}
@@ -69,7 +73,7 @@ function Group({ group, values, adders, reload, setErr, setMsg }) {
         <label className="adm-field"><span>Note under the cards</span><input value={note} onChange={(e) => setNote(e.target.value)} /></label>
       </div>
       <button className="adm-btn adm-btn-sm" disabled={label === group.label && note === (group.note || '')} onClick={saveGroup}>Save heading and note</button>
-      <table className="adm-table adm-options"><thead><tr><th>Picture</th><th>Option</th>{group.key === 'control' && <th>Price grid</th>}<th>Default</th><th /></tr></thead><tbody>
+      <table className="adm-table adm-options"><thead><tr><th>Picture</th><th>Option</th>{group.key === 'control' && <th>Price grid</th>}<th>Default</th>{group.key === 'control' && <th>Tags (one each per line)</th>}<th /></tr></thead><tbody>
         {values.map((v, i) => <ValueRow key={v.id + v.updated_at} v={v} group={group} siblings={values} idx={i} adders={adders} reload={reload} setErr={setErr} setMsg={setMsg} />)}
       </tbody></table>
       {!group.bound && (
@@ -94,7 +98,7 @@ export default function OptionsTab({ line, data, reload }) {
   return (
     <div>
       {msg && <p className="adm-notice" role="status">{msg}</p>}{err && <p className="adm-error" role="alert">{err}</p>}
-      <p className="adm-muted">Values are shown in this order. Hide an option instead of deleting it, so saved orders keep their names. The live site does not read these yet.</p>
+      <p className="adm-muted">Values are shown in this order. Hide an option instead of deleting it, so saved orders keep their names. The live site reads Show and Hide for the movement options and every newer choice (chain color, cord loop, bottom bar, roll direction, curtain styles, hardware, Dream Curtains), and it reads the one "Best value" and the one "Top of the line" (highest end, Motorized unless you pick another) movement per line (a small tag on those cards). Names, explanations and pictures still come from the site's own code.</p>
       {groups.map((g) => <Group key={g.id} group={g} values={data.values.filter((v) => v.group_id === g.id)} adders={adders} reload={reload} setErr={setErr} setMsg={setMsg} />)}
     </div>
   );

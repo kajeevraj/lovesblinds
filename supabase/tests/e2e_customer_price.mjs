@@ -7,6 +7,14 @@ const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const H = (k) => ({ apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' });
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_name`, { headers: H(SVC) })).json();
 const suppNames = (await (await fetch(`${URL_}/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null&limit=2000`, { headers: H(SVC) })).json()).map((x) => x.supplier_color_name).filter((n) => n.length > 5);
@@ -22,7 +30,7 @@ try {
 
   await page.goto(`${BASE}/products/roller`); await rtiles().first().waitFor();
   const html = await page.content();
-  check('the Roller page shows no price on any swatch, tag or filter before a color is picked', !/\$\s?\d/.test(await page.locator('.s2-swatches').first().innerText()) && (await page.locator('.s2-estimate-price').count()) === 0, 'no "$" in the grid, no estimate shown');
+  check('the Roller page shows no price on any swatch, tag or filter before a color is picked', !/\$\s?\d/.test(await page.locator('.s2-swgrid').first().innerText()) && (await page.locator('.s2-estimate-price').count()) === 0, 'no "$" in the grid, no estimate shown');
   check('before a color and size the bar shows no price, and the Add to cart button in the card is off and says what is missing', (await page.locator('.s2-estimate-price').count()) === 0 && await page.locator('.s2-add-btn').isDisabled() && /Pick a color/.test(await page.locator('.s2-add-hint').innerText()));
   check('the page and the catalog responses contain no price group names', leak(html + bodies.map((b) => b[1]).join('')).length === 0, leak(html + bodies.map((b) => b[1]).join('')).slice(0, 5).join(', ') || `${names.length} names checked`);
 
@@ -71,8 +79,7 @@ try {
   // curtains: price on request
   await page.goto(`${BASE}/products/drapery`); await rtiles().first().waitFor();
   await rtiles().first().click();
-  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
-  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await pickCurtains(page);
   await page.getByText(/send us your order and we.ll reply with a price/i).first().waitFor();
   check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
   check('the Drapery page has no price group names either', leak(await page.content()).length === 0, 'checked');

@@ -161,10 +161,17 @@ class Shade {
 
   // the cassette and bottom rail: wrapped in the shade's fabric (the default), or a plain bar ("No fabric wrap")
   setCover(cover) { this.cover = cover; this._applyCover(); this.env.invalidate(); }
+  // the bottom bar can have its own color (the "bottom bar color" choice); with no color it follows the cassette (fabric or plain)
+  setRailColor(hex) { this.railHex = hex || null; this._applyCover(); this.env.invalidate(); }
   _applyCover() {
     if (!this.plain) this.plain = new THREE.MeshStandardMaterial({ color: 0xe6e2d9, roughness: 0.5, metalness: 0.05 });
     const m = this.cover === 'none' || !this.solid ? this.plain : this.solid;
-    this.cassette.material = this.rail.material = m;
+    this.cassette.material = m;
+    if (this.railHex) {
+      if (!this.railMat) this.railMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.15 });
+      this.railMat.color.set(this.railHex);
+      this.rail.material = this.railMat;
+    } else this.rail.material = m;
   }
 
   applyEnv() { this.mats.forEach((m) => applyGlow(m, this.env)); }
@@ -179,6 +186,7 @@ class Shade {
   dispose() {
     this._disposeMaterials();
     this.plain?.dispose();
+    this.railMat?.dispose();
     this.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.isMesh && o.material && o.material.isMeshBasicMaterial) o.material.dispose(); });
     this.group.removeFromParent();
   }

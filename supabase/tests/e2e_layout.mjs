@@ -18,7 +18,7 @@ try {
     const m = await page.evaluate(() => {
       const R = (s) => { const x = document.querySelector(s).getBoundingClientRect(); return { l: x.left, r: x.right, t: x.top, b: x.bottom, h: x.height, cy: (x.top + x.bottom) / 2 }; };
       const bar = document.querySelector('.s2-bar'); const inner = getComputedStyle(document.querySelector('.s2-bar-inner'));
-      const rows = (sel) => [...document.querySelectorAll(sel)].map((row) => [...row.children].filter((c) => c.tagName !== 'LABEL' && c.offsetHeight).map((c) => Math.round(c.getBoundingClientRect().height * 10) / 10));
+      const rows = (sel) => [...document.querySelectorAll(sel)].map((row) => [...row.children].filter((c) => c.tagName !== 'LABEL' && c.tagName !== 'SPAN' && c.offsetHeight).map((c) => Math.round(c.getBoundingClientRect().height * 10) / 10));
       const pads = (sel) => [...document.querySelectorAll(sel)].map((e) => { const c = getComputedStyle(e); return ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].map((k) => parseFloat(c[k])); });
       return {
         txt: R('.s2-bar-blind'), btn: R('.s2-bar-checkout'), ord: R('.s2-bar-cartbtn'), crumbs: R('.s2-crumbs'), bar: bar.getBoundingClientRect().toJSON(),

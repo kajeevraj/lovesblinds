@@ -7,8 +7,9 @@ import Markups from './Markups.jsx';
 import GridViewer from './GridViewer.jsx';
 import AddersFlags from './AddersFlags.jsx';
 import ImportWizard from './ImportWizard.jsx';
+import HardwareRates from './HardwareRates.jsx';
 
-const TABS = [['checker', 'Price checker'], ['markups', 'Markups'], ['grids', 'Grids'], ['adders', 'Adders & flags'], ['import', 'Re-import']];
+const TABS = [['checker', 'Price checker'], ['markups', 'Markups'], ['grids', 'Grids'], ['adders', 'Adders & flags'], ['hardware', 'Curtain hardware'], ['import', 'Re-import']];
 
 export default function PricingSection() {
   const [data, setData] = useState(null);
@@ -38,6 +39,7 @@ export default function PricingSection() {
       {tab === 'markups' && <Markups data={data} catalog={catalog} reload={reload} />}
       {tab === 'grids' && <GridViewer data={data} catalog={catalog} reload={reload} />}
       {tab === 'adders' && <AddersFlags data={data} reload={reload} />}
+      {tab === 'hardware' && <HardwareRates data={data} reload={reload} />}
       {tab === 'import' && <ImportWizard data={data} catalog={catalog} reload={reload} />}
     </div>
   );

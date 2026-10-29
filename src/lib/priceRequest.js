@@ -6,12 +6,12 @@ import { pricingOptions } from './drive.js';
 export function priceRequest(line, c, mech, width, height) {
   const w = parseFloat(width), h = parseFloat(height);
   const sized = w > 0 && h > 0;
-  const base = (pick, extra = {}, siteLine = line.id) => (pick ? { line: siteLine, swatchId: pick.swatchId, options: { ...pricingOptions(line.id, mech), ...extra }, width: sized ? w : null, height: sized ? h : null, sized } : null);
+  const base = (pick, extra = {}, siteLine = line.id) => (pick ? { line: siteLine, swatchId: pick.swatchId, options: { ...pricingOptions(line.id, mech, { double: c.mode === 'double-stack' }), ...extra }, width: sized ? w : null, height: sized ? h : null, sized } : null);
   let r = null;
   switch (line.id) {
     case 'roller':
       // "No fabric wrap" is the supplier's deduction, applied to cost before the markup by the database
-      if (c.mode === 'double-stack') r = c.front && c.back ? base(c.front, { mode: 'double-stack', back_swatch_id: c.back.swatchId, ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) }) : null;
+      if (c.mode === 'double-stack') r = c.front && c.back ? base(c.front, { mode: 'double-stack', back_swatch_id: c.back.swatchId, ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}), ...(c.bottomWrap === 'none' ? { wrap_bottom_rail: 'none' } : {}) }) : null;
       else r = base(c.front, { mode: 'single', ...(c.wrap === 'none' ? { wrap_cassette: 'none' } : {}) });
       break;
     case 'zebra': r = base(c.pick, c.wrap === 'none' ? { wrap_cassette: 'none' } : {}); break;     // same supplier deduction as Roller
@@ -39,7 +39,7 @@ export function priceRequestFromItem(line, item) {
   const [p0, p1] = sel.picks;
   const wrap = sel.cover === 'none' ? 'none' : 'wrapped';
   const c = {
-    mode: sel.mode, front: p0, back: p1, wrap,
+    mode: sel.mode, front: p0, back: p1, wrap, bottomWrap: sel.extras?.bottomWrap,
     pick: p0, type: sel.type, day: p0, night: p1,
     lining: sel.lining, section: sel.section, dream: p0,
   };

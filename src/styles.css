@@ -1527,3 +1527,109 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .rl-handle.pv-handle i { width: 24px; height: 12px; background: rgba(255, 253, 249, .6); box-shadow: 0 1px 4px -1px rgba(40, 25, 5, .3); }
 .rl-handle.pv-handle i::before { left: 6px; right: 6px; top: 3px; height: 4px; }
 .pv-handle.gone { opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s linear .6s; }
+
+/* ---- Product page update (migration 20 round): gallery, handle, best value, swatch picker, size line, more options, hardware ---- */
+
+/* the picture gallery: picture 1 is the live configurator, then the style photos */
+.gal { display: flex; flex-direction: column; gap: 10px; }
+.gal-stage { position: relative; }
+.gal-config[hidden] { display: none; }
+.gal-photo .s2-photo-frame { aspect-ratio: 1 / 1.05; max-height: 70vh; width: 100%; }
+.gal-photo .s2-photo-frame img { height: 100%; }
+.gal-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 253, 249, 0.82); color: var(--s2-ink); display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 5px rgba(30, 26, 22, 0.25); opacity: 0.85; z-index: 5; }
+.gal-arrow:hover { background: #fff; opacity: 1; }
+.gal-arrow:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 2px; opacity: 1; }
+.gal-arrow svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.gal-prev { left: 8px; } .gal-next { right: 8px; }
+@media (min-width: 960px) { .gal-arrow { display: inline-flex; } .gal-config .pv-incl { margin-bottom: 0; } }
+.gal-dots { display: flex; justify-content: center; gap: 2px; }
+.gal-dots button { width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.gal-dots button span { width: 8px; height: 8px; border-radius: 50%; background: #CFC3B0; transition: background .2s ease, transform .2s ease; }
+.gal-dots button.on span { background: var(--s2-ink); transform: scale(1.2); }
+.gal-dots button:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: -2px; border-radius: 50%; }
+.pv-wrap { min-width: 0; }
+
+/* the center handle (Zero gravity and 2 in 1: always there) and the bottom bar hit area (every other option) */
+.pv-grip { position: absolute; width: 56px; height: 44px; margin: -22px 0 0 -28px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; z-index: 3; }
+.pv-grip:active { cursor: grabbing; }
+.pv-grip i { display: block; width: 40px; height: 14px; border-radius: 99px; background: #FFFDF9; border: 1.5px solid var(--s2-brass); box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 3px 8px -2px rgba(40, 25, 5, .5); position: relative; }
+.pv-grip i::before { content: ''; position: absolute; left: 12px; right: 12px; top: 3px; height: 4px; border-top: 1.5px solid var(--s2-brass); border-bottom: 1.5px solid var(--s2-brass); }
+.pv-grip:hover i { transform: scale(1.06); }
+.pv-grip:focus-visible { outline: none; }
+.pv-grip:focus-visible i { outline: 3px solid #2f7fe0; outline-offset: 2px; }
+.pv-bar { position: absolute; height: 36px; margin: -18px 0 0; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; z-index: 3; }
+.pv-bar:active { cursor: grabbing; }
+.pv-bar:focus-visible { outline: 3px solid #2f7fe0; outline-offset: -3px; border-radius: 6px; }
+
+/* "Best value": a small, quiet tag on one movement option */
+.s2-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 1px 0 3px; }
+.s2-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; background: #F0E7D6; color: var(--s2-brass-text); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.s2-card.on .s2-badge { background: #E9DCC0; }
+.s2-card.plain { min-height: 64px; background: transparent; }
+.s2-card.plain .s2-card-name { font-weight: 500; }
+
+/* small color dots with the name written beside them */
+.s2-cdots { display: flex; flex-wrap: wrap; gap: 8px; }
+.s2-cdot { min-height: 44px; padding: 0 14px 0 10px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid #CFC3B0; border-radius: 999px; background: var(--s2-cream); color: var(--s2-ink); font: 500 14px/1 "Montserrat", sans-serif; cursor: pointer; }
+.s2-cdot:hover { border-color: var(--s2-ink); }
+.s2-cdot.on { border: 2px solid var(--s2-ink); background: var(--s2-card); padding: 0 13px 0 9px; }
+.s2-cdot-chip { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(30, 26, 22, 0.25); flex: none; }
+
+/* More options (folded) */
+.s2-more { border: 1px solid var(--s2-line); border-radius: 8px; background: var(--s2-card); }
+.s2-more > summary { list-style: none; cursor: pointer; min-height: 56px; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.s2-more > summary::-webkit-details-marker { display: none; }
+.s2-more > summary::after { content: '+'; margin-left: auto; font-size: 22px; color: var(--s2-brass); line-height: 1; }
+.s2-more[open] > summary::after { content: '\2212'; }
+.s2-more-title { font: 600 15px/1.2 "Montserrat", sans-serif; }
+.s2-more-sum { font-size: 13px; color: var(--s2-muted); }
+.s2-more > summary:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 2px; border-radius: 8px; }
+.s2-more-body { padding: 4px 16px 18px; display: flex; flex-direction: column; gap: 20px; }
+.s2-more-group h3, .s2-sub { margin: 0 0 10px; font: 600 13px/1.3 "Montserrat", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--s2-brass-text); }
+.s2-more-group h3 { margin-bottom: 10px; }
+.s2-sub { margin-top: 22px; }
+.s2-roll { display: block; }
+
+/* the color picker: a grid of real fabric swatches, a larger preview of the picked one, quiet filters */
+.s2-swgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 12px 10px; justify-items: center; max-height: 372px; overflow-y: auto; padding: 8px 6px; margin: 0 -6px; scroll-behavior: smooth; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #CFC3B0 transparent; }
+.s2-swgrid .s2-sw { width: 52px; height: 52px; min-height: 44px; padding: 0; border: 0; background: none; border-radius: 14px; cursor: pointer; transition: transform .18s ease; }
+.s2-swgrid .s2-sw-img { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(30, 26, 22, 0.14); transition: box-shadow .18s ease; }
+.s2-swgrid .s2-sw.on { transform: translateY(-2px); }
+.s2-swgrid .s2-sw.on .s2-sw-img { box-shadow: 0 0 0 2px var(--s2-cream), 0 0 0 3.5px var(--s2-ink), 0 5px 10px -3px rgba(30, 26, 22, .35); }
+@media (hover: hover) { .s2-swgrid .s2-sw:hover { transform: scale(1.08); } .s2-swgrid .s2-sw.on:hover { transform: translateY(-2px) scale(1.06); } }
+.s2-swgrid .s2-sw:focus-visible { outline: 2px solid var(--s2-brass); outline-offset: 3px; }
+.s2-swprev { display: flex; align-items: center; gap: 16px; margin-top: 14px; padding: 12px; border: 1px solid var(--s2-line); border-radius: 12px; background: var(--s2-card); min-height: 88px; }
+.s2-swprev-img { flex: none; width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #E9E1D3; box-shadow: inset 0 0 0 1px rgba(30, 26, 22, 0.14); }
+.s2-swprev-img img, .s2-swprev-img .swatch-fallback { display: block; width: 100%; height: 100%; object-fit: cover; }
+.s2-swprev-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s2-swprev-role { font: 600 11px/1.2 "Montserrat", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--s2-brass-text); }
+.s2-swprev-name { font: 600 16px/1.3 "Montserrat", sans-serif; }
+.s2-swprev-code { font-size: 13px; color: var(--s2-muted); }
+.s2-swprev-zoom { align-self: flex-start; min-height: 32px; padding: 0; font-size: 13px; }
+.s2-swprev-empty { font-size: 14px; color: var(--s2-muted); }
+.s2-chips { gap: 6px; }
+.s2-chip { padding: 0 14px; font-size: 13px; }
+.s2-color-tools { align-items: center; }
+
+/* the size line:  Width [ 40 ] in [ + 3/8 v ] */
+.s2-size-line { flex: 1 1 280px; }
+.s2-size-row { align-items: center; flex-wrap: nowrap; }
+.s2-size-row .s2-size-whole { flex: 0 0 96px; width: 96px; text-align: center; }
+.s2-size-unit { font-size: 15px; color: var(--s2-muted); padding: 0 2px; }
+.s2-size-fraclabel { font-size: 13px; font-weight: 600; color: var(--s2-muted); white-space: nowrap; margin-left: 6px; }
+.s2-size-row .s2-size-frac { flex: 0 0 auto; width: 88px; padding: 0 8px; text-align: center; text-align-last: center; font-weight: 600; cursor: pointer; }
+.s2-select { width: 100%; max-width: 360px; }
+@media (max-width: 420px) { .s2-size-row { gap: 6px; } .s2-size-row .s2-size-whole { flex-basis: 80px; width: 80px; } .s2-size-fraclabel { margin-left: 2px; font-size: 12px; } .s2-size-row .s2-size-frac { width: 76px; } }
+
+/* hardware (track or rod) */
+.s2-hw-body { margin-top: 4px; }
+.s2-hw-price { margin: 18px 0 0; padding: 12px 14px; background: var(--s2-card); border-left: 3px solid var(--s2-brass); font-size: 14px; line-height: 1.5; }
+
+/* the phone strip: the gallery's picture sits in the sticky area; the dots stay small */
+@media (max-width: 959px) {
+  .has-preview .gal-photo .s2-photo-frame { aspect-ratio: auto; height: min(75vw, 40vh); min-height: 220px; }
+  .has-preview .gal { gap: 4px; }
+  .has-preview .gal-dots button { height: 22px; }
+  .has-preview .gal-photo + .gal-dots { }
+  .has-preview.collapsed .gal-stage, .has-preview.collapsed .gal-dots, .has-preview.collapsed .gal > .s2-photo-note { display: none; }
+}
