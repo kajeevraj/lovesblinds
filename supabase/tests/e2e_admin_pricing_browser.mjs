@@ -114,7 +114,7 @@ try {
   await page.getByText('from the supplier').first().waitFor();
   const dtxt = await page.locator('.adm-kv').first().innerText();
   check('the breakdown shows the price group and the extra cost apart', /Price group\s+Sunflower/.test(dtxt) && /Extra cost\s+\+\$0\.00/.test(dtxt) && /Price before extra cost/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 200));
-  check('Dream Curtains motor shows the +$100 adder marked "from the supplier"', /\+\$100/.test(dtxt) && /from the supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 300));
+  check('Dream Curtains motor shows the +$100 adder marked "from the supplier"', /\+\$100/.test(dtxt) && /from the supplier/.test(dtxt), dtxt.replace(/\s+/g, ' ').slice(0, 900));
   // option labels show the customer amount, not the supplier cost
   await page.getByLabel('Product line').selectOption('roller');
   await page.getByLabel(/Find a color/).fill('XSS000105'); await page.getByRole('listbox', { name: 'Matching colors' }).getByRole('option').first().getByRole('button').click();

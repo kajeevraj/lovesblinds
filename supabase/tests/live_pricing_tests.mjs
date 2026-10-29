@@ -202,7 +202,7 @@ try {
 } finally {
   for (const fn of cleanup.reverse()) { try { await fn(); } catch { /* best effort */ } }
   await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', svc, { markup: 0.5 });
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: 90 });
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: 100 });
   for (const id of adminRows) await call('DELETE', `/rest/v1/admins?id=eq.${id}`, svc);
   for (const id of users) await call('DELETE', `/auth/v1/admin/users/${id}`, svc);
   const left = []; for (const id of users) left.push((await call('GET', `/auth/v1/admin/users/${id}`, svc)).status);
