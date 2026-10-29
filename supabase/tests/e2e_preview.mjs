@@ -139,7 +139,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   const works = () => page.locator('.pv-incl').innerText().catch(() => '');
   check(`${tag} "Works with" says the phone for App + Remote`, /Works with your phone \(Smart Life app\)/.test(await works()));
   await card('App + Voice + Remote (Zigbee)').click(); await page.waitForTimeout(300);
-  check(`${tag} Zigbee says it needs a hub, sold separately, $35`, /Needs a Zigbee hub \(sold separately, \$35\)/.test(await works()));
+  check(`${tag} Zigbee says it needs a hub and to add one in the cart for $35`, /Needs a Zigbee hub\. Add one in your cart for \$35 if you don't have one\./.test(await works()));
   await card('App + Voice + Remote (Matter)').click(); await page.waitForTimeout(300);
   check(`${tag} Matter says it works with a Matter smart speaker or hub`, /Works with your Matter smart speaker or hub/.test(await works()));
   await card('Remote only').click(); await page.waitForTimeout(300);

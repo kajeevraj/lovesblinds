@@ -8,6 +8,8 @@ import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, POWER_COPY, SOLAR_COPY, MOTOR_CO
 import { usesDrive, mechName, parseMech, formatMech, pricingOptions, movementsFor, defaultMovement, motorControlsFor, powersFor, cellularMotorName, MOVEMENT_NAME, POWER_NAME, MOTOR_CONTROL_NAME, SIDE_NAME } from './lib/drive.js';
 import { extrasFor, extrasText, CHAIN_COLORS, CORD_TYPES, CORD_LOOP_COLORS, BAR_COLORS, ROLL_DIRECTIONS } from './lib/choices.js';
 import { useLineOptions } from './lib/lineOptions.js';
+import { useHubPrice } from './lib/hubPrice.js';
+import { zigbeeNote } from './lib/hub.js';
 import { priceRequest, usePriceState } from './lib/estimate.js';
 import { CORD_LOOP_LINES } from './lib/choices.js';
 import { buildSelection } from './lib/lineSelection.js';
@@ -77,6 +79,7 @@ export default function LineShell({
     return usesDrive(line.id) ? formatMech(line.id, parseMech(line.id, m, { double })) : (line.id === 'drapery' ? parseMech('drapery', m).movement : m);      // (older Dream Curtains orders say remote or matter: both are Motorized now)
   });
   const opts = useLineOptions(line.id);
+  const hubPrice = useHubPrice();
   // the small $0 choices (chain color, cord loop, bottom bar, roll direction): what was saved, else the defaults
   const [extras, setExtras] = useState(() => start?.selection?.extras || edit?.selection?.extras || {});
   const [mount, setMount] = useState(start?.mount || edit?.mount || line.mounts[0]);
@@ -332,7 +335,7 @@ export default function LineShell({
                   {motorControlsFor(line.id, { double }).length > 1 && (
                     <Step n={++k} title="How you control it">
                       <Cards label="Motor control" min={220} stack value={drive.control} onChange={(id) => setMech(formatMech(line.id, { ...drive, control: id }))}
-                        options={motorControlsFor(line.id, { double }).filter((id) => opts.isOn('motor-control', id)).map((id) => ({ id, label: MOTOR_CONTROL_NAME[id], desc: MOTOR_CONTROL_COPY[id] }))} />
+                        options={motorControlsFor(line.id, { double }).filter((id) => opts.isOn('motor-control', id)).map((id) => ({ id, label: MOTOR_CONTROL_NAME[id], desc: MOTOR_CONTROL_COPY[id].replace('{hub}', `$${hubPrice}`) }))} />
                     </Step>
                   )}
                 </>
@@ -350,7 +353,7 @@ export default function LineShell({
                   <SimpleRemote type={remote.type} lit={remoteLit} onPress={flashRemote} />
                   <div className="rm-card-text">
                     <strong>Included: remote</strong>
-                    {usesDrive(line.id) && WORKS_NOTE[drive.control] && <p>{WORKS_NOTE[drive.control]}</p>}
+                    {usesDrive(line.id) && WORKS_NOTE[drive.control] && <p>{drive.control === 'zigbee' ? zigbeeNote(hubPrice) : WORKS_NOTE[drive.control]}</p>}
                     {remote.count >= 2 && <p className="rm-share">{SHARE_NOTE}</p>}
                   </div>
                 </div>

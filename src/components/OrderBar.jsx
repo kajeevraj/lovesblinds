@@ -1,5 +1,6 @@
 // The cart bar: sticky at the bottom of the customer pages. On a product page its left half is "This blind" (swatch, color, price)
 // and its right half is "Your cart"; elsewhere only the cart half shows. The cart half opens a panel that slides up from the bar.
+import { HubOption, HubTotalRow } from './HubOption.jsx';
 import { useEffect, useRef } from 'react';
 import { useCart } from '../lib/cart.js';
 import { money, blinds, photoFor, detailsOf } from '../lib/itemView.js';
@@ -252,9 +253,11 @@ export function OrderPanel({ navigate }) {
         )}
         {(items.length > 0 || incomplete.length > 0) && (
           <div className="s2-panel-foot">
+            <HubOption cart={cart} compact />
             <SavePrompt />
             {items.length > 0 && (
               <>
+                <HubTotalRow cart={cart} />
                 <div className="s2-total-row"><span>Estimated total</span><strong>{totals.loading ? '…' : totals.total > 0 ? money(totals.total) : 'Price by email'}</strong></div>
                 {totals.byEmail > 0 && totals.total > 0 && <div className="s2-total-plus">Plus {totals.byEmail} priced by email</div>}
               </>

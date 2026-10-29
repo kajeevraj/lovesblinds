@@ -26,7 +26,7 @@ export const SOLAR_COPY = "Add a small solar panel on the window and the battery
 export const MOTOR_CONTROL_COPY = {
   "app-remote": "Bluetooth motor. Use the Smart Life app on your phone or the included remote.",
   "remote-only": "A radio-remote motor. Works with the included remote.",
-  zigbee: "Control by app, voice and remote. Needs a Zigbee hub. Don\u2019t have one? You can buy one from us for $35.",
+  zigbee: "Control by app, voice and remote. Needs a Zigbee hub. Add one in your cart for {hub} if you don't have one.",
   matter: "Control by app, voice and remote. Works with Alexa, Google Home and Apple Home. No hub needed, but you need a smart speaker or device that supports Matter.",
 };
 export const SIDE_NOTE_BATTERY = "The motor sits on this side, and so does the charging port. Pick the side closest to an outlet.";

@@ -14,6 +14,7 @@ export const STATUSES = [
   { id: 'shipped', label: 'Shipped' },
 ];
 const LIMIT = 200;
+const COLUMNS_NEW = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note,remote_overrides,qty_overrides';        // with migration 20
 const COLUMNS = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note,remote_overrides';
 const COLUMNS_OLD = 'id,created_at,customer,lines,notes,total,by_email_count,customer_copy,status,admin_note';      // before migration 19
 
@@ -38,7 +39,8 @@ export default function OrdersSection() {
   const [q, setQ] = useState('');
 
   const reload = useCallback(async () => {
-    let { data, error: err } = await supabase.from('sent_orders').select(COLUMNS).order('created_at', { ascending: false }).limit(LIMIT);
+    let { data, error: err } = await supabase.from('sent_orders').select(COLUMNS_NEW).order('created_at', { ascending: false }).limit(LIMIT);
+    if (err && /qty_overrides|remote_overrides/.test(err.message || '')) ({ data, error: err } = await supabase.from('sent_orders').select(COLUMNS).order('created_at', { ascending: false }).limit(LIMIT));       // migration 20 not run yet
     if (err && /remote_overrides/.test(err.message || '')) ({ data, error: err } = await supabase.from('sent_orders').select(COLUMNS_OLD).order('created_at', { ascending: false }).limit(LIMIT));     // migration 19 not run yet
     if (err) { setError(/sent_orders/.test(err.message || '') ? 'The orders table is not set up yet (run migration 14 in Supabase).' : explain(err)); return; }
     setOrders(data); setError('');
@@ -100,6 +102,13 @@ function OrderDetail({ order, onBack, onSaved }) {
   const [msg, setMsg] = useState(''); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const c = order.customer || {};
   const [overrides, setOverrides] = useState(order.remote_overrides || {});
+  const [qtyOv, setQtyOv] = useState(order.qty_overrides || {});
+  const canQty = order.qty_overrides !== undefined;                                            // false until migration 20 has been run
+  const setQty = async (i, n) => {
+    const next = { ...qtyOv }; if (n > 1 || n === 0) next[i] = n; else delete next[i];
+    setErr(''); setMsg('');
+    try { await updateRow('sent_orders', order.id, { qty_overrides: next }); setQtyOv(next); setMsg('Quantity saved.'); } catch (e) { setErr(explain(e)); }
+  };
   const canOverride = order.remote_overrides !== undefined;                                    // false until migration 19 has been run
   const over16 = (order.lines || []).some((l) => l.remote?.over16);
   const setRemote = async (i, type) => {
@@ -151,12 +160,17 @@ function OrderDetail({ order, onBack, onSaved }) {
         <table className="adm-table"><thead><tr><th>Item</th><th>Size</th><th>Qty</th><th>Room</th><th>Remote</th><th>Estimate</th></tr></thead><tbody>
           {(order.lines || []).map((l, i) => {
             const unit = l.price?.kind === 'price' ? l.price.unit : null;
-            const qty = Number(l.qty) || 1;
+            const sentQty = Number(l.qty) || 1;
+            const qty = qtyOv[i] != null ? qtyOv[i] : sentQty;
             return (
               <tr key={i}>
                 <td data-label="Item">{l.internalDescription || l.description || l.productName}{l.mechName && <div className="adm-small">Control: {l.mechName}</div>}{l.mountId && <div className="adm-small adm-muted">{l.mountId} mount</div>}</td>
                 <td data-label="Size">{sizeText(l) || '—'}</td>
-                <td data-label="Qty">{qty}</td>
+                <td data-label="Qty">{l.accessory && canQty ? (
+                  <><input aria-label={`Quantity of ${l.productName || 'item'}`} type="number" min="0" max="99" value={qty} style={{ width: 64 }} onChange={(e) => setQtyOv((o) => ({ ...o, [i]: Math.max(0, Math.min(99, parseInt(e.target.value, 10) || 0)) }))} />
+                    {qty !== (order.qty_overrides?.[i] ?? sentQty) && <button className="adm-btn adm-btn-sm" aria-label="Save quantity" onClick={() => setQty(i, qty)}>Save</button>}
+                    {qty !== sentQty && <div className="adm-small adm-muted">changed; was {sentQty}</div>}</>
+                ) : qty}</td>
                 <td data-label="Room">{[l.roomLabel, l.windowLabel].filter(Boolean).join(' · ') || '—'}</td>
                 <td data-label="Remote">{l.remote ? (
                   <>
@@ -174,6 +188,9 @@ function OrderDetail({ order, onBack, onSaved }) {
           })}
         </tbody></table>
         <p className="adm-order-total"><strong>Estimated total: {totalText(order)}</strong></p>
+        {(order.lines || []).some((l, i) => qtyOv[i] != null && qtyOv[i] !== (Number(l.qty) || 1)) && (
+          <p className="adm-small">With the changed quantities: <strong>{money((order.total || 0) + (order.lines || []).reduce((n, l, i) => (qtyOv[i] != null && l.price?.kind === 'price' ? n + l.price.unit * (qtyOv[i] - (Number(l.qty) || 1)) : n), 0))}</strong></p>
+        )}
       </div>
     </div>
   );

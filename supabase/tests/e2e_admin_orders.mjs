@@ -63,6 +63,32 @@ try {
     check(`[${label}] back to the list, which shows the new status`, /Confirmed/.test(await page.locator('.adm-table').innerText()));
     await ctx.close();
   }
+  // an order with a Zigbee hub line: it shows as its own line (quantity 1, $35); an admin can change the quantity (needs migration 20's qty_overrides column)
+  const hubLine = { qty: 1, accessory: 'zigbee-hub', category: 'accessory', productName: 'Zigbee hub', description: 'Zigbee hub', internalDescription: 'Zigbee hub (flat selling price, no markup)', width: null, length: null, roomLabel: '', windowLabel: '', price: { kind: 'price', unit: 35, checked: true } };
+  const hubName = `${tag}-Hub`;
+  await mkOrder(hubName, { lines: [line({ qty: 1, mechName: 'Motorized, battery, App + Voice + Remote (Zigbee), right side' }), hubLine], total: 174, by_email_count: 0 });
+  const canQty = (await api('GET', '/rest/v1/sent_orders?select=qty_overrides&limit=1', H(SVC))).status === 200;
+  for (const [label, vp] of [['390px', { width: 390, height: 844 }], ['1280px', { width: 1280, height: 800 }]]) {
+    const ctx = await browser.newContext({ viewport: vp });
+    await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok.body)]);
+    const page = await ctx.newPage(); page.setDefaultTimeout(20000);
+    await page.goto(`${BASE}/admin`); await page.getByRole('button', { name: 'Orders' }).first().click().catch(async () => { await page.getByRole('button', { name: 'Menu' }).click(); await page.getByRole('button', { name: 'Orders' }).click(); });
+    await page.locator('.adm-table').waitFor(); await page.getByPlaceholder('Search name or email').fill(hubName);
+    await page.getByRole('button', { name: new RegExp(hubName) }).click(); await page.getByRole('heading', { name: 'Status and notes' }).waitFor();
+    const txt = await page.locator('.adm-main').innerText();
+    check(`[${label}] the Zigbee hub is its own line in the admin order view, quantity 1 at $35, and the total includes it`, /Zigbee hub/.test(txt) && /\$35/.test(txt) && /\$174/.test(txt) && /Items \(2\)|Items \(\d+\)/.test(txt));
+    if (canQty) {
+      const qtyBox = page.getByRole('spinbutton', { name: /Quantity of Zigbee hub/ });
+      check(`[${label}] an admin can change the hub's quantity, and the total with the change is shown`, (await qtyBox.inputValue()) === '1');
+      await qtyBox.fill('2'); await page.getByRole('button', { name: 'Save quantity' }).click();
+      await page.getByText('Quantity saved.').waitFor();
+      const row = (await api('GET', `/rest/v1/sent_orders?select=qty_overrides,lines&customer->>name=eq.${hubName}`, H(SVC))).body[0];
+      check(`[${label}] the changed quantity is stored apart from the sent lines (which never change)`, Object.values(row.qty_overrides).includes(2) && row.lines[1].qty === 1);
+      check(`[${label}] with quantity 2 the changed total reads $209`, /With the changed quantities:\s*\$209/.test(await page.locator('.adm-main').innerText()));
+      await api('PATCH', `/rest/v1/sent_orders?customer->>name=eq.${hubName}`, H(SVC), { qty_overrides: {} });
+    } else console.log('SKIP  hub quantity change (migration 20 is not applied to this database)');
+    await ctx.close();
+  }
   // a signed-in customer who is not an admin never sees Orders
   const pe = `${tag}-plain@example.com`, pp = `Tmp-${crypto.randomUUID()}`;
   const pu = await api('POST', '/auth/v1/admin/users', H(SVC), { email: pe, password: pp, email_confirm: true }); users.push(pu.body.id);

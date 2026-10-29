@@ -105,7 +105,7 @@ Generated 2026-10-29 by scripts/pricing-audit.mjs. Costs are before the markup. 
 ## Prices that are not in a supplier workbook
 
 - Motor $70 (every motor type, including the 2 in 1 and the cellular motors), Solar panel $30, Dream Curtains motor $100: owner-confirmed costs. Not changed.
-- Zigbee hub $35: owner-confirmed, shown as text only (sold separately); it is not a price line in the database.
+- Zigbee hub $35: owner-confirmed flat SELLING price (no markup), stored in hardware_rates (id zigbee_hub, migration 20) and editable in admin; offered once per order in the cart, its own order line, quantity 1.
 - Zero gravity: no price of its own. It uses the supplier sheet Cordless / Free-stop table on each line (migration 20).
 - Curtain fabric (drapery_tiers, drapery_fabrics, the liner, shipping and ripple numbers): measured from the supplier drapery order form by the owner; reproduces six supplier quotes within $1 (supabase/tests/20_options_hardware_tests.sql). Source type: owner-supplied measurement, not a workbook.
 - Curtain hardware (hardware_rates: $/m, $/kg, weights, motor $100, finial $18): from the owner's order form notes. The finial amount per pair vs per finial is an open question (flag hardware-finial-price).

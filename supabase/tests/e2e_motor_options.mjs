@@ -43,7 +43,7 @@ try {
   t = await text();
   check('Motorized opens Power (Battery default), a Solar choice, How you control it (4 options), and a Motor side (default Right), not "Control side"', await step('Power').locator('.s2-card.on', { hasText: /^Battery/ }).count() === 1
     && ['App + Remote (Bluetooth)', 'Remote only', 'App + Voice + Remote (Zigbee)', 'App + Voice + Remote (Matter)'].every((n) => t.includes(n)) && await step('Motor side').locator('.s2-card.on', { hasText: 'Right' }).count() === 1 && !/Control side/.test(t));
-  check('the Battery note says the motor and the charging port are on that side; Zigbee says $35 for a hub; Matter says no hub and names Alexa, Google Home and Apple Home', /The motor sits on this side, and so does the charging port\. Pick the side closest to an outlet\./.test(t) && /buy one from us for \$35/.test(t) && /No hub needed/.test(t) && /Alexa, Google Home and Apple Home/.test(t) && /Smart Life/.test(t));
+  check('the Battery note says the motor and the charging port are on that side; Zigbee says $35 for a hub; Matter says no hub and names Alexa, Google Home and Apple Home', /The motor sits on this side, and so does the charging port\. Pick the side closest to an outlet\./.test(t) && /Add one in your cart for \$35 if you don't have one/.test(t) && /No hub needed/.test(t) && /Alexa, Google Home and Apple Home/.test(t) && /Smart Life/.test(t));
   const motor = await pagePrice();
   check('Motorized costs the chain price + $105 (the $70 motor with the 1.5x markup)', Math.abs(motor - chain - 105) <= 1, `chain $${chain}, motorized $${motor}`);
   await card('Add a solar panel').click(); await settle();

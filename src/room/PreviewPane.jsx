@@ -13,6 +13,8 @@ import { parseMech, SIDE_NAME, MOTOR_CONTROL_NAME } from '../lib/drive.js';
 import { chainColorOf, barColorOf } from '../lib/choices.js';
 import { SimpleRemote } from './remotes.jsx';
 import { SHARE_NOTE, WORKS_NOTE } from '../lib/remote.js';
+import { useHubPrice } from '../lib/hubPrice.js';
+import { zigbeeNote } from '../lib/hub.js';
 import RoomEmbed from './RoomEmbed.jsx';
 
 const SAMPLE = { roller: 'rlf-soft-cream', zebra: 'zeb-cream' };
@@ -43,6 +45,7 @@ export function webglAvailable() {
 const KEY_STEP = 0.03;
 
 export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady, remoteType = 'ch1', shareNote = false, extras = {} }) {
+  const hubPrice = useHubPrice();
   const [status, setStatus] = useState(() => (webglAvailable() ? 'loading' : 'nowebgl'));      // loading | ready | nowebgl
   // where each shade is (0 raised, 1 fully lowered): a single shade a little over halfway; a double-stack's front shade halfway down and its back shade raised
   const [amounts, setAmounts] = useState(() => (double ? [0.5, 0] : [0.55]));
@@ -142,7 +145,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
               <SimpleRemote type={remoteType} lit={lit} onPress={press} shades={many ? ['Front shade', 'Back shade'] : null} />
               <span className="pv-incl-title">Included: remote</span>
               {drv.movement === 'motorized' && drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
-              {drv.movement === 'motorized' && drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{WORKS_NOTE.zigbee}</span></div>}
+              {drv.movement === 'motorized' && drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{zigbeeNote(hubPrice)}</span></div>}
               {drv.movement === 'motorized' && drv.control === 'matter' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5" /><circle cx="12" cy="9" r="1.2" /></svg><span>{WORKS_NOTE.matter}</span></div>}
               {shareNote && <div className="pv-share">{SHARE_NOTE}</div>}
             </div>

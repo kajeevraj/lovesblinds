@@ -72,6 +72,13 @@ begin
   if (select count(*) from public.drapery_fabrics) <> 129 or (select count(*) from public.drapery_tiers) <> 8 then raise exception 'drapery tables'; end if;
   raise notice 'ok: curtain fabric prices reproduce the six supplier quotes within $1, limits and privacy hold';
 
+  -- the Zigbee hub: a flat $35 selling price, editable, readable by customers only through zigbee_hub_price(), no markup
+  if (public.zigbee_hub_price() ->> 'price')::numeric <> 35 or public.zigbee_hub_price() - 'price' <> '{}'::jsonb then raise exception 'hub price'; end if;
+  update public.hardware_rates set amount = 40 where id = 'zigbee_hub';
+  if (public.zigbee_hub_price() ->> 'price')::numeric <> 40 then raise exception 'hub price not editable'; end if;
+  update public.hardware_rates set amount = 35 where id = 'zigbee_hub';
+  raise notice 'ok: the Zigbee hub is a flat $35 customer price in the database, editable, no markup';
+
   -- the four zero gravity flags are resolved
   if exists (select 1 from public.price_flags where flag_key like '%zero-gravity-price' and not resolved) then raise exception 'zero gravity flags open'; end if;
 
@@ -121,6 +128,7 @@ do $$ begin
   begin perform public.drapery_parts(null, '{}', 1, 1); raise exception 'anon ran drapery_parts'; exception when insufficient_privilege then null; end;
   begin perform public.drapery_breakdown(null, '{}', 1, 1); raise exception 'anon ran drapery_breakdown'; exception when insufficient_privilege then null; end;
   perform public.drapery_estimate(null, '{}', 100, 100);
+  perform public.zigbee_hub_price();
   begin perform 1 from public.hardware_rates; raise exception 'anon read hardware_rates'; exception when insufficient_privilege then null; end;
   begin perform public.hardware_breakdown('{}', 1); raise exception 'anon ran hardware_breakdown'; exception when insufficient_privilege then null; end;
   begin perform public.hardware_parts('{}', 1); raise exception 'anon ran hardware_parts'; exception when insufficient_privilege then null; end;

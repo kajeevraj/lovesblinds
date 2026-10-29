@@ -21,7 +21,7 @@ export const SHARE_NOTE = 'Shades in the same room share one remote that runs th
 // what a motor control works with, shown under the remote
 export const WORKS_NOTE = {
   'app-remote': 'Works with your phone (Smart Life app)',
-  zigbee: 'Needs a Zigbee hub (sold separately, $35)',
+  zigbee: "Needs a Zigbee hub. Add one in your cart for $35 if you don't have one.",       // (the pages show the price from the database: see hub.js)
   matter: 'Works with your Matter smart speaker or hub',
 };
 

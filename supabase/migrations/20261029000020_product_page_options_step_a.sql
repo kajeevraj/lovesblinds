@@ -14,6 +14,8 @@
 --      roll direction, bottom rail wrap, curtain styles, return, panels, hardware (track, finish, finial, layers, mount, opening, overlap, power),
 --      Dream Curtains install, fit and stack, and the Dream Curtains Motorized and Pull rod controls.
 --   5. Drapery hardware prices: hardware_rates (admin-editable $/m, $/kg and weights) and hardware_estimate() (customer price only).
+--   7. The Zigbee hub: its flat customer price ($35, a selling price with no markup) in hardware_rates, read through zigbee_hub_price();
+--      sent_orders.qty_overrides (admin can change the hub's quantity on a sent order); fabric SP26030004 hidden (the supplier does not sell it).
 --      Curtain FABRIC prices: drapery_tiers, drapery_fabrics (per supplier code) and drapery_estimate() (customer price only).
 --   6. public_options(): the one read the customer site makes of the option tables (which options are on, and which is Best value).
 
@@ -122,7 +124,7 @@ update public.price_flags set resolved = true, resolution_note = 'Zero gravity =
 -- questions that are still open
 insert into public.price_flags (line_id, flag_key, kind, title, detail) values
  (null, 'drapery-fabric-prices', 'info', 'Curtain fabric prices come from the supplier order form', 'Measured from the supplier drapery order form (matches their quotes within about 0.2%): units x tier price by height, liner, shipping, then the 1.5x markup. Edit under Pricing > Curtain hardware and fabric. Sizes outside 40-236 wide or 42-236 high show "Price by email".'),
- (null, 'drapery-codes-unmatched', 'confirm', 'Curtain colors and supplier codes that do not line up', 'Our colors SP26030004 has no code in the fabric table (price by email until one is added). The table lists SP260030004, treated here as our SP26003004 (same family, same row). Table codes we do not carry: SP2603501, SP2603901, SP2604801, SP2605001, SP2605401, SPT261001, SP26018045.'),
+ (null, 'drapery-codes-unmatched', 'confirm', 'Curtain colors and supplier codes that do not line up', 'The supplier does not sell SP26030004, so it is hidden on the site. The fabric table lists SP260030004, treated here as our SP26003004 (same family, same row). Table codes we do not carry: SP2603501, SP2603901, SP2604801, SP2605001, SP2605401, SPT261001, SP26018045.'),
  (null, 'hardware-finial-price', 'confirm', 'Finial $18: per finial or per pair?', 'The site charges $18 (cost) once per rod or rail, for the pair of finials. If it is $18 each, double the "finial" rate in Hardware.'),
  ('dream-curtains', 'dream-pull-rod-price', 'confirm', 'Dream Curtains pull rod price', 'Pull rod is priced like Manual ($0 extra). Confirm.'),
  (null, 'roll-direction-wording', 'confirm', 'Roll direction wording', 'Standard: fabric hangs behind the roller, close to the glass. Reverse: in front of the roller, closer to the room. Confirm this matches the supplier.')
@@ -261,6 +263,7 @@ insert into public.hardware_rates (id, label, amount, unit, note, sort_order) va
   ('kg_per_tube',                'Shipping tube weight', 0.2, 'kg per tube', null, 42),
   ('tube_max_m',                 'One shipping tube holds up to', 4.5, 'm', 'a longer track needs another tube', 43),
   ('kg_motorized',               'Extra weight of a motorized rail', 3, 'kg', null, 44),
+  ('zigbee_hub',                 'Zigbee hub: customer price', 35, '$ each, flat', 'a SELLING price: no markup is added. Shown once per order when a cart line uses a Zigbee motor', 50),
   ('drapery_ship_base',          'Curtain fabric shipping, base', 37.65, '$', 'supplier cost, before markup', 60),
   ('drapery_liner_base',         'Liner (light filtering or blackout) at 42 in high, per unit', 16.22, '$', 'same price for both liners', 61),
   ('drapery_liner_slope',        'Liner added per unit from 42 to 236 in high', 54.37, '$', 'liner = units x (base + slope x (H - 42) / 194)', 62),
@@ -591,6 +594,26 @@ begin
 end $$;
 revoke all on function public.drapery_breakdown(text, jsonb, numeric, numeric) from public, anon;
 grant execute on function public.drapery_breakdown(text, jsonb, numeric, numeric) to authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 5c. the Zigbee hub (flat customer price) and a quantity admins can change on a sent order; fabric SP26030004 is not sold
+-- ---------------------------------------------------------------------------------------------------------------------
+create or replace function public.zigbee_hub_price() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('price', coalesce((select amount from public.hardware_rates where id = 'zigbee_hub'), 35));
+$$;
+revoke all on function public.zigbee_hub_price() from public;
+grant execute on function public.zigbee_hub_price() to anon, authenticated;
+
+do $$ begin
+  if to_regclass('public.sent_orders') is not null then
+    alter table public.sent_orders add column if not exists qty_overrides jsonb not null default '{}'::jsonb;
+    alter table public.sent_orders drop constraint if exists sent_orders_qty_overrides_object;
+    alter table public.sent_orders add constraint sent_orders_qty_overrides_object check (jsonb_typeof(qty_overrides) = 'object');
+  end if;
+end $$;
+
+update public.swatches set active = false where supplier_code = 'SP26030004';
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 6. what the customer site reads from the option tables: which options are on, and which one is Best value

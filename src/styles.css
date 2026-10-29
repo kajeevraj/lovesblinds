@@ -1638,3 +1638,11 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
   .has-preview .gal-photo + .gal-dots { }
   .has-preview.collapsed .gal-stage, .has-preview.collapsed .gal-dots, .has-preview.collapsed .gal > .s2-photo-note { display: none; }
 }
+
+/* the Zigbee hub in the cart */
+.s2-hub { margin: 16px 0; padding: 14px 16px; border: 1px solid var(--s2-line); border-radius: 10px; background: var(--s2-card); }
+.s2-hub.compact { margin: 0 0 12px; padding: 10px 12px; }
+.s2-hub-check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; min-height: 44px; font-size: 14px; line-height: 1.5; }
+.s2-hub-check input { width: 22px; height: 22px; margin: 2px 0 0; flex: none; accent-color: var(--s2-brass); }
+.s2-hub-text strong { font-weight: 700; }
+.s2-total-hub { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--s2-muted); margin: 0 0 6px; }

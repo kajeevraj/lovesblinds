@@ -9,6 +9,8 @@ import { supabase } from './lib/supabase.js';
 import { clampQty } from './lib/limits.js';
 import { getActiveLine } from './data/lines.js';
 import { useItemPrices, totalsOf } from './lib/itemPrice.js';
+import { isZigbeeItem } from './lib/hub.js';
+import { useHubPrice } from './lib/hubPrice.js';
 import { editPath } from './lib/itemView.js';
 import { OrderPanel, OrderOnlyBar, IncompleteNote, AddFirstDialog } from './components/OrderBar.jsx';
 import ExitPrompt from './components/ExitPrompt.jsx';
@@ -27,6 +29,7 @@ const RoomLab = lazy(() => import('./room/RoomLab.jsx'));       // /room-lab: te
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 // Browser storage can be full, blocked or off (private windows): the cart still works, it just is not remembered.
+const HUB_KEY = 'lb_hub_v1';
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
 const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
@@ -70,6 +73,7 @@ export default function App() {
     } catch { /* ignore */ }
     return [];
   });
+  const [hubChoice, setHubChoice] = useState(() => { try { return localStorage.getItem('lb_hub_v1') === '1'; } catch { return false; } });
   const [snackbar, setSnackbar]   = useState(null);
   useMissingNames(quote);                       // names for picks saved before display names existed
   const quoteRef = useRef(quote);
@@ -108,7 +112,7 @@ export default function App() {
 
   // After an order is sent, the next window goes into a fresh order, so the sent one keeps exactly what was sent.
   const [justSent, setJustSent] = useState(false);
-  const handleOrderSent = async (orderId, items, customer) => { await markOrderSent(orderId, items, customer); setJustSent(true); };
+  const handleOrderSent = async (orderId, items, customer) => { setHubChoice(false); lsDel(HUB_KEY); await markOrderSent(orderId, items, customer); setJustSent(true); };
   useEffect(() => {
     if (!justSent || quote.length > 0) return;
     setJustSent(false);
@@ -325,9 +329,16 @@ export default function App() {
 
   // the cart, shared with the cart bar, the cart panel, the product pages and the cart page
   const prices = useItemPrices(quote);
-  const totals = totalsOf(quote, prices);
+  // the Zigbee hub: offered once per order while some line uses a Zigbee motor; it leaves by itself when the last Zigbee line does
+  const hubPrice = useHubPrice();
+  const zigbee = quote.some(isZigbeeItem);
+  const hubOn = hubChoice && zigbee;
+  useEffect(() => { if (!zigbee && hubChoice) { setHubChoice(false); lsDel(HUB_KEY); } }, [zigbee, hubChoice]);
+  const setHubOn = (on) => { setHubChoice(on); if (on) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY); };
+  const base = totalsOf(quote, prices);
+  const totals = { ...base, total: base.total + (hubOn ? hubPrice : 0), hub: hubOn ? hubPrice : 0 };
   const cart = {
-    items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
+    items: quote, prices, totals, hub: { available: zigbee, on: hubOn, price: hubPrice, setOn: setHubOn }, ready: !authLoading && (!user || synced || !!dbError),
     addItem: addToQuote, saveItem, removeItem, setQty, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
     incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout, confirmAdd,
