@@ -35,10 +35,17 @@ const SARGS = (o = {}) => ({ p_line: 'roller', p_swatch_id: SW.sag, p_options: {
 const ARGS = (o = {}) => ({ p_line: 'roller', p_fabric_id: 'roller:solar:sag', p_options: { control: 'chain' }, p_width: 40, p_height: 56, ...o });
 
 const SW = {};   // swatch ids the tests price (filled in below, with the service role)
+// Everything this script changes that moves a price is read first and put back to exactly that value at the end (never a fixed number).
+const orig = {};
 try {
   const firstSwatch = async (fab) => (await call('GET', `/rest/v1/swatches?select=id&fabric_id=eq.${enc(fab)}&active=eq.true&order=sort_order&limit=1`, svc)).body[0].id;
   SW.sag = await firstSwatch('roller:solar:sag'); SW.purity = await firstSwatch('roller:screen-view:purity'); SW.hermes = await firstSwatch('shangri-la:-:hermes');
   SW.sun = await firstSwatch('dream-curtains:-:sunflower'); SW.orsay = await firstSwatch('drapery:orsay');
+  orig.markup = (await call('GET', '/rest/v1/pricing_lines?select=markup&id=eq.roller', svc)).body[0].markup;
+  orig.dream = (await call('GET', '/rest/v1/price_adders?select=amount&adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc)).body[0].amount;
+  orig.swatch = (await call('GET', `/rest/v1/swatches?select=extra_cost,active&id=eq.${enc(SW.sag)}`, svc)).body[0];
+  orig.coll = (await call('GET', '/rest/v1/collection_markups?select=*&fabric_id=eq.roller:solar:sag', svc)).body;
+  console.log(`prices read before any change: roller markup ${orig.markup}, Dream motor ${orig.dream}, extra cost on the test color ${orig.swatch.extra_cost}, ${orig.coll.length} collection override(s)\n`);
   const admin = await mk('padmin'), plain = await mk('pplain');
   const ar = await call('POST', '/rest/v1/admins', { ...svc, ...REP }, { email: admin.email, user_id: admin.id }); adminRows.push(ar.body[0].id);
   console.log(`temporary admin and non-admin created\n`);
@@ -112,7 +119,7 @@ try {
   // markup: change, see the price move, restore
   r = await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: 0.6 });
   const p60 = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
-  await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: 0.5 });
+  await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: orig.markup });
   const p50 = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
   check('admin changes a line markup (50% -> 60% -> 50%) and the customer price follows', p60 === 129 && p50 === 121, `60%: $${p60}, back to 50%: $${p50}`);
   r = await call('POST', '/rest/v1/collection_markups', { ...admin.hdr, ...REP }, { fabric_id: 'roller:solar:sag', markup: 1.0 }); cleanup.push(() => call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', svc));
@@ -123,7 +130,7 @@ try {
   const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 130 });
   const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 100 });
+  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: orig.dream });
   check('the Dream Curtains motor (+$100) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 100 && Math.abs(after.subtotal - before.subtotal - 30) < 0.01, `adders ${JSON.stringify(before.adders)}; +$30 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
   // options
   r = await call('POST', '/rest/v1/option_values', { ...admin.hdr, ...REP }, { id: 'roller:mode:zz-triple', group_id: 'roller:mode', code: 'zz-triple', label: 'Triple', sort_order: 99 });
@@ -182,17 +189,17 @@ try {
   check('every existing color starts with an extra cost of $0 (no price changes today)', Array.isArray(anyExtra) && anyExtra.length === 0, `${anyExtra.length} colors with an extra cost`);
   // extra cost is added to the customer price AFTER the markup, and only the price comes back
   const base = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
-  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 12.5 }); cleanup.push(() => call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: 0 }));
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 12.5 }); cleanup.push(() => call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: orig.swatch.extra_cost }));
   const withExtra = await est(anon, 'estimate_price_for_swatch', SARGS());
   const dbgExtra = (await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS())).body;
   check('an extra cost of $12.50 is added after the markup (price +$12 or +$13 after rounding, whole dollars)', Number.isInteger(withExtra.body.price) && withExtra.body.price - base >= 12 && withExtra.body.price - base <= 13, `$${base} -> $${withExtra.body.price}`);
   check('the customer answer is still only price / custom size / price on request, and shows no extra cost', Object.keys(withExtra.body).sort().join() === 'custom_size,price,price_on_request' && !/extra/i.test(JSON.stringify(withExtra.body)), JSON.stringify(withExtra.body));
   check('the admin breakdown keeps the price group and the extra cost apart', dbgExtra.price_group?.name && Number(dbgExtra.extra_cost) === 12.5 && dbgExtra.price_before_extra === base, `group ${dbgExtra.price_group?.name}, extra ${dbgExtra.extra_cost}, before ${dbgExtra.price_before_extra}`);
-  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 0 });
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: orig.swatch.extra_cost });
   // a hidden color and an unknown color give no price, and no hint why
   await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { active: false });
   const hid = await est(anon, 'estimate_price_for_swatch', SARGS());
-  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { active: true });
+  await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { active: orig.swatch.active });
   const unk = await est(anon, 'estimate_price_for_swatch', SARGS({ p_swatch_id: 'no-such-color' }));
   check('a hidden or unknown color gets "custom size" and nothing else', hid.body.custom_size === true && hid.body.price === null && unk.body.custom_size === true && unk.body.price === null, `${JSON.stringify(hid.body)} / ${JSON.stringify(unk.body)}`);
   const sizes = [await est(anon, 'estimate_price_for_swatch', SARGS({ p_width: null, p_height: null })), await est(anon, 'estimate_price_for_swatch', SARGS({ p_width: 0 }))];
@@ -201,8 +208,11 @@ try {
   console.log('\nTEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false });
 } finally {
   for (const fn of cleanup.reverse()) { try { await fn(); } catch { /* best effort */ } }
-  await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', svc, { markup: 0.5 });
-  await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: 90 });
+  // put back exactly what was read at the start (only if it was read: a failed start must not write guesses)
+  if (orig.markup !== undefined) await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', svc, { markup: orig.markup });
+  if (orig.dream !== undefined) await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: orig.dream });
+  if (orig.swatch) await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: orig.swatch.extra_cost, active: orig.swatch.active });
+  if (orig.coll) { await call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', svc); for (const row of orig.coll) await call('POST', '/rest/v1/collection_markups', svc, row); }
   for (const id of adminRows) await call('DELETE', `/rest/v1/admins?id=eq.${id}`, svc);
   for (const id of users) await call('DELETE', `/auth/v1/admin/users/${id}`, svc);
   const left = []; for (const id of users) left.push((await call('GET', `/auth/v1/admin/users/${id}`, svc)).status);
