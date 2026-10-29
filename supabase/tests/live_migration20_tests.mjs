@@ -1,5 +1,5 @@
 // Live tests of migrations 20 (step A) and 21 (step B, only the checks marked B) against the real project, run after the owner pastes them:
-// Zero gravity +$18 (customer +$27, per shade), the 2 in 1 motor, Chain on Roman and Cellular, Dream Curtains motorized and pull rod, Best value and Top of the line,
+// Zero gravity priced from the Cordless table (no adder), the 2 in 1 motor, Chain on Roman and Cellular, Dream Curtains motorized and pull rod, Best value and Top of the line,
 // public_options, and the hardware prices (the owner's check numbers) with the rates editable. Everything it changes it puts back to the value it read first.
 // Exits 2 when migration 20 is not applied yet.
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,17 +41,36 @@ try {
   const price = async (line, sw, options, w = 40, h = 64) => (await rpc('estimate_price_for_swatch', { p_line: line, p_swatch_id: sw.id, p_options: options, p_width: w, p_height: h })).body.price;
   const r = swatch('roller'), z = swatch('zebra'), ro = swatch('roman'), ce = swatch('cellular'), dr = swatch('dream-curtains');
   const near = (a, b) => a != null && b != null && Math.abs(a - b) <= 1;
-  check('Roller: Zero gravity = the chain (plain) price + $27 ($18 cost with the 1.5x markup)', near(await price('roller', r, { control: 'zero-gravity', mode: 'single' }), (await price('roller', r, { control: 'chain', mode: 'single' })) + 27));
-  check('Zebra: Zero gravity = the chain price + $27', near(await price('zebra', z, { control: 'zero-gravity' }), (await price('zebra', z, { control: 'chain' })) + 27));
-  check('Roman: Zero gravity = the plain (cordless table) price + $27', near(await price('roman', ro, { control: 'zero-gravity', lining: 'light-filtering' }), (await price('roman', ro, { control: 'cordless', lining: 'light-filtering' })) + 27));
-  check('Cellular: Zero gravity = the plain price + $27', near(await price('cellular', ce, { control: 'zero-gravity', type: 'standard' }), (await price('cellular', ce, { control: 'cordless', type: 'standard' })) + 27));
+  // Zero gravity = Cordless = Free-stop: exactly the supplier sheet's Cordless table price on every line, no extra charge, double-stack included
+  check('Roller: Zero gravity is exactly the Cordless price (40 x 64 on the first Solar color: $210)', (await price('roller', r, { control: 'zero-gravity', mode: 'single' })) === (await price('roller', r, { control: 'cordless', mode: 'single' })), `${await price('roller', r, { control: 'zero-gravity', mode: 'single' })} vs ${await price('roller', r, { control: 'cordless', mode: 'single' })}`);
+  check('Zebra: Zero gravity is exactly the Cordless price', (await price('zebra', z, { control: 'zero-gravity' })) === (await price('zebra', z, { control: 'cordless' })), `${await price('zebra', z, { control: 'zero-gravity' })}`);
+  check('Roman: Zero gravity is exactly the Cordless price', (await price('roman', ro, { control: 'zero-gravity', lining: 'light-filtering' })) === (await price('roman', ro, { control: 'cordless', lining: 'light-filtering' })));
+  check('Cellular: Zero gravity is exactly the Cordless price', (await price('cellular', ce, { control: 'zero-gravity', type: 'standard' })) === (await price('cellular', ce, { control: 'cordless', type: 'standard' })));
   const r2 = swatch('roller', 'blackout') || r;
-  check('Roller double-stack: Zero gravity adds $27 per shade ($54)', near(await price('roller', r, { control: 'zero-gravity', mode: 'double-stack', back_swatch_id: r2.id }), (await price('roller', r, { control: 'chain', mode: 'double-stack', back_swatch_id: r2.id })) + 54));
-  check('Roller: the 2 in 1 motor costs the plain price + $105 ($70 motor with the markup), like Motorized', near(await price('roller', r, { control: 'two-in-one' }), (await price('roller', r, { control: 'chain' })) + 105) && near(await price('roller', r, { control: 'two-in-one' }), await price('roller', r, { control: 'motorized', power: 'battery', solar: 'none', motor_control: 'app-remote' })));
+  check('Roller double-stack: Zero gravity prices both shades from the cordless table, no extra charge', (await price('roller', r, { control: 'zero-gravity', mode: 'double-stack', back_swatch_id: r2.id })) === (await price('roller', r, { control: 'cordless', mode: 'double-stack', back_swatch_id: r2.id })));
+  const noAdder = (await api('GET', '/rest/v1/price_adders?select=id&adder_key=eq.zero-gravity', SVC)).body;
+  check('there is no Zero gravity adder in the database', Array.isArray(noAdder) && noAdder.length === 0);
+  check('Roller: the 2 in 1 motor costs the plain (chain table) price + $105 ($70 motor with the markup), like Motorized', near(await price('roller', r, { control: 'two-in-one' }), (await price('roller', r, { control: 'chain' })) + 105) && near(await price('roller', r, { control: 'two-in-one' }), await price('roller', r, { control: 'motorized', power: 'battery', solar: 'none', motor_control: 'app-remote' })));
   check('Roman and Cellular: Chain is priced (the cord table)', (await price('roman', ro, { control: 'chain', lining: 'light-filtering' })) > 0 && (await price('cellular', ce, { control: 'chain', type: 'standard' })) > 0);
   if (dr) {
     const man = await price('dream-curtains', dr, { control: 'manual' }, 60, 84);
     check('Dream Curtains: Motorized costs the motor table plus the $100 motor (same as the old remote code); Pull rod is priced like Manual', near(await price('dream-curtains', dr, { control: 'motorized' }, 60, 84), await price('dream-curtains', dr, { control: 'remote' }, 60, 84)) && near(await price('dream-curtains', dr, { control: 'pull-rod' }, 60, 84), man));
+  }
+
+  // ---- curtain fabric: the supplier's own quotes
+  const dr0 = cat.find((g) => g.shown_in.includes('drapery'))?.swatches.find((x) => x.supplier_code === 'SP26057003');
+  if (dr0) {
+    const q = (await rpc('drapery_estimate', { p_swatch: dr0.id, p_options: { fullness: 2.6, style_family: 'pleated', lining: 'none' }, p_width: 87, p_height: 84 })).body;
+    check('a curtain price comes back for a color with a supplier price (SP26057003, Pinch 2.6, 87 x 84: about (98.61 + 56.11) x 1.5 = $232) and holds only the price', q.price >= 231 && q.price <= 234 && Object.keys(q).join() === 'price', JSON.stringify(q));
+    check('outside 40 to 236 wide or 42 to 236 high a curtain is "by email"', (await rpc('drapery_estimate', { p_swatch: dr0.id, p_options: { fullness: 2.6 }, p_width: 300, p_height: 84 })).body.price_on_request === true);
+  }
+  check('the public cannot read the curtain fabric tables or their breakdown', (await api('GET', '/rest/v1/drapery_fabrics?select=*', ANON)).status >= 400 && (await api('GET', '/rest/v1/drapery_tiers?select=*', ANON)).status >= 400 && (await rpc('drapery_breakdown', { p_swatch: null, p_options: {}, p_width: 100, p_height: 100 })).status >= 400);
+  const tier = (await api('GET', '/rest/v1/drapery_tiers?select=tier,p42&tier=eq.75', SVC)).body[0];
+  restore.push(() => api('PATCH', '/rest/v1/drapery_tiers?tier=eq.75', SVC, { p42: tier.p42 }));
+  if (dr0) {
+    const before = (await rpc('drapery_estimate', { p_swatch: dr0.id, p_options: { fullness: 2.6 }, p_width: 87, p_height: 84 })).body.price;
+    await api('PATCH', '/rest/v1/drapery_tiers?tier=eq.75', SVC, { p42: Number(tier.p42) * 2 });
+    check('the tier table is editable and moves the price', (await rpc('drapery_estimate', { p_swatch: dr0.id, p_options: { fullness: 2.6 }, p_width: 87, p_height: 84 })).body.price > before);
   }
 
   // ---- hardware

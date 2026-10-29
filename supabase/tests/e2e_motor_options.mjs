@@ -32,7 +32,13 @@ try {
   await card('Chain').click(); await settle();
   check('Chain shows a Chain side choice (default Right); no Power or Control steps before Motorized; Zero gravity has no side choice', await step('Chain side').locator('.s2-card.on', { hasText: 'Right' }).count() === 1 && await step('Power').count() === 0);
   const chain = await pagePrice();
-  if (migrated) check('Zero gravity costs the chain price + $27 (the $18 with the 1.5x markup) (needs migration 20)', Math.abs(zg - chain - 27) <= 1, `chain $${chain}, zero gravity $${zg}`); else skip('Zero gravity = chain price + $27');
+  if (migrated) {
+    const cat = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_catalog`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_scope: ['roller'] }) }).then((r) => r.json());
+    const title = await page.locator('.s2-sw').first().getAttribute('title');
+    const sw = cat.flatMap((g) => g.swatches).find((x) => x.display_name === title);
+    const cordless = (await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/estimate_price_for_swatch`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_line: 'roller', p_swatch_id: sw.id, p_options: { control: 'cordless', mode: 'single' }, p_width: 40, p_height: 64 }) }).then((r) => r.json())).price;
+    check('Zero gravity costs exactly the supplier Cordless price (needs migration 20)', zg === cordless, `zero gravity $${zg}, cordless $${cordless}`);
+  } else skip('Zero gravity = the Cordless price');
   await card('Motorized').click(); await settle();
   t = await text();
   check('Motorized opens Power (Battery default), a Solar choice, How you control it (4 options), and a Motor side (default Right), not "Control side"', await step('Power').locator('.s2-card.on', { hasText: /^Battery/ }).count() === 1

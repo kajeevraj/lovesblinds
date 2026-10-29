@@ -11,6 +11,7 @@ const ref = new URL(URL_).hostname.split('.')[0];
 const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Type': 'application/json', Prefer: 'return=representation' });
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
+const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${!ok && detail ? `\n      ${detail}` : ''}`); };
 
 // helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
@@ -161,8 +162,10 @@ try {
     await page.keyboard.press('Escape');
     await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
     await pickCurtains(page);
-    await page.locator('#s2-w').fill('120'); await page.locator('#s2-h').fill('96'); await page.waitForFunction(() => document.querySelector('.s2-estimate-title')?.innerText === 'Price by email');
-    check('curtains: the card heading is "Price by email"', (await page.locator('.s2-estimate-title').innerText()) === 'Price by email');
+    if (migrated) {
+      await page.locator('#s2-w').fill('300'); await page.locator('#s2-h').fill('96'); await page.waitForFunction(() => document.querySelector('.s2-estimate-title')?.innerText === 'Price by email');
+      check('curtains: a size we do not price (outside 40 to 236 wide, 42 to 236 high) has the card heading "Price by email"', (await page.locator('.s2-estimate-title').innerText()) === 'Price by email');
+    } else console.log('SKIP  curtain "Price by email" heading (before migration 20 curtains have no price at all)');
     // Dream Curtains: Classic preselected, no empty picture boxes, no "Selected:" line, both codes only until a style is chosen
     await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-color-tools input').fill('Angel White'); await sleep(300);

@@ -98,7 +98,7 @@ function HardwareStep({ styleId, hw, setHw, add, setAdd, width, opts }) {
                 <p className="s2-hw-price" role="status">
                   {!(parseFloat(width) > 0) ? 'Enter your width to see the track price.'
                     : priced.loading ? 'Working out the track price…'
-                      : priced.result?.price != null ? <>Track or rod estimate: <strong>${priced.result.price.toLocaleString('en-US')}</strong> (shipping included). The curtain fabric is priced by email.</>
+                      : priced.result?.price != null ? <>Track or rod estimate: <strong>${priced.result.price.toLocaleString('en-US')}</strong> (shipping included), already in your total.</>
                         : 'We will email the price for the track or rod.'}
                 </p>
               )}
@@ -153,7 +153,7 @@ export function DraperyPage({ line, navigate, edit = null }) {
     ? [
       { title: 'Color', node: <ColorStep id="c-curtains" lineKey="drapery" value={pick} onChange={setPick} /> },
       {
-        title: 'Style', hint: 'The curtain fabric is priced by email.',
+        title: 'Style',
         node: <Cards label="Curtain style" min={200} value={styleId} onChange={onStyle}
           options={CURTAIN_STYLES.filter((st) => opts.isOn('curtain-style', st.id)).map((st) => ({ id: st.id, label: st.label, desc: STYLE_DESC[st.id], img: STYLE_IMG[st.id] }))} />,
       },

@@ -1552,8 +1552,13 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 /* the center handle (Zero gravity and 2 in 1: always there) and the bottom bar hit area (every other option) */
 .pv-grip { position: absolute; width: 56px; height: 44px; margin: -22px 0 0 -28px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; z-index: 3; }
 .pv-grip:active { cursor: grabbing; }
-.pv-grip i { display: block; width: 40px; height: 14px; border-radius: 99px; background: #FFFDF9; border: 1.5px solid var(--s2-brass); box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 3px 8px -2px rgba(40, 25, 5, .5); position: relative; }
-.pv-grip i::before { content: ''; position: absolute; left: 12px; right: 12px; top: 3px; height: 4px; border-top: 1.5px solid var(--s2-brass); border-bottom: 1.5px solid var(--s2-brass); }
+.pv-grip i { display: block; width: 40px; height: 14px; border-radius: 99px; background: var(--grip-bg, #FFFDF9); border: 1.5px solid var(--grip-ink, var(--s2-brass)); box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 3px 8px -2px rgba(40, 25, 5, .5); position: relative; }
+.pv-grip i::before { content: ''; position: absolute; left: 12px; right: 12px; top: 3px; height: 4px; border-top: 1.5px solid var(--grip-ink, var(--s2-brass)); border-bottom: 1.5px solid var(--grip-ink, var(--s2-brass)); }
+.pv-grip.two { width: 40px; margin-left: -20px; }
+.pv-grip.two i { width: 32px; }
+.pv-grip.two i::before { left: 9px; right: 9px; }
+.pv-grip.behind i { opacity: .62; border-style: dashed; }          /* the back shade's bar is behind the front fabric: its handle stays, drawn lighter */
+.rm-two { gap: 4px; }
 .pv-grip:hover i { transform: scale(1.06); }
 .pv-grip:focus-visible { outline: none; }
 .pv-grip:focus-visible i { outline: 3px solid #2f7fe0; outline-offset: 2px; }

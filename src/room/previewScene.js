@@ -2,7 +2,7 @@
 //
 //   const ctrl = createPreviewScene(canvas, { onLayout });
 //   ctrl.configure({ kind, width, height, mount, drive: { movement, power, solar, control, side }, cover, layers: [{ fabric, optics }, ...], amount })   // inches in, anything may be left out
-//   ctrl.snapAmount(a)   ctrl.resize(cssW, cssH, dpr)   ctrl.setActive(bool)   ctrl.dispose()
+//   ctrl.snapAmount(a, shadeIndex)   ctrl.resize(cssW, cssH, dpr)   ctrl.setActive(bool)   ctrl.dispose()
 //
 // Inside mount: the window opening is the shade's size, the shade sits in the recess. Outside mount: the shade is the size typed and overlaps a
 // smaller window and its trim. A bead chain, a motor with its charging port or cord, and the optional center handle are drawn the way the choices say. Double-stack is two shades one in front of the other.
@@ -51,8 +51,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   })));
   vig.children[0].frustumCulled = false;
 
-  const cfg = { tight: false, kind: 'roller', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amount: 0.55, extras: {} };
-  let built = null, shades = [], current = 0.55, size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
+  const cfg = { tight: false, kind: 'roller', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amounts: [0.55], extras: {} };
+  // every shade has its own position: amounts[i] is where it is going, current[i] where it is now (0 raised, 1 fully lowered); layers[0] is the front shade
+  let built = null, shades = [], current = [0.55], size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
   let dispDpr = 1;
 
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
@@ -113,7 +114,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   }
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------
-  let accessory = null, xrayMats = [], driveDir = 0, hasSolar = false;
+  let accessory = null, xrayMats = [], driveDirs = [], hasSolar = false;
   const xray = { target: 0, v: 0 }, xrayPt = new THREE.Vector3(), solarPt = new THREE.Vector3();
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
@@ -187,9 +188,13 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const xs = [], ys = [];
     for (const [x, y] of pts) { v.set(x, y, sp.z + 0.03).project(camera); xs.push(((v.x + 1) / 2) * size.w); ys.push(((1 - v.y) / 2) * size.h); }
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-    const f = handleFraction(current, sp.h);
     v.set(0, built.shadeBottom - 0.024 - TRIM * 0.8 - 0.07, 0.03).project(camera);
-    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
+    // where each shade's handle (or bottom bar) is on screen: a single shade at the center, a double-stack's front shade at 40% of the width and the back at 60%
+    const n = shades.length, xAt = (i) => (n > 1 ? x0 + (i === 0 ? 0.4 : 0.6) * (x1 - x0) : (x0 + x1) / 2);
+    const handles = shades.map((_, i) => ({ x: xAt(i), y: Math.min(y1, y0 + handleFraction(current[i] ?? 0, sp.h) * (y1 - y0)) }));
+    // the back shade's bar is hidden when it is not lower than the front shade's
+    const hidden = shades.map((_, i) => i > 0 && (current[i] ?? 0) <= (current[0] ?? 0) + 0.004);
+    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -204,15 +209,14 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       || (n.layers && JSON.stringify(n.layers.map((l) => [l.fabric?.key, l.optics])) !== JSON.stringify(cfg.layers.map((l) => [l.fabric?.key, l.optics])));
     const driveChanged = n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive);
     Object.assign(cfg, Object.fromEntries(Object.entries(n).filter(([, v]) => v != null)));
-    if (driveChanged) { xray.target = ['motorized', 'two-in-one'].includes(cfg.drive.movement) ? 1 : 0; driveDir = 0; }
-    if (n.amount != null) cfg.amount = n.amount;
+    if (driveChanged) { xray.target = ['motorized', 'two-in-one'].includes(cfg.drive.movement) ? 1 : 0; driveDirs = []; }
+    if (n.amounts) { cfg.amounts = n.amounts.slice(); if (geometryChanged || shadesChanged || !shades.length) current = n.amounts.slice(); }
     if (geometryChanged || !built) buildWindow();
     if (shadesChanged || geometryChanged || !shades.length) buildShades();
     wake();
   }
-  // double-stack: the back shade hangs a little lower, so its bottom rail shows under the front one
-  function setShadeAmounts(a) { shades.forEach((s, i) => s.setAmount(i === 0 ? a : Math.min(1, a + 0.07 * (1 - a)))); }
-  function snapAmount(a) { driveDir = 0; cfg.amount = current = a; setShadeAmounts(a); emit(); wake(); }
+  function setShadeAmounts(a) { shades.forEach((s, i) => s.setAmount(a[i] ?? a[0] ?? 0)); }
+  function snapAmount(a, i = 0) { driveDirs[i] = 0; cfg.amounts[i] = current[i] = a; setShadeAmounts(current); emit(); wake(); }
 
   // ---- loop -----------------------------------------------------------------------------------------------------------------------------------------------
   const wake = () => { dirty = true; if (active && !raf) raf = requestAnimationFrame(frame); };
@@ -222,14 +226,18 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     let moving = false;
     if (Math.abs(xray.target - xray.v) > 0.003) { xray.v += (xray.target - xray.v) * (reduced ? 1 : 1 - Math.exp(-dt * 5)); applyXray(); dirty = true; moving = true; }
     else if (xray.v !== xray.target) { xray.v = xray.target; applyXray(); dirty = true; }
-    if (driveDir) {                                                       // the remote: steady motor speed, about 10 in a second, until it reaches the end or Stop
-      const travel = Math.max(0.4, (built?.shade.h || 1.5) - 0.094);
-      cfg.amount = Math.min(1, Math.max(0, cfg.amount + driveDir * (0.254 / travel) * dt)); current = cfg.amount; setShadeAmounts(current); emit(); onAmount?.(current); dirty = true; moving = true;
-      if (cfg.amount <= 0 || cfg.amount >= 1) { driveDir = 0; onDrive?.(0); }
-    }
-    if (Math.abs(cfg.amount - current) > 0.0008) {
-      current += (cfg.amount - current) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); setShadeAmounts(current); moving = true; dirty = true; emit(); onAmount?.(current);
-    } else if (current !== cfg.amount) { current = cfg.amount; setShadeAmounts(current); dirty = true; emit(); onAmount?.(current); }
+    let shifted = false;
+    shades.forEach((sh, i) => {
+      if (driveDirs[i]) {                                                  // the remote: steady motor speed, about 10 in a second, until it reaches the end or Stop
+        const travel = Math.max(0.4, (built?.shade.h || 1.5) - 0.094);
+        cfg.amounts[i] = Math.min(1, Math.max(0, cfg.amounts[i] + driveDirs[i] * (0.254 / travel) * dt)); current[i] = cfg.amounts[i];
+        moving = true; dirty = true; shifted = true;
+        if (cfg.amounts[i] <= 0 || cfg.amounts[i] >= 1) { driveDirs[i] = 0; onDrive?.(0); }
+      } else if (Math.abs(cfg.amounts[i] - current[i]) > 0.0008) {
+        current[i] += (cfg.amounts[i] - current[i]) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); moving = true; dirty = true; shifted = true;
+      } else if (current[i] !== cfg.amounts[i]) { current[i] = cfg.amounts[i]; dirty = true; shifted = true; }
+    });
+    if (shifted) { setShadeAmounts(current); emit(); onAmount?.(current.slice()); }
     if (dirty) {
       dirty = false;
       const t0 = performance.now();
@@ -255,9 +263,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
 
   return {
     configure, snapAmount, resize,
-    drive(dir) { driveDir = (dir > 0 && current >= 1) || (dir < 0 && current <= 0) ? 0 : dir; if (!dir) cfg.amount = current; emit(); wake(); },
+    drive(dir, i = 0) { driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
     setXray(on) { xray.target = on ? 1 : 0; emit(); wake(); }, setActive, setReducedMotion: (v) => { reduced = !!v; },
-    get amount() { return current; }, get shadeHeight() { return built?.shade.h || cfg.h; },
+    get amounts() { return current.slice(); }, get shadeHeight() { return built?.shade.h || cfg.h; },
     dispose() {
       setActive(false); canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored);
       shades.forEach((s) => s.dispose()); renderer.dispose();

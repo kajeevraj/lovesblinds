@@ -73,6 +73,8 @@ allok&=check('1 Roller cord SAG chain 40x56','roller','roller:solar:sag',{'contr
 # 2 roller cordless Purity, rounds up width 50->50 (rows every inch), drop 70->72
 ws=wb('roller')['Roller shades-cordless']; a,v,_,_=cell_rowsAreWidth(ws,'Purity(Screenview)',50,70)
 allok&=check('2 Roller cordless Purity 50x70 (drop rounds up to 72)','roller','roller:screen-view:purity',{'control':'cordless'},50,70,v,addr=f"Roller shades-cordless!{a}")
+# 2b Zero gravity = Cordless = Free-stop: the very same sheet cell as the cordless case above (needs migration 20)
+allok&=check('2b Roller Zero gravity Purity 50x70 = the cordless sheet cell','roller','roller:screen-view:purity',{'control':'zero-gravity'},50,70,v,addr=f"Roller shades-cordless!{a}")
 # 3 roller motorized Taurus: the plain cord table cell + the $70 motor (replaces the supplier motor table); width 61 drop 100 -> 104
 ws=wb('roller')['Roller shades-cord']; a,v,_,_=cell_rowsAreWidth(ws,'Taurus(SOLAR)',61,100)
 allok&=check('3 Roller motorized Taurus 61x100 (cord table + $70 motor)','roller','roller:solar:taurus',{'control':'motorized','power':'battery','solar':'none','motor_control':'app-remote'},61,100,v,adders_add=70,addr=f"Roller shades-cord!{a}")
@@ -115,7 +117,7 @@ a,v=cell_cols_width(ws,16,40,60)  # blackout block starts col P=16
 allok&=check('12 Cellular standard blackout cordless 40x60','cellular','cellular:-:cellular-shades',{'control':'cordless','type':'standard','lining':'blackout'},40,60,v,addr=f"Normal cellular!{a}")
 ws=wb('cellular')['Top down bottom up']; a,v=cell_cols_width(ws,2,70,88)  # LF block B
 allok&=check('13 Cellular top-down motorized light-filtering 70x88 (+$70 motor)','cellular','cellular:-:cellular-shades',{**MOTOR,'type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,adders_add=70,addr=f"Top down bottom up!{a}")
-allok&=check('13b Cellular top-down Zero gravity 70x88 ($0 extra until the supplier price is confirmed)','cellular','cellular:-:cellular-shades',{'control':'zero-gravity','type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,addr=f"Top down bottom up!{a}")
+allok&=check('13b Cellular top-down Zero gravity 70x88 (the sheet cordless or free-stop price, no extra charge)','cellular','cellular:-:cellular-shades',{'control':'zero-gravity','type':'top-down-bottom-up','lining':'light-filtering'},70,88,v,addr=f"Top down bottom up!{a}")
 ws=wb('cellular')['DAY&NIGHT']; a,v=cell_cols_width(ws,16,50,70)   # second fabric blackout -> blackout block
 allok&=check('14 Cellular day & night, 2nd fabric blackout, cordless 50x70','cellular','cellular:-:cellular-shades',{'control':'cordless','type':'day-night','lining':'blackout'},50,70,v,addr=f"DAY&NIGHT!{a}")
 # 15 roman cord blackout width 50 drop 60 -> rows width

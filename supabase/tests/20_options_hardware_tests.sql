@@ -3,11 +3,12 @@ do $$
 declare r jsonb; n int; ok boolean;
   procedure_ok text;
 begin
-  -- Zero gravity +$18 on Roller, Zebra, Roman, Cellular; none on Shangri-La
-  select count(*) into n from public.price_adders where adder_key = 'zero-gravity' and amount = 18 and active and line_id in ('roller','zebra','roman','cellular');
-  if n <> 4 then raise exception 'zero gravity adders: % (want 4)', n; end if;
-  if exists (select 1 from public.price_adders where adder_key = 'zero-gravity' and line_id = 'shangri-la') then raise exception 'shangri-la has no zero gravity'; end if;
-  raise notice 'ok: zero gravity +$18 on the four lines, none on Shangri-La';
+  -- Zero gravity = Cordless = Free-stop: priced from the cordless table on each line, with no adder anywhere; Shangri-La has none
+  if exists (select 1 from public.price_adders where adder_key = 'zero-gravity') then raise exception 'there must be no zero gravity adder'; end if;
+  select count(*) into n from public.option_values where code = 'zero-gravity' and grid_system = 'cordless' and group_id in ('roller:control','zebra:control','roman:control','cellular:control');
+  if n <> 4 then raise exception 'zero gravity grid: % (want 4 on the cordless table)', n; end if;
+  if exists (select 1 from public.option_values where code = 'zero-gravity' and group_id = 'shangri-la:control') then raise exception 'shangri-la has no zero gravity'; end if;
+  raise notice 'ok: Zero gravity uses the cordless table on Roller, Zebra, Roman and Cellular, no adder, none on Shangri-La';
 
   -- the 2 in 1 motor costs $70 like every motor; its grid is the plain (cord) table
   if not exists (select 1 from public.price_adders where line_id = 'roller' and adder_key = 'motor-two-in-one' and amount = 70) then raise exception '2 in 1 motor adder'; end if;
@@ -46,6 +47,30 @@ begin
   begin update public.option_values set top_of_line = true where id = 'roller:chain-color:white'; raise exception 'top of the line outside movement'; exception when check_violation then null; end;
   if not (select best_value from public.option_values where id = 'roller:control:zero-gravity') then raise exception 'best value disturbed'; end if;
   raise notice 'ok: Top of the line defaults to Motorized, one per line, movement options only';
+
+  -- curtain fabric prices: the supplier's own quotes (fabric / shipping) within $1
+  declare q record; x jsonb; begin
+    for q in select * from (values
+      ('SP26057003', 2.6, 'pleated', 'none', 87, 84, 98.61, 56.11), ('SP26047001', 3.5, 'pleated', 'none', 130, 100, 291.84, 161.42),
+      ('SP26015008', 2, 'grommet', 'none', 66, 90, 122.63, 69.75), ('SP26029001', 4, 'pleated', 'none', 200, 150, 767.71, 361.90),
+      ('SP2605001', 3, 'pleated', 'blackout', 100, 96, 204.23, 104.10), ('SP2605001', 2.8, 'ripple-hook', 'none', 150, 96, 169.15, 67.03)) as t(code, f, fam, lin, w, h, fab, shp) loop
+      x := public.drapery_parts(null, jsonb_build_object('code', q.code, 'fullness', q.f, 'style_family', q.fam, 'lining', q.lin), q.w, q.h);
+      if x ->> 'status' <> 'ok' then raise exception 'curtain price % : %', q.code, x; end if;
+      -- the supplier's "fabric" figure includes the liner when there is one
+      if abs((x ->> 'fabric')::numeric + (x ->> 'liner')::numeric - q.fab) > 1 or abs((x ->> 'shipping')::numeric - q.shp) > 1 then
+        raise exception 'quote % %x %x%: fabric %+% (want %), shipping % (want %)', q.code, q.f, q.w, q.h, x ->> 'fabric', x ->> 'liner', q.fab, x ->> 'shipping', q.shp;
+      end if;
+      raise notice 'quote % % % x %: fabric % + liner % (supplier %), shipping % (supplier %)', q.code, q.f, q.w, q.h, x ->> 'fabric', x ->> 'liner', q.fab, x ->> 'shipping', q.shp;
+    end loop;
+  end;
+  -- sizes outside 40 to 236 wide and 42 to 236 high are by email; a code with no price is by email; the answer has only the price
+  if not (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6}', 39, 84) ->> 'price_on_request')::boolean or not (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6}', 87, 41) ->> 'price_on_request')::boolean
+     or not (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6}', 237, 84) ->> 'price_on_request')::boolean or not (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6}', 87, 237) ->> 'price_on_request')::boolean
+     or not (public.drapery_estimate(null, '{"code":"SP26030004","fullness":2.6}', 87, 84) ->> 'price_on_request')::boolean then raise exception 'drapery limits'; end if;
+  if public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6}', 87, 84) - 'price' <> '{}'::jsonb then raise exception 'drapery estimate leaks'; end if;
+  if (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6,"lining":"blackout"}', 87, 84) ->> 'price')::numeric <> (public.drapery_estimate(null, '{"code":"SP26057003","fullness":2.6,"lining":"light-filtering"}', 87, 84) ->> 'price')::numeric then raise exception 'liners cost the same'; end if;
+  if (select count(*) from public.drapery_fabrics) <> 129 or (select count(*) from public.drapery_tiers) <> 8 then raise exception 'drapery tables'; end if;
+  raise notice 'ok: curtain fabric prices reproduce the six supplier quotes within $1, limits and privacy hold';
 
   -- the four zero gravity flags are resolved
   if exists (select 1 from public.price_flags where flag_key like '%zero-gravity-price' and not resolved) then raise exception 'zero gravity flags open'; end if;
@@ -92,6 +117,10 @@ end $$;
 -- the public cannot read the rates or the breakdown
 set role anon;
 do $$ begin
+  begin perform 1 from public.drapery_fabrics; raise exception 'anon read drapery_fabrics'; exception when insufficient_privilege then null; end;
+  begin perform public.drapery_parts(null, '{}', 1, 1); raise exception 'anon ran drapery_parts'; exception when insufficient_privilege then null; end;
+  begin perform public.drapery_breakdown(null, '{}', 1, 1); raise exception 'anon ran drapery_breakdown'; exception when insufficient_privilege then null; end;
+  perform public.drapery_estimate(null, '{}', 100, 100);
   begin perform 1 from public.hardware_rates; raise exception 'anon read hardware_rates'; exception when insufficient_privilege then null; end;
   begin perform public.hardware_breakdown('{}', 1); raise exception 'anon ran hardware_breakdown'; exception when insufficient_privilege then null; end;
   begin perform public.hardware_parts('{}', 1); raise exception 'anon ran hardware_parts'; exception when insufficient_privilege then null; end;

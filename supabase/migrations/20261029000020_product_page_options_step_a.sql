@@ -6,12 +6,15 @@
 -- What this sets up:
 --   1. "Best value" and "Top of the line": option_values.best_value / top_of_line, one of each per product line (movement options only).
 --      Best value defaults to Zero gravity where a line has it; Top of the line defaults to Motorized.
---   2. Zero gravity costs +$18 (Roller, Zebra, Roman, Cellular; double-stack prices both shades, so +$18 per shade). The "confirm Zero gravity price" flags are resolved.
+--   2. Zero gravity = Cordless = Free-stop: one option, priced from exactly the supplier sheet's Cordless / Free-stop table on each line
+--      (Roller and Zebra: their cordless tables; Roman and Cellular: whatever their sheets give for cordless, which equals their plain table).
+--      No extra charge anywhere, double-stack included (it prices both shades from the cordless tables). The "confirm Zero gravity price" flags are resolved.
 --   3. The "2 in 1 motor" (Roller): its own movement value, $70 like every motor. Chain on Roman and Cellular (cord table).
 --   4. Every new choice as an admin-editable option group (so the owner can turn each one on or off): chain color, cord loop, bottom bar color,
 --      roll direction, bottom rail wrap, curtain styles, return, panels, hardware (track, finish, finial, layers, mount, opening, overlap, power),
 --      Dream Curtains install, fit and stack, and the Dream Curtains Motorized and Pull rod controls.
 --   5. Drapery hardware prices: hardware_rates (admin-editable $/m, $/kg and weights) and hardware_estimate() (customer price only).
+--      Curtain FABRIC prices: drapery_tiers, drapery_fabrics (per supplier code) and drapery_estimate() (customer price only).
 --   6. public_options(): the one read the customer site makes of the option tables (which options are on, and which is Best value).
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -95,12 +98,12 @@ update public.option_groups set label = 'Motor side',
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 3. costs
 -- ---------------------------------------------------------------------------------------------------------------------
--- Zero gravity: +$18 on the plain table (Roller, Zebra, Roman, Cellular). Double-stack prices front and back separately: +$18 per shade.
-insert into public.price_adders (line_id, adder_key, label, kind, amount, unit, applies_when, origin, status, source, note)
-select pl, 'zero-gravity', 'Zero gravity', 'add', 18, 'flat', '{"control":["zero-gravity"]}'::jsonb, 'manual', 'from_supplier', 'confirmed by the owner',
-       'Zero gravity = the plain table + $18 (replaces Cordless). Double-stack: +$18 per shade.'
-  from unnest(array['roller','zebra','roman','cellular']) pl
-on conflict (line_id, adder_key) do nothing;
+-- Zero gravity is priced from the supplier sheets' Cordless / Free-stop table: it uses the cordless price grid on every line, with no adder.
+-- (Roller and Zebra have their own cordless tables; Roman's cordless table and Cellular's table (cord and cordless are one grid) equal their plain price today.)
+update public.option_values set grid_system = 'cordless'
+ where code = 'zero-gravity' and group_id in ('roller:control','zebra:control','roman:control','cellular:control');
+-- (an earlier draft of this migration added a +$18 Zero gravity adder; make sure none exists)
+delete from public.price_adders where adder_key = 'zero-gravity' and line_id in ('roller','zebra','roman','cellular');
 
 -- the 2 in 1 motor: $70 like every motor (Roller only)
 insert into public.price_adders (line_id, adder_key, label, kind, amount, unit, applies_when, origin, status, source, note)
@@ -113,12 +116,13 @@ update public.price_adders set applies_when = '{"control":["remote","matter","mo
  where line_id = 'dream-curtains' and adder_key = 'motor-cost';
 
 -- the four "confirm Zero gravity price" flags are answered
-update public.price_flags set resolved = true, resolution_note = 'Zero gravity = the plain table + $18 (owner, confirmed). Cordless is retired.'
+update public.price_flags set resolved = true, resolution_note = 'Zero gravity = Cordless = Free-stop, priced from the supplier sheet cordless table on each line (owner, confirmed). No extra charge.'
  where flag_key in ('roller-zero-gravity-price','zebra-zero-gravity-price','roman-zero-gravity-price','cellular-zero-gravity-price');
 
 -- questions that are still open
 insert into public.price_flags (line_id, flag_key, kind, title, detail) values
- (null, 'drapery-fabric-prices', 'confirm', 'Curtain fabric has no prices yet', 'No supplier price grid exists for any curtain style, so every curtain style shows "Price by email" for the fabric. Send the fabric prices per style and they can be loaded.'),
+ (null, 'drapery-fabric-prices', 'info', 'Curtain fabric prices come from the supplier order form', 'Measured from the supplier drapery order form (matches their quotes within about 0.2%): units x tier price by height, liner, shipping, then the 1.5x markup. Edit under Pricing > Curtain hardware and fabric. Sizes outside 40-236 wide or 42-236 high show "Price by email".'),
+ (null, 'drapery-codes-unmatched', 'confirm', 'Curtain colors and supplier codes that do not line up', 'Our colors SP26030004 has no code in the fabric table (price by email until one is added). The table lists SP260030004, treated here as our SP26003004 (same family, same row). Table codes we do not carry: SP2603501, SP2603901, SP2604801, SP2605001, SP2605401, SPT261001, SP26018045.'),
  (null, 'hardware-finial-price', 'confirm', 'Finial $18: per finial or per pair?', 'The site charges $18 (cost) once per rod or rail, for the pair of finials. If it is $18 each, double the "finial" rate in Hardware.'),
  ('dream-curtains', 'dream-pull-rod-price', 'confirm', 'Dream Curtains pull rod price', 'Pull rod is priced like Manual ($0 extra). Confirm.'),
  (null, 'roll-direction-wording', 'confirm', 'Roll direction wording', 'Standard: fabric hangs behind the roller, close to the glass. Reverse: in front of the roller, closer to the room. Confirm this matches the supplier.')
@@ -256,7 +260,16 @@ insert into public.hardware_rates (id, label, amount, unit, note, sort_order) va
   ('kg_per_m',                   'Track weight', 2, 'kg per m', null, 41),
   ('kg_per_tube',                'Shipping tube weight', 0.2, 'kg per tube', null, 42),
   ('tube_max_m',                 'One shipping tube holds up to', 4.5, 'm', 'a longer track needs another tube', 43),
-  ('kg_motorized',               'Extra weight of a motorized rail', 3, 'kg', null, 44)
+  ('kg_motorized',               'Extra weight of a motorized rail', 3, 'kg', null, 44),
+  ('drapery_ship_base',          'Curtain fabric shipping, base', 37.65, '$', 'supplier cost, before markup', 60),
+  ('drapery_liner_base',         'Liner (light filtering or blackout) at 42 in high, per unit', 16.22, '$', 'same price for both liners', 61),
+  ('drapery_liner_slope',        'Liner added per unit from 42 to 236 in high', 54.37, '$', 'liner = units x (base + slope x (H - 42) / 194)', 62),
+  ('drapery_liner_ship_k',       'Extra shipping rate when there is a liner', 0.00158, '$ per in3 of F x W x H', 'shipping = base + (ship_k / 10000 + this if liner) x F x W x H', 63),
+  ('drapery_ripple_factor',      'Ripple fold fabric factor', 0.92, 'x', 'ripple fold styles: fabric x this', 64),
+  ('drapery_min_w',              'Curtain width: smallest we price', 40, 'in', 'outside the range the price is by email', 65),
+  ('drapery_max_w',              'Curtain width: largest we price', 236, 'in', null, 66),
+  ('drapery_min_h',              'Curtain height: smallest we price', 42, 'in', null, 67),
+  ('drapery_max_h',              'Curtain height: largest we price', 236, 'in', null, 68)
 on conflict (id) do nothing;
 
 alter table public.hardware_rates enable row level security;
@@ -330,6 +343,254 @@ begin
 end $$;
 revoke all on function public.hardware_breakdown(jsonb, numeric) from public, anon;
 grant execute on function public.hardware_breakdown(jsonb, numeric) to authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 5b. curtain fabric prices (supplier order form; supplier cost in USD before markup; W and H in inches)
+-- ---------------------------------------------------------------------------------------------------------------------
+create table if not exists public.drapery_tiers (
+  tier       integer primary key,
+  p42        numeric not null check (p42 >= 0),         -- price of one unit at 42 in high
+  p236       numeric not null check (p236 >= 0),        -- price of one unit at 236 in high
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.drapery_fabrics (
+  code         text primary key,                        -- the supplier code, as on our colors (swatches.supplier_code)
+  price_group  text not null check (price_group in ('A','B','C','D')),     -- the supplier's group: admin only
+  tier         integer not null references public.drapery_tiers(tier),
+  usable_width numeric not null check (usable_width > 0),
+  ship_k       numeric not null check (ship_k >= 0),
+  updated_at   timestamptz not null default now()
+);
+do $$ declare t text; begin
+  foreach t in array array['drapery_tiers','drapery_fabrics'] loop
+    execute format('drop trigger if exists %1$s_updated_at on public.%1$I', t);
+    execute format('create trigger %1$s_updated_at before update on public.%1$I for each row execute function public.set_updated_at()', t);
+    execute format('alter table public.%I enable row level security', t);
+    execute format('revoke all on public.%I from anon, authenticated', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated, service_role', t);
+    execute format('drop policy if exists "admins read %1$s" on public.%1$I', t);
+    execute format('drop policy if exists "admins insert %1$s" on public.%1$I', t);
+    execute format('drop policy if exists "admins update %1$s" on public.%1$I', t);
+    execute format('drop policy if exists "admins delete %1$s" on public.%1$I', t);
+    execute format('create policy "admins read %1$s" on public.%1$I for select to authenticated using (public.is_admin())', t);
+    execute format('create policy "admins insert %1$s" on public.%1$I for insert to authenticated with check (public.is_admin())', t);
+    execute format('create policy "admins update %1$s" on public.%1$I for update to authenticated using (public.is_admin()) with check (public.is_admin())', t);
+    execute format('create policy "admins delete %1$s" on public.%1$I for delete to authenticated using (public.is_admin())', t);
+  end loop;
+end $$;
+-- (audit rows need an id column; these two tables are keyed by tier and code, so the audit log reads them through those)
+create or replace function public.drapery_audit() returns trigger language plpgsql security definer set search_path = public as $f$
+begin
+  insert into public.audit_log (actor_id, actor_email, table_name, row_id, action, old_row, new_row)
+  values (auth.uid(), nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email', tg_table_name,
+          coalesce(case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end ->> 'code', case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end ->> 'tier'),
+          tg_op, case when tg_op in ('UPDATE','DELETE') then to_jsonb(old) end, case when tg_op in ('INSERT','UPDATE') then to_jsonb(new) end);
+  return null;
+end $f$;
+revoke all on function public.drapery_audit() from public, anon, authenticated;
+drop trigger if exists drapery_tiers_audit on public.drapery_tiers;
+create trigger drapery_tiers_audit after insert or update or delete on public.drapery_tiers for each row execute function public.drapery_audit();
+drop trigger if exists drapery_fabrics_audit on public.drapery_fabrics;
+create trigger drapery_fabrics_audit after insert or update or delete on public.drapery_fabrics for each row execute function public.drapery_audit();
+
+insert into public.drapery_tiers (tier, p42, p236) values
+  (75, 19.02, 82.82),
+  (93, 23.35, 101.65),
+  (116, 29.18, 127.06),
+  (133, 33.51, 145.88),
+  (150, 38.05, 165.65),
+  (174, 45.18, 196.71),
+  (197, 49.72, 216.47),
+  (220, 55.56, 241.88)
+on conflict (tier) do nothing;
+
+insert into public.drapery_fabrics (code, price_group, tier, usable_width, ship_k) values
+  ('SP2605001', 'A', 75, 102, 7.285),
+  ('SP2603501', 'A', 75, 102, 7.285),
+  ('SP26023042', 'A', 75, 102, 12.139),
+  ('SP2603901', 'A', 75, 102, 12.139),
+  ('SP26057001', 'A', 75, 110, 9.708),
+  ('SP26049004', 'A', 75, 110, 9.708),
+  ('SP26049005', 'A', 75, 110, 9.708),
+  ('SP26049006', 'A', 75, 110, 9.708),
+  ('SP26049008', 'A', 75, 110, 9.708),
+  ('SP26057002', 'A', 75, 110, 9.708),
+  ('SP26057003', 'A', 75, 110, 9.708),
+  ('SP2604801', 'A', 75, 110, 9.708),
+  ('SP2605401', 'A', 93, 110, 7.586),
+  ('SP26020013', 'A', 93, 106, 18.213),
+  ('SP26020042', 'A', 93, 106, 18.213),
+  ('SP26020099', 'A', 93, 106, 18.213),
+  ('SP26032002', 'A', 93, 102, 20.644),
+  ('SP26019000', 'A', 93, 102, 20.644),
+  ('SP26019001', 'A', 93, 102, 20.644),
+  ('SP26019002', 'A', 93, 102, 20.644),
+  ('SP26019010', 'A', 93, 102, 20.644),
+  ('SP26019015', 'A', 93, 102, 20.644),
+  ('SP26019016', 'A', 93, 102, 20.644),
+  ('SP26019018', 'A', 93, 102, 20.644),
+  ('SP26019037', 'A', 93, 102, 20.644),
+  ('SP26018041', 'B', 116, 102, 22.766),
+  ('SP26018045', 'B', 116, 102, 22.766),
+  ('SP26018099', 'B', 116, 102, 22.766),
+  ('SP26053001', 'B', 116, 102, 22.766),
+  ('SP26053006', 'B', 116, 102, 22.766),
+  ('SP26041001', 'B', 116, 102, 22.766),
+  ('SP26041004', 'B', 116, 102, 22.766),
+  ('SP26041007', 'B', 116, 102, 22.766),
+  ('SP26050001', 'B', 116, 106, 10.447),
+  ('SP26050002', 'B', 116, 106, 10.447),
+  ('SP26050004', 'B', 116, 106, 10.447),
+  ('SP26050005', 'B', 116, 106, 10.447),
+  ('SP26050008', 'B', 116, 106, 10.447),
+  ('SP26050009', 'B', 116, 106, 10.447),
+  ('SP26050010', 'B', 116, 106, 10.447),
+  ('SP26050011', 'B', 116, 106, 10.447),
+  ('SP26050012', 'B', 116, 106, 10.447),
+  ('SP26046001', 'B', 116, 102, 27.208),
+  ('SP26046002', 'B', 116, 102, 27.208),
+  ('SP26046007', 'B', 116, 102, 27.208),
+  ('SP26047001', 'B', 116, 102, 27.208),
+  ('SP26047002', 'B', 116, 102, 27.208),
+  ('SP26047005', 'B', 116, 102, 27.208),
+  ('SP26047007', 'B', 116, 102, 27.208),
+  ('SP26047013', 'B', 116, 102, 27.208),
+  ('SP26014001', 'B', 133, 102, 17.302),
+  ('SP26014002', 'B', 133, 102, 17.302),
+  ('SP26014004', 'B', 133, 102, 17.302),
+  ('SP26014005', 'B', 133, 102, 17.302),
+  ('SP26014012', 'B', 133, 102, 17.302),
+  ('SP26026001', 'B', 133, 102, 17.302),
+  ('SP26026002', 'B', 133, 102, 17.302),
+  ('SP26026004', 'B', 133, 102, 17.302),
+  ('SP26026020', 'B', 133, 102, 17.302),
+  ('SP26029001', 'B', 133, 102, 27.019),
+  ('SP26029002', 'B', 133, 102, 27.019),
+  ('SP26029003', 'B', 133, 102, 27.019),
+  ('SP26029006', 'B', 133, 102, 27.019),
+  ('SP26029008', 'B', 133, 102, 27.019),
+  ('SP26031001', 'B', 133, 102, 27.019),
+  ('SP26031002', 'B', 133, 102, 27.019),
+  ('SP26031004', 'B', 133, 102, 27.019),
+  ('SP26015001', 'B', 133, 102, 27.019),
+  ('SP26015002', 'B', 133, 102, 27.019),
+  ('SP26015008', 'B', 133, 102, 27.019),
+  ('SP26015012', 'B', 133, 102, 27.019),
+  ('SP26015016', 'B', 133, 102, 27.019),
+  ('SP26030001', 'B', 133, 102, 27.019),
+  ('SP26030002', 'B', 133, 102, 27.019),
+  ('SP26030009', 'B', 133, 102, 27.019),
+  ('SP26040001', 'B', 133, 110, 21.856),
+  ('SP26040002', 'B', 133, 110, 21.856),
+  ('SP26040004', 'B', 133, 110, 21.856),
+  ('SP26003005', 'B', 133, 110, 21.856),
+  ('SP26003009', 'B', 133, 110, 21.856),
+  ('SP26003004', 'B', 133, 110, 21.856),
+  ('SP26003001', 'B', 133, 110, 21.856),
+  ('SP26003003', 'B', 133, 110, 21.856),
+  ('SP26027002', 'B', 133, 106, 28.29),
+  ('SP26027004', 'B', 133, 106, 28.29),
+  ('SP26027008', 'B', 133, 106, 28.29),
+  ('SP26048008', 'B', 133, 106, 28.29),
+  ('SP26048009', 'B', 133, 106, 28.29),
+  ('SP26055002', 'B', 133, 106, 28.29),
+  ('SP26056001', 'B', 133, 106, 28.29),
+  ('SP26056003', 'B', 133, 106, 28.29),
+  ('SP26056004', 'B', 133, 106, 28.29),
+  ('SP26056005', 'B', 133, 106, 28.29),
+  ('SP26056007', 'B', 133, 106, 28.29),
+  ('SP26056008', 'B', 133, 106, 28.29),
+  ('SP26056011', 'B', 133, 106, 28.29),
+  ('SP26056014', 'B', 133, 106, 28.29),
+  ('SP26060001', 'B', 133, 94, 14.57),
+  ('SP26060002', 'B', 133, 94, 14.57),
+  ('SP26060003', 'B', 133, 94, 14.57),
+  ('SP26048001', 'C', 150, 102, 25.077),
+  ('SP26048002', 'C', 150, 102, 25.077),
+  ('SP26062001', 'C', 150, 102, 25.077),
+  ('SP26062004', 'C', 150, 102, 25.077),
+  ('SP26062005', 'C', 150, 102, 25.077),
+  ('SP26062006', 'C', 150, 102, 25.077),
+  ('SPT261001', 'C', 150, 102, 25.077),
+  ('SP26006001', 'C', 150, 102, 25.077),
+  ('SP26006002', 'C', 150, 102, 25.077),
+  ('SP26006004', 'C', 150, 102, 25.077),
+  ('SP26006010', 'C', 150, 102, 25.077),
+  ('SP26006011', 'C', 150, 102, 25.077),
+  ('SP26005001', 'C', 174, 110, 18.213),
+  ('SP26005002', 'C', 174, 110, 18.213),
+  ('SP26025001', 'C', 174, 104, 19.433),
+  ('SP26025002', 'C', 174, 104, 19.433),
+  ('SP26025005', 'C', 174, 104, 19.433),
+  ('SP26001001', 'C', 174, 104, 19.433),
+  ('SP26001004', 'C', 174, 104, 19.433),
+  ('SP26004001', 'D', 197, 110, 25.507),
+  ('SP26004002', 'D', 197, 110, 25.507),
+  ('SP26036003', 'D', 197, 110, 25.507),
+  ('SP26002001', 'D', 197, 106, 27.93),
+  ('SP26002004', 'D', 197, 106, 27.93),
+  ('SP26002014', 'D', 197, 106, 27.93),
+  ('SP26002018', 'D', 197, 106, 27.93),
+  ('SP26010001', 'D', 197, 106, 27.93),
+  ('SP26010002', 'D', 197, 106, 27.93),
+  ('SP26024001', 'D', 220, 104, 20.034)
+on conflict (code) do nothing;
+
+-- The curtain fabric price (internal parts). p_opts: fullness (number, 2.6), style_family, lining (none | light-filtering | blackout).
+--   units  = ceil(F x W / usable_width)
+--   fabric = units x (P42 + (P236 - P42) x (H - 42) / 194), x 0.92 for ripple fold styles
+--   liner  = units x (16.22 + 54.37 x (H - 42) / 194)        (light filtering and blackout cost the same)
+--   ship   = 37.65 + (ship_k / 10000 + 0.00158 if liner) x F x W x H
+--   cost   = fabric + liner + ship;  price = cost x (1 + the Drapery markup). Single panel or pair, and the return, do not change the price.
+create or replace function public.drapery_parts(p_swatch text, p_opts jsonb, p_w numeric, p_h numeric) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  r jsonb; f public.drapery_fabrics; t public.drapery_tiers; v_code text;
+  fl numeric := nullif(p_opts ->> 'fullness', '')::numeric;
+  fam text := coalesce(p_opts ->> 'style_family', 'pleated');
+  has_liner boolean := coalesce(p_opts ->> 'lining', 'none') in ('light-filtering', 'blackout');
+  units integer; fabric numeric; liner numeric := 0; ship numeric; cost numeric; mk numeric; exact numeric;
+begin
+  select jsonb_object_agg(id, amount) into r from public.hardware_rates;
+  if fl is null or fl <= 0 or p_w is null or p_h is null then return jsonb_build_object('status', 'no_input'); end if;
+  if p_w < (r ->> 'drapery_min_w')::numeric or p_w > (r ->> 'drapery_max_w')::numeric or p_h < (r ->> 'drapery_min_h')::numeric or p_h > (r ->> 'drapery_max_h')::numeric then
+    return jsonb_build_object('status', 'out_of_range');
+  end if;
+  v_code := nullif(p_opts ->> 'code', '');                       -- (tests and the admin checker price a supplier code directly)
+  if v_code is null then select supplier_code into v_code from public.swatches where id = p_swatch; end if;
+  select * into f from public.drapery_fabrics where code = v_code;
+  if f.code is null then return jsonb_build_object('status', 'no_fabric_price'); end if;
+  select * into t from public.drapery_tiers where tier = f.tier;
+  units := ceil(fl * p_w / f.usable_width);
+  fabric := units * (t.p42 + (t.p236 - t.p42) * (p_h - (r ->> 'drapery_min_h')::numeric) / 194);
+  if fam like 'ripple%' then fabric := fabric * (r ->> 'drapery_ripple_factor')::numeric; end if;
+  if has_liner then liner := units * ((r ->> 'drapery_liner_base')::numeric + (r ->> 'drapery_liner_slope')::numeric * (p_h - (r ->> 'drapery_min_h')::numeric) / 194); end if;
+  ship := (r ->> 'drapery_ship_base')::numeric + (f.ship_k / 10000 + case when has_liner then (r ->> 'drapery_liner_ship_k')::numeric else 0 end) * fl * p_w * p_h;
+  cost := fabric + liner + ship;
+  select markup into mk from public.pricing_lines where id = 'drapery';
+  exact := cost * (1 + coalesce(mk, 0.5));
+  return jsonb_build_object('status', 'ok', 'code', f.code, 'price_group', f.price_group, 'tier', f.tier, 'units', units, 'fabric', round(fabric, 4), 'liner', round(liner, 4),
+    'shipping', round(ship, 4), 'cost', round(cost, 4), 'markup', coalesce(mk, 0.5), 'price_exact', round(exact, 4), 'price', round(exact));
+end $$;
+revoke all on function public.drapery_parts(text, jsonb, numeric, numeric) from public, anon, authenticated;
+
+-- what a customer may learn: the price, or "by email" (a size outside the range, or a color with no price yet). Nothing else.
+create or replace function public.drapery_estimate(p_swatch text, p_options jsonb, p_width numeric, p_height numeric) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select case when p ->> 'status' = 'ok' then jsonb_build_object('price', (p ->> 'price')::numeric) else jsonb_build_object('price_on_request', true) end
+    from (select public.drapery_parts(p_swatch, coalesce(p_options, '{}'::jsonb), p_width, p_height) as p) x;
+$$;
+revoke all on function public.drapery_estimate(text, jsonb, numeric, numeric) from public;
+grant execute on function public.drapery_estimate(text, jsonb, numeric, numeric) to anon, authenticated;
+
+create or replace function public.drapery_breakdown(p_swatch text, p_options jsonb, p_width numeric, p_height numeric) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'admins only' using errcode = '42501'; end if;
+  return public.drapery_parts(p_swatch, coalesce(p_options, '{}'::jsonb), p_width, p_height);
+end $$;
+revoke all on function public.drapery_breakdown(text, jsonb, numeric, numeric) from public, anon;
+grant execute on function public.drapery_breakdown(text, jsonb, numeric, numeric) to authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 6. what the customer site reads from the option tables: which options are on, and which one is Best value

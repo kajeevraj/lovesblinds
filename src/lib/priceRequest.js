@@ -1,6 +1,37 @@
 // What to ask the database for when pricing a window. Pure code with no imports: the browser (product pages, order page)
 // and api/quote.js (which recomputes every estimate on the server before it goes into an email) use the same rules.
 import { pricingOptions } from './drive.js';
+import { styleById, styleIdFromSaved, cleanHardware, hardwareRequest } from './hardware.js';
+
+// A curtain: the fabric price (style, fullness, liner, size; the database knows the fabric by its supplier code) plus the optional track or rod.
+// Both come back as one answer from runEstimate(). Null until the choices and the size are in.
+function curtainRequest(c, w, h, sized) {
+  const st = styleById(c.styleId);
+  if (!c.pick || !st || !c.fullness || !c.lining || !sized || c.hardwareIncomplete) return null;
+  const hw = cleanHardware(c.hardware, c.styleId);
+  return {
+    kind: 'curtain', line: 'drapery', swatchId: c.pick.swatchId, width: w, height: h, sized: true,
+    options: { fullness: parseFloat(c.fullness), style_family: st.family, lining: c.lining },
+    hardware: hw ? hardwareRequest(hw, c.styleId, w) : null,
+  };
+}
+
+// Asks the database for one request: { price } | { price_on_request } | { custom_size }. A curtain asks for its fabric and (if it has one) its track or rod, and adds them.
+export async function runEstimate(req, base, key, fetchFn = fetch, signal) {
+  const call = async (fn, body) => {
+    const res = await fetchFn(`${base}/rest/v1/rpc/${fn}`, { method: 'POST', signal, headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`${fn} failed (${res.status})`);
+    return res.json();
+  };
+  if (req.kind === 'curtain') {
+    const fab = await call('drapery_estimate', { p_swatch: req.swatchId, p_options: req.options, p_width: req.width, p_height: req.height });
+    if (fab.price == null) return { price_on_request: true };
+    if (!req.hardware) return { price: fab.price };
+    const hw = await call('hardware_estimate', { p_options: req.hardware.options, p_width: req.hardware.width });
+    return hw.price == null ? { price_on_request: true } : { price: fab.price + hw.price };
+  }
+  return call('estimate_price_for_swatch', { p_line: req.line, p_swatch_id: req.swatchId, p_options: req.options, p_width: req.width, p_height: req.height });
+}
 
 // What to ask for, or null while the customer has not picked a color (and entered a size) yet.
 export function priceRequest(line, c, mech, width, height) {
@@ -22,12 +53,13 @@ export function priceRequest(line, c, mech, width, height) {
       break;
     case 'roman': r = c.lining ? base(c.pick, { lining: c.lining }) : null; break;
     case 'drapery':
-      r = c.section === 'curtains' ? base(c.pick, {}, 'drapery') : base(c.dream, {}, 'dream-curtains');
+      if (c.section === 'curtains') return curtainRequest(c, w, h, sized);
+      r = base(c.dream, {}, 'dream-curtains');
       break;
     default: break;
   }
-  // curtains are quoted by us: no size needed to say so; everything else waits for a size
-  if (r && !r.sized && r.line !== 'drapery') return null;
+  // everything waits for a size
+  if (r && !r.sized) return null;
   return r;
 }
 
@@ -42,6 +74,7 @@ export function priceRequestFromItem(line, item) {
     mode: sel.mode, front: p0, back: p1, wrap, bottomWrap: sel.extras?.bottomWrap,
     pick: p0, type: sel.type, day: p0, night: p1,
     lining: sel.lining, section: sel.section, dream: p0,
+    styleId: styleIdFromSaved(sel.pleat), fullness: sel.fullness, hardware: sel.hardware,
   };
   return priceRequest(line, c, item.mech ?? item.mechId, item.width, item.length ?? item.height);
 }

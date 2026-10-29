@@ -7,6 +7,7 @@ const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const H = (k) => ({ apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' });
 const results = [];
+const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 
 // helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
@@ -74,12 +75,16 @@ try {
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
   const curtainText = await items.nth(1).innerText();
-  check('Curtains: "Price by email" and the reply-with-a-price sentence, 2 blinds', /Price by email/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  if (migrated) check('Curtains: a priced line (fabric from the supplier price, with the liner), 2 blinds', /\$\s?\d+ each|\$\s?\d+/.test(curtainText) && /2 blinds/.test(curtainText) && !/Price by email/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  else check('Curtains (before migration 20): "Price by email", 2 blinds', /Price by email/.test(curtainText) && /2 blinds/.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
   const dreamCard = await items.nth(2).innerText();
   const dreamPrice = num(dreamCard.match(/\$[\d,]+/)?.[0]);
   check('Dream Curtains window: a live price, the style name and the picked style\'s code (ZDS3902-1), no "Style B"', dreamPrice > 0 && /Slim/.test(dreamCard) && /ZDS3902-1/.test(dreamCard) && !/ZDS3002|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));
   const totalText = await page.locator('.s2-total').innerText();
-  check('estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence', num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm details and final price\./.test(totalText), totalText.replace(/\s+/g, ' '));
+  const curtainEach = num(curtainText.match(/\$([\d,]+) each/)?.[1]);
+  check(migrated ? 'estimated total = Roller x3 + Dream + Curtains x2 (nothing left "priced by email"), and the estimate sentence' : 'estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence',
+    migrated ? num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice + curtainEach * 2 && !/priced by email/.test(totalText) && /Here's your estimate/.test(totalText)
+      : num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm detail/.test(totalText), totalText.replace(/\s+/g, ' '));
 
   // the Edit link opens the same page as clicking the item
   await items.nth(2).getByRole('link', { name: /^Edit / }).click();

@@ -9,7 +9,7 @@ import AddersFlags from './AddersFlags.jsx';
 import ImportWizard from './ImportWizard.jsx';
 import HardwareRates from './HardwareRates.jsx';
 
-const TABS = [['checker', 'Price checker'], ['markups', 'Markups'], ['grids', 'Grids'], ['adders', 'Adders & flags'], ['hardware', 'Curtain hardware'], ['import', 'Re-import']];
+const TABS = [['checker', 'Price checker'], ['markups', 'Markups'], ['grids', 'Grids'], ['adders', 'Adders & flags'], ['hardware', 'Curtain hardware and fabric'], ['import', 'Re-import']];
 
 export default function PricingSection() {
   const [data, setData] = useState(null);

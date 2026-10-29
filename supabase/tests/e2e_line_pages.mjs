@@ -129,17 +129,28 @@ try {
 
   // ---------- Drapery ----------
   await open('drapery');
+  const curtainColor = (await tileInfo()).name;
   await page.locator('.s2-sw').first().click();
   const stepOf = (title) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${title}\\s*$`) }) });
   await stepOf('Style').locator('.s2-card').nth(1).click();
   await stepOf('Fullness').locator('.s2-card').first().click();
   await stepOf('Liner').locator('.s2-card').first().click();
   await stepOf('Panels').locator('.s2-card').first().click();
-  await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
-  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar-blind').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0);
-  check('Curtains need a size before they can be added', await page.locator('.s2-add-btn').isDisabled());
+  const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
+  check('Curtains: no price and no dollar amount until a size is entered, and the Add button waits', (await estimate().count()) === 0 && !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && await page.locator('.s2-add-btn').isDisabled());
   await size(120, 96);
-  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+  if (migrated) {
+    const dswId = (await catalog('drapery')).find((x) => x.display_name === (curtainColor))?.id;
+    const want = (await rpc('drapery_estimate', { p_swatch: dswId, p_options: { fullness: 2.1, style_family: 'pleated', lining: 'none' }, p_width: 120, p_height: 96 }));
+    await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    check('Curtains: with a size the fabric price shows and is the database price (supplier cost x the markup)', want.price != null ? (await pagePrice()) === want.price : /Price by email/.test(await page.locator('.s2-estimate').innerText()), JSON.stringify(want));
+    await size(300, 96); await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
+    check('Curtains: a size outside 40 to 236 wide or 42 to 236 high is "Price by email"', (await estimate().count()) === 0);
+    await size(120, 96);
+  } else {
+    await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    console.log('SKIP  curtain fabric price (migration 20 is not applied to this database)');
+  }
   check('Curtains can be added once a size is entered', await page.locator('.s2-add-btn').isEnabled());
   await page.getByRole('tab', { name: 'Dream Curtains' }).click();
   await page.locator('.s2-sw').first().waitFor();

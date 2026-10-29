@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
-import { priceRequestFromItem } from '../src/lib/priceRequest.js';
+import { priceRequestFromItem, runEstimate } from '../src/lib/priceRequest.js';
 import { pricingOptions } from '../src/lib/drive.js';
 import { assignRemotes } from '../src/lib/remote.js';
 import { addressLine } from '../src/data/countries.js';
@@ -63,13 +63,7 @@ export async function estimateLine(line, env = process.env) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
   try {
-    const res = await fetch(`${url}/rest/v1/rpc/estimate_price_for_swatch`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_line: req.line, p_swatch_id: req.swatchId, p_options: req.options, p_width: req.width, p_height: req.height }),
-    });
-    if (!res.ok) throw new Error(`estimate lookup failed (${res.status})`);
-    const r = await res.json();
+    const r = await runEstimate(req, url, key, fetch, ctl.signal);
     const kind = kindOf(r);
     return { kind, unit: kind === 'price' ? r.price : null, checked: true, browserUnit: sent.unit };
   } catch (err) {

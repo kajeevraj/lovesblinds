@@ -71,6 +71,32 @@ try {
     // ---- double-stack
     await open('roller'); await card('Double-stack').click(); await settle();
     check(T('double-stack: no Chain and no 2 in 1 motor; Zero gravity is the default'), (await page.locator('.s2-card-name', { hasText: /^(Chain|2 in 1 motor)$/ }).count()) === 0 && await card('Zero gravity').getAttribute('aria-pressed') === 'true');
+    await page.locator('.s2-swgrid').nth(0).locator('.s2-sw').nth(3).click(); await page.locator('.s2-swgrid').nth(1).locator('.s2-sw').nth(6).click(); await size(48, 72);
+    await page.locator('.pv-stage.ready').waitFor({ timeout: 30000 }); await page.waitForTimeout(1200);
+    const grips = page.locator('.pv-grip');
+    const val = async (n) => Number(await grips.nth(n).getAttribute('aria-valuenow'));
+    check(T('double-stack Zero gravity: two handles named Front shade and Back shade; front shade halfway down, back shade raised on load; no labels on the picture'), (await grips.count()) === 2 && (await grips.nth(0).getAttribute('aria-label')) === 'Front shade' && (await grips.nth(1).getAttribute('aria-label')) === 'Back shade' && Math.abs((await val(0)) - 50) <= 2 && (await val(1)) <= 2 && (await page.locator('.pv-stage .pv-xlabel, .pv-stage .pv-solar-label').count()) === 0);
+    const pos = await grips.evaluateAll((g, stage) => { const st = document.querySelector('.pv-drag, .pv-stage').getBoundingClientRect(); return g.map((x) => { const r = x.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }); });
+    const box = await page.locator('.pv-stage').boundingBox();
+    check(T('the two handles sit side by side (front left of back) and are focusable'), pos[0].x < pos[1].x && await grips.nth(0).evaluate((e) => e.tabIndex >= 0) && await grips.nth(1).evaluate((e) => e.tabIndex >= 0));
+    check(T('the back shade handle is visible and grabbable behind the front fabric, drawn lighter'), await grips.nth(1).evaluate((e) => e.classList.contains('behind') && getComputedStyle(e.querySelector('i')).opacity !== '1' && e.getBoundingClientRect().width >= 36 && e.getBoundingClientRect().height >= 36) && await grips.nth(0).evaluate((e) => !e.classList.contains('behind')));
+    await grips.nth(1).focus(); for (let i = 0; i < 20; i++) await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(300);
+    check(T('the arrow keys move only the focused shade (the back shade goes down, the front stays)'), (await val(1)) >= 55 && Math.abs((await val(0)) - 50) <= 2, `front ${await val(0)}, back ${await val(1)}`);
+    check(T('once the back bar is lower than the front, its handle is no longer drawn as "behind"'), await grips.nth(1).evaluate((e) => !e.classList.contains('behind')));
+    await grips.nth(0).focus(); for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(300);
+    check(T('the front handle moves the front shade only'), (await val(0)) < 45 && (await val(1)) >= 55);
+    await card('Motorized').click(); await settle();
+    check(T('double-stack motorized: the remote tile has two button rows, Front shade and Back shade, each with up, stop and down'), (await page.locator('.rm-row[aria-label="Front shade"] .rm-key').count()) === 3 && (await page.locator('.rm-row[aria-label="Back shade"] .rm-key').count()) === 3 && (await page.locator('.rm').getAttribute('data-remote')) === 'ch1');
+    const bars = page.locator('.pv-bar');
+    const b0 = await bars.nth(0).getAttribute('aria-valuenow'), b1 = await bars.nth(1).getAttribute('aria-valuenow');
+    await page.locator('[data-btn="back-down"]').click(); await page.waitForTimeout(1500); await page.locator('[data-btn="back-stop"]').click();
+    check(T('the Back shade buttons move only the back shade'), Number(await bars.nth(1).getAttribute('aria-valuenow')) > Number(b1) + 3 && (await bars.nth(0).getAttribute('aria-valuenow')) === b0, `${b0}/${b1} -> ${await bars.nth(0).getAttribute('aria-valuenow')}/${await bars.nth(1).getAttribute('aria-valuenow')}`);
+    const f1 = await bars.nth(0).getAttribute('aria-valuenow');
+    await page.locator('[data-btn="front-up"]').click(); await page.waitForTimeout(1200); await page.locator('[data-btn="front-stop"]').click();
+    check(T('the Front shade buttons move only the front shade'), Number(await bars.nth(0).getAttribute('aria-valuenow')) < Number(f1) - 3);
+    await card('Zero gravity').click(); await settle();
     // ---- Cellular
     await open('cellular');
     check(T('Cellular: Zero gravity (Best value), Motorized (Top of the line), Chain; no Cordless'), JSON.stringify(await badges('Zero gravity')) === JSON.stringify(['Best value']) && JSON.stringify(await badges('Motorized')) === JSON.stringify(['Top of the line']) && (await page.locator('.s2-card-name', { hasText: /Cordless/ }).count()) === 0);

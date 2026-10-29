@@ -4,12 +4,13 @@
 // nothing here knows a cost.
 
 // ---- Curtain styles --------------------------------------------------------------------------------------------------
-// `family` decides which tracks fit. `fullness` are the choices we make the fabric panel to (the pleat distance is for our order notes only).
-const PLEATED_FULL = ['2.1-2.3x', '2.6x', '3x'];
+// `family` decides which tracks fit. `fullness` are the choices we make the fabric panel to (the pleat distance is for our order notes only). Each number is the F in the fabric price.
+const PINCH_FULL = ['2.1x', '2.6x', '3x'];
+const PLEATED_FULL = ['2.3x', '2.6x', '3x'];
 const THREE_FINGER_FULL = ['2.8x', '3.5x', '4x'];
 export const CURTAIN_STYLES = [
   { id: 'grommet', label: 'Grommet', family: 'grommet', fullness: ['1x', '2x'] },
-  { id: 'pinch-pleat', label: 'Pinch pleat', family: 'pleated', fullness: PLEATED_FULL },
+  { id: 'pinch-pleat', label: 'Pinch pleat', family: 'pleated', fullness: PINCH_FULL },
   { id: 'goblet', label: 'Goblet', family: 'pleated', fullness: PLEATED_FULL },
   { id: 'inverted-pleat', label: 'Inverted pleat', family: 'pleated', fullness: PLEATED_FULL },
   { id: 'euro-pleat-2', label: 'Euro pleat (2 finger)', family: 'pleated', fullness: PLEATED_FULL },

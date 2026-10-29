@@ -6,6 +6,7 @@ const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const H = (k) => ({ apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' });
 const results = [];
+const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 
 // helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
@@ -80,8 +81,14 @@ try {
   await page.goto(`${BASE}/products/drapery`); await rtiles().first().waitFor();
   await rtiles().first().click();
   await pickCurtains(page);
-  await page.getByText(/send us your order and we.ll reply with a price/i).first().waitFor();
-  check('Drapery curtains still say "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
+  check('Drapery curtains show no price until a size is entered', (await page.locator('.s2-estimate-price').count()) === 0 && !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
+  if (migrated) {
+    await page.locator('#s2-w').fill('300'); await page.locator('#s2-h').fill('96');
+    await page.getByText(/send us your order and we.ll reply with a price/i).first().waitFor();
+    check('a curtain size outside 40 to 236 wide or 42 to 236 high says "send us your order and we\'ll reply with a price" (no dollar amount)', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()), await page.locator('.s2-estimate').innerText());
+    await page.locator('#s2-w').fill('100'); await page.locator('.s2-estimate-price').waitFor();
+    check('a curtain size inside the range shows a price, and it holds no cost, group or markup words', !/cost|markup|group|tier/i.test(await page.locator('.s2-estimate').innerText()));
+  } else console.log('SKIP  curtain fabric price (migration 20 is not applied to this database)');
   check('the Drapery page has no price group names either', leak(await page.content()).length === 0, 'checked');
 
   // every catalog response of the session

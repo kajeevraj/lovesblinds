@@ -5,7 +5,7 @@ const GRID_COLS = 'id,grid_key,line_id,systems,variant,lining,scope,special,mult
 
 // Everything the pricing screens need except the cost cells themselves (those load per grid).
 export async function loadPricing() {
-  const [lines, markups, flags, adders, grids, gridFabrics, productLines, groups, values, rules, hardware] = await Promise.all([
+  const [lines, markups, flags, adders, grids, gridFabrics, productLines, groups, values, rules, hardware, dTiers, dFabrics] = await Promise.all([
     supabase.from('pricing_lines').select('*').order('id').then(must),
     supabase.from('collection_markups').select('*').then(must),
     supabase.from('price_flags').select('*').order('created_at').then(must),
@@ -17,8 +17,10 @@ export async function loadPricing() {
     supabase.from('option_values').select('*').order('group_id').order('sort_order').then(must),
     supabase.from('size_rules').select('*').order('line_id').order('created_at').then(must),
     supabase.from('hardware_rates').select('*').order('sort_order').then((r) => (r.error ? null : r.data)),      // null until migration 20 has been run
+    supabase.from('drapery_tiers').select('*').order('tier').then((r) => (r.error ? null : r.data)),
+    supabase.from('drapery_fabrics').select('*').order('code').limit(2000).then((r) => (r.error ? null : r.data)),
   ]);
-  return { lines, markups, flags, adders, grids, gridFabrics, productLines, groups, values, rules, hardware };
+  return { lines, markups, flags, adders, grids, gridFabrics, productLines, groups, values, rules, hardware, dTiers, dFabrics };
 }
 export const loadGridCost = async (id) => must(await supabase.from('price_grids').select('cost').eq('id', id).single()).cost;
 // Full grids (with cost) for one line, for the re-import comparison

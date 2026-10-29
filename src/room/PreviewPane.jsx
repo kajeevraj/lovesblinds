@@ -18,10 +18,10 @@ import RoomEmbed from './RoomEmbed.jsx';
 const SAMPLE = { roller: 'rlf-soft-cream', zebra: 'zeb-cream' };
 const ROLLER_BY_FAMILY = { solar: 'roller-solar', 'screen-view': 'roller-screen', blackout: 'roller-blackout' };
 // what the drawing shows, in a sentence
-function driveNote(d, extras) {
+function driveNote(d, extras, many) {
   const side = SIDE_NAME[d.side].toLowerCase();
   if (d.movement === 'chain') return `Continuous chain, on the ${side}${extras?.chainColor ? `, ${chainColorOf(extras.chainColor).label.toLowerCase()}` : ''}`;
-  if (d.movement === 'zero-gravity') return 'Zero gravity, nothing hangs down. Move the shade by its center handle';
+  if (d.movement === 'zero-gravity') return many ? 'Zero gravity, nothing hangs down. Each shade has its own handle on its bottom bar' : 'Zero gravity, nothing hangs down. Move the shade by its center handle';
   if (d.movement === 'two-in-one') return '2 in 1 motor, inside the roller on the right. Use the remote, or move the shade by its handle';
   const power = d.power === 'wired' ? `wired; the motor is inside the roller and the cord leaves the end cap on the ${side}`
     : `battery; the motor is inside the roller and charges through a small port on the end cap on the ${side}${d.solar ? ', and the solar panel goes on the window glass near the top' : ''}`;
@@ -44,7 +44,9 @@ const KEY_STEP = 0.03;
 
 export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady, remoteType = 'ch1', shareNote = false, extras = {} }) {
   const [status, setStatus] = useState(() => (webglAvailable() ? 'loading' : 'nowebgl'));      // loading | ready | nowebgl
-  const [amount, setAmount] = useState(0.55);
+  // where each shade is (0 raised, 1 fully lowered): a single shade a little over halfway; a double-stack's front shade halfway down and its back shade raised
+  const [amounts, setAmounts] = useState(() => (double ? [0.5, 0] : [0.55]));
+  useEffect(() => { setAmounts(double ? [0.5, 0] : [0.55]); }, [double]);
   const [layout, setLayout] = useState(null);
   // The room view is not offered on the product page any more (the code stays in place, unused).
   const room = false;
@@ -75,7 +77,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     const t = setTimeout(async () => {
       let mod; try { mod = await import('./previewScene.js'); } catch { if (!dead) setStatus('nowebgl'); return; }
       if (dead) return;
-      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onAmount: setAmount, onDrive: () => {} }); } catch { if (!dead) setStatus('nowebgl'); return; }
+      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onAmount: (a) => setAmounts((prev) => (prev.length === a.length && prev.every((x, i) => x === a[i]) ? prev : a)), onDrive: () => {} }); } catch { if (!dead) setStatus('nowebgl'); return; }
       ctrlRef.current = ctrl;
       const stage = stageRef.current;
       ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return; ctrl.resize(Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)), window.devicePixelRatio || 1); });
@@ -91,41 +93,45 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
 
   useEffect(() => {
     const ctrl = ctrlRef.current; if (!ctrl || status !== 'ready') return;
-    ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, drive: drv, cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amount, extras: sceneExtras });
+    ctrl.configure({ tight: !!phone || !(w && h), kind, width: w || 36, height: h || 60, mount, drive: drv, cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amounts: double ? [amounts[0] ?? 0.5, amounts[1] ?? 0] : [amounts[0] ?? 0.55], extras: sceneExtras });
   }, [status, kind, w, h, mount, mech, cover, key, phone, double, sceneExtras]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  const many = layers.length > 1;
   const press = (k) => {
     touch();
-    if (k === 'up' || k === 'down' || k === 'stop') ctrlRef.current?.drive(k === 'up' ? -1 : k === 'down' ? 1 : 0);
+    const [who, what] = String(k).includes(':') ? String(k).split(':') : ['front', k];
+    const i = who === 'back' ? 1 : 0;
+    if (what === 'up' || what === 'down' || what === 'stop') ctrlRef.current?.drive(what === 'up' ? -1 : what === 'down' ? 1 : 0, i);
     setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
   };
   useEffect(() => () => clearTimeout(litTimer.current), []);
-  const setAmountNow = (a) => { touch(); ctrlRef.current?.snapAmount(a); setAmount(a); };
-  // dragging: the handle, the bottom bar and the shade itself all use the same maths, measured against the shade's box
-  const down = (e) => {
+  // each handle (or bar) moves only its own shade
+  const setAmountAt = (i, a) => { touch(); ctrlRef.current?.snapAmount(a, i); setAmounts((prev) => prev.map((x, k) => (k === i ? a : x))); };
+  const down = (i) => (e) => {
     const r = shadeRef.current?.getBoundingClientRect(); if (!r) return;
-    dragRef.current = { rect: r, y0: e.clientY, moved: false, grab: 0 };
+    dragRef.current = { i, rect: r, y0: e.clientY, moved: false, grab: 0 };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const move = (e) => {
     const d = dragRef.current; if (!d) return;
     const hh = ctrlRef.current?.shadeHeight || 1;
-    if (!d.moved) { if (Math.abs(e.clientY - d.y0) < 3) return; d.moved = true; d.grab = (d.y0 - d.rect.top) / d.rect.height - (0.064 + amount * (hh - 0.094) + 0.015) / hh; }
-    setAmountNow(amountFromHandle((e.clientY - d.rect.top) / d.rect.height - d.grab, hh));
+    if (!d.moved) { if (Math.abs(e.clientY - d.y0) < 3) return; d.moved = true; d.grab = (d.y0 - d.rect.top) / d.rect.height - (0.064 + (amounts[d.i] ?? 0) * (hh - 0.094) + 0.015) / hh; }
+    setAmountAt(d.i, amountFromHandle((e.clientY - d.rect.top) / d.rect.height - d.grab, hh));
   };
   const up = (e) => { dragRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
-  const key_ = (e) => {
+  const key_ = (i) => (e) => {
+    const cur = amounts[i] ?? 0;
     const step = e.shiftKey ? KEY_STEP * 3 : KEY_STEP;
     let a = null;
-    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') a = amount - step;
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') a = amount + step;
-    else if (e.key === 'PageUp') a = amount - 0.1;
-    else if (e.key === 'PageDown') a = amount + 0.1;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') a = cur - step;
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') a = cur + step;
+    else if (e.key === 'PageUp') a = cur - 0.1;
+    else if (e.key === 'PageDown') a = cur + 0.1;
     else if (e.key === 'Home') a = 0;
     else if (e.key === 'End') a = 1;
     if (a == null) return;
     e.preventDefault();
-    setAmountNow(Math.min(1, Math.max(0, a)));
+    setAmountAt(i, Math.min(1, Math.max(0, a)));
   };
 
   if (status === 'nowebgl') return <div className="pv pv-photo">{fallback}</div>;
@@ -133,7 +139,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const withRemote = drv.movement === 'motorized' || drv.movement === 'two-in-one';
   const tile = status === 'ready' && withRemote && (
             <div className="pv-incl pv-incl-under">
-              <SimpleRemote type={remoteType} lit={lit} onPress={press} />
+              <SimpleRemote type={remoteType} lit={lit} onPress={press} shades={many ? ['Front shade', 'Back shade'] : null} />
               <span className="pv-incl-title">Included: remote</span>
               {drv.movement === 'motorized' && drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
               {drv.movement === 'motorized' && drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{WORKS_NOTE.zigbee}</span></div>}
@@ -142,16 +148,20 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
             </div>
   );
   const roomBlind = { product: layers[0].product, fabric: layers[0].fabric };
-  const pct = Math.round(amount * 100);
   const sample = layers.some((l) => l.sample);
   const clamped = (w && (w < 12 || w > 300)) || (h && (h < 12 || h > 300));
-  const aria = { role: 'slider', 'aria-orientation': 'vertical', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, 'aria-valuetext': `${pct}% lowered` };
+  const ariaFor = (i) => ({ role: 'slider', 'aria-orientation': 'vertical', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round((amounts[i] ?? 0) * 100), 'aria-valuetext': `${Math.round((amounts[i] ?? 0) * 100)}% lowered` });
+  const who = (i) => (many ? (i === 0 ? 'Front shade' : 'Back shade') : null);
+  // a handle matches its bottom bar: the bar color, or the shade's fabric when a double-stack's bar is wrapped
+  const barHex = (i) => (double && extras.bottomWrap !== 'none' ? (layers[i]?.fabric?.color || '#efece5') : barColorOf(extras.barColor).hex);
+  const lum = (hex) => { const n = parseInt(String(hex).replace('#', '').padEnd(6, '0').slice(0, 6), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; };
+  const gripStyle = (i, h) => { const bg = barHex(i); return { left: h.x, top: h.y, '--grip-bg': bg, '--grip-ink': lum(bg) > 0.55 ? '#7A5C2E' : '#f4efe4' }; };
 
   return (
     <div className="pv">
       {room ? (
         <div className="pv-stage pv-room">
-          <RoomEmbed blind={roomBlind} amount={amount} onAmount={setAmount} phone={phone} />
+          <RoomEmbed blind={roomBlind} amount={amounts[0]} onAmount={(a) => setAmounts([a])} phone={phone} />
         </div>
       ) : (
         <div className={`pv-stage${status === 'ready' ? ' ready' : ''}`} ref={stageRef}>
@@ -159,15 +169,21 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           <canvas className="pv-canvas" ref={canvasRef} aria-label={`3D preview of your ${kind} shade`} role="img" />
           {status === 'ready' && layout && (
             <>
-              <div className="pv-drag" ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />
-              {hasHandle ? (
-                <button type="button" className="pv-grip" {...aria} aria-label="Handle. Drag it, or use the arrow keys, to move the shade" style={{ left: layout.handle.x, top: layout.handle.y }}
-                  onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_}><i aria-hidden="true" /></button>
-              ) : (
+              {!many && <div className="pv-drag" ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down(0)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />}
+              {many && <div ref={shadeRef} style={{ position: 'absolute', left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0, pointerEvents: 'none' }} aria-hidden="true" />}
+              {hasHandle ? (layout.handles || [layout.handle]).slice(0, layers.length).map((h, i) => (
+                <button key={i} type="button" className={`pv-grip${many ? ' two' : ''}${layout.hidden?.[i] ? ' behind' : ''}`} {...ariaFor(i)} data-shade={many ? (i === 0 ? 'front' : 'back') : undefined}
+                  aria-label={many ? who(i) : 'Handle. Drag it, or use the arrow keys, to move the shade'} style={gripStyle(i, h)}
+                  onPointerDown={down(i)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_(i)}><i aria-hidden="true" /></button>
+              )) : (
                 <>
-                  <button type="button" className="pv-bar" {...aria} aria-label="Bottom bar. Drag it, or use the arrow keys, to move the shade" style={{ left: layout.x0, width: layout.x1 - layout.x0, top: layout.handle.y }}
-                    onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_} />
-                  <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>
+                  {(layout.handles || [layout.handle]).slice(0, layers.length).map((h, i) => (
+                    <button key={i} type="button" className="pv-bar" {...ariaFor(i)} data-shade={many ? (i === 0 ? 'front' : 'back') : undefined}
+                      aria-label={many ? who(i) : 'Bottom bar. Drag it, or use the arrow keys, to move the shade'}
+                      style={many ? { left: layout.x0 + (i === 0 ? 0 : 0.5) * (layout.x1 - layout.x0), width: 0.5 * (layout.x1 - layout.x0), top: h.y } : { left: layout.x0, width: layout.x1 - layout.x0, top: h.y }}
+                      onPointerDown={down(i)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_(i)} />
+                  ))}
+                  {!many && <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
                 </>
               )}
               {w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
@@ -178,7 +194,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       )}
       {!room && tile}
       <p className="pv-note">
-        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(drv, extras)}.{clamped ? ' Shown at the nearest size we can draw.' : ''}
+        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(drv, extras, many)}.{clamped ? ' Shown at the nearest size we can draw.' : ''}
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 -- Migration 21, STEP B of 2: retire Cordless. RUN ONLY AFTER the new site is deployed and migration 20 (step A) has been applied.
--- "Cordless" and "Zero gravity" are the same thing: Zero gravity is the only one (plain table + $18). The new site never sends the
+-- "Cordless" and "Zero gravity" are the same thing: Zero gravity is the only one (priced from the supplier Cordless / Free-stop table). The new site never sends the
 -- cordless code; saved carts, quotes and orders that say cordless load and show as Zero gravity (the site translates the old code on read).
 -- If this ran while the old site is live, the old site's Cordless choice would stop pricing. Idempotent: safe to re-run.
 
