@@ -1,7 +1,8 @@
 // Shared pieces of the window-treatment models (shade.js, curtains.js): image loading, fabric materials, soft shadows.
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
-import { makeTextureCanvas, tunedCanvas } from '../textureBrowser.js';
+import { makeTextureCanvas, tunedCanvas, pixelsOf } from '../textureBrowser.js';
+import { deriveHex } from '../../lib/swatchColor.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
 const imgCache = new Map();
@@ -39,8 +40,16 @@ export function whenFabric(spec, cb) {
 }
 
 // A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Mirrored in u so the swatch edges never show a seam.
-// a catalog photo is re-centred on the swatch's real color family and its contrast capped (the preset textures are already cut for this)
-export const tuneFabric = (img, spec) => (!spec.preset && spec.color ? tunedCanvas(img, spec.key, spec.color, spec.kind === 'zebra') : img);
+// A catalog photo is re-centred on the color the fabric shows as (src/lib/swatchColor.js: the admin's override, else its own picture placed inside
+// its color family) and its contrast capped; the preset textures are already cut for this. The color is read once per fabric.
+const looks = new Map();
+export const looksHex = (img, spec) => {
+  if (spec.override) return spec.color;
+  let h = looks.get(spec.key);
+  if (!h) { try { h = deriveHex(pixelsOf(img, 64, spec.kind === 'zebra' ? 0.6 : 1), spec.colorFamily); } catch { h = spec.color; } looks.set(spec.key, h); }
+  return h;
+};
+export const tuneFabric = (img, spec) => (!(spec.preset && !spec.override) && spec.color ? tunedCanvas(img, spec.key, looksHex(img, spec), spec.kind === 'zebra') : img);
 
 export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   const t = new THREE.Texture();

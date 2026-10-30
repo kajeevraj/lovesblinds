@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LINE_LABELS, LINE_ORDER, FAMILY_LABELS, GRADES, ROMAN_STYLE_LIST, LINING_LIST, familyNeeded, scopeLabel } from '../lib/constants.js';
 import { COLOR_FAMILY_LIST } from '../../data/colorFamilyList.js';
 import { suggestColorFamily } from '../../lib/colorFamily.js';
+import { familyHex, isHex } from '../../lib/swatchColor.js';
 import { prepareImage, uploadPrepared, removePaths } from '../lib/images.js';
 import { checkName, checkCode } from '../lib/validate.js';
 import { emptyCollection, newCollectionRow, diffPatch } from '../lib/collections.js';
@@ -39,6 +40,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const [suppName, setSuppName] = useState(existing?.supplier_color_name || '');
   const [extra, setExtra] = useState(String(existing?.extra_cost ?? 0));
   const [colorFamily, setColorFamily] = useState(existing?.color_family || '');
+  const [previewColor, setPreviewColor] = useState(existing?.preview_color || '');         // '' = worked out from the photo inside the color family
   const [cfManual, setCfManual] = useState(!!existing);
   const [grade, setGrade] = useState(existing?.grade || '');
   const [width, setWidth] = useState(existing?.width || '');
@@ -97,7 +99,8 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   if (!code.trim()) missing.push('a supplier code');
   if (isNew && !photo) missing.push('a photo');
   if (!colorFamily) missing.push('a color family');
-  const problems = [nameProblem, codeProblem, bProblem, romanProblem, extraProblem, collNameClash && 'That price group name is already used in this line.'].filter(Boolean);
+  const pcProblem = previewColor.trim() && !isHex(previewColor.trim()) ? 'The preview color must be a hex color like #3b3a3c (or empty).' : '';
+  const problems = [pcProblem, nameProblem, codeProblem, bProblem, romanProblem, extraProblem, collNameClash && 'That price group name is already used in this line.'].filter(Boolean);
   const canSave = !busy && missing.length === 0 && problems.length === 0;
 
   const choosePhoto = (which) => async (e) => {
@@ -160,6 +163,8 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         roman_styles: showRoman ? roman : (existing?.roman_styles ?? null),
         styles: dream ? styles : (existing?.styles ?? null),
         extra_cost: extraNum,
+        // sent only when set or already stored, so adding colors keeps working before migration 20 adds the column
+        ...(previewColor.trim() ? { preview_color: previewColor.trim().toLowerCase() } : existing && 'preview_color' in existing ? { preview_color: null } : {}),
       };
       if (isNew) {
         const sort = Math.max(-1, ...data.swatches.filter((s) => s.product_line === mainLine).map((s) => s.sort_order)) + 1;
@@ -299,6 +304,16 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
             {suggestion && <em className="adm-field-ok">Suggested from the {suggestion.source === 'name' ? 'supplier color name' : 'photo'}: {suggestion.family}.
               {cfManual && colorFamily !== suggestion.family && <> <button type="button" className="adm-link" onClick={() => { setColorFamily(suggestion.family); setCfManual(false); }}>Use suggestion</button></>}</em>}
           </label>
+          <div className="adm-field adm-previewcolor">
+            <span>Preview color <small>(picker and 3D preview)</small></span>
+            <div className="adm-previewcolor-row">
+              <input type="color" aria-label="Preview color picker" value={isHex(previewColor.trim()) ? previewColor.trim().toLowerCase() : familyHex(colorFamily)} onChange={(e) => setPreviewColor(e.target.value)} />
+              <input type="text" aria-label="Preview color hex" className="adm-previewcolor-hex" placeholder={familyHex(colorFamily)} value={previewColor} maxLength={7} spellCheck={false} onChange={(e) => setPreviewColor(e.target.value.trim())} />
+              {previewColor && <button type="button" className="adm-link" onClick={() => setPreviewColor('')}>Use the default</button>}
+            </div>
+            <em className="adm-field-ok">{previewColor ? 'This exact color is shown in the picker and on the 3D shade.' : 'Default: the photo\'s own lightness and tint, kept inside its color family (Jet Black stays black, a white stays white).'}</em>
+            {pcProblem && <em className="adm-field-error" role="alert">{pcProblem}</em>}
+          </div>
           {showRoman && (
             <label className="adm-field"><span>Grade <small>(internal)</small></span>
               <select value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">None</option>{GRADES.map((g) => <option key={g}>{g}</option>)}</select>

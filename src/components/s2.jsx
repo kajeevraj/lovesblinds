@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { entriesFor, fabricsFor, tileSrc, tileFallbacks } from '../data/swatchData.js';
 import { ExplainerImg, hasExplainer } from './ExplainerImg.jsx';
-import { SwatchImg, SwatchDialog, makePick, labelOf } from './SwatchPicker.jsx';
+import { SwatchImg, SwatchTile, SwatchDialog, makePick, labelOf } from './SwatchPicker.jsx';
 import { useCatalogStatus } from '../lib/useCatalog.js';
 import { DREAM_STYLE_INFO } from '../data/optionInfo.js';
 import { blinds } from '../lib/itemView.js';
@@ -159,7 +159,7 @@ export function SwatchBrowser({ id, entries, activeId, role = null, onChoose, co
             const on = activeId === s.id;
             return (
               <button key={s.id} type="button" className={`s2-sw${on ? " on" : ""}`} aria-pressed={on} aria-label={`${labelOf(e)} ${codeOf(s, on)}`} title={labelOf(e)} onClick={() => onChoose(e)}>
-                <span className="s2-sw-img"><SwatchImg src={tileSrc(s)} fallback={tileFallbacks(s)} alt="" code={s.code} size={96} /></span>
+                <span className="s2-sw-img"><SwatchTile swatch={s} size={96} /></span>
                 <span className="s2-sw-name s2-sr">{labelOf(e)}</span><span className="s2-sw-code s2-sr">{codeOf(s, on)}</span>
               </button>
             );
@@ -170,7 +170,7 @@ export function SwatchBrowser({ id, entries, activeId, role = null, onChoose, co
       <div className="s2-swprev" aria-live="polite">
         {picked ? (
           <>
-            <span className="s2-swprev-img"><SwatchImg src={picked.swatch.image || tileSrc(picked.swatch)} fallback={[tileSrc(picked.swatch), ...tileFallbacks(picked.swatch)]} alt="" code={picked.swatch.code} size={160} /></span>
+            <span className="s2-swprev-pic"><span className="s2-swprev-img"><SwatchImg src={picked.swatch.image || tileSrc(picked.swatch)} fallback={[tileSrc(picked.swatch), ...tileFallbacks(picked.swatch)]} alt="Close-up of the weave" code={picked.swatch.code} size={160} /></span><span className="s2-swprev-cap">Close-up of the weave</span></span>
             <span className="s2-swprev-text">
               {role && <span className="s2-swprev-role">{role}</span>}
               <span className="s2-swprev-name">{labelOf(picked)}</span>

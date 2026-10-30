@@ -17,6 +17,7 @@
 --   7. The Zigbee hub: its flat customer price ($35, a selling price with no markup) in hardware_rates, read through zigbee_hub_price();
 --      sent_orders.qty_overrides (admin can change the hub's quantity on a sent order); fabric SP26030004 hidden (the supplier does not sell it).
 --      Curtain FABRIC prices: drapery_tiers, drapery_fabrics (per supplier code) and drapery_estimate() (customer price only).
+--   8. swatches.preview_color: an optional owner-chosen color a fabric shows as in the picker and the 3D preview (public_catalog() now returns it).
 --   6. public_options(): the one read the customer site makes of the option tables (which options are on, and which is Best value).
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -638,6 +639,43 @@ do $$ begin
     revoke all on function public.orders_sent_guard() from public, anon, authenticated;
   end if;
 end $$;
+
+-- the color a fabric shows as in the picker and the 3D preview: empty = worked out from its picture inside its color family (src/lib/swatchColor.js),
+-- or an owner-chosen #rrggbb (Products > a line > Colors). It is customer-safe: it only reaches the site through public_catalog().
+alter table public.swatches add column if not exists preview_color text;
+alter table public.swatches drop constraint if exists swatches_preview_color_hex;
+alter table public.swatches add constraint swatches_preview_color_hex check (preview_color is null or preview_color ~ '^#[0-9a-fA-F]{6}$');
+comment on column public.swatches.preview_color is 'Optional #rrggbb the fabric shows as in the picker and the 3D preview. Empty: its picture placed inside its color family.';
+
+create or replace function public.public_catalog(p_scope text[]) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(t.g order by t.pl, t.so, t.pk), '[]'::jsonb)
+    from (
+      select f.product_line as pl, f.sort_order as so, f.public_key as pk,
+        jsonb_build_object(
+          'id', f.public_key, 'product_line', f.product_line, 'shown_in', f.shown_in, 'family', f.family,
+          'width', f.width, 'composition', f.composition, 'weight', f.weight, 'thickness', f.thickness,
+          'openness', f.openness, 'opacity', f.opacity, 'use_area', f.use_area, 'extra_specs', f.extra_specs,
+          'sort_order', f.sort_order,
+          'swatches', coalesce((
+            select jsonb_agg(jsonb_build_object(
+                     'id', s.id, 'fabric_id', f.public_key, 'product_line', f.product_line, 'shown_in', f.shown_in, 'family', x.family,
+                     'display_name', s.display_name, 'supplier_code', s.supplier_code, 'color_family', s.color_family,
+                     'image_path', s.image_path, 'thumb_path', s.thumb_path, 'image_kind', s.image_kind, 'preview_color', s.preview_color,
+                     'width', s.width, 'composition', s.composition, 'roman_styles', s.roman_styles, 'styles', s.styles,
+                     'sort_order', x.sort_order) order by x.sort_order, s.id)
+              from (select sw.id, sw.family, sw.sort_order from public.swatches sw where sw.fabric_id = f.id
+                    union all
+                    select l.swatch_id, l.family, l.sort_order from public.swatch_links l where l.fabric_id = f.id and l.active) x
+              join public.swatches s on s.id = x.id and s.active
+          ), '[]'::jsonb)
+        ) as g
+        from public.fabrics f
+       where f.active and f.shown_in && p_scope
+    ) t;
+$$;
+revoke all on function public.public_catalog(text[]) from public;
+grant execute on function public.public_catalog(text[]) to anon, authenticated;
 
 update public.swatches set active = false where supplier_code = 'SP26030004';
 

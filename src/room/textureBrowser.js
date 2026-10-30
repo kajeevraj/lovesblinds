@@ -34,19 +34,29 @@ export function makeTextureCanvas(src, zebra = false) {
 }
 export const textureBlob = (canvas) => new Promise((resolve) => canvas.toBlob((b) => resolve(b && b.type === 'image/webp' ? b : null), 'image/webp', 0.8));
 
-// The texture re-centred on `hex` with its contrast capped (see retarget in textureCore.js); one copy per fabric
-// the room's light lifts every cloth a little (measured on black / gray / white: rendered = 1.04 x texture + 8), so the texture is set a touch darker
-// and the shade on screen lands on the swatch's own color
-const LIGHT_GAIN = 1.04, LIGHT_LIFT = 8, ZEBRA_GAIN = 0.89;     // a zebra's solid band is lit less (rendered = 0.89 x texture)
+// Pixels of a picture as a flat r,g,b array at n x n (optionally only its top `top` fraction: a zebra's solid band), for reading its color.
+export function pixelsOf(src, n = 64, top = 1) {
+  const { W, H } = sizeOf(src), c = document.createElement('canvas'); c.width = c.height = n;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0, W, Math.max(1, Math.round(H * top)), 0, 0, n, n);
+  return rgbOf(ctx, n, n);
+}
+
+// The texture re-centred on `hex` with its contrast capped (see retarget in textureCore.js); one copy per fabric and color.
+// The room's light lifts every cloth a little and warms it (measured on black / gray / white: rendered = 1.04 x texture + 8, blue about 5% low,
+// green 2%), so the texture is set a touch darker and cooler and the shade on screen lands on the swatch's own color.
+// The picker thumbnails (swatchTile.js) are not lit, they are the color itself.
+const LIGHT_GAIN = 1.04, LIGHT_LIFT = 8, ZEBRA_GAIN = 0.92;     // a zebra's solid band is lit less (rendered = 0.92 x texture)
+const WARMTH = [1, 1.02, 1.055];
 const tuned = new Map();
 export function tunedCanvas(src, key, hex, zebra = false) {
-  const hit = tuned.get(key); if (hit) return hit;
+  const ck = `${key}|${hex}`, hit = tuned.get(ck); if (hit) return hit;
   const w = sizeOf(src).W, h = sizeOf(src).H;
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(src, 0, 0);
-  const target = [1, 3, 5].map((i) => { const v = parseInt(hex.slice(i, i + 2), 16); return Math.min(255, Math.max(0, zebra ? v / ZEBRA_GAIN : (v - LIGHT_LIFT) / LIGHT_GAIN)); });
+  const target = [1, 3, 5].map((i, k) => { const v = parseInt(hex.slice(i, i + 2), 16); return Math.min(255, Math.max(0, (zebra ? v / ZEBRA_GAIN : (v - LIGHT_LIFT) / LIGHT_GAIN) * WARMTH[k])); });
   const rgb = zebra ? retargetZebra(rgbOf(ctx, w, h), target, w) : retarget(rgbOf(ctx, w, h), target);
   const out = ctx.createImageData(w, h);
   for (let i = 0, j = 0; i < out.data.length; i += 4, j += 3) { out.data[i] = rgb[j]; out.data[i + 1] = rgb[j + 1]; out.data[i + 2] = rgb[j + 2]; out.data[i + 3] = 255; }
-  ctx.putImageData(out, 0, 0); tuned.set(key, c); return c;
+  ctx.putImageData(out, 0, 0); tuned.set(ck, c); return c;
 }
