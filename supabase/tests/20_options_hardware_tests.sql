@@ -158,3 +158,16 @@ begin
   delete from public.orders where id = '00000000-0000-0000-0000-0000000000a1';
   raise notice 'ok: orders.hub saves on a draft, is set with hub_price when sent, and is frozen after sending';
 end $$;
+
+-- swatches.preview_color: an optional #rrggbb, returned by public_catalog (the only public read), refused when it is not a hex color
+-- (the local fixtures have no swatch rows, so the column, its check and the function text are inspected)
+do $$
+declare v_check text;
+begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'swatches' and column_name = 'preview_color' and data_type = 'text') then raise exception 'swatches.preview_color missing'; end if;
+  select pg_get_constraintdef(oid) into v_check from pg_constraint where conname = 'swatches_preview_color_hex';
+  if v_check is null or v_check !~ 'preview_color IS NULL' or v_check !~ '\^#' then raise exception 'the hex check is missing: %', v_check; end if;
+  if pg_get_functiondef('public.public_catalog(text[])'::regprocedure) !~ 'preview_color' then raise exception 'public_catalog does not return preview_color'; end if;
+  if has_column_privilege('anon', 'public.swatches', 'preview_color', 'select') then raise exception 'anon can read the swatches table'; end if;
+  raise notice 'ok: swatches.preview_color exists, must be #rrggbb, is returned by public_catalog and the public cannot read the table';
+end $$;

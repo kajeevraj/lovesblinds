@@ -23,7 +23,7 @@ try {
   // what the database would hold after migration 20: every swatch row carries preview_color (empty), so the editor knows the column exists
   await page.route('**/rest/v1/swatches*', async (route) => {
     const req = route.request();
-    if (req.method() === 'PATCH') { patches.push({ url: req.url(), body: JSON.parse(req.postData() || '{}') }); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' }); }
+    if (req.method() === 'PATCH') { patches.push({ url: req.url(), body: JSON.parse(req.postData() || '{}') }); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ id: 'mock', ...JSON.parse(req.postData() || '{}') }]) }); }
     if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ('preview_color' in r ? r : { ...r, preview_color: r.supplier_code === 'YS180006' ? '#2a5d9f' : null })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
     return route.continue();
   });
@@ -44,12 +44,13 @@ try {
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
   check('Save sends preview_color (lower case) to this color\'s row, and only that', patches.length === 1 && patches[0].body.preview_color === '#336699' && Object.keys(patches[0].body).join() === 'preview_color', JSON.stringify(patches));
   // back to the default
+  await page.getByLabel('Search name or code').fill('YS180006'); await page.waitForTimeout(300);
   await page.getByRole('button', { name: /Jet Black/ }).first().click(); await page.getByRole('heading', { name: 'Jet Black' }).waitFor();
   await page.getByRole('button', { name: 'Use the default' }).click();
   check('"Use the default" empties the box and says the default is worked out from the photo inside its color family', (await hex.inputValue()) === '' && /Default: the photo/.test(await page.locator('.adm-previewcolor').innerText()));
+  check('the placeholder of the hex box is the family\'s color (Charcoal/Black)', /^#[0-9a-f]{6}$/.test(await hex.getAttribute('placeholder')));
   patches.length = 0; await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
   check('saving the default sends preview_color = null (the override is removed)', patches.length === 1 && patches[0].body.preview_color === null, JSON.stringify(patches));
-  check('the placeholder of the hex box is the family\'s color (Charcoal/Black)', /^#[0-9a-f]{6}$/.test(await hex.getAttribute('placeholder')));
 } catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
 await browser?.close();
 if (adminRowId) await api('DELETE', `/rest/v1/admins?id=eq.${adminRowId}`, H(SVC));
