@@ -969,7 +969,7 @@ a:focus-visible,
 .s2-bar-muted { font-size: 14px; color: #B8AE9F; }
 .s2-bar-divider { flex: none; align-self: stretch; width: 1px; margin: 4px 0; background: #4A423A; }
 .s2-dot { position: relative; flex: none; display: inline-block; border-radius: 50%; overflow: hidden; background: #8A7C68; box-shadow: 0 0 0 2px var(--s2-ink), 0 0 0 3px #6A5F52; }
-.s2-dot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.s2-dot img, .s2-dot canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .s2-bar-cartbtn { display: flex; align-items: center; gap: var(--sp-2); flex: 1 1 0; justify-content: flex-end; min-width: 0; cursor: pointer; min-height: var(--ctl); }
 .s2-bar-order { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: var(--sp-2); height: var(--ctl); padding: 0 var(--sp-1); border: none; border-radius: 999px; background: transparent; color: var(--s2-cream); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; justify-content: flex-end; }
 .s2-bar-order:hover { background: #2E2822; }
@@ -1469,7 +1469,7 @@ a.s2-link, button.s2-link { display: inline-flex; align-items: center; }
   .has-preview .pv-slide:focus-within { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
   .has-preview.collapsed .pv-wrap, .has-preview.collapsed .s2-photo-frame, .has-preview.collapsed .s2-gallery, .has-preview.collapsed .s2-photo-note { display: none; }
   .has-preview.collapsed .pv-tabs { margin-bottom: 0; }
-  .s2-line-steps :is(.s2-step, input, button, a, textarea, .s2-sw-cell) { scroll-margin-top: 42vh; scroll-margin-bottom: 96px; }      /* focus and scrolling land clear of the strip and the price bar */
+  .s2-line-steps :is(.s2-step, input, button, a, textarea, .s2-sw-cell, .s2-swgrid, .s2-swprev) { scroll-margin-top: calc(var(--pv-strip, 42vh) + 12px); scroll-margin-bottom: 96px; }      /* focus and scrolling land clear of the strip (its current height) and the price bar */
 }
 @media (max-width: 959px) and (orientation: landscape) and (max-height: 520px) {
   /* a landscape phone: the preview on the left (it stays in view), the steps on the right */
@@ -1651,3 +1651,16 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .s2-sw-canvas { display: block; width: 100%; height: 100%; }
 .s2-swprev-pic { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .s2-swprev-cap { font-size: 11px; line-height: 1.2; color: var(--s2-muted, #6b6258); text-align: center; max-width: 84px; }
+
+/* the phone's compact strip: about a third of the open height, the shade still live; a tap on it opens it again */
+@media (max-width: 959px) {
+  .s2-line-grid { overflow-anchor: none; }      /* the strip changes height by itself and moves the page by exactly that (useCompactStrip.js); the browser must not also */
+  .has-preview.compact { padding-top: 4px; padding-bottom: 6px; }
+  .has-preview.compact .pv-stage, .has-preview.compact .gal-photo .s2-photo-frame { height: 96px; min-height: 0; }
+  .has-preview.compact .gal { gap: 0; }
+  .has-preview.compact .gal-dots, .has-preview.compact .gal-arrow, .has-preview.compact .pv-incl, .has-preview.compact .pv-note, .has-preview.compact .pv-tools, .has-preview.compact .pv-size, .has-preview.compact .pv-drag, .has-preview.compact .pv-bar, .has-preview.compact .pv-grip, .has-preview.compact .pv-xlabel { display: none; }
+  .has-preview.compact .pv-tabs { position: absolute; top: 2px; right: 20px; margin: 0; z-index: 3; }
+  .has-preview.compact .pv-collapse { min-height: 28px; padding: 0 8px; font-size: 12px; background: rgba(250, 247, 241, .86); border-radius: 99px; }
+  .pv-expand { position: absolute; inset: 0; z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .has-preview.compact .pv-tabs { z-index: 3; }
+}

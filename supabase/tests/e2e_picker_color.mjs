@@ -35,7 +35,9 @@ const pickAndRead = async (page, q) => {
   const gb = await g.boundingBox(), cb = await page.locator('.pv-canvas').boundingBox(), k = width / cb.width, gx = (gb.x + gb.width / 2 - cb.x) * k, gy = (gb.y + gb.height / 2 - cb.y) * k;
   const { data } = await sharp(buf).extract({ left: Math.round(gx - 0.1 * width), top: Math.round(gy - 0.3 * height), width: Math.round(0.2 * width), height: Math.round(0.2 * height) }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const m = [0, 0, 0]; for (let i = 0; i < data.length; i += 3) for (let c = 0; c < 3; c++) m[c] += data[i + c] / (data.length / 3);
-  return { tileHex, tileMean: hexOf(mean), shadeHex: hexOf(m) };
+  const chip = page.locator('.s2-bar-blind .s2-dot canvas'); await chip.waitFor(); await page.waitForFunction((el) => el.dataset.ready === '1', await chip.elementHandle());
+  const chipHex = await chip.getAttribute('data-color'), chipMean = await chip.evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, m = [0, 0, 0]; for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) m[k] += d[i + k]; return m.map((v) => v / (d.length / 4)); });
+  return { tileHex, tileMean: hexOf(mean), shadeHex: hexOf(m), chipHex, chipMean: hexOf(chipMean) };
 };
 try {
   for (const [vw, vh] of [[390, 844], [1280, 900]]) {
@@ -44,6 +46,7 @@ try {
     for (const [name, q] of COLORS) {
       const r = await pickAndRead(page, q);
       check(T(`${name}: the picker tile is drawn in its color ${r.tileHex} (the tile's own average is within 2 of it)`), colorDistance(r.tileMean, r.tileHex) <= 2, `average ${r.tileMean}`);
+      check(T(`${name}: the bottom bar "This blind" chip is drawn in the same color as the tile (${r.chipHex}), not the supplier photo`), r.chipHex === r.tileHex && colorDistance(r.chipMean, r.tileHex) <= 2, `chip ${r.chipHex} avg ${r.chipMean}`);
       check(T(`${name}: the picker thumbnail ${r.tileHex} and the preview fabric ${r.shadeHex} are within color distance 7`), colorDistance(r.shadeHex, r.tileHex) <= 7, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
     }
     check(T('the supplier photo stays as the large preview under the grid, labelled "Close-up of the weave"'), (await page.locator('.s2-swprev-cap').innerText()).trim() === 'Close-up of the weave' && (await page.locator('.s2-swprev-img img').count()) === 1);
@@ -54,6 +57,7 @@ try {
   const { page, ctx } = await open(1280, 900, true);
   const jet = await pickAndRead(page, 'YS180006');
   check('override: Jet Black with preview_color #2a5d9f shows exactly that in the picker', jet.tileHex === '#2a5d9f' && colorDistance(jet.tileMean, '#2a5d9f') <= 2, `${jet.tileHex} avg ${jet.tileMean}`);
+  check('override: the bottom bar chip shows it too', jet.chipHex === '#2a5d9f');
   check('override: and the 3D shade is within color distance 7 of it (blue, not black)', colorDistance(jet.shadeHex, '#2a5d9f') <= 7, `shade ${jet.shadeHex}`);
   const white = await pickAndRead(page, 'YS180002');
   check('a bad override (not a hex color) is ignored: the white keeps its own derived color', /^#[0-9a-f]{6}$/.test(white.tileHex) && white.tileHex !== 'not-a-color' && colorDistance(white.shadeHex, white.tileHex) <= 7, `${white.tileHex} / ${white.shadeHex}`);

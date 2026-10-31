@@ -2,6 +2,7 @@
 // then size, mount, control, room, quantity, the estimate and the sticky price bar.
 // A line page supplies its own steps (fabric, color, style ...) and its price configuration; everything else is here.
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useCompactStrip } from './lib/useCompactStrip.js';
 import SitePhoto from './components/SitePhoto.jsx';
 import { MOUNTS, getMechanism } from './data/lines.js';
 import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, POWER_COPY, SOLAR_COPY, MOTOR_CONTROL_COPY, SIDE_NOTE_BATTERY, SIDE_NOTE_WIRED, SIDE_NOTE_TWO_IN_ONE } from './data/optionInfo.js';
@@ -94,7 +95,8 @@ export default function LineShell({
   const phone = usePhoneMedia('(max-width: 959px)');
   const [dock, setDock] = useState({ collapsed: false });
   const leftRef = useRef(null);
-  // (the strip keeps one size and never moves by itself, so nothing on the page jumps under a finger; it has a button to fold it away)
+  // the strip folds to a compact one while the page is scrolled down past the gallery (src/lib/useCompactStrip.js); it has a button to hide it altogether
+  const [compact, openStrip] = useCompactStrip(leftRef, !!preview && phone && !dock.collapsed);
 
   const n = clampQty(qty);
   const { width, height } = sizeNumbers(size);
@@ -256,7 +258,8 @@ export default function LineShell({
             <a href="/" onClick={(e) => { e.preventDefault(); navigate('home'); }}>Home</a> / <a href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>Products</a> / <span aria-current="page">{title}</span>
           </nav>
           <div className="s2-line-grid">
-            <div className={`s2-line-photo${preview ? ' has-preview' : ''}${preview && dock.collapsed ? ' collapsed' : ''}`} ref={leftRef}>
+            <div className={`s2-line-photo${preview ? ' has-preview' : ''}${preview && dock.collapsed ? ' collapsed' : ''}${compact ? ' compact' : ''}`} ref={leftRef}>
+              {compact && <button type="button" className="pv-expand" aria-label="Show the full preview" onClick={openStrip} />}
               {preview && phone && (
                 <div className="pv-tabs">
                   <button type="button" className="pv-collapse" aria-expanded={!dock.collapsed} onClick={() => setDock((d) => ({ ...d, collapsed: !d.collapsed }))}>{dock.collapsed ? 'Show preview' : 'Hide preview'}</button>
