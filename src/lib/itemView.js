@@ -25,7 +25,7 @@ export const sizeText = (it) => (it.width ? `${formatInches(it.width)}" wide × 
 // "Solar · Jet Black (YS180006) · Fabric-wrapped cassette · 40" wide × 64" high · Inside mount · Continuous chain"
 export function detailsOf(it) {
   const sum = summarize(it);
-  const mech = mechName(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name);
+  const mech = mechName(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name, it.selection);
   const mount = it.product.mounts.length > 1 ? (MOUNTS.find((m) => m.id === it.mount)?.name || it.mount) : null;
   return { title: sum.title, colorText: sum.colorText, parts: [...sum.parts, sizeText(it), mount, mech].filter(Boolean) };
 }

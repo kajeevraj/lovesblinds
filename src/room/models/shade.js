@@ -9,7 +9,7 @@
 // The shade has a fabric-wrapped cassette at the top and a bottom rail. A Zebra has two layers of banded cloth that slide past each other
 // as it moves, because it is a loop of cloth (the stripes line up at some stopping points and close to solid at others). Soft shadows: under the cassette, down the jambs, and under the rail.
 import * as THREE from 'three';
-import { weaveTexture, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { weaveTexture, tuneFabric, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
 
 const SLIDE = 1;            // how far the zebra layers slide past each other per metre of drop
 const GAP = 0.003;          // clearance each side, like a real inside mount
@@ -130,7 +130,7 @@ class Shade {
       const m = fabricMaterial({ map: tex, emissiveMap: emTex, alphaMap: alphaTex, glow: 1, bump: 0.9, opacity: 1 }, env);
       m.color.copy(flat); m.userData.zebra = true;
       whenFabric(fabric, (img) => {
-        const { alphaCanvas, emissiveCanvas } = zebraMaps(img, fabric.split || 0.6, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
+        const { alphaCanvas, emissiveCanvas } = zebraMaps(tuneFabric(img, fabric), fabric.split || 0.6, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
         alphaTex.image = alphaCanvas; alphaTex.needsUpdate = true;
         emTex.image = emissiveCanvas; emTex.needsUpdate = true;
         m.color.set(0xffffff); m.needsUpdate = true; env.invalidate();
@@ -161,10 +161,17 @@ class Shade {
 
   // the cassette and bottom rail: wrapped in the shade's fabric (the default), or a plain bar ("No fabric wrap")
   setCover(cover) { this.cover = cover; this._applyCover(); this.env.invalidate(); }
+  // the bottom bar can have its own color (the "bottom bar color" choice); with no color it follows the cassette (fabric or plain)
+  setRailColor(hex) { this.railHex = hex || null; this._applyCover(); this.env.invalidate(); }
   _applyCover() {
     if (!this.plain) this.plain = new THREE.MeshStandardMaterial({ color: 0xe6e2d9, roughness: 0.5, metalness: 0.05 });
     const m = this.cover === 'none' || !this.solid ? this.plain : this.solid;
-    this.cassette.material = this.rail.material = m;
+    this.cassette.material = m;
+    if (this.railHex) {
+      if (!this.railMat) this.railMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.15 });
+      this.railMat.color.set(this.railHex);
+      this.rail.material = this.railMat;
+    } else this.rail.material = m;
   }
 
   applyEnv() { this.mats.forEach((m) => applyGlow(m, this.env)); }
@@ -179,6 +186,7 @@ class Shade {
   dispose() {
     this._disposeMaterials();
     this.plain?.dispose();
+    this.railMat?.dispose();
     this.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.isMesh && o.material && o.material.isMeshBasicMaterial) o.material.dispose(); });
     this.group.removeFromParent();
   }

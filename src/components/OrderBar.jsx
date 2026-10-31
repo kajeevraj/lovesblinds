@@ -1,9 +1,12 @@
 // The cart bar: sticky at the bottom of the customer pages. On a product page its left half is "This blind" (swatch, color, price)
 // and its right half is "Your cart"; elsewhere only the cart half shows. The cart half opens a panel that slides up from the bar.
+import { HubOption, HubTotalRow } from './HubOption.jsx';
 import { useEffect, useRef } from 'react';
 import { useCart } from '../lib/cart.js';
 import { money, blinds, photoFor, detailsOf } from '../lib/itemView.js';
 import { QtyStepper } from './s2.jsx';
+import { SwatchTile } from './SwatchPicker.jsx';
+import { getSwatch } from '../data/swatchData.js';
 import GoogleSignIn from './GoogleSignIn.jsx';
 import SitePhoto from './SitePhoto.jsx';
 
@@ -41,11 +44,13 @@ export function IncompleteRow({ entry, cart, compact = false }) {
   );
 }
 
-// A small round swatch: the picture of the color, or a neutral circle when there is none.
+// A small round swatch: the color in the same corrected color as the picker tile and the 3D preview (the supplier photo is only the weave),
+// or the supplier picture when the color is not in the loaded catalog, or a neutral circle when there is none.
 export function Dot({ pick, size = 32, className = '' }) {
+  const sw = pick?.swatchId ? getSwatch(pick.swatchId, pick.fabricId) : null;
   return (
     <span className={`s2-dot ${className}`} style={{ width: size, height: size }} aria-hidden="true">
-      {pick?.thumb && <img src={pick.thumb} alt="" width={size} height={size} crossOrigin="anonymous" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+      {sw ? <SwatchTile swatch={sw} size={size} /> : pick?.thumb && <img src={pick.thumb} alt="" width={size} height={size} crossOrigin="anonymous" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
     </span>
   );
 }
@@ -252,9 +257,11 @@ export function OrderPanel({ navigate }) {
         )}
         {(items.length > 0 || incomplete.length > 0) && (
           <div className="s2-panel-foot">
+            <HubOption cart={cart} compact />
             <SavePrompt />
             {items.length > 0 && (
               <>
+                <HubTotalRow cart={cart} />
                 <div className="s2-total-row"><span>Estimated total</span><strong>{totals.loading ? '…' : totals.total > 0 ? money(totals.total) : 'Price by email'}</strong></div>
                 {totals.byEmail > 0 && totals.total > 0 && <div className="s2-total-plus">Plus {totals.byEmail} priced by email</div>}
               </>

@@ -1,8 +1,9 @@
 import { Resend } from 'resend';
 import { summarize, describeItem, describeInternal, displayNameOf, DREAM_STYLE_NAMES } from '../src/lib/selectionText.js';
-import { priceRequestFromItem } from '../src/lib/priceRequest.js';
+import { priceRequestFromItem, runEstimate } from '../src/lib/priceRequest.js';
 import { pricingOptions } from '../src/lib/drive.js';
 import { assignRemotes } from '../src/lib/remote.js';
+import { isZigbeeItem, isHubLine, HUB_DEFAULT_PRICE } from '../src/lib/hub.js';
 import { addressLine } from '../src/data/countries.js';
 import { checkSize, limitLineFor } from '../src/lib/limits.js';
 import { formatInches } from '../src/lib/inches.js';
@@ -54,7 +55,26 @@ const kindOf = (res) => {
   return 'email';
 };
 
+// The Zigbee hub is a flat selling price from the database (zigbee_hub_price), never the browser's figure. Quantity is always 1 when an order arrives.
+export async function hubUnitPrice(env = process.env, fetchFn = fetch) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return { unit: HUB_DEFAULT_PRICE, checked: false };
+  try {
+    const res = await fetchFn(`${url}/rest/v1/rpc/zigbee_hub_price`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: '{}' });
+    const j = res.ok ? await res.json() : null;
+    return j && Number(j.price) > 0 ? { unit: Number(j.price), checked: true } : { unit: HUB_DEFAULT_PRICE, checked: false };
+  } catch { return { unit: HUB_DEFAULT_PRICE, checked: false }; }
+}
+
+// A hub line is kept only once, and only when some other line really uses a Zigbee motor.
+export function cleanHubLines(lines) {
+  const zigbee = lines.some((l) => !isHubLine(l) && isZigbeeItem(l));
+  let kept = false;
+  return lines.filter((l) => { if (!isHubLine(l)) return true; if (!zigbee || kept) return false; kept = true; return true; }).map((l) => (isHubLine(l) ? { ...l, qty: 1 } : l));
+}
+
 export async function estimateLine(line, env = process.env) {
+  if (isHubLine(line)) { const h = await hubUnitPrice(env); return { kind: 'price', unit: h.unit, checked: h.checked }; }
   const sent = line.estimate && line.estimate.kind === 'price' && Number(line.estimate.unit) > 0 ? { kind: 'price', unit: Number(line.estimate.unit) } : { kind: line.estimate?.kind === 'loading' ? 'email' : (line.estimate?.kind || 'email'), unit: null };
   // the same public function the product pages call (it answers only price / custom size / price on request), so the public key is enough
   const url = env.SUPABASE_URL, key = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
@@ -63,13 +83,7 @@ export async function estimateLine(line, env = process.env) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LOOKUP_TIMEOUT_MS);
   try {
-    const res = await fetch(`${url}/rest/v1/rpc/estimate_price_for_swatch`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_line: req.line, p_swatch_id: req.swatchId, p_options: req.options, p_width: req.width, p_height: req.height }),
-    });
-    if (!res.ok) throw new Error(`estimate lookup failed (${res.status})`);
-    const r = await res.json();
+    const r = await runEstimate(req, url, key, fetch, ctl.signal);
     const kind = kindOf(r);
     return { kind, unit: kind === 'price' ? r.price : null, checked: true, browserUnit: sent.unit };
   } catch (err) {
@@ -116,7 +130,7 @@ export function lineListHtml(lines, internal = false) {
     const unchecked = internal && l.price && !l.price.checked && l.price.kind === 'price' ? ' (estimate as shown in the browser; could not be re-checked)' : '';
     const differs = internal && l.price?.checked && l.price.browserUnit && l.price.kind === 'price' && l.price.browserUnit !== l.price.unit ? ` (customer's browser showed ${esc(money(l.price.browserUnit))})` : '';
     return `<li>${esc(internal ? (l.internalDescription || l.description) : l.description)}` +
-      `, ${esc(q)} blind${q === 1 ? '' : 's'}` +
+      (isHubLine(l) ? `, quantity ${esc(q)}` : `, ${esc(q)} blind${q === 1 ? '' : 's'}`) +
       (l.width ? `, ${sizeText(l)}` : '') +
       (l.mechName ? `, ${esc(l.mechName)}` : '') +
       (l.remote ? `, remote: ${esc(l.remote.name)}` : '') +
@@ -289,8 +303,9 @@ export async function checkSizes(lines, env = process.env, fetchFn = fetch) {
   if (!url || !key) return null;
   const cache = new Map();
   for (const [i, l] of lines.entries()) {
+    if (isHubLine(l)) continue;
     const line = limitLineFor(l.category, l.selection?.section);
-    const control = l.mechId ? pricingOptions(l.category, l.mechId).control : '';
+    const control = l.mechId ? pricingOptions(l.category, l.mechId, { double: l.selection?.mode === 'double-stack' }).control : '';
     const k = `${line}|${control}`;
     if (!cache.has(k)) {
       cache.set(k, fetchFn(`${url}/rest/v1/rpc/size_limits`, {
@@ -330,7 +345,8 @@ export async function handleQuote(req, res, deps = {}) {
 
   const checked = validateOrder(req.body);
   if (checked.error) return res.status(400).json({ error: checked.error });
-  const { customer, lines: sentLines, notes } = checked;
+  const { customer, notes } = checked;
+  const sentLines = cleanHubLines(checked.lines);
 
   if (!env.RESEND_API_KEY) return res.status(500).json({ error: friendly('Our email service is not set up right now.') });
 

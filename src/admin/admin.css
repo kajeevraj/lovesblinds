@@ -188,3 +188,7 @@ tr.is-selected td { background: var(--pale-sage); }
 .adm-status-ordered { background: var(--pale-sand); color: var(--gold-deep); }
 .adm-status-shipped { background: var(--pale-sage); color: var(--sage-dark); }
 @media (max-width: 640px) { .adm-kv { grid-template-columns: 1fr; gap: 0; } .adm-kv dd { margin-bottom: 8px; } }
+
+.adm-previewcolor-row { display: flex; align-items: center; gap: 10px; }
+.adm-previewcolor-row input[type=color] { width: 44px; height: 36px; padding: 2px; border: 1px solid var(--adm-line, #d9d2c6); border-radius: 6px; background: #fff; cursor: pointer; }
+.adm-previewcolor-hex { width: 110px; font-family: ui-monospace, monospace; }

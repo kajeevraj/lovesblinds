@@ -28,7 +28,7 @@ export function mapRows(rows) {
         key: `${s.id}@${r.id}`,
         id: s.id, fabricId: s.fabric_id, line: s.product_line, lines: s.shown_in || shownIn, family: s.family || undefined,
         code: s.supplier_code,
-        displayName: s.display_name, colorFamily: s.color_family,
+        displayName: s.display_name, colorFamily: s.color_family, previewColor: nn(s.preview_color),
         image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, tex256Path(s.thumb_path)) : undefined, imageKind: s.image_kind,
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,

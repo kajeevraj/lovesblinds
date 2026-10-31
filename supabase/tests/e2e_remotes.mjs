@@ -35,7 +35,7 @@ try {
     check(T('a blank room: every shade counts alone (1 Channel, no sharing line)'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     // the channel buttons light up and change nothing; the shade buttons still move it
     await room('Living room'); await qty(3);
-    const amount = async () => Number(await page.locator('#pv-amount').inputValue());
+    const amount = async () => Number(await page.locator('.pv-grip, .pv-bar').first().getAttribute('aria-valuenow'));
     const a0 = await amount();
     await page.locator('[data-btn="stop"]').click(); await page.waitForTimeout(100);
     check(T('a pressed button lights up'), (await page.locator('.rm-key.lit[data-btn="stop"]').count()) === 1 && (await amount()) === a0);
@@ -60,7 +60,7 @@ try {
       check(T(`${slug}: the 1 Channel remote with "Included: remote"`), (await remoteType()) === 'ch1' && /included: remote/i.test(await page.locator('.pv-incl, .rm-card').first().innerText()));
     }
     await open('drapery'); await page.getByRole('tab', { name: /Dream/ }).click(); await page.locator('.s2-sw').first().waitFor();
-    await card('Motorized track (remote)').click(); await settle();
+    await card('Motorized').click(); await settle();
     check(T('Dream Curtains motor: the roller 1 Channel remote'), (await remoteType()) === 'ch1');
     await page.getByRole('tab', { name: /Curtains/ }).first().click(); await settle();
     check(T('regular Curtains: no remote'), (await page.locator('.rm').count()) === 0);

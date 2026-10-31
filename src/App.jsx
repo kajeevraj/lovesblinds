@@ -9,6 +9,8 @@ import { supabase } from './lib/supabase.js';
 import { clampQty } from './lib/limits.js';
 import { getActiveLine } from './data/lines.js';
 import { useItemPrices, totalsOf } from './lib/itemPrice.js';
+import { isZigbeeItem } from './lib/hub.js';
+import { useHubPrice } from './lib/hubPrice.js';
 import { editPath } from './lib/itemView.js';
 import { OrderPanel, OrderOnlyBar, IncompleteNote, AddFirstDialog } from './components/OrderBar.jsx';
 import ExitPrompt from './components/ExitPrompt.jsx';
@@ -27,6 +29,7 @@ const RoomLab = lazy(() => import('./room/RoomLab.jsx'));       // /room-lab: te
 
 const GUEST_QUOTE_KEY = 'lb_guest_quote';
 // Browser storage can be full, blocked or off (private windows): the cart still works, it just is not remembered.
+const HUB_KEY = 'lb_hub_v1';
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
 const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
@@ -70,16 +73,19 @@ export default function App() {
     } catch { /* ignore */ }
     return [];
   });
+  const [hubChoice, setHubChoice] = useState(() => { try { return localStorage.getItem('lb_hub_v1') === '1'; } catch { return false; } });
   const [snackbar, setSnackbar]   = useState(null);
   useMissingNames(quote);                       // names for picks saved before display names existed
   const quoteRef = useRef(quote);
   useEffect(() => { quoteRef.current = quote; });
+  const hubRef = useRef(hubChoice);
+  useEffect(() => { hubRef.current = hubChoice; });
 
   const {
     supabaseEnabled,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
     authLoading, signInWithGoogle, signInWithIdToken, signOut, dbError,
-    createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
+    createOrder, saveItems, saveHub, renameOrder, markOrderSent, deleteOrder,
   } = useAuth();
 
   // Show DB errors as snackbars so we can see what's going wrong.
@@ -96,10 +102,12 @@ export default function App() {
     const dbItems = activeOrder.items.map((st, i) => reconstructItem(st, i)).filter(Boolean);
     if (dbItems.length > 0) {
       setQuote(dbItems);
+      setHubChoice(!!activeOrder.hub); if (activeOrder.hub) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY);     // the hub tick follows the account's cart
       lsDel(GUEST_QUOTE_KEY);
     } else if (quoteRef.current.length > 0) {
       // New empty order, but we have guest items (from localStorage restore) — push them up.
       saveItems(activeOrderId, quoteRef.current);
+      if (hubRef.current) saveHub(activeOrderId, true);
       lsDel(GUEST_QUOTE_KEY);
       // Leave quote as-is (already has the items).
     }
@@ -108,7 +116,7 @@ export default function App() {
 
   // After an order is sent, the next window goes into a fresh order, so the sent one keeps exactly what was sent.
   const [justSent, setJustSent] = useState(false);
-  const handleOrderSent = async (orderId, items, customer) => { await markOrderSent(orderId, items, customer); setJustSent(true); };
+  const handleOrderSent = async (orderId, items, customer, hub) => { setHubChoice(false); lsDel(HUB_KEY); await markOrderSent(orderId, items, customer, hub); setJustSent(true); };
   useEffect(() => {
     if (!justSent || quote.length > 0) return;
     setJustSent(false);
@@ -325,9 +333,17 @@ export default function App() {
 
   // the cart, shared with the cart bar, the cart panel, the product pages and the cart page
   const prices = useItemPrices(quote);
-  const totals = totalsOf(quote, prices);
+  // the Zigbee hub: offered once per order while some line uses a Zigbee motor; it leaves by itself when the last Zigbee line does
+  const hubPrice = useHubPrice();
+  const zigbee = quote.some(isZigbeeItem);
+  const hubOn = hubChoice && zigbee;
+  const saveHubTick = (on) => { if (user && activeOrderId) saveHub(activeOrderId, on); };
+  useEffect(() => { if (!zigbee && hubChoice && !(user && !synced)) { setHubChoice(false); lsDel(HUB_KEY); saveHubTick(false); } }, [zigbee, hubChoice]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setHubOn = (on) => { setHubChoice(on); if (on) lsSet(HUB_KEY, '1'); else lsDel(HUB_KEY); saveHubTick(on); };
+  const base = totalsOf(quote, prices);
+  const totals = { ...base, total: base.total + (hubOn ? hubPrice : 0), hub: hubOn ? hubPrice : 0 };
   const cart = {
-    items: quote, prices, totals, ready: !authLoading && (!user || synced || !!dbError),
+    items: quote, prices, totals, hub: { available: zigbee, on: hubOn, price: hubPrice, setOn: setHubOn }, ready: !authLoading && (!user || synced || !!dbError),
     addItem: addToQuote, saveItem, removeItem, setQty, duplicateItem, flash, showFlash, panelOpen, setPanelOpen,
     goEdit: (it) => navigate(editPath(it)),
     incomplete, removeIncomplete, goIncomplete, count: quote.length + incomplete.length, goCheckout, confirmAdd,

@@ -142,6 +142,15 @@ export function useAuth() {
     }, 600);
   }, []);
 
+  // The Zigbee hub tick is saved with the order (the orders.hub column comes with migration 20; until it is applied the tick stays in this browser only)
+  const saveHub = useCallback(async (orderId, on) => {
+    if (!supabase || !orderId) return;
+    if (ordersRef.current.find(o => o.id === orderId)?.status === 'sent') return;
+    const { error } = await supabase.from('orders').update({ hub: !!on }).eq('id', orderId);
+    if (error) { if (!/hub/i.test(error.message || '')) console.error('[saveHub]', error); return; }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, hub: !!on } : o));
+  }, []);
+
   const renameOrder = async (orderId, name) => {
     if (!supabase) return;
     const { error } = await supabase.from('orders').update({ name }).eq('id', orderId);
@@ -152,12 +161,15 @@ export function useAuth() {
   // Marks the order sent. `items` (with the estimates and quantities as sent) and `customer` (name, email, phone, the full
   // shipping address, notes) are saved in the same update. The customer column comes with migration 12; until it is applied
   // the order is still saved and marked sent, without it.
-  const markOrderSent = async (orderId, items = null, customer = null) => {
+  const markOrderSent = async (orderId, items = null, customer = null, hub = null) => {
     if (!supabase || !orderId) return;
     clearTimeout(saveTimer.current);                       // a pending edit save must not overwrite what was sent
     const base = items ? { status: 'sent', items: items.map(serializeItem) } : { status: 'sent' };
     let patch = customer ? { ...base, customer } : base;
-    let { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+    const withHub = hub ? { ...patch, hub: !!hub.on, hub_price: hub.on ? hub.price : null } : patch;        // the hub as sent (migration 20 adds the columns)
+    let { error } = await supabase.from('orders').update(withHub).eq('id', orderId);
+    if (error && hub && /hub/i.test(error.message || '')) ({ error } = await supabase.from('orders').update(patch).eq('id', orderId));
+    else if (!error) patch = withHub;
     if (error && customer && /customer/i.test(error.message || '')) {
       patch = base;
       ({ error } = await supabase.from('orders').update(patch).eq('id', orderId));
@@ -185,6 +197,6 @@ export function useAuth() {
     supabaseEnabled: !!supabase,
     user, orders, activeOrder, activeOrderId, setActiveOrderId,
     authLoading, signInWithGoogle, signInWithIdToken, signOut, dbError,
-    createOrder, saveItems, renameOrder, markOrderSent, deleteOrder,
+    createOrder, saveItems, saveHub, renameOrder, markOrderSent, deleteOrder,
   };
 }

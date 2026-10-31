@@ -16,6 +16,8 @@ const MECH = {
   cordless:    { id: "cordless",    code: "CDL", name: "Cordless" },
   "zero-gravity": { id: "zero-gravity", code: "ZGR", name: "Zero gravity" },
   motorized:   { id: "motorized",   code: "MTZ", name: "Motorized" },
+  "two-in-one": { id: "two-in-one", code: "TIO", name: "2 in 1 motor" },
+  "pull-rod":  { id: "pull-rod",    code: "PRD", name: "Pull rod" },
   freestop:    { id: "freestop",    code: "FST", name: "Zero gravity" },
   wand:        { id: "wand",        code: "WND", name: "Wand / baton" },
   remote_wand: { id: "remote_wand", code: "RWD", name: "Remote wand" },
@@ -38,7 +40,7 @@ export const LINES = [
     blurb: "Clean, minimal shades in fabrics from sheer to full blackout, available single or double-stack.",
     description: "Clean, minimal shades in three fabric families, from sheer to full blackout. Choose one shade, or pair two on a single window.",
     goodToKnow: [],
-    mechanisms: mechs("chain", "cordless", "zero-gravity", "motorized"),
+    mechanisms: mechs("zero-gravity", "motorized", "two-in-one", "chain"),
     mounts: ["inside", "outside"],
   },
   {
@@ -49,9 +51,9 @@ export const LINES = [
     goodToKnow: [
       "Alternating sheer and solid bands. Line them up for privacy or offset them to let soft light through.",
       "Semi-blackout and blackout fabrics.",
-      "Control: motorized, cordless or manual chain.",
+      "Control: Zero gravity, motorized or chain.",
     ],
-    mechanisms: mechs("chain", "cordless", "zero-gravity", "motorized"),
+    mechanisms: mechs("zero-gravity", "motorized", "chain"),
     mounts: ["inside", "outside"],
   },
   {
@@ -62,7 +64,7 @@ export const LINES = [
     goodToKnow: [
       "Soft vanes between two sheer layers. Tilt to diffuse daylight, close for privacy, or raise for a clear view.",
     ],
-    mechanisms: mechs("chain", "motorized"),
+    mechanisms: mechs("motorized", "chain"),
     mounts: ["inside", "outside"],
   },
   {
@@ -74,7 +76,7 @@ export const LINES = [
       "Fabric that folds into soft, even pleats as it rises.",
       "Choose a style, then a fabric and a light-filtering or blackout lining.",
     ],
-    mechanisms: mechs("cordless", "zero-gravity", "motorized"),
+    mechanisms: mechs("zero-gravity", "motorized", "chain"),
     mounts: ["inside", "outside"],
   },
   {
@@ -88,7 +90,7 @@ export const LINES = [
       "Light-filtering or blackout.",
       "Standard, top-down/bottom-up, or day & night (light-filtering by day, blackout by night).",
     ],
-    mechanisms: mechs("cordless", "zero-gravity", "motorized"),
+    mechanisms: mechs("zero-gravity", "motorized", "chain"),
     mounts: ["inside", "outside"],
   },
   {
@@ -106,7 +108,7 @@ export const LINES = [
       "Dream Curtains are soft vertical fabric panels on a track that pull fully aside, and you can walk through them. They filter light gently and are easy to care for: machine washable, and panels come off in about a second and go back up in about three.",
       "Manual or motorized track.",
     ],
-    mechanisms: [named("manual", "Manual track"), named("remote", "Motorized track (remote)"), named("matter", "Motorized track (Matter)")],
+    mechanisms: [named("manual", "Manual"), named("motorized", "Motorized"), named("pull-rod", "Pull rod")],
     mounts: ["outside"],
   },
 

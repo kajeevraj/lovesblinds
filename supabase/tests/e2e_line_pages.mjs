@@ -11,7 +11,7 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_name`, { headers: H(SVC) })).json();
-const OUR_WORDS = /Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades/gi;     // our own wording (a price group can share a line's name), not price group names
+const OUR_WORDS = /Zero gravity|Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades/gi;     // our own wording (a price group can share a line's name), not price group names
 const leak = (raw) => { const text = raw.replace(OUR_WORDS, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
 const catalogs = {};
 const catalog = async (scope) => (catalogs[scope] ||= (await rpc('public_catalog', { p_scope: [scope] })).flatMap((g) => g.swatches));
@@ -27,7 +27,8 @@ try {
   const size = async (w, h) => { await page.locator('#s2-w').fill(String(w)); await page.locator('#s2-h').fill(String(h)); };
   const estimate = () => page.locator('.s2-estimate-price');
   const pagePrice = async () => { await estimate().waitFor(); return money(await estimate().first().evaluate((el) => el.firstChild.textContent)); };
-  const tileInfo = async (i = 0, scope = page) => ({ name: (await scope.locator('.s2-sw-name').nth(i).innerText()).trim(), code: (await scope.locator('.s2-sw-code').nth(i).innerText()).trim() });
+  // a swatch is a picture; its name is its title and its button is named "Name code"
+  const tileInfo = async (i = 0, scope = page) => { const b = scope.locator('.s2-swgrid .s2-sw').nth(i); const name = (await b.getAttribute('title')).trim(); const label = (await b.getAttribute('aria-label')).trim(); return { name, code: label.slice(name.length).trim() }; };
   const swatchId = async (cat, t, family) => (await catalog(cat)).find((x) => x.display_name === t.name && (!family || x.family === family) && (x.styles?.[0]?.code === t.code.split(' / ')[0] || x.supplier_code === t.code || !x.styles))?.id;
   const dbPrice = (line, swatchIdv, options, w, h) => rpc('estimate_price_for_swatch', { p_line: line, p_swatch_id: swatchIdv, p_options: options, p_width: w, p_height: h });
 
@@ -37,14 +38,14 @@ try {
   const rid = await swatchId('roller', rt, 'solar');
   await size(40, 64);
   const wrapped = await pagePrice();
-  const dbWrapped = await dbPrice('roller', rid, { control: 'chain', mode: 'single' }, 40, 64);
+  const dbWrapped = await dbPrice('roller', rid, { control: 'zero-gravity', mode: 'single' }, 40, 64);
   check('Roller: the default top cover is the fabric-wrapped cassette and the price is the database price', wrapped === dbWrapped.price, `page $${wrapped}, database $${dbWrapped.price}`);
   const covers = await page.locator('.s2-card', { hasText: /Fabric-wrapped cassette|No fabric wrap/ }).allInnerTexts();
   check('Roller: the Top cover step offers exactly "Fabric-wrapped cassette" and "No fabric wrap"', covers.length === 2 && /Fabric-wrapped cassette/.test(covers[0]) && /No fabric wrap/.test(covers[1]) && await page.locator('.s2-card.on', { hasText: 'Fabric-wrapped cassette' }).count() === 1, covers.map((c) => c.split('\n')[0]).join(' | '));
   await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
   await page.waitForFunction((old) => { const el = document.querySelector('.s2-estimate-price'); return el && Number(el.firstChild.textContent.replace(/\D/g, '')) !== old; }, wrapped);
   const noWrap = await pagePrice();
-  const dbNoWrap = await dbPrice('roller', rid, { control: 'chain', mode: 'single', wrap_cassette: 'none' }, 40, 64);
+  const dbNoWrap = await dbPrice('roller', rid, { control: 'zero-gravity', mode: 'single', wrap_cassette: 'none' }, 40, 64);
   check('Roller: "No fabric wrap" lowers the price by the supplier deduction, exactly the database price', noWrap === dbNoWrap.price && noWrap < wrapped, `$${wrapped} -> $${noWrap} (database $${dbNoWrap.price})`);
   check('Roller: the page never shows a cost or the deduction amount', !/deduction|\$3\b|cost|markup/i.test(await page.locator('.s2-estimate').innerText()));
 
@@ -75,14 +76,14 @@ try {
   check('Zebra: no price and no Add to cart before a color and size', (await estimate().count()) === 0 && await page.locator('.s2-add-btn').isDisabled());
   const zt = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
   const zid = await swatchId('zebra', zt);
-  const zdb = await dbPrice('zebra', zid, { control: 'chain' }, 40, 64);
+  const zdb = await dbPrice('zebra', zid, { control: 'zero-gravity' }, 40, 64);
   check('Zebra: the page price is the database price', (await pagePrice()) === zdb.price, `$${zdb.price}`);
   const zWrapped = await pagePrice();
   await page.locator('.s2-card', { hasText: 'No fabric wrap' }).click();
   await page.waitForFunction((old) => { const el = document.querySelector('.s2-estimate-price'); return el && Number(el.firstChild.textContent.replace(/\D/g, '')) !== old; }, zWrapped);
-  const zdbNo = await dbPrice('zebra', zid, { control: 'chain', wrap_cassette: 'none' }, 40, 64);
+  const zdbNo = await dbPrice('zebra', zid, { control: 'zero-gravity', wrap_cassette: 'none' }, 40, 64);
   check('Zebra: the Top cover step ("Fabric-wrapped cassette" default, "No fabric wrap") uses the supplier deduction, exactly the database price', (await pagePrice()) === zdbNo.price && zdbNo.price < zdb.price, `$${zdb.price} -> $${zdbNo.price}`);
-  check('Zebra: three photos to choose from', (await page.locator('.s2-gallery button').count()) === 3);
+  check('Zebra: the gallery has the configurator and three style photos', (await page.locator('.gal-dots [role=tab]').count()) === 4);
 
   // ---------- Shangri-La ----------
   await open('shangri-la');
@@ -104,7 +105,7 @@ try {
   await lin.click();
   const lid = /^Blackout/.test(liningLabel) ? 'blackout' : /^Light/.test(liningLabel) ? 'light-filtering' : 'none';
   const mid = await swatchId('roman', mt);
-  const mdb = await dbPrice('roman', mid, { control: 'cordless', lining: lid }, 40, 64);
+  const mdb = await dbPrice('roman', mid, { control: 'zero-gravity', lining: lid }, 40, 64);
   check('Roman: with color, style and lining the page price is the database price', (await pagePrice()) === mdb.price, `${liningLabel}: $${mdb.price}`);
 
   // ---------- Cellular ----------
@@ -112,7 +113,7 @@ try {
   const ct = await tileInfo(); await page.locator('.s2-sw').first().click(); await size(40, 64);
   const cfam = (await catalog('cellular')).find((x) => x.display_name === ct.name)?.family;
   const cid = await swatchId('cellular', ct, 'light-filtering');
-  const cdb = await dbPrice('cellular', cid, { control: 'cordless', type: 'standard' }, 40, 64);
+  const cdb = await dbPrice('cellular', cid, { control: 'zero-gravity', type: 'standard' }, 40, 64);
   check('Cellular: the standard price is the database price', (await pagePrice()) === cdb.price, `$${cdb.price}`);
   await page.locator('.s2-card', { hasText: 'Day & night' }).click();
   check('Cellular Day & Night says it needs two colors and shows no price yet', /two colors/i.test(await page.locator('.s2-step-hint.s2-need').innerText()) && (await estimate().count()) === 0);
@@ -123,19 +124,33 @@ try {
   await nightTile.click();
   const dnPage = await pagePrice();
   const did = await swatchId('cellular', dayName, 'light-filtering'), nid = await swatchId('cellular', nightName, 'blackout');
-  const dndb = await dbPrice('cellular', nid, { control: 'cordless', type: 'day-night', day_swatch_id: did }, 40, 64);
+  const dndb = await dbPrice('cellular', nid, { control: 'zero-gravity', type: 'day-night', day_swatch_id: did }, 40, 64);
   check('Cellular Day & Night: once both colors are chosen the price is the database price', dnPage === dndb.price, `$${dndb.price}`);
 
   // ---------- Drapery ----------
   await open('drapery');
+  const curtainColor = (await tileInfo()).name;
   await page.locator('.s2-sw').first().click();
-  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
-  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
-  await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
-  check('Curtains: "Send us your order and we\'ll reply with a price", no dollar amount anywhere', !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && !/\$\s?\d/.test(await page.locator('.s2-bar-blind').innerText()) && (await page.locator('.s2-estimate-price').count()) === 0);
-  check('Curtains need a size before they can be added', await page.locator('.s2-add-btn').isDisabled());
+  const stepOf = (title) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${title}\\s*$`) }) });
+  await stepOf('Style').locator('.s2-card').nth(1).click();
+  await stepOf('Fullness').locator('.s2-card').first().click();
+  await stepOf('Liner').locator('.s2-card').first().click();
+  await stepOf('Panels').locator('.s2-card').first().click();
+  const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
+  check('Curtains: no price and no dollar amount until a size is entered, and the Add button waits', (await estimate().count()) === 0 && !/\$\s?\d/.test(await page.locator('.s2-estimate').innerText()) && await page.locator('.s2-add-btn').isDisabled());
   await size(120, 96);
-  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+  if (migrated) {
+    const dswId = (await catalog('drapery')).find((x) => x.display_name === (curtainColor))?.id;
+    const want = (await rpc('drapery_estimate', { p_swatch: dswId, p_options: { fullness: 2.1, style_family: 'pleated', lining: 'none' }, p_width: 120, p_height: 96 }));
+    await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    check('Curtains: with a size the fabric price shows and is the database price (supplier cost x the markup)', want.price != null ? (await pagePrice()) === want.price : /Price by email/.test(await page.locator('.s2-estimate').innerText()), JSON.stringify(want));
+    await size(300, 96); await page.getByText(/Send us your order and we.ll reply with a price/).first().waitFor();
+    check('Curtains: a size outside 40 to 236 wide or 42 to 236 high is "Price by email"', (await estimate().count()) === 0);
+    await size(120, 96);
+  } else {
+    await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
+    console.log('SKIP  curtain fabric price (migration 20 is not applied to this database)');
+  }
   check('Curtains can be added once a size is entered', await page.locator('.s2-add-btn').isEnabled());
   await page.getByRole('tab', { name: 'Dream Curtains' }).click();
   await page.locator('.s2-sw').first().waitFor();

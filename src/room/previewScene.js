@@ -2,7 +2,7 @@
 //
 //   const ctrl = createPreviewScene(canvas, { onLayout });
 //   ctrl.configure({ kind, width, height, mount, drive: { movement, power, solar, control, side }, cover, layers: [{ fabric, optics }, ...], amount })   // inches in, anything may be left out
-//   ctrl.snapAmount(a)   ctrl.resize(cssW, cssH, dpr)   ctrl.setActive(bool)   ctrl.dispose()
+//   ctrl.snapAmount(a, shadeIndex)   ctrl.resize(cssW, cssH, dpr)   ctrl.setActive(bool)   ctrl.dispose()
 //
 // Inside mount: the window opening is the shade's size, the shade sits in the recess. Outside mount: the shade is the size typed and overlaps a
 // smaller window and its trim. A bead chain, a motor with its charging port or cord, and the optional center handle are drawn the way the choices say. Double-stack is two shades one in front of the other.
@@ -23,7 +23,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping;
   const env = {
-    invalidate: () => wake(), maxAniso: Math.min(8, renderer.capabilities.getMaxAnisotropy()),
+    invalidate: () => wake(), maxAniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()),
     backlight: new THREE.Color(0.62, 0.62, 0.62),         // less daylight through the cloth than in the room: here the color has to be accurate
     glowTop: { value: new THREE.Vector3(1.0, 1.0, 1.04) }, glowBottom: { value: new THREE.Vector3(0.78, 0.84, 0.7) },
   };
@@ -40,7 +40,11 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6d1c6, metalness: 0.35, roughness: 0.4 });
   const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 0.5 });
   const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b655c, roughness: 0.7 });
-  const solarMat = new THREE.MeshStandardMaterial({ color: 0x3a404c, roughness: 0.5, metalness: 0.1 });
+  // the solar panel is stuck on the glass, behind the cloth: it shows only below the lowest shade's bottom edge (a clip plane that follows the shade),
+  // so no fabric (transparent or not) ever has it drawn over or through it
+  renderer.localClippingEnabled = true;
+  const solarClip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e3);
+  const solarMat = new THREE.MeshStandardMaterial({ color: 0x3a404c, roughness: 0.5, metalness: 0.1, clippingPlanes: [solarClip] });
 
   // vignette: the corners of the picture fall off a little, like the room photo
   const vig = new THREE.Scene(), ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -51,8 +55,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   })));
   vig.children[0].frustumCulled = false;
 
-  const cfg = { tight: false, kind: 'roller', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amount: 0.55 };
-  let built = null, shades = [], current = 0.55, size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
+  const cfg = { tight: false, kind: 'roller', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amounts: [0.55], extras: {} };
+  // every shade has its own position: amounts[i] is where it is going, current[i] where it is now (0 raised, 1 fully lowered); layers[0] is the front shade
+  let built = null, shades = [], current = [0.55], size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
   let dispDpr = 1;
 
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
@@ -113,7 +118,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   }
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------
-  let accessory = null, xrayMats = [], driveDir = 0, hasSolar = false;
+  let accessory = null, xrayMats = [], driveDirs = [], hasSolar = false;
   const xray = { target: 0, v: 0 }, xrayPt = new THREE.Vector3(), solarPt = new THREE.Vector3();
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
@@ -122,7 +127,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const sp = built.shade;
     cfg.layers.forEach((layer, i) => {                                   // layers[0] is the front shade, the last one the back
       const s = createShade(cfg.kind, env);
-      s.setSize(sp.w, sp.h); s.setCover(cfg.cover); s.setFabric(layer.fabric, layer.optics);
+      s.setSize(sp.w, sp.h); s.setCover(cfg.cover); s.setFabric(layer.fabric, layer.optics); s.setRailColor(cfg.extras?.railHex);
       s.group.position.set(sp.x, sp.top, sp.z + (cfg.layers.length - 1 - i) * 0.058);
       scene.add(s.group); shades.push(s);
     });
@@ -137,6 +142,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const sx = d.side === 'left' ? -1 : 1, endX = sx * (sp.w / 2 - 0.03);
     const edge = Math.max(sp.w / 2, built.ow / 2 + TRIM);                // where the wall starts, beside the trim
     let reach = 0;                                                       // how far beside the window something is drawn (the camera makes room for it)
+    chainMat.color.set(cfg.extras?.chainHex || '#f4f1ea'); chainMat.metalness = cfg.extras?.chainMetal ? 0.7 : 0.04; chainMat.roughness = cfg.extras?.chainMetal ? 0.3 : 0.55;   // thin, true-color chain
     if (d.movement === 'chain') {
       const z = zOf(0);
       g.add(box(0.034, 0.05, 0.034, plasticMat, endX, sp.top - 0.045, z + 0.034));                       // the clutch at the end of the cassette
@@ -146,10 +152,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       for (let i = 0; i < beads; i++) for (const k of [0, 1]) { m.makeTranslation(endX + (k ? 0.006 : -0.006), sp.top - 0.07 - i * step, z + 0.038 + (k ? 0.004 : 0)); mesh.setMatrixAt(i * 2 + k, m); }
       g.add(mesh);
       g.add(box(0.02, 0.018, 0.014, plasticMat, endX, sp.top - 0.07 - len - 0.01, z + 0.04));            // the weight that keeps the loop tight
-    } else if (d.movement === 'cordless' || d.movement === 'zero-gravity') {
-      // the optional center handle: small, in the bottom bar's own material, on the middle of each bottom rail (it moves with the rail)
-      shades.forEach((sh) => sh.rail.add(box(0.07, 0.014, 0.01, sh.rail.material, 0, -0.015, 0.013)));
-    } else if (d.movement === 'motorized') {
+    } else if (d.movement === 'zero-gravity') {
+      // nothing hangs down: the center handle is drawn on the page (a button on the bottom rail), so it is always visible and can be dragged
+    } else if (d.movement === 'motorized' || d.movement === 'two-in-one') {
       xrayMats = [];
       shades.forEach((sh, i) => {                                         // a motor in every shade (double-stack: two), hidden inside the roller
         const z = zOf(i);
@@ -159,11 +164,11 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
         const lines = new THREE.LineSegments(new THREE.EdgesGeometry(body), new THREE.LineBasicMaterial({ color: 0x3a3228, transparent: true, opacity: 0, depthTest: false, toneMapped: false }));
         lines.position.set(cx, sp.top - CASS_H_ / 2, z); lines.renderOrder = 20; g.add(lines);
         xrayMats.push([lines.material, 0.2]);
-        if (d.power === 'battery') g.add(box(0.005, 0.005, 0.001, motorMat, endX, sp.top - 0.05, z + 0.0275));   // the charging port: a tiny, barely visible dot
+        if (d.movement === 'two-in-one' || d.power === 'battery') g.add(box(0.005, 0.005, 0.001, motorMat, endX, sp.top - 0.05, z + 0.0275));   // the charging port: a tiny, barely visible dot
       });
-      if (d.power === 'battery' && d.solar) {                             // a small, dark, thin solar panel on the glass near the top on the motor side (behind the shade)
+      if (d.movement === 'motorized' && d.power === 'battery' && d.solar) {                             // a small, dark, thin solar panel on the glass near the top on the motor side (behind the shade)
         const gz = -DEPTH + 0.03 - 0.02 + 0.006;
-        g.add(box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz));
+        const panel = box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz); panel.renderOrder = -1; g.add(panel);
       }
       if (cfg.kind === 'shangri-la') {                                    // the wall bracket is confirmed for the Shangri-La remote only
         const rx = -sx * (edge + 0.07), ry = built.oy + 0.06;
@@ -187,9 +192,13 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const xs = [], ys = [];
     for (const [x, y] of pts) { v.set(x, y, sp.z + 0.03).project(camera); xs.push(((v.x + 1) / 2) * size.w); ys.push(((1 - v.y) / 2) * size.h); }
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-    const f = handleFraction(current, sp.h);
     v.set(0, built.shadeBottom - 0.024 - TRIM * 0.8 - 0.07, 0.03).project(camera);
-    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: { x: (x0 + x1) / 2, y: Math.min(y1, y0 + f * (y1 - y0)) }, canvasW: size.w, canvasH: size.h });
+    // where each shade's handle (or bottom bar) is on screen: a single shade at the center, a double-stack's front shade at 40% of the width and the back at 60%
+    const n = shades.length, xAt = (i) => (n > 1 ? x0 + (i === 0 ? 0.4 : 0.6) * (x1 - x0) : (x0 + x1) / 2);
+    const handles = shades.map((_, i) => ({ x: xAt(i), y: Math.min(y1, y0 + handleFraction(current[i] ?? 0, sp.h) * (y1 - y0)) }));
+    // the back shade's bar is hidden when it is not lower than the front shade's
+    const hidden = shades.map((_, i) => i > 0 && (current[i] ?? 0) <= (current[0] ?? 0) + 0.004);
+    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -198,20 +207,23 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     if (n.width != null) n.w = clampInches(n.width) * IN;
     if (n.height != null) n.h = clampInches(n.height) * IN;
     delete n.width; delete n.height;
+    const extrasChanged = n.extras && JSON.stringify(n.extras) !== JSON.stringify(cfg.extras);
     const geometryChanged = ['w', 'h', 'mount', 'tight'].some((k) => n[k] != null && n[k] !== cfg[k]);
-    const shadesChanged = geometryChanged || ['kind', 'cover'].some((k) => n[k] != null && n[k] !== cfg[k]) || (n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive))
+    const shadesChanged = geometryChanged || extrasChanged || ['kind', 'cover'].some((k) => n[k] != null && n[k] !== cfg[k]) || (n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive))
       || (n.layers && JSON.stringify(n.layers.map((l) => [l.fabric?.key, l.optics])) !== JSON.stringify(cfg.layers.map((l) => [l.fabric?.key, l.optics])));
     const driveChanged = n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive);
     Object.assign(cfg, Object.fromEntries(Object.entries(n).filter(([, v]) => v != null)));
-    if (driveChanged) { xray.target = cfg.drive.movement === 'motorized' ? 1 : 0; driveDir = 0; }
-    if (n.amount != null) cfg.amount = n.amount;
+    if (driveChanged) { xray.target = ['motorized', 'two-in-one'].includes(cfg.drive.movement) ? 1 : 0; driveDirs = []; }
+    if (n.amounts) { cfg.amounts = n.amounts.slice(); if (geometryChanged || shadesChanged || !shades.length) current = n.amounts.slice(); }
     if (geometryChanged || !built) buildWindow();
     if (shadesChanged || geometryChanged || !shades.length) buildShades();
     wake();
   }
-  // double-stack: the back shade hangs a little lower, so its bottom rail shows under the front one
-  function setShadeAmounts(a) { shades.forEach((s, i) => s.setAmount(i === 0 ? a : Math.min(1, a + 0.07 * (1 - a)))); }
-  function snapAmount(a) { driveDir = 0; cfg.amount = current = a; setShadeAmounts(a); emit(); wake(); }
+  function setShadeAmounts(a) {
+    shades.forEach((s, i) => s.setAmount(a[i] ?? a[0] ?? 0));
+    if (built?.shade) solarClip.constant = shades.length ? Math.min(...shades.map((s) => built.shade.top - s.coverage * s.height)) : -1e3;      // the panel is clipped above this height
+  }
+  function snapAmount(a, i = 0) { driveDirs[i] = 0; cfg.amounts[i] = current[i] = a; setShadeAmounts(current); emit(); wake(); }
 
   // ---- loop -----------------------------------------------------------------------------------------------------------------------------------------------
   const wake = () => { dirty = true; if (active && !raf) raf = requestAnimationFrame(frame); };
@@ -221,14 +233,18 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     let moving = false;
     if (Math.abs(xray.target - xray.v) > 0.003) { xray.v += (xray.target - xray.v) * (reduced ? 1 : 1 - Math.exp(-dt * 5)); applyXray(); dirty = true; moving = true; }
     else if (xray.v !== xray.target) { xray.v = xray.target; applyXray(); dirty = true; }
-    if (driveDir) {                                                       // the remote: steady motor speed, about 10 in a second, until it reaches the end or Stop
-      const travel = Math.max(0.4, (built?.shade.h || 1.5) - 0.094);
-      cfg.amount = Math.min(1, Math.max(0, cfg.amount + driveDir * (0.254 / travel) * dt)); current = cfg.amount; setShadeAmounts(current); emit(); onAmount?.(current); dirty = true; moving = true;
-      if (cfg.amount <= 0 || cfg.amount >= 1) { driveDir = 0; onDrive?.(0); }
-    }
-    if (Math.abs(cfg.amount - current) > 0.0008) {
-      current += (cfg.amount - current) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); setShadeAmounts(current); moving = true; dirty = true; emit(); onAmount?.(current);
-    } else if (current !== cfg.amount) { current = cfg.amount; setShadeAmounts(current); dirty = true; emit(); onAmount?.(current); }
+    let shifted = false;
+    shades.forEach((sh, i) => {
+      if (driveDirs[i]) {                                                  // the remote: steady motor speed, about 10 in a second, until it reaches the end or Stop
+        const travel = Math.max(0.4, (built?.shade.h || 1.5) - 0.094);
+        cfg.amounts[i] = Math.min(1, Math.max(0, cfg.amounts[i] + driveDirs[i] * (0.254 / travel) * dt)); current[i] = cfg.amounts[i];
+        moving = true; dirty = true; shifted = true;
+        if (cfg.amounts[i] <= 0 || cfg.amounts[i] >= 1) { driveDirs[i] = 0; onDrive?.(0); }
+      } else if (Math.abs(cfg.amounts[i] - current[i]) > 0.0008) {
+        current[i] += (cfg.amounts[i] - current[i]) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); moving = true; dirty = true; shifted = true;
+      } else if (current[i] !== cfg.amounts[i]) { current[i] = cfg.amounts[i]; dirty = true; shifted = true; }
+    });
+    if (shifted) { setShadeAmounts(current); emit(); onAmount?.(current.slice()); }
     if (dirty) {
       dirty = false;
       const t0 = performance.now();
@@ -254,9 +270,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
 
   return {
     configure, snapAmount, resize,
-    drive(dir) { driveDir = (dir > 0 && current >= 1) || (dir < 0 && current <= 0) ? 0 : dir; if (!dir) cfg.amount = current; emit(); wake(); },
+    drive(dir, i = 0) { driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
     setXray(on) { xray.target = on ? 1 : 0; emit(); wake(); }, setActive, setReducedMotion: (v) => { reduced = !!v; },
-    get amount() { return current; }, get shadeHeight() { return built?.shade.h || cfg.h; },
+    get amounts() { return current.slice(); }, get shadeHeight() { return built?.shade.h || cfg.h; },
     dispose() {
       setActive(false); canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored);
       shades.forEach((s) => s.dispose()); renderer.dispose();

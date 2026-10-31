@@ -12,8 +12,8 @@ import { usesDrive, parseMech } from './drive.js';
 
 export const REMOTE_NAME = {
   ch1: '1 Channel', ch6: '6 Channels', ch16: '16 Channels',
-  'single-single': 'Single Motor, Single Channel', 'single-multi': 'Single Motor, Multi Channel',
-  'dual-single': 'Dual Motor, Single Channel', 'dual-multi': 'Dual Motor, Multi Channel',
+  'single-single': 'Single Motor-Single Channel', 'single-multi': 'Single Motor-Multi Channel',
+  'dual-single': 'Dual Motor-Single Channel', 'dual-multi': 'Dual Motor-Multi Channel',
 };
 export const REMOTE_TYPES = Object.keys(REMOTE_NAME);
 export const SHARE_NOTE = 'Shades in the same room share one remote that runs them one at a time or all together.';
@@ -21,7 +21,7 @@ export const SHARE_NOTE = 'Shades in the same room share one remote that runs th
 // what a motor control works with, shown under the remote
 export const WORKS_NOTE = {
   'app-remote': 'Works with your phone (Smart Life app)',
-  zigbee: 'Needs a Zigbee hub (sold separately, $35)',
+  zigbee: "Needs a Zigbee hub. Add one in your cart for $35 if you don't have one.",       // (the pages show the price from the database: see hub.js)
   matter: 'Works with your Matter smart speaker or hub',
 };
 
@@ -33,8 +33,10 @@ const lineOf = (it) => it.category || it.product?.id;
 // is this item a motorized shade (it comes with a remote)?
 export function isMotorized(it) {
   const line = lineOf(it), mech = mechOf(it);
-  if (usesDrive(line)) return parseMech(line, mech).movement === 'motorized';
-  return line === 'drapery' && it.selection?.section === 'dream-curtains' && (mech === 'remote' || mech === 'matter');
+  if (usesDrive(line)) { const mv = parseMech(line, mech, { double: it.selection?.mode === 'double-stack' }).movement; return mv === 'motorized' || mv === 'two-in-one'; }   // the 2 in 1 motor comes with a remote too
+  if (line !== 'drapery') return false;
+  if (it.selection?.section === 'dream-curtains') return parseMech('drapery', mech).movement === 'motorized';
+  return !!it.selection?.hardware && it.selection.hardware.track === 'motorized-rail';          // a motorized curtain rail has its remote included
 }
 
 // how many shades one item is
