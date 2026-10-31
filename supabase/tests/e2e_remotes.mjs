@@ -35,13 +35,14 @@ try {
     check(T('a blank room: every shade counts alone (1 Channel, no sharing line)'), (await remoteType()) === 'ch1' && !SHARE.test(await page.locator('.pv-incl').innerText().catch(() => '')));
     // the channel buttons light up and change nothing; the shade buttons still move it
     await room('Living room'); await qty(3);
+    const toTop = async () => { await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500); };
     const amount = async () => Number(await page.locator('.pv-grip, .pv-bar').first().getAttribute('aria-valuenow'));
     const a0 = await amount();
-    await page.locator('[data-btn="stop"]').click(); await page.waitForTimeout(100);
+    await toTop(); await page.locator('[data-btn="stop"]').click(); await page.waitForTimeout(100);
     check(T('a pressed button lights up'), (await page.locator('.rm-key.lit[data-btn="stop"]').count()) === 1 && (await amount()) === a0);
-    await page.locator('[data-btn="down"]').click(); await page.waitForTimeout(1500);
+    await toTop(); await page.locator('[data-btn="down"]').click(); await page.waitForTimeout(1500);
     check(T('Down on the 6 Channels remote lowers the shade'), (await amount()) > a0 + 3);
-    await page.locator('[data-btn="stop"]').click(); const s1 = await amount(); await page.waitForTimeout(700);
+    await toTop(); await page.locator('[data-btn="stop"]').click(); const s1 = await amount(); await page.waitForTimeout(700);
     check(T('Stop holds it'), (await amount()) === s1);
     check(T(vw < 500 ? 'the buttons have a 44 px tap area on a phone' : 'the buttons are small but at least 32 px to tap'), await page.locator('[data-btn="up"], [data-btn="stop"], [data-btn="down"]').evaluateAll((b, min) => b.every((x) => x.getBoundingClientRect().width >= min && x.getBoundingClientRect().height >= min), vw < 500 ? 43.5 : 32));
     // ---- the cart: a second window in the same room, whatever the case of the name
@@ -70,7 +71,7 @@ try {
     check(T('Cellular normal: the Single Motor, Single Channel remote (up, pause, down)'), (await remoteType()) === 'single-single' && (await page.locator('.rm-key').count()) === 3);
     await card('Top-down/bottom-up').click(); await settle();
     check(T('Cellular top-down/bottom-up: the Dual Motor, Single Channel remote'), (await remoteType()) === 'dual-single');
-    await page.locator('[data-btn="topUp"]').click(); await page.waitForTimeout(80);
+    await toTop(); await page.locator('[data-btn="topUp"]').click(); await page.waitForTimeout(80);
     check(T('a dual remote button lights up'), (await page.locator('.rm-key.lit[data-btn="topUp"]').count()) === 1);
     check(T('a dual remote has a top rail pair and a bottom rail pair'), (await Promise.all(['topUp', 'topDown', 'botUp', 'botDown'].map((b) => page.locator(`[data-btn="${b}"]`).count()))).every((n) => n === 1));
     await card('Day & night').click(); await settle();
