@@ -13,7 +13,7 @@ try {
     const page = await ctx.newPage(); page.setDefaultTimeout(30000);
     const errors = []; page.on('pageerror', (e) => errors.push(e.message));
     const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
-    const open = async (slug) => { await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'networkidle' }); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').nth(3).click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('60'); await page.locator('#s2-h').blur(); };
+    const open = async (slug) => { await page.goto(`${BASE}/products/${slug}`, { waitUntil: 'networkidle' }); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').nth(3).click(); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('60'); await page.locator('#s2-h').blur(); await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500); };       // (a phone folds the preview to a compact strip, without its remote, once scrolled down)
     const remoteType = async () => { const r = page.locator('.rm').first(); return (await r.count()) ? r.getAttribute('data-remote') : null; };
     const room = async (choice, custom = '') => { await page.locator('#s2-room').selectOption(choice); if (choice === 'Other') await page.locator('#s2-room-custom').fill(custom); await page.waitForTimeout(300); };
     const qty = async (n) => { await page.locator('#s2-qty').fill(String(n)); await page.locator('#s2-qty').blur(); await page.waitForTimeout(300); };

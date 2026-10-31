@@ -31,8 +31,8 @@ export function useCompactStrip(ref, enabled) {
     last.current.y = window.scrollY;
     const onScroll = () => {
       const l = last.current, y = window.scrollY, dy = y - l.y; l.y = y;
+      if (y < OPEN_BELOW) { l.up = 0; setCompact(false); return; }              // back at the top: always open
       if (performance.now() < l.quiet) return;                                    // our own correction
-      if (y < OPEN_BELOW) { l.up = 0; setCompact(false); return; }
       if (dy > 0) { l.up = 0; if (y > Math.max(FOLD_AFTER, l.pin >= 0 ? l.pin + PIN : 0)) { l.pin = -1; setCompact(true); } }
       else if (dy < 0) { l.up -= dy; if (l.up >= UNFOLD_ON) setCompact(false); }
     };
