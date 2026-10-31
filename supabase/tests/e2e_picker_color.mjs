@@ -29,6 +29,7 @@ const pickAndRead = async (page, q) => {
   const cv = t.locator('canvas'); await cv.waitFor(); await page.waitForFunction((el) => el.dataset.ready === '1', await cv.elementHandle());
   const tileHex = await cv.getAttribute('data-color');
   const mean = await cv.evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, m = [0, 0, 0]; for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) m[k] += d[i + k]; return m.map((v) => v / (d.length / 4)); });
+  await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500);       // (a phone folds the preview to a compact strip, without its handle, once scrolled down)
   const g = page.locator('.pv-grip, .pv-bar').first(); await g.focus(); for (let i = 0; i < 120; i++) { const v = Number(await g.getAttribute('aria-valuenow')); if (Math.abs(v - 50) <= 2) break; await page.keyboard.press(v < 50 ? 'ArrowDown' : 'ArrowUp'); } await page.evaluate(() => document.activeElement?.blur()); await page.waitForTimeout(1000);
   await page.locator('.pv-canvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
   const buf = await page.locator('.pv-canvas').screenshot(); const { width, height } = await sharp(buf).metadata();

@@ -147,11 +147,12 @@ export default function LineShell({
     else saveDraft(line.id, edit?.id || null, data);
   }, [draftSig, qty, uiSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Editing from the cart: put the "You're changing an item in your cart" message at the top of the screen (the photo comes first on a phone)
+  // Editing from the cart: put the "You're changing an item in your cart" message at the top of the screen, just under the compact preview strip
+  // (the photo comes first on a phone; scrolling down there folds it to about 108 px)
   const editingRef = useRef(null);
   useEffect(() => {
     if (!edit || !window.matchMedia('(max-width: 959px)').matches) return undefined;
-    const go = () => { const el = editingRef.current; if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8), behavior: 'instant' }); };
+    const go = () => { const el = editingRef.current; if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8 - (preview ? 108 : 0)), behavior: 'instant' }); };
     go();
     const t = setTimeout(go, 250);               // once pictures and colors have taken their space
     return () => clearTimeout(t);

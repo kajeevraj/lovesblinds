@@ -97,7 +97,7 @@ try {
 
     // ---------- add: the card, merge, different lines
     check(T('before adding: a large "Add to cart" button is in the estimate card, and the bars main button is "Add to cart" too'), /^Add to cart$/.test((await page.locator('.s2-estimate .s2-add-btn').innerText()).trim()) && (await page.locator('.s2-bar .s2-add-btn').count()) === 0 && (await page.locator('.s2-bar-main-btn').innerText()) === 'Add to cart' && (await page.locator('.s2-estimate .s2-add-btn').evaluate((e) => e.getBoundingClientRect().height)) >= 54);
-    check(T('the bar: swatch circle, "This blind", the color name and the price; a divider; then "Your cart" (empty, no Checkout yet)'), (await page.locator('.s2-bar-blind .s2-dot img').count()) === 1 && /This blind/i.test(await page.locator('.s2-bar-blind').textContent()) && /Jet Black/.test(await page.locator('.s2-bar-blind').textContent()) && (await page.locator('.s2-bar-divider').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0 && /Your cart is empty/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
+    check(T('the bar: swatch circle, "This blind", the color name and the price; a divider; then "Your cart" (empty, no Checkout yet)'), (await page.locator('.s2-bar-blind .s2-dot img, .s2-bar-blind .s2-dot canvas').count()) === 1 && /This blind/i.test(await page.locator('.s2-bar-blind').textContent()) && /Jet Black/.test(await page.locator('.s2-bar-blind').textContent()) && (await page.locator('.s2-bar-divider').count()) === 1 && (await page.locator('.s2-bar-checkout').count()) === 0 && /Your cart is empty/.test(await page.locator('.s2-bar-order').getAttribute('aria-label')));
     check(T(phone ? 'phone: the bar shows the total only ("$130"), small "This blind" above it' : 'desktop: with 1 blind the bar shows just the price'), /^\$\d+$/.test((await page.locator('.s2-bar-price').innerText()).trim()));
     await page.locator('.s2-estimate').evaluate((e) => e.scrollIntoView({ block: 'center' })); await shot(page, `${phone ? 'phone' : 'desktop'}-card-before-add`);
     await page.locator('.s2-add-btn').click();
@@ -183,8 +183,9 @@ try {
     await page.locator('.s2-item').first().getByRole('link', { name: /^Edit/ }).click();
     await page.locator('.s2-editing').waitFor(); await page.waitForTimeout(700);
     const top = await page.locator('.s2-editing').evaluate((e) => e.getBoundingClientRect().top);
+    const stripBottom = phone ? await page.evaluate(() => (document.querySelector('.s2-line-photo.has-preview')?.getBoundingClientRect().bottom ?? 0)) : 0;       // the message sits just under the (compact) preview strip, not behind it
     check(T('Edit: "You’re changing: ..." message names the item'), /You’re changing: /.test(await page.locator('.s2-editing').innerText()));
-    check(T(phone ? 'Edit on a phone: the message is at the top of the screen' : 'Edit on desktop: the message is visible near the top'), top >= 0 && top <= (phone ? 24 : 300), `top ${Math.round(top)}px`);
+    check(T(phone ? 'Edit on a phone: the message is at the top of the screen, just under the preview strip' : 'Edit on desktop: the message is visible near the top'), phone ? top >= stripBottom - 1 && top <= stripBottom + 40 : top >= 0 && top <= 300, `top ${Math.round(top)}px, strip bottom ${Math.round(stripBottom)}`);
     check(T('Edit: size and room come back as they were'), (await sizeOf(page, 'w')) === '35 7/8' && (await page.locator('#s2-room').inputValue()) === 'Other' && (await page.locator('#s2-room-custom').inputValue()) === 'Sunroom' && (await page.locator('#s2-window').inputValue()) === 'Left');
     await page.locator('.s2-editing .s2-link').click();
 

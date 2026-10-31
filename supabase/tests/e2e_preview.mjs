@@ -22,8 +22,11 @@ async function open(vw, vh, path) {
 const fill = async (page, id, v) => { await page.locator(`#s2-${id}`).fill(v); await page.locator(`#s2-${id}`).blur(); };
 // the shade's position is read from the handle (or the bottom bar) and set with the keyboard: there is no slider bar any more
 const mover = (page) => page.locator('.pv-grip, .pv-bar').first();
+// on a phone the preview folds to a compact strip (no handle) once the page is scrolled down: tests look at it from the top
+const toTop = async (page) => { await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500); };
 const readAmount = async (page) => Number(await mover(page).getAttribute('aria-valuenow'));
 const setAmount = async (page, target) => {
+  await toTop(page);
   const m = mover(page); await m.focus();
   await page.keyboard.press('Home');
   for (let i = 0; i < 40 && (await readAmount(page)) < target - 1; i++) { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(15); }
@@ -39,6 +42,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     check(`${tag} ${label}: the 3D preview replaces the photo`, await page.waitForSelector('.pv-stage.ready', { timeout: 30000 }).then(() => true).catch(() => false));
     check(`${tag} ${label}: no size labels before a real size is entered`, (await page.locator('.pv-size').count()) === 0);
     if (vw < 700) {
+      await toTop(page);
       const sh = await page.locator('.pv-stage').evaluate((e) => e.getBoundingClientRect().height);
       check(`${tag} ${label}: the phone strip is about 4:3 and at most 40% of the screen`, sh >= 220 && sh <= vh * 0.41 && sh >= vw * 0.55, `${Math.round(sh)} px of ${vh}`);
     }
@@ -56,6 +60,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     check(`${tag} ${label}: there is no "Hide sizes", "See it in a room" or "Style photo" button, and no slider bar`, (await page.getByRole('button', { name: /Hide sizes|Show sizes|See it in a room/ }).count()) === 0 && (await page.getByRole('tab', { name: 'Style photo', exact: true }).count()) === 0 && (await page.locator('#pv-amount, .pv-slide, input[type=range]').count()) === 0);
     check(`${tag} ${label}: the size label stays on`, (await page.locator('.pv-size').count()) === 1);
     // the handle (Zero gravity, the default) is always visible; the shade moves by it, by dragging, and with the arrow keys
+    await toTop(page);
     const zg = (await page.locator('.pv-grip').count()) === 1;
     check(`${tag} ${label}: Zero gravity is the default and its center handle is visible`, zg && await page.locator('.pv-grip i').evaluate((e) => { const r = e.getBoundingClientRect(), c = getComputedStyle(e); return r.width >= 30 && r.height >= 10 && c.visibility === 'visible' && c.opacity === '1'; }));
     const before = await readAmount(page);
