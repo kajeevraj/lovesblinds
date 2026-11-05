@@ -40,7 +40,7 @@ function SizeLine({ k, label, size, onChange, idp }) {
       <label className="s2-label" htmlFor={`${idp}-${k}`}>{label}</label>
       <div className="s2-field-row s2-size-row">
         <input id={`${idp}-${k}`} className="s2-input s2-size-whole" type="text" inputMode="decimal" autoComplete="off" autoCorrect="off" spellCheck={false}
-          placeholder="0" value={draft ?? whole} aria-describedby={`${idp}-${k}-echo`}
+          placeholder="0" value={draft ?? whole} aria-describedby={frac && v != null ? `${idp}-${k}-echo` : undefined}
           onChange={(e) => typed(e.target.value)} onBlur={() => setDraft(null)} />
         <span className="s2-size-unit" aria-hidden="true">in</span>
         <label className="s2-size-fraclabel" htmlFor={`${idp}-${k}-frac`}><span className="s2-sr">{label}, </span>+ fraction</label>
@@ -48,7 +48,8 @@ function SizeLine({ k, label, size, onChange, idp }) {
           {FRAC_OPTIONS.map((f) => <option key={f || '0'} value={f}>{f || '0'}</option>)}
         </select>
       </div>
-      <div id={`${idp}-${k}-echo`} className="s2-size-echo" aria-live="polite">{v != null ? <strong>{formatInches(v)} in</strong> : ' '}</div>
+      {/* the combined size is only echoed when a fraction is picked ("40 3/8 in"); with whole inches alone the box already says it */}
+      {frac && v != null && <div id={`${idp}-${k}-echo`} className="s2-size-echo" aria-live="polite"><strong>{formatInches(v)} in</strong></div>}
     </div>
   );
 }

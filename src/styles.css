@@ -1652,15 +1652,15 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .s2-swprev-pic { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .s2-swprev-cap { font-size: 11px; line-height: 1.2; color: var(--s2-muted, #6b6258); text-align: center; max-width: 84px; }
 
-/* the phone's compact strip: about a third of the open height, the shade still live; a tap on it opens it again */
+/* the phone's compact strip: the preview box keeps its full height in the page (so nothing ever moves when it folds or opens) and is clipped to its
+   top ~108 px, with the picture scaled down to fit and still live; a tap on it opens it. --pv-k and --pv-top are set by useCompactStrip.js. */
 @media (max-width: 959px) {
-  .s2-line-grid { overflow-anchor: none; }      /* the strip changes height by itself and moves the page by exactly that (useCompactStrip.js); the browser must not also */
-  .has-preview.compact { padding-top: 4px; padding-bottom: 6px; }
-  .has-preview.compact .pv-stage, .has-preview.compact .gal-photo .s2-photo-frame { height: 96px; min-height: 0; }
-  .has-preview.compact .gal { gap: 0; }
-  .has-preview.compact .gal-dots, .has-preview.compact .gal-arrow, .has-preview.compact .pv-incl, .has-preview.compact .pv-note, .has-preview.compact .pv-tools, .has-preview.compact .pv-size, .has-preview.compact .pv-drag, .has-preview.compact .pv-bar, .has-preview.compact .pv-grip, .has-preview.compact .pv-xlabel { display: none; }
-  .has-preview.compact .pv-tabs { position: absolute; top: 2px; right: 20px; margin: 0; z-index: 3; }
-  .has-preview.compact .pv-collapse { min-height: 28px; padding: 0 8px; font-size: 12px; background: rgba(250, 247, 241, .86); border-radius: 99px; }
+  .has-preview.compact { clip-path: inset(0 0 calc(100% - 108px) 0); }
+  .has-preview.compact .gal-stage, .has-preview.compact > .pv-wrap { transform-origin: top center; transform: translateY(calc(6px - var(--pv-top, 52px))) scale(var(--pv-k, .33)); }
+  .has-preview.compact .gal-dots, .has-preview.compact .gal-arrow, .has-preview.compact .pv-incl, .has-preview.compact .pv-note, .has-preview.compact .pv-tools, .has-preview.compact .pv-size, .has-preview.compact .pv-drag, .has-preview.compact .pv-bar, .has-preview.compact .pv-grip, .has-preview.compact .pv-xlabel { visibility: hidden; }
+  .has-preview.compact .pv-tabs { min-height: 44px; }      /* its button leaves the flow; the row keeps its height so nothing below moves */
+  .has-preview.compact .pv-collapse { position: absolute; top: 4px; right: 20px; z-index: 3; min-height: 28px; padding: 0 8px; font-size: 12px; background: rgba(250, 247, 241, .86); border-radius: 99px; }
+  .has-preview.compact::after { content: ""; position: absolute; left: 0; right: 0; top: 107px; height: 1px; background: var(--s2-line); }
   .pv-expand { position: absolute; inset: 0; z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .has-preview.compact .pv-tabs { z-index: 3; }
+}
 }

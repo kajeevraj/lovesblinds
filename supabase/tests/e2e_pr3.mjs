@@ -69,10 +69,15 @@ try {
     check(T('size: typing "3" first gives "3", not "03"'), (await sizeOf(page, 'w')) === '3');
     check(T('size: no "1/2" icon buttons any more; a dropdown labeled "+ fraction" with 0, 1/8 ... 7/8 (default 0)'), (await page.getByRole('button', { name: /Add a fraction/ }).count()) === 0 && (await page.locator('.s2-frac-btn').count()) === 0 && (await page.locator('#s2-w-frac option').allInnerTexts()).join() === '0,1/8,1/4,3/8,1/2,5/8,3/4,7/8' && (await page.locator('label[for="s2-w-frac"]').innerText()).includes('+ fraction') && (await page.locator('#s2-h-frac').inputValue()) === '');
     check(T('size: one line per side: "Width [ box ] in [ + fraction ]"'), await page.locator('.s2-size-line').evaluateAll((rows) => rows.every((r) => { const k = [...r.querySelectorAll('.s2-size-whole, .s2-size-unit, .s2-size-frac')].map((x) => Math.round(x.getBoundingClientRect().top)); return k.length === 3 && Math.max(...k) - Math.min(...k) < 20; })));
-    const cases = [['35', '35 in'], ['35.5', '35 1/2 in'], ['35 1/2', '35 1/2 in'], ['35-1/2', '35 1/2 in'], ['35.3', '35 1/4 in'], ['40.05', '40 in'], ['1/2', '1/2 in']];
+    const cases = [['35', ''], ['35.5', '35 1/2 in'], ['35 1/2', '35 1/2 in'], ['35-1/2', '35 1/2 in'], ['35.3', '35 1/4 in'], ['40.05', ''], ['1/2', '1/2 in']];       // the echo under the box only appears when a fraction is picked
     const got = [];
     await page.locator('#s2-w-frac').selectOption('');
-    for (const [typed, want] of cases) { await page.locator('#s2-w').fill(typed); got.push([typed, (await page.locator('#s2-w-echo').innerText()).replace(/\s*\(nearest 1\/8\)/, '').trim(), want]); }
+    for (const [typed, want] of cases) { await page.locator('#s2-w').fill(typed); got.push([typed, (await page.locator('#s2-w-echo').count()) ? (await page.locator('#s2-w-echo').innerText()).replace(/\s*\(nearest 1\/8\)/, '').trim() : '', want]); }
+    await page.locator('#s2-w-frac').selectOption(''); await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill('64'); await page.locator('#s2-h-frac').selectOption('');
+    check(T('size: with whole inches only there is no "40 in" echo under the boxes'), (await page.locator('#s2-w-echo, #s2-h-echo, .s2-size-echo').count()) === 0);
+    await page.locator('#s2-w-frac').selectOption('3/8');
+    check(T('size: picking a fraction shows the combined value ("40 3/8 in") under that box only'), (await page.locator('#s2-w-echo').innerText()).trim() === '40 3/8 in' && (await page.locator('#s2-h-echo').count()) === 0 && (await page.locator('#s2-w').getAttribute('aria-describedby')) === 's2-w-echo');
+    await page.locator('#s2-w-frac').selectOption('');
     check(T('size: typing or pasting 35.5, 35 1/2 or 35-1/2 still reads as a fraction (the dropdown follows)'), got.every(([, a, b]) => a === b), got.map(([t, a]) => `${t} -> ${a}`).join(' | '));
     await page.locator('#s2-w').fill('35.5'); await page.locator('#s2-h').click();
     check(T('size: 35.5 shows as 35 in the box and 1/2 in the dropdown'), (await page.locator('#s2-w').inputValue()) === '35' && (await page.locator('#s2-w-frac').inputValue()) === '1/2' && (await sizeOf(page, 'w')) === '35 1/2');
