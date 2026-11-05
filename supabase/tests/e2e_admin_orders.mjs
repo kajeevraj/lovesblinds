@@ -85,7 +85,8 @@ try {
       const row = (await api('GET', `/rest/v1/sent_orders?select=qty_overrides,lines&customer->>name=eq.${hubName}`, H(SVC))).body[0];
       check(`[${label}] the changed quantity is stored apart from the sent lines (which never change)`, Object.values(row.qty_overrides).includes(2) && row.lines[1].qty === 1);
       check(`[${label}] with quantity 2 the changed total reads $209`, /With the changed quantities:\s*\$209/.test(await page.locator('.adm-main').innerText()));
-      await api('PATCH', `/rest/v1/sent_orders?customer->>name=eq.${hubName}`, H(SVC), { qty_overrides: {} });
+      const undo = await api('PATCH', `/rest/v1/sent_orders?customer->>name=eq.${hubName}`, H(ANON, tok.body.access_token), { qty_overrides: {} });       // as the admin: the service key cannot update sent orders
+      check(`[${label}] the quantity change is undone for the next pass`, undo.status < 300);
     } else console.log('SKIP  hub quantity change (migration 20 is not applied to this database)');
     await ctx.close();
   }

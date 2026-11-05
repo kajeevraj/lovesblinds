@@ -24,7 +24,7 @@ try {
   await page.route('**/rest/v1/swatches*', async (route) => {
     const req = route.request();
     if (req.method() === 'PATCH') { patches.push({ url: req.url(), body: JSON.parse(req.postData() || '{}') }); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ id: 'mock', ...JSON.parse(req.postData() || '{}') }]) }); }
-    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ('preview_color' in r ? r : { ...r, preview_color: r.supplier_code === 'YS180006' ? '#2a5d9f' : null })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
+    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => (r.supplier_code === 'YS180006' ? { ...r, preview_color: '#2a5d9f' } : 'preview_color' in r ? r : { ...r, preview_color: null })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }       // the color under test carries an override; every other row has the column (empty)
     return route.continue();
   });
   await page.goto(`${BASE}/admin`);

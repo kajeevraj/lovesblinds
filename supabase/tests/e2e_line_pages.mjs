@@ -151,6 +151,7 @@ try {
     await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
     console.log('SKIP  curtain fabric price (migration 20 is not applied to this database)');
   }
+  await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);        // (the live price takes a moment to come back after the size changes)
   check('Curtains can be added once a size is entered', await page.locator('.s2-add-btn').isEnabled());
   await page.getByRole('tab', { name: 'Dream Curtains' }).click();
   await page.locator('.s2-sw').first().waitFor();
