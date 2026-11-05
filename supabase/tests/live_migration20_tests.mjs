@@ -97,7 +97,26 @@ try {
   check('an admin edit of the hub price moves what customers see', (await hubNow()) === 41, String(await hubNow()));
   await api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount });
   check('the hub price is back to the value read at the start', (await hubNow()) === Number(hubRow.amount), String(await hubNow()));
-  check('the account order carries the hub tick (orders.hub and orders.hub_price exist) and the sent order store has qty_overrides', (await api('GET', '/rest/v1/orders?select=hub,hub_price&limit=1', SVC)).status === 200 && (await api('GET', '/rest/v1/sent_orders?select=qty_overrides&limit=1', SVC)).status === 200);
+  check('the sent order store has qty_overrides (admin can change the hub quantity)', (await api('GET', '/rest/v1/sent_orders?select=qty_overrides&limit=1', SVC)).status === 200);
+  check('swatches has preview_color, and the public catalog returns it for every color', (await api('GET', '/rest/v1/swatches?select=preview_color&limit=1', SVC)).status === 200 && (await rpc('public_catalog', { p_scope: ['roller'] })).body.every((g) => g.swatches.every((x) => 'preview_color' in x)));
+  // the hub tick saved with the account's order: a temporary customer (the service key has no access to the orders table), removed at the end
+  const email = `zz-m20-${Date.now()}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
+  const cu = await api('POST', '/auth/v1/admin/users', SVC, { email, password, email_confirm: true }); const uid = cu.body.id;
+  restore.push(() => api('DELETE', `/auth/v1/admin/users/${uid}`, SVC));              // its orders go with it (on delete cascade)
+  const tok = (await api('POST', '/auth/v1/token?grant_type=password', ANON, { email, password })).body.access_token;
+  const asUser = async (m, p, b) => { const r = await fetch(URL_ + p, { method: m, headers: { apikey: ANON, Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
+  const ins = await asUser('POST', '/rest/v1/orders', { user_id: uid, name: 'm20 hub test', items: [], status: 'draft', hub: true });
+  const ord = Array.isArray(ins.body) ? ins.body[0] : null;
+  check('an account order can carry the hub tick: orders.hub saves true, and is false by default', !!ord && ord.hub === true && ord.hub_price === null);
+  if (ord) {
+    const flip = await asUser('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, { hub: false });
+    check('the tick can be changed while the order is a draft (hub = false)', flip.status < 300 && flip.body[0]?.hub === false);
+    const sent = await asUser('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, { status: 'sent', hub: true, hub_price: 35 });
+    check('sending stores the hub and the price it was sent at (35)', sent.status < 300 && sent.body[0]?.hub === true && Number(sent.body[0]?.hub_price) === 35);
+    const t1 = await asUser('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, { hub: false }), t2 = await asUser('PATCH', `/rest/v1/orders?id=eq.${ord.id}`, { hub_price: 1 });
+    const after = (await asUser('GET', `/rest/v1/orders?id=eq.${ord.id}&select=hub,hub_price`)).body[0];
+    check('once sent, neither the hub nor its price can be changed (the sent-order guard)', t1.status >= 400 && t2.status >= 400 && after.hub === true && Number(after.hub_price) === 35, `${t1.status}/${t2.status} ${JSON.stringify(after)}`);
+  }
 } catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
 finally { for (const f of restore.reverse()) await f().catch(() => {}); }
 const bad = results.filter((x) => !x.ok);

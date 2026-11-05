@@ -61,7 +61,7 @@ try {
     check(`${label} direct reads of the fabrics (price groups) table: ${REQUIRE_CLOSED ? 'closed (migration 11)' : 'open until migration 11'}`, REQUIRE_CLOSED ? (f.status >= 400 || fseen === 0) : true, `HTTP ${f.status}, rows visible: ${fseen}`);
     const cat = await call('POST', '/rest/v1/rpc/public_catalog', hdr, { p_scope: ['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'drapery', 'dream-curtains'] });
     const ids = new Set((cat.body || []).flatMap((g) => g.swatches.map((x) => x.id)));
-    check(`${label} can read the catalog through public_catalog() (437 colors, 89 groups)`, cat.status === 200 && ids.size === 437 && cat.body.length === 89, `HTTP ${cat.status}, ${ids.size} colors, ${cat.body?.length} groups`);
+    check(`${label} can read the catalog through public_catalog() (436 colors, 89 groups; SP26030004 is hidden since migration 20)`, cat.status === 200 && ids.size === 436 && cat.body.length === 89, `HTTP ${cat.status}, ${ids.size} colors, ${cat.body?.length} groups`);
     r = await tryInsert({ ...hdr, ...rep }, newRow);
     check(`${label} INSERT swatch is refused`, r.status === 401 || r.status === 403, short(r));
     r = await call('PATCH', `/rest/v1/swatches?id=eq.${encodeURIComponent(a.id)}`, { ...hdr, ...rep }, upd);
