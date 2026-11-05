@@ -6,6 +6,14 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const LIMITS = { roller: { min_width: 23, max_width: 118, min_height: 24, max_height: 120 }, 'dream-curtains': { min_width: 24, max_width: 352, min_height: 12, max_height: 228 }, drapery: {} };
 const browser = await chromium.launch();
 const mockLimits = (page) => page.route('**/rest/v1/rpc/size_limits', async (route) => {
@@ -39,7 +47,7 @@ try {
 
   // typo warning (Curtains have no limits; Roller too-small wins over the warning)
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-sw').first().click();
-  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click(); await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await pickCurtains(page);
   await size(8, 96); await page.locator('.s2-size-msg.is-warn').waitFor();
   await page.waitForFunction(() => !document.querySelector('.s2-add-btn').disabled);
   check('a size that looks like a typo (8 inches wide) shows "Double-check this size." and does not block', /Double-check this size\./.test(await page.locator('.s2-size-msg.is-warn').innerText()) && await page.locator('.s2-add-btn').isEnabled());
@@ -83,7 +91,7 @@ try {
   check('the panel has Edit, Duplicate and Remove on each item', (await page.getByRole('link', { name: /^Edit / }).count()) === 1 && (await page.getByRole('button', { name: /^Duplicate / }).count()) === 1);
   await page.getByRole('button', { name: /^Duplicate / }).click();
   await page.waitForFunction(() => /\?edit=/.test(location.search)); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('Duplicate adds a copy and opens it for editing with everything filled in', (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && /\?edit=/.test(page.url()));
+  check('Duplicate adds a copy and opens it for editing with everything filled in', (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '40' && /\?edit=/.test(page.url()));
   await page.locator('#s2-w').fill('55'); await page.locator('.s2-add-btn').click();
   await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   await page.waitForFunction(() => document.querySelectorAll('.s2-item').length === 2 && !/Calculating/.test(document.querySelector('.s2-items').innerText));

@@ -105,11 +105,15 @@ export function materialOf(s, fabric) {
 }
 
 // One searchable entry per swatch, with its facet values resolved once.
+// Colors the supplier does not sell (hidden in the database too, migration 20; this keeps them off the site even before it is applied).
+export const HIDDEN_CODES = new Set(['SP26030004']);
+
 export function entriesFor(fabricList, family = null) {
   const out = [];
   for (const f of fabricList) {
     for (const s of swatchesForFabric(f.id)) {
       if (family && s.family !== family) continue;
+      if (HIDDEN_CODES.has(s.code)) continue;
       out.push({ swatch: s, fabric: f, color: colorFamilyOf(s), light: lightControlOf(s, f), material: materialOf(s, f) });
     }
   }

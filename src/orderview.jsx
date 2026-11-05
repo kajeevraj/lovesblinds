@@ -10,6 +10,8 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
   const items = (order.items || []).map((st, i) => reconstructItem(st, i)).filter(Boolean);
   let total = 0, byEmail = 0;
   for (const it of items) { if (it.priceKind === 'estimate' && it.price > 0) total += it.price * Math.max(1, it.qty || 1); else byEmail += 1; }
+  const hubPrice = order.hub && order.hub_price > 0 ? Number(order.hub_price) : 0;       // the Zigbee hub, one per order, at the price it was sent with
+  if (hubPrice) total += hubPrice;
   const hasEstimates = items.some((it) => it.priceKind);
   const c = order.customer;
   const when = new Date(order.updated_at || order.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -44,6 +46,14 @@ export default function SentOrderView({ order, navigate, orderAgain }) {
               </li>
             );
           })}
+          {hubPrice > 0 && (
+            <li className="s2-item s2-item-static s2-item-hub">
+              <div className="s2-item-main"><div className="s2-item-body">
+                <div className="s2-item-head"><span className="s2-item-title">Zigbee hub</span><div className="s2-item-price"><div className="s2-item-amount">{money(hubPrice)}</div></div></div>
+                <div className="s2-item-qty">Quantity 1</div>
+              </div></div>
+            </li>
+          )}
         </ul>
 
         {hasEstimates && (

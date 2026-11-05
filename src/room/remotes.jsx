@@ -172,7 +172,27 @@ const NAMES = {
   topUp: 'Raise the top rail', topDown: 'Lower the top rail', botUp: 'Raise the bottom rail', botDown: 'Lower the bottom rail',
 };
 
-export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '' }) {
+// `shades` (a roller double-stack): one small row of up, stop, down for each shade, named "Front shade" and "Back shade". A press is reported as "front:up", "back:stop" ...
+export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '', shades = null }) {
+  if (shades) {
+    return (
+      <div className={`rm rm-simple rm-two ${className}`} role="group" aria-label="Remote control" data-remote={type}>
+        {shades.map((label, i) => {
+          const who = i === 0 ? 'front' : 'back';
+          return (
+            <div className="rm-row" key={who} role="group" aria-label={label}>
+              <span className="rm-row-label">{label}</span>
+              {['up', 'stop', 'down'].map((id) => (
+                <button key={id} type="button" className={`rm-key${lit === `${who}:${id}` ? ' lit' : ''}`} aria-label={`${NAMES[id]} (${label.toLowerCase()})`} data-btn={`${who}-${id}`} onClick={() => onPress?.(`${who}:${id}`)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{glyphOf(id)}</svg>
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   const dual = type.startsWith('dual');
   const rows = dual ? [['Top rail', ['topUp', 'topDown']], ['Bottom rail', ['botUp', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
   return (

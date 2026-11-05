@@ -5,6 +5,14 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const TITLE_CASE = /Inside Mount|Outside Mount|Screen View|Top-Down|Day & Night|Plain Fold|Light Filtering|French Pleat|Euro Pleat|Pinch Pleat|Inverted Pleat|Ripple Fold/;
 const browser = await chromium.launch();
 try {
@@ -72,12 +80,12 @@ try {
     await page.getByRole('link', { name: /^Edit Roller/ }).click();
     await page.waitForFunction(() => /\?edit=/.test(location.search));
     await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-    check(T('clicking an item in the panel opens its page with every choice filled in and a "Save changes" button and Cancel link'), (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-h').inputValue()) === '64' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room' && (await page.locator('.s2-sw.on').count()) === 1 && (await page.getByRole('link', { name: 'Cancel' }).count()) >= 1);
+    check(T('clicking an item in the panel opens its page with every choice filled in and a "Save changes" button and Cancel link'), (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '40' && (await sizeOf(page, 'h')) === '64' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room').inputValue()) === 'Living room' && (await page.locator('.s2-sw.on').count()) === 1 && (await page.getByRole('link', { name: 'Cancel' }).count()) >= 1);
     const editUrl = page.url();
     // refresh in the middle of an edit
     await page.locator('#s2-w').fill('48 1/2');
     await page.reload(); await page.locator('#s2-w').waitFor();
-    check(T('after a refresh the same item is open again, with the unsaved change kept (autosave)'), page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '48 1/2');
+    check(T('after a refresh the same item is open again, with the unsaved change kept (autosave)'), page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '48 1/2');
     // change the fraction and save
     await page.locator('#s2-w').fill('40 1/8'); await page.locator('#s2-qty').fill('2'); await page.waitForFunction(() => /each · 2 blinds/.test(document.querySelector('.s2-estimate-each')?.innerText || ''));
     await page.locator('.s2-add-btn').click();
@@ -89,7 +97,7 @@ try {
     // edit from the order page, then Cancel
     await page.locator('.s2-item').nth(1).click();
     await page.locator('#s2-w').waitFor();
-    check(T('clicking an item on the order page opens its page too (Zebra)'), /\/products\/zebra\?edit=/.test(page.url()) && (await page.locator('#s2-w').inputValue()) === '30');
+    check(T('clicking an item on the order page opens its page too (Zebra)'), /\/products\/zebra\?edit=/.test(page.url()) && (await sizeOf(page, 'w')) === '30');
     await page.getByRole('link', { name: 'Cancel' }).first().click();
     await page.waitForFunction(() => location.pathname === '/order');
     check(T('Cancel goes back to the cart and changes nothing'), (await page.locator('.s2-item').count()) === 2);

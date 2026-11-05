@@ -1,7 +1,8 @@
 // Shared pieces of the window-treatment models (shade.js, curtains.js): image loading, fabric materials, soft shadows.
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
-import { makeTextureCanvas } from '../textureBrowser.js';
+import { makeTextureCanvas, tunedCanvas, pixelsOf } from '../textureBrowser.js';
+import { deriveHex } from '../../lib/swatchColor.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
 const imgCache = new Map();
@@ -39,14 +40,26 @@ export function whenFabric(spec, cb) {
 }
 
 // A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Mirrored in u so the swatch edges never show a seam.
+// A catalog photo is re-centred on the color the fabric shows as (src/lib/swatchColor.js: the admin's override, else its own picture placed inside
+// its color family) and its contrast capped; the preset textures are already cut for this. The color is read once per fabric.
+const looks = new Map();
+export const looksHex = (img, spec) => {
+  if (spec.override) return spec.color;
+  let h = looks.get(spec.key);
+  if (!h) { try { h = deriveHex(pixelsOf(img, 64, spec.kind === 'zebra' ? 0.6 : 1), spec.colorFamily); } catch { h = spec.color; } looks.set(spec.key, h); }
+  return h;
+};
+export const tuneFabric = (img, spec) => (!(spec.preset && !spec.override) && spec.color ? tunedCanvas(img, spec.key, looksHex(img, spec), spec.kind === 'zebra') : img);
+
 export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   const t = new THREE.Texture();
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = THREE.MirroredRepeatWrapping;
   t.wrapT = mirrorV ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping;
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;     // trilinear + anisotropic: the weave melts into its average color when small, never into moire
   t.anisotropy = env.maxAniso || 1;
   t.repeat.set(1 / spec.tile[0], 1 / spec.tile[1]);
-  whenFabric(spec, (img) => { t.image = img; t.needsUpdate = true; env.invalidate(); });
+  whenFabric(spec, (img) => { t.image = tuneFabric(img, spec); t.needsUpdate = true; env.invalidate(); });
   return t;
 }
 

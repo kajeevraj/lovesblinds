@@ -449,8 +449,8 @@ const OUTSIDE_STEPS = [
   ["Note any obstructions", "Window cranks, handles, vents, or anything on the wall around the window, so we can talk through the options.", "Obstructions"],
 ];
 const CURTAIN_STEPS = [
-  ["Measure the width of the window or door", "From the outside edge of the frame on one side to the outside edge on the other. Measure at the top, middle and bottom, and use the widest number.", "Window or door · outside edge to outside edge"],
-  ["Measure the height to the floor", "From the spot where the track or rod will go, straight down to the floor. Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "Track or rod to floor · measure in 3 places"],
+  ["Measure the track width", "The width is the length of the track without the end caps. Measure the track, or where it will go, and use the widest number. Don't add or subtract anything: we'll work out the fullness.", "Track width · without end caps"],
+  ["Measure the height from the track down", "The height is measured from the track straight down, to where you want the curtain to end (usually just above the floor). Measure at the left, middle and right, and use the shortest number. Floors are rarely level.", "From the track down · measure in 3 places"],
   ["Note any obstructions", "Wall switches, vents, radiators, a baseboard heater or a door that swings into the space, so we can talk through the options.", "Obstructions"],
 ];
 function MeasureStep({ n, title, text, tag }) {

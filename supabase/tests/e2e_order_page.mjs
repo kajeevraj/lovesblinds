@@ -7,7 +7,16 @@ const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const H = (k) => ({ apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' });
 const results = [];
+const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const rpc = async (fn, body) => (await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H(ANON), body: JSON.stringify(body) })).json();
 const groups = (await (await fetch(`${URL_}/rest/v1/fabrics?select=collection_name`, { headers: H(SVC) })).json()).map((f) => f.collection_name);
 const WORDS = /Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades|Drapery/gi;
@@ -42,8 +51,7 @@ try {
   // window 2: curtains, 2 windows
   await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
   await page.locator('.s2-sw').first().click();
-  await page.locator('.s2-step', { hasText: 'Pleat style' }).locator('.s2-card').first().click();
-  await page.locator('.s2-step', { hasText: 'Lining' }).locator('.s2-card').first().click();
+  await pickCurtains(page);
   await size(120, 96); await page.locator('#s2-qty').fill('2');
   await add();
   // window 3: Dream Curtains with a style
@@ -55,6 +63,7 @@ try {
   check('Classic is preselected and the color tile shows only the Classic code (ZDS30xx)', (await page.locator('.s2-color-style .s2-card.on').innerText()).includes('Classic') && /^ZDS30\d+-\d+$/.test((await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim()));
   await page.locator('.s2-color-style .s2-card', { hasText: 'Slim' }).click();
   check('after picking Slim the tile shows the Slim code (ZDS3902-1)', (await page.locator('.s2-sw.on .s2-sw-code').innerText()).trim() === 'ZDS3902-1', await page.locator('.s2-sw.on .s2-sw-code').innerText());
+  for (const n of ['Ceiling install', 'Inside', 'Left stack']) await page.locator('.s2-card', { has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n}$`) }) }).click();
   await size(60, 84); await page.locator('#s2-qty').fill('2'); await add();
 
   // the order page
@@ -66,22 +75,26 @@ try {
   check('Roller window: total for 3 windows, price for one, room, size and the No fabric wrap choice', num(rollerText.match(/\$[\d,]+(?= \$|\n)/)?.[0]) === unit * 3 && new RegExp(`\\$${unit} each · 3 blinds`).test(rollerText) && /Living room, left window/.test(rollerText) && /40" wide × 64" high/.test(rollerText) && /No fabric wrap on the cassette/.test(rollerText), rollerText.replace(/\s+/g, ' '));
   check('the window shows its color by name and code (Roller)', rollerText.includes(rName));
   const curtainText = await items.nth(1).innerText();
-  check('Curtains: "Price by email" and the reply-with-a-price sentence, 2 blinds', /Price by email/.test(curtainText) && /Send us your order and we'll reply with a price\./.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  if (migrated) check('Curtains: a priced line (fabric from the supplier price, with the liner), 2 blinds', /\$\s?\d+ each|\$\s?\d+/.test(curtainText) && /2 blinds/.test(curtainText) && !/Price by email/.test(curtainText), curtainText.replace(/\s+/g, ' '));
+  else check('Curtains (before migration 20): "Price by email", 2 blinds', /Price by email/.test(curtainText) && /2 blinds/.test(curtainText) && !/\$\s?\d/.test(curtainText), curtainText.replace(/\s+/g, ' '));
   const dreamCard = await items.nth(2).innerText();
   const dreamPrice = num(dreamCard.match(/\$[\d,]+/)?.[0]);
   check('Dream Curtains window: a live price, the style name and the picked style\'s code (ZDS3902-1), no "Style B"', dreamPrice > 0 && /Slim/.test(dreamCard) && /ZDS3902-1/.test(dreamCard) && !/ZDS3002|Style [AB]/.test(dreamCard), dreamCard.replace(/\s+/g, ' '));
   const totalText = await page.locator('.s2-total').innerText();
-  check('estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence', num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm details and final price\./.test(totalText), totalText.replace(/\s+/g, ' '));
+  const curtainEach = num(curtainText.match(/\$([\d,]+) each/)?.[1]);
+  check(migrated ? 'estimated total = Roller x3 + Dream + Curtains x2 (nothing left "priced by email"), and the estimate sentence' : 'estimated total = Roller x3 + Dream, "Plus 1 item priced by email", and the estimate sentence',
+    migrated ? num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice + curtainEach * 2 && !/priced by email/.test(totalText) && /Here's your estimate/.test(totalText)
+      : num(totalText.match(/Estimated total\s*\$([\d,]+)/)?.[1]) === unit * 3 + dreamPrice && /Plus 1 item priced by email/.test(totalText) && /Here's your estimate\. Send it and we'll confirm detail/.test(totalText), totalText.replace(/\s+/g, ' '));
 
   // the Edit link opens the same page as clicking the item
   await items.nth(2).getByRole('link', { name: /^Edit / }).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-color-style .s2-card.on').waitFor();
-  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
+  check('the Edit link opens the item\'s page with everything filled in (Dream Curtains, Slim)', /\/products\/drapery\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '60' && (await page.locator('.s2-color-style .s2-card.on', { hasText: 'Slim' }).count()) === 1);
   await page.getByRole('link', { name: 'Cancel' }).first().click(); await page.waitForFunction(() => location.pathname === '/order'); await page.locator('.s2-item').first().waitFor();
   // clicking an item opens its product page with every choice filled in; Save changes updates the same item
   await items.nth(0).click();
   await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-sw.on .s2-sw-name').innerText()).includes(rName));
+  check('clicking the item opens its page (?edit=<id>) with the choices filled in and "Save changes"', /\/products\/roller\?edit=/.test(page.url()) && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '40' && (await page.locator('#s2-qty').inputValue()) === '3' && (await page.locator('#s2-room-custom').inputValue()) === 'Living room, left window' && (await page.locator('.s2-card.on', { hasText: 'No fabric wrap' }).count()) === 1 && (await page.locator('.s2-sw.on .s2-sw-name').innerText()).includes(rName));
   const w = page.locator('#s2-w'); await w.click(); await w.press('Control+A'); await w.type('44', { delay: 60 });
   check('typing a size keeps focus (both digits arrive)', (await w.inputValue()) === '44');
   await page.locator('#s2-qty').fill('4');

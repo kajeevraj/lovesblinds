@@ -8,6 +8,9 @@
 // }
 // `code` is exactly the stored code (for Dream Curtains with a style, that style's own code).
 
+import { extrasText } from "./choices.js";
+import { hardwareText, dreamText, RETURNS, PANELS, fullnessLabel } from "./hardware.js";
+
 export const FAMILY_LABELS = {
   "screen-view": "Screen view", solar: "Solar", blackout: "Blackout", "light-filtering": "Light filtering",
 };
@@ -64,7 +67,13 @@ export function summarize(item) {
   if (sel.style) parts.push(`${label(ROMAN_STYLES, sel.style)} style`);
   if (sel.pleat) parts.push(sentence(sel.pleat));
   if (sel.lining) parts.push(LINING_LABELS[sel.lining]);
+  if (sel.fullness) parts.push(`Fullness ${fullnessLabel(sel.fullness)}`);
+  if (sel.returnTo) parts.push(`Return: ${label(RETURNS, sel.returnTo).toLowerCase()}`);
+  if (sel.panels) parts.push(label(PANELS, sel.panels));
+  if (sel.dreamOpts) parts.push(...dreamText(sel.dreamOpts));
   if (sel.cover) parts.push(sel.cover === "none" ? "No fabric wrap on the cassette" : "Fabric-wrapped cassette");
+  if (sel.extras) parts.push(...extrasText(sel.extras));
+  if (sel.hardware) { const hw = hardwareText(sel.hardware); parts.push(`Track or rod: ${hw[0]}`, ...hw.slice(1)); }
   const multi = sel.picks.length > 1;
   const pickLines = sel.picks.map(p => {
     const fam = p.family ? `${FAMILY_LABELS[p.family]} · ` : "";

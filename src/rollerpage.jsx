@@ -4,7 +4,8 @@ import { startFor } from './lib/drafts.js';
 import { pickByRole } from './lib/lineSelection.js';
 import { ROLLER_MODE_INFO, ROLLER_FAMILY_INFO, ROLLER_FAMILY_CARD, ROLLER_PRIVACY_NOTE } from './data/optionInfo.js';
 import { Cards, ColorStep, TopCoverStep } from './components/s2.jsx';
-import LineShell, { PAGE } from './lineshell.jsx';
+import { BOTTOM_WRAPS } from './lib/choices.js';
+import LineShell, { PAGE, PHOTOS } from './lineshell.jsx';
 
 const FAMILY_ORDER = ['solar', 'screen-view', 'blackout'];
 
@@ -31,8 +32,9 @@ export default function RollerPage({ line, navigate, edit = null }) {
   const [front, setFront] = useState(shade((sel?.mode === 'double-stack' ? pickByRole(sel, 'Front') : sel?.picks?.[0]), start?.ui?.frontFamily));
   const [back, setBack] = useState(shade(sel?.mode === 'double-stack' ? pickByRole(sel, 'Back') : null, start?.ui?.backFamily));
   const [wrap, setWrap] = useState(sel?.cover || 'wrapped');
+  const [bottomWrap, setBottomWrap] = useState(sel?.extras?.bottomWrap || 'wrapped');
   const double = mode === 'double-stack';
-  const c = { mode, front: front.pick, back: back.pick, wrap };
+  const c = { mode, front: front.pick, back: back.pick, wrap, bottomWrap };
 
   const shadeBlock = (st, setSt, role) => (
     <>
@@ -64,14 +66,17 @@ export default function RollerPage({ line, navigate, edit = null }) {
   const tailSteps = [{
     title: 'Top cover', hint: 'The cassette is the cover over the top of the shade.',
     node: <TopCoverStep value={wrap} onChange={setWrap} />,
-  }];
+  }, ...(double ? [{
+    title: 'Bottom rail', hint: 'The bar along the bottom of each shade.',
+    node: <Cards label="Bottom rail" min={220} value={bottomWrap} onChange={setBottomWrap} options={BOTTOM_WRAPS.map((b) => ({ id: b.id, label: b.label, desc: b.desc }))} />,
+  }] : [])];
 
   return (
     <LineShell line={line} navigate={navigate} edit={edit} start={start} ui={{ frontFamily: front.family, backFamily: back.family }} title={PAGE.roller.title} intro={PAGE.roller.intro}
-      photo={{ name: ROLLER_FAMILY_CARD[front.family].photo, alt: ROLLER_FAMILY_CARD[front.family].alt }}
-      photoNote={`Photo shows ${FAMILY_LABELS[front.family]} fabric. Your color is shown in the swatch.`}
+      photos={PHOTOS.roller}
+      photoNote="Photos show the style. Your color is shown in the swatch." 
       chip={front.pick}
-      preview={{ kind: 'roller', picks: double ? [front.pick, back.pick] : [front.pick], double, cover: wrap }}
+      preview={{ kind: 'roller', picks: double ? [front.pick, back.pick] : [front.pick], double, cover: wrap, bottomWrap }}
       leadSteps={leadSteps} tailSteps={tailSteps} c={c}
       colorNeeds={double ? 'Pick a front and a back color' : 'Pick a color'}
       checks={double

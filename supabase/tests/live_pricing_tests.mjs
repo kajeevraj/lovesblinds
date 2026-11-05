@@ -110,7 +110,7 @@ try {
     const solar = await price({ control: 'motorized', power: 'battery', solar: 'panel', motor_control: 'zigbee' });
     const near = (a, b) => Math.abs(a - b) <= 1;
     check('motorized = chain price + $70 motor (x1.5 = +$105), the same for battery and wired and every control', near(motor.price - chain.price, 105) && motor.price === wired.price && motor.price === solar.price - 45, `chain $${chain.price}, battery $${motor.price}, wired $${wired.price}, solar $${solar.price}`);
-    check('a solar panel adds $30 cost (+$45), and Zero gravity costs nothing extra over the plain table', near(solar.price - motor.price, 45) && (await price({ control: 'zero-gravity' })).price === chain.price, `solar +${solar.price - motor.price}`);
+    check('a solar panel adds $30 cost (+$45), and Zero gravity costs exactly the Cordless table price (no adder; since migration 20)', near(solar.price - motor.price, 45) && (await price({ control: 'zero-gravity' })).price === (await price({ control: 'cordless' })).price, `solar +${solar.price - motor.price}`);
     const dbl = (o) => est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS({ p_options: { mode: 'double-stack', back_swatch_id: SW.purity, ...o } }));
     const d0 = (await dbl({ control: 'chain' })).body.price, d1 = (await dbl({ control: 'motorized', power: 'battery', solar: 'panel', motor_control: 'app-remote' })).body.price;
     check('double-stack with a motor and solar = two motors ($140) and two panels ($60) at cost (+$300)', near(d1 - d0, 300), `$${d0} -> $${d1}`);
@@ -164,7 +164,7 @@ try {
   // the existing site is untouched
   const catAll = await est(anon, 'public_catalog', { p_scope: ['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'drapery', 'dream-curtains'] });
   const idsAll = new Set((catAll.body || []).flatMap((g) => g.swatches.map((x) => x.id)));
-  check('the public catalog is unchanged (437 colors visible to anonymous visitors, through public_catalog)', idsAll.size === 437, `${idsAll.size} colors`);
+  check('the public catalog is unchanged (436 colors visible to anonymous visitors, through public_catalog; SP26030004 is hidden since migration 20)', idsAll.size === 436, `${idsAll.size} colors`);
 
   // ------------------------------------------------------------------ PRIVACY: what the customer side can learn
   console.log('\n=== PRIVACY (customer side)');
@@ -176,7 +176,7 @@ try {
   check('the public catalog contains no price group ids', !names.some((f) => payload.includes(f.id)), `${names.length} ids checked`);
   // exactly these fields and no others (a supplier color name such as "White" is also an ordinary word, so values cannot be searched; the keys can)
   const GROUP_KEYS = 'composition,extra_specs,family,id,opacity,openness,product_line,shown_in,sort_order,swatches,thickness,use_area,weight,width';
-  const SWATCH_KEYS = 'color_family,composition,display_name,family,fabric_id,id,image_kind,image_path,roman_styles,shown_in,sort_order,styles,supplier_code,thumb_path,width,product_line';
+  const SWATCH_KEYS = 'color_family,composition,display_name,family,fabric_id,id,image_kind,image_path,preview_color,roman_styles,shown_in,sort_order,styles,supplier_code,thumb_path,width,product_line';       // preview_color (migration 20) is the color the swatch shows as: a display field
   const okKeys = (o, allowed) => Object.keys(o).every((k) => allowed.split(',').includes(k));
   const badKeys = (catAll.body || []).filter((g) => !okKeys(g, GROUP_KEYS) || g.swatches.some((x) => !okKeys(x, SWATCH_KEYS))).length;
   check('the public catalog carries only display fields: no supplier color names, grades, extra costs, costs or price information', badKeys === 0 && !/supplier_color_name|"grade"|extra_cost|"price|"cost|markup|collection_name|multiplier/i.test(payload), `${(catAll.body || []).length} groups with unexpected fields: ${badKeys}`);

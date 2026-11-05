@@ -9,6 +9,14 @@ const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Typ
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+
+// helpers for the new size boxes (whole inches + a "+ fraction" dropdown) and the curtain steps (style, fullness, liner, panels)
+const sizeOf = async (page, k) => { const w = await page.locator(`#s2-${k}`).inputValue(); const f = await page.locator(`#s2-${k}-frac`).inputValue(); return f ? (w ? `${w} ${f}` : f) : w; };
+const pickCurtains = async (page) => {
+  const st = (t) => page.locator('.s2-step', { has: page.locator('.s2-step-title', { hasText: new RegExp(`^\\s*\\d+\\s*${t}\\s*$`) }) });
+  await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
+  await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
+};
 const stamp = Date.now(); let userId, token, browser;
 try {
   const email = `zz-prof-${stamp}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
@@ -89,7 +97,7 @@ try {
   await page.locator('.s2-item').first().click();
   await page.locator('#s2-w').waitFor(); const editUrl = page.url();
   await page.reload(); await page.locator('#s2-w').waitFor(); await page.locator('.s2-sw.on').waitFor();
-  check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await page.locator('#s2-w').inputValue()) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
+  check('signed in: after a refresh in the middle of an edit the same item is open ("Save changes", choices filled in)', page.url() === editUrl && (await page.locator('.s2-add-btn').innerText()) === 'Save changes' && (await sizeOf(page, 'w')) === '40' && (await page.locator('.s2-sw.on').count()) === 1);
   await page.goto(`${BASE}/order?checkout=1`); await page.locator('#o-name').waitFor(); await page.waitForTimeout(800);
   // sending saves the estimate and quantity with the order, marks it sent, and the next window goes into a fresh order
   await page.route('**/api/quote', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, customerCopy: false }) }));

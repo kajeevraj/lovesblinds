@@ -1,6 +1,8 @@
 // The cart page and checkout (Stage 2): every blind with its estimate (click one to change it, − / + for how many), the estimated
 // total and a Checkout button. Checkout (/order?checkout=1) shows your details and shipping address and Send my order, then the
 // confirmation screen. Once it is sent it is an order.
+import { HubOption, HubTotalRow } from './components/HubOption.jsx';
+import { hubLine } from './lib/hub.js';
 import { useEffect, useState } from 'react';
 import { getMechanism } from './data/lines.js';
 import { mechName as mechNameOf } from './lib/drive.js';
@@ -76,7 +78,7 @@ function quoteLine(it, p) {
     details: sum.parts,
     selection: it.selection || null,
     mechId: it.mech,
-    mechName: mechNameOf(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name),
+    mechName: mechNameOf(it.product?.id, it.mech, getMechanism(it.product, it.mech)?.name, it.selection),
     mountId: it.mount,
     width: it.width || null,
     length: it.length || it.height || null,
@@ -139,7 +141,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, shipTo: addressLine(address) },
-          lines: items.map((it, i) => quoteLine(it, prices[i])),
+          lines: [...items.map((it, i) => quoteLine(it, prices[i])), ...(cart.hub.on ? [hubLine(cart.hub.price)] : [])],
           notes: form.notes.trim(),
           zx_kv_q7: form.zx_kv_q7,
         }),
@@ -151,9 +153,9 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
       // keep the estimates with the saved order, then mark it sent
       const withPrices = items.map((it, i) => ({ ...it, price: prices[i].kind === 'price' ? prices[i].price : null, priceKind: prices[i].kind === 'price' ? 'estimate' : 'email' }));
       // it reached us: a problem saving it to the customer's account is only logged and never turns the success into an error
-      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
+      try { if (onOrderSent && activeOrderId) Promise.resolve(onOrderSent(activeOrderId, withPrices, { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address, notes: form.notes.trim() }, { on: cart.hub.on, price: cart.hub.price })).catch((e) => console.error('[order] not saved to the account:', e)); onSubmitted?.(); }
       catch (e) { console.error('[order] not saved to the account:', e); }
-      setSent({ copySent: !!data.customerCopy, total, byEmail, lines: items.map((it, i) => ({ id: it.id, title: detailsOf(it).title, room: roomText(it), qty: Math.max(1, it.qty || 1), p: prices[i] })) });
+      setSent({ copySent: !!data.customerCopy, total, byEmail, lines: [...items.map((it, i) => ({ id: it.id, title: detailsOf(it).title, room: roomText(it), qty: Math.max(1, it.qty || 1), p: prices[i], blinds: true })), ...(cart.hub.on ? [{ id: 'hub', title: 'Zigbee hub', room: '', qty: 1, p: { kind: 'price', price: cart.hub.price }, blinds: false }] : [])] });
     } catch (err) {
       setError(err instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(err?.message || '') ? NETWORK_TEXT : (err.message || `Something went wrong. Please try again, or email us at ${SITE.email} or call ${SITE.phone}.`));
     } finally {
@@ -175,7 +177,7 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
               {sent.lines.map((l) => (
                 <li key={l.id}>
                   <span className="s2-sent-name">{l.title}{l.room ? ` · ${l.room}` : ''}</span>
-                  <span className="s2-sent-qty">{blinds(l.qty)}</span>
+                  <span className="s2-sent-qty">{l.blinds === false ? `${l.qty}` : blinds(l.qty)}</span>
                   <span className="s2-sent-price">{l.p.kind === 'price' ? money(l.p.price * l.qty) : 'Price by email'}</span>
                 </li>
               ))}
@@ -223,12 +225,14 @@ export default function OrderPage({ navigate, activeOrderId, onOrderSent, onSubm
                 ))}
               </ul>
             )}
+            {!checkout && <HubOption cart={cart} />}
             {!checkout && <a className="s2-add-another" href="/products" onClick={(e) => { e.preventDefault(); navigate('products'); }}>+ Add more blinds</a>}
 
             {items.length > 0 && !checkout && (
             <section className="s2-total" aria-live="polite">
               {total > 0 || (!loading && byEmail === 0) ? (
                 <>
+                  <HubTotalRow cart={cart} />
                   <div className="s2-total-row"><span>Estimated total</span><strong>{loading ? '…' : money(total)}</strong></div>
                   {byEmail > 0 && <div className="s2-total-plus">Plus {byEmail} item{byEmail === 1 ? '' : 's'} priced by email</div>}
                   <p className="s2-total-note">{ESTIMATE_TEXT}</p>
