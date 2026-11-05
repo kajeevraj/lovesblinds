@@ -171,7 +171,8 @@ try {
   check('Hide makes the color invisible to the public', !(await anonHas('ZZE2E1')));
   await page.getByLabel('Status').selectOption('hidden');
   check('Hidden filter lists it', /Zzqx Browser Renamed/.test(await page.locator('.adm-table').textContent()));
-  await page.getByRole('button', { name: 'Show', exact: true }).first().click();
+  // this test's own row (other colors can be hidden on purpose, e.g. SP26030004: never click the first Show button of the list)
+  await page.locator('tr', { hasText: 'Zzqx Browser Renamed' }).getByRole('button', { name: 'Show', exact: true }).click();
   await page.getByText(/is now visible/).waitFor();
   check('Show brings it back to the public', (await anonHas('ZZE2E1')));
 

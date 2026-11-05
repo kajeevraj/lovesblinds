@@ -54,7 +54,9 @@ try {
   check('Roman and Cellular: Chain is priced (the cord table)', (await price('roman', ro, { control: 'chain', lining: 'light-filtering' })) > 0 && (await price('cellular', ce, { control: 'chain', type: 'standard' })) > 0);
   if (dr) {
     const man = await price('dream-curtains', dr, { control: 'manual' }, 60, 84);
-    check('Dream Curtains: Motorized costs the motor table plus the $100 motor (same as the old remote code); Pull rod is priced like Manual', near(await price('dream-curtains', dr, { control: 'motorized' }, 60, 84), await price('dream-curtains', dr, { control: 'remote' }, 60, 84)) && near(await price('dream-curtains', dr, { control: 'pull-rod' }, 60, 84), man));
+    const dm = await price('dream-curtains', dr, { control: 'motorized' }, 60, 84), dRemote = await price('dream-curtains', dr, { control: 'remote' }, 60, 84), dPull = await price('dream-curtains', dr, { control: 'pull-rod' }, 60, 84);
+    // step A: the old remote code still carries the $100 motor, so Motorized = remote. Step B (migration 21) narrows the motor adder to Motorized only: the retired remote code is the motor table alone, and Motorized is $150 more ($100 x 1.5)
+    check(stepB ? 'Dream Curtains (after step B): Motorized costs the motor table plus the $100 motor (+$150 with the markup over the retired remote code); Pull rod is priced like Manual' : 'Dream Curtains: Motorized costs the motor table plus the $100 motor (same as the old remote code); Pull rod is priced like Manual', (stepB ? near(dm, dRemote + 150) : near(dm, dRemote)) && near(dPull, man), `motorized ${dm}, remote ${dRemote}, pull rod ${dPull}, manual ${man}`);
   }
 
   // ---- curtain fabric: the supplier's own quotes
