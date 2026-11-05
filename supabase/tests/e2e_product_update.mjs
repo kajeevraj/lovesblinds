@@ -41,8 +41,9 @@ try {
     check(T('the picked swatch has a ring, and a larger preview below shows its name and code'), await grid.locator('.s2-sw.on').count() === 1 && (await page.locator('.s2-swprev-name').innerText()).length > 2 && (await page.locator('.s2-swprev-code').innerText()).length > 3 && await grid.locator('.s2-sw.on .s2-sw-img').evaluate((e) => /rgb\(30, 26, 22\)/.test(getComputedStyle(e).boxShadow)));
     // ---- size
     await size(40, 64);
+    await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500);       // (a phone shows the preview as a compact strip, without its size label, once scrolled down)
     check(T('size: "+ fraction" dropdowns, default 0, price and preview follow'), await page.locator('#s2-w-frac').inputValue() === '' && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 64 in');
-    await page.locator('#s2-w-frac').selectOption('3/8'); await settle();
+    await page.locator('#s2-w-frac').selectOption('3/8'); await settle(); await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500);
     check(T('picking 3/8 changes the preview label at once'), (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 3/8 × 64 in' && (await page.locator('#s2-w-echo').innerText()).startsWith('40 3/8 in'));
     // ---- Chain: the colors, bottom bar, roll direction in More options
     await card('Chain').click(); await settle();

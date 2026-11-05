@@ -151,6 +151,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   check(`${tag} Remote only has no "Works with" box`, !/Works with|Needs a Zigbee/.test(await works()));
   await card('App + Remote (Bluetooth)').click(); await page.waitForTimeout(300);
   // the buttons move the shade; Stop holds it
+  await toTop(page);
   const a0 = await amount();
   await page.getByRole('button', { name: 'Lower the shade' }).click(); await page.waitForTimeout(150);
   check(`${tag} the remote press counts as the first use (the hint is gone)`, (await page.locator('.pv-handle.gone').count()) === 1);

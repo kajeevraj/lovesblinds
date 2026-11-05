@@ -188,7 +188,7 @@ try {
     await page.locator('.s2-item').first().getByRole('link', { name: /^Edit/ }).click();
     await page.locator('.s2-editing').waitFor(); await page.waitForTimeout(700);
     const top = await page.locator('.s2-editing').evaluate((e) => e.getBoundingClientRect().top);
-    const stripBottom = phone ? await page.evaluate(() => (document.querySelector('.s2-line-photo.has-preview')?.getBoundingClientRect().bottom ?? 0)) : 0;       // the message sits just under the (compact) preview strip, not behind it
+    const stripBottom = phone ? await page.evaluate(() => parseFloat(document.documentElement.style.getPropertyValue('--pv-strip')) || 0) : 0;       // the message sits just under the (compact) preview strip, not behind it
     check(T('Edit: "You’re changing: ..." message names the item'), /You’re changing: /.test(await page.locator('.s2-editing').innerText()));
     check(T(phone ? 'Edit on a phone: the message is at the top of the screen, just under the preview strip' : 'Edit on desktop: the message is visible near the top'), phone ? top >= stripBottom - 1 && top <= stripBottom + 40 : top >= 0 && top <= 300, `top ${Math.round(top)}px, strip bottom ${Math.round(stripBottom)}`);
     check(T('Edit: size and room come back as they were'), (await sizeOf(page, 'w')) === '35 7/8' && (await page.locator('#s2-room').inputValue()) === 'Other' && (await page.locator('#s2-room-custom').inputValue()) === 'Sunroom' && (await page.locator('#s2-window').inputValue()) === 'Left');
