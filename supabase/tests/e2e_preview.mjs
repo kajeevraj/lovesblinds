@@ -133,6 +133,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
   const card = (n) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
   const amount = () => readAmount(page);
+  await toTop(page);
   check(`${tag} no remote tile on a Zero gravity shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
   check(`${tag} no drag pill when the shade has a handle`, (await page.locator('.pv-handle').count()) === 0 && (await page.locator('.pv-grip').count()) === 1);
   await card('Chain').click(); await page.waitForTimeout(500);
@@ -140,8 +141,9 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await card('Motorized').click(); await page.waitForTimeout(900);
   check(`${tag} the remote tile is not on the picture: it sits below the preview, and the window has only the size label on it`, (await page.locator('.pv-stage .pv-incl').count()) === 0 && await page.evaluate(() => { const t = document.querySelector('.pv-incl').getBoundingClientRect(), st = document.querySelector('.pv-stage').getBoundingClientRect(); return t.top >= st.bottom - 1; }));
   check(`${tag} Motorized puts no label or pointer line on the picture (only the size label and the remote tile)`, (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0 && (await page.locator('.pv-stage .pv-size').count()) === 1);
+  await toTop(page);
   check(`${tag} the remote has three real, small buttons, and says "Included: remote"`, (await page.locator('.rm-key').count()) === 3 && await page.locator('.rm-key').evaluateAll((b) => b.every((x) => x.getBoundingClientRect().width >= 32 && x.getBoundingClientRect().height >= 32)) && /included: remote/i.test(await page.locator('.pv-incl').innerText()));
-  const works = () => page.locator('.pv-incl').innerText().catch(() => '');
+  const works = async () => { await toTop(page); return page.locator('.pv-incl').innerText().catch(() => ''); };
   check(`${tag} "Works with" says the phone for App + Remote`, /Works with your phone \(Smart Life app\)/.test(await works()));
   await card('App + Voice + Remote (Zigbee)').click(); await page.waitForTimeout(300);
   check(`${tag} Zigbee says it needs a hub and to add one in the cart for $35`, /Needs a Zigbee hub\. Add one in your cart for \$35 if you don't have one\./.test(await works()));
