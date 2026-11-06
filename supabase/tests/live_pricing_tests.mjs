@@ -127,9 +127,9 @@ try {
   await call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', { ...admin.hdr, ...REP });
   check('admin sets and removes a per-collection markup override', r.status === 201 && po === 162, `override 100%: $${po}`);
   // dream curtains motor placeholder is editable
-  const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
+  const before = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'motorized' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: 130 });
-  const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'remote' }, p_width: 100, p_height: 100 }))).body;
+  const after = (await est(admin.hdr, 'estimate_price_debug', ARGS({ p_line: 'dream-curtains', p_fabric_id: 'dream-curtains:-:sunflower', p_options: { control: 'motorized' }, p_width: 100, p_height: 100 }))).body;
   await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', { ...admin.hdr, ...REP }, { amount: orig.dream });
   check('the Dream Curtains motor (+$100) is editable and marked from the supplier', before.adders?.[0]?.status === 'from_supplier' && Number(before.adders?.[0]?.amount) === 100 && Math.abs(after.subtotal - before.subtotal - 30) < 0.01, `adders ${JSON.stringify(before.adders)}; +$30 -> subtotal ${before.subtotal} -> ${after.subtotal}`);
   // options

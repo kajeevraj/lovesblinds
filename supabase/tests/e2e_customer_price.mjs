@@ -46,7 +46,7 @@ try {
   // what the database says for the picked color at that size (service role is only used to look the color up)
   const cat = await rpc('public_catalog', { p_scope: ['roller'] });
   const firstSw = cat.flatMap((g) => g.swatches).find((x) => x.display_name === pickedLabel && x.family === 'solar');
-  const want = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 40, p_height: 64 });
+  const want = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'zero-gravity', mode: 'single' }, p_width: 40, p_height: 64 });
   check('after a color and a size the page shows one price, the one the database calculates', p1 > 0 && p1 === want.price, `page $${p1}, database $${want.price} for ${firstSw.display_name}`);
   check('the estimate carries the wording from the design', /Here's your estimate\. Send it and we'll confirm details and final price\./.test(await page.locator('.s2-estimate').innerText()));
   check('the sticky bar shows the same price and Add to cart is on', (await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, '') === String(p1) && await page.locator('.s2-add-btn').isEnabled(), await page.locator('.s2-bar').innerText());
@@ -55,7 +55,7 @@ try {
   await page.locator('#s2-w').fill('60');
   await page.waitForFunction((old) => { const el = document.querySelector('.s2-estimate-price'); return el && Number(el.textContent.replace(/\D/g, '')) !== old; }, p1);
   const p2 = Number((await page.locator('.s2-estimate-price').innerText()).replace(/\D/g, ''));
-  const want2 = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'chain', mode: 'single' }, p_width: 60, p_height: 64 });
+  const want2 = await rpc('estimate_price_for_swatch', { p_line: 'roller', p_swatch_id: firstSw.id, p_options: { control: 'zero-gravity', mode: 'single' }, p_width: 60, p_height: 64 });
   check('the price updates live when the size changes', p2 === want2.price && p2 !== p1, `$${p1} -> $${p2}`);
   await page.locator('#s2-w').fill('60 1/2');
   await page.waitForFunction(() => /60 1\/2/.test(document.querySelector('.s2-estimate')?.innerText || ''));

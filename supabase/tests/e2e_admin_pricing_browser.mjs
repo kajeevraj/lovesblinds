@@ -89,9 +89,11 @@ try {
   // ------------------------------------------------------------ Pricing
   await menu('Pricing'); await page.getByRole('heading', { name: 'Pricing', exact: true }).waitFor();
   await page.getByText('Customer would see').waitFor();
-  const shown = await page.locator('.adm-price-big').innerText();
+  await page.getByLabel('Control').selectOption('chain');       // (the checker opens on the line's default, Zero gravity since migration 21)
   const first = (await api('GET', '/rest/v1/fabrics?product_line=eq.roller&order=sort_order&limit=1&select=id', svc)).body[0].id;
   const wantA = await api('POST', '/rest/v1/rpc/estimate_price', H(ANON, tok.body.access_token), { p_line: 'roller', p_fabric_id: first, p_options: { control: 'chain', mode: 'single' }, p_width: 40, p_height: 60 });
+  await page.waitForFunction((v) => document.querySelector('.adm-price-big')?.innerText.replace(/\D/g, '') === v, String(wantA.body.price), { timeout: 10000 }).catch(() => {});       // the checker prices again after the change
+  const shown = await page.locator('.adm-price-big').innerText();
   check('price checker (roller, first collection, chain, 40 x 60) shows the same price a customer gets', shown.replace(/\D/g, '') === String(wantA.body.price), `${shown} vs ${wantA.body.price}`);
   const bt = await page.locator('.adm-kv').first().innerText();
   check('the breakdown shows the price group, the grid, the sheet cell, the cost, the adders, the markup and the final price', /Price group/.test(bt) && /Roller shades-cord!\w+\d+/.test(bt) && /Cost from the grid/.test(bt) && /Markup\s+50%/.test(bt) && /Customer price/.test(bt), bt.replace(/\s+/g, ' ').slice(0, 300));
@@ -109,7 +111,7 @@ try {
   check('searching by a supplier code works', byCode > 0, `${byCode} results for "xss"`);
   await page.getByLabel(/Find a color/).fill('');
   // dream curtains motor: from the supplier, +$100
-  await page.getByLabel('Control').selectOption('remote');   // Dream Curtains keeps its remote and Matter motors
+  await page.getByLabel('Control').selectOption('motorized');   // Dream Curtains: Motorized (the old remote and Matter motors are retired since migration 21)
   await page.getByLabel('Width (in)').fill('100'); await page.getByLabel('Height / drop (in)').fill('100');
   await page.getByText('from the supplier').first().waitFor();
   const dtxt = await page.locator('.adm-kv').first().innerText();
