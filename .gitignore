@@ -14,3 +14,6 @@ private/
 public/images/site/
 public/og-image.jpg
 dist-gis
+.test-logs
+dist-live
+dist-staging

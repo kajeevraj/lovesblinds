@@ -16,7 +16,8 @@ const svc = H(SVC);
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-own('ZZE2E1', 'ZZE2E2', 'ZZE2E3', 'ZZE2E3B', 'Zzcoll', 'Zzqx Browser Test', 'Zzqx Browser Renamed');       // the names this test types into the admin form: the rows made from them are its own
+const COLL = `Zzcoll${[...crypto.getRandomValues(new Uint8Array(6))].map((b) => String.fromCharCode(97 + (b % 26))).join('')}`;       // a new price group name for every run (letters only)
+own('ZZE2E1', 'ZZE2E2', 'ZZE2E3', 'ZZE2E3B', COLL, 'Zzqx Browser Test', 'Zzqx Browser Renamed');       // the names this test types into the admin form: the rows made from them are its own
 const stamp = Date.now(); const startedAt = new Date(stamp - 1000).toISOString();
 const users = [], adminRows = [], orderIds = [];
 
@@ -183,7 +184,7 @@ try {
   await page.getByRole('group', { name: 'Product lines' }).getByLabel('Drapery & Roman').check();
   await page.locator('summary', { hasText: 'Pricing details' }).click();
   await page.locator('label.adm-field:has(> span:has-text("Price group for")) select').selectOption('__new__');
-  await page.getByLabel(/^Price group name/).fill('Zzcoll');
+  await page.getByLabel(/^Price group name/).fill(COLL);
   await page.getByLabel('Width', { exact: true }).first().fill('118 in');
   await page.getByLabel(/^Display name/).fill('Zzqx Drape Test');
   await page.getByLabel('Supplier code').fill('ZZE2E2');
@@ -200,7 +201,7 @@ try {
   await page.getByText(/Added “Zzqx Drape Test”/).waitFor();
   const r2 = await row('ZZE2E2');
   const f2 = (await api('GET', `/rest/v1/fabrics?id=eq.${encodeURIComponent(r2.fabric_id)}&select=*`, svc)).body[0];
-  check('new price group created with its specs, listed under Roman and Drapery', f2.collection_name === 'Zzcoll' && f2.width === '118 in' && JSON.stringify(f2.shown_in) === '["roman","drapery"]' && f2.product_line === 'drapery', JSON.stringify(f2));
+  check('new price group created with its specs, listed under Roman and Drapery', f2.collection_name === COLL && f2.width === '118 in' && JSON.stringify(f2.shown_in) === '["roman","drapery"]' && f2.product_line === 'drapery', JSON.stringify(f2));
   check('Roman style availability saved per swatch', r2.roman_styles.relax.available && r2.roman_styles.relax.linings.join() === 'light-filtering' && r2.roman_styles.flat.available && r2.roman_styles.flat.linings.join() === 'blackout' && !r2.roman_styles.hobble.available && r2.grade === 'C', JSON.stringify(r2.roman_styles));
   check('drapery color id follows the existing pattern', r2.id === 'drapery:ZZE2E2', r2.id);
 
@@ -227,15 +228,15 @@ try {
 
   // ---------- collections tab, specs and collection-level Hide
   await page.getByRole('tab', { name: /^Price groups/ }).click();
-  await page.getByRole('button', { name: 'Zzcoll' }).click();
+  await page.getByRole('button', { name: COLL }).click();
   await page.getByLabel('Weight', { exact: true }).fill('200 g/m²');
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await page.getByText(/Price group “Zzcoll” saved/).waitFor();
+  await page.getByText(new RegExp(`Price group “${COLL}” saved`)).waitFor();
   check('collection specs can be edited', (await api('GET', `/rest/v1/fabrics?id=eq.${encodeURIComponent(f2.id)}&select=weight`, svc)).body[0].weight === '200 g/m²');
   await page.getByRole('tab', { name: /^Price groups/ }).click();
-  await page.getByRole('button', { name: 'Zzcoll' }).click();
+  await page.getByRole('button', { name: COLL }).click();
   await page.getByRole('button', { name: 'Hide price group' }).click();
-  await page.getByText(/Price group “Zzcoll” is now hidden/).waitFor();
+  await page.getByText(new RegExp(`Price group “${COLL}” is now hidden`)).waitFor();
   check('hiding a price group removes its colors from the public site', !(await anonHas('ZZE2E2')));
   await noOverflow(page, 'collections');
 
@@ -290,10 +291,11 @@ try {
       await api('DELETE', '/storage/v1/object/swatches', svc, { prefixes: [x.image_path, x.thumb_path, ...(x.styles || []).flatMap(t => [t.image_path, t.thumb_path])] });
     }
   }
-  await api('DELETE', `/rest/v1/fabrics?collection_name=eq.Zzcoll`, svc);
+  await api('DELETE', `/rest/v1/fabrics?collection_name=eq.${COLL}`, svc);
   for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains']) {
     const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 });
-    const names = (Array.isArray(l.body) ? l.body : []).map(o => `${sub}/${o.name}`);
+    const mine = new Set(guard.owned());
+    const names = (Array.isArray(l.body) ? l.body : []).map(o => `${sub}/${o.name}`).filter((n) => mine.has(`swatches/${n}`));       // only the files this run uploaded
     if (names.length) await api('DELETE', '/storage/v1/object/swatches', svc, { prefixes: names });
   }
   for (const id of orderIds) await api('DELETE', `/rest/v1/orders?id=eq.${id}`, svc);
@@ -301,13 +303,13 @@ try {
   for (const id of users) await api('DELETE', `/auth/v1/admin/users/${id}`, svc);
   const left = {
     users: (await Promise.all(users.map(id => api('GET', `/auth/v1/admin/users/${id}`, svc)))).map(r => r.status),
-    swatches: (await api('GET', '/rest/v1/swatches?supplier_code=like.ZZE2E*&select=id', svc)).body.length,
-    fabrics: (await api('GET', '/rest/v1/fabrics?collection_name=eq.Zzcoll&select=id', svc)).body.length,
-    admins: (await api('GET', '/rest/v1/admins?email=like.zz-*&select=id', svc)).body.length,
+    swatches: (await api('GET', '/rest/v1/swatches?supplier_code=in.(ZZE2E1,ZZE2E2,ZZE2E3)&select=id', svc)).body.length,
+    fabrics: (await api('GET', `/rest/v1/fabrics?collection_name=eq.${COLL}&select=id`, svc)).body.length,
+    admins: (adminRows.length ? (await api('GET', `/rest/v1/admins?id=in.(${adminRows.join(',')})&select=id`, svc)).body.length : 0),
   };
   let files = 0;
   for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains']) {
-    const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 }); files += Array.isArray(l.body) ? l.body.length : 0;
+    const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 }); const mine = new Set(guard.owned()); files += (Array.isArray(l.body) ? l.body : []).filter((o) => mine.has(`swatches/${sub}/${o.name}`)).length;
   }
   console.log(`\nclean-up: ${JSON.stringify(left)}, leftover image files ${files}`);
   results.push({ name: 'clean-up left nothing behind', ok: left.users.every(s => s === 404) && !left.swatches && !left.fabrics && !left.admins && !files });

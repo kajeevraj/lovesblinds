@@ -16,11 +16,39 @@
 // Which project a test talks to: LB_TARGET=live (the default; the SUPABASE_* variables) or LB_TARGET=staging (see scripts/run-tests.mjs, which maps
 // STAGING_SUPABASE_* onto SUPABASE_* for the child process and sets LB_TARGET). Against the live project the rules above are never relaxed.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const TARGET = (process.env.LB_TARGET || 'live').toLowerCase();
+const TEST = basename(process.argv[1] || '', '.mjs');
+let targets = { writes: [] };
+try { targets = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'targets.json'), 'utf8')); } catch { /* no list: nothing is treated as a writer */ }
+const IS_WRITER = targets.writes.includes(TEST);
+
+// Which project this run talks to. Writing tests default to the STAGING project (STAGING_SUPABASE_* variables) and refuse to run on live unless
+// LB_ALLOW_LIVE_OWN_ROWS=1 (the own-rows-only mode, still guarded). scripts/run-tests.mjs sets all of this; running a test file directly works the same way.
+let TARGET = (process.env.LB_TARGET || '').toLowerCase();
+const stagingReady = process.env.STAGING_SUPABASE_URL && process.env.STAGING_SUPABASE_ANON_KEY && process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY;
+if (!TARGET) {
+  if (IS_WRITER && stagingReady) {
+    process.env.LB_LIVE_URL = process.env.LB_LIVE_URL || process.env.SUPABASE_URL || '';
+    process.env.SUPABASE_URL = process.env.VITE_SUPABASE_URL = process.env.STAGING_SUPABASE_URL;
+    process.env.VITE_SUPABASE_ANON_KEY = process.env.STAGING_SUPABASE_ANON_KEY;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY;
+    TARGET = 'staging'; process.env.LB_TARGET = 'staging';
+    console.log(`[guard] ${TEST} writes: running it on the STAGING project`);
+  } else TARGET = 'live';
+}
+if (IS_WRITER && TARGET === 'live' && process.env.LB_ALLOW_LIVE_OWN_ROWS !== '1') {
+  console.error(`\nSTOP: ${TEST} writes to the database, so it runs on the staging project, not on live.\nSet up staging (docs/staging-setup.md), or, for an own-rows-only run on live under the write guard, set LB_ALLOW_LIVE_OWN_ROWS=1.\n`);
+  process.exit(3);
+}
 const URL_ = process.env.SUPABASE_URL || '';
 let HOST = ''; try { HOST = new URL(URL_).host; } catch { /* no Supabase configured: nothing to guard */ }
+if (TARGET === 'staging') {
+  let liveHost = ''; try { liveHost = new URL(process.env.LB_LIVE_URL || '').host; } catch { /* unknown */ }
+  if (!HOST || (liveHost && HOST === liveHost)) { console.error('\nSTOP: this run is meant for the staging project but SUPABASE_URL is the live project.\n'); process.exit(3); }
+}
 
 // RPCs that only read (prices, catalog, checks)
 const READ_RPCS = new Set([
@@ -42,7 +70,7 @@ const owned = new Set();          // ids, keys, tags, user ids, file paths this 
 const violations = [];
 
 const isHex = (s) => typeof s === 'string' && s.length >= 4;
-export const own = (...tokens) => { for (const t of tokens.flat()) if (isHex(t)) owned.add(String(t)); };
+export const own = (...tokens) => { for (const t of tokens.flat()) if (isHex(t)) { owned.add(String(t)); if (process.env.LB_GUARD_DEBUG) console.log(`[guard] owns ${t}`); } };
 
 const dec = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
 const mentionsOwned = (text) => { const d = dec(text); for (const t of owned) if (d.includes(t)) return true; return false; };
@@ -69,8 +97,12 @@ const report = (msg) => {
 function judge(method, urlStr, bodyText, headers = {}) {
   if (relaxed) return null;                                          // inside guard.sharedRows (staging only)
   let u; try { u = new URL(urlStr); } catch { return null; }
-  if (u.host !== HOST) return null;                                  // not Supabase (the site's own /api, Google, ...)
   method = String(method || 'GET').toUpperCase();
+  if (u.host !== HOST) {
+    // another Supabase project (a site built for live while the test targets staging, or the other way round): reading is fine, writing never
+    if (u.host.endsWith('.supabase.co') && !/^(GET|HEAD|OPTIONS)$/.test(method) && !/^\/auth\/v1\/(token|logout|user)/.test(u.pathname) && !/\/rpc\/(public_|estimate_|hardware_|drapery_|zigbee_|is_admin|swatch_display_names|size_limits)/.test(u.pathname)) return `${method} ${u.pathname} goes to a different Supabase project (${u.host}) than the one this test targets (${HOST})`;
+    return null;                                                    // not Supabase (the site's own /api, Google, ...)
+  }
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return null;
   const path = u.pathname, q = `${u.pathname}${u.search}`;
   const prefer = String(headers.Prefer || headers.prefer || '');
@@ -142,7 +174,7 @@ function installFetch() {
 // ---- Browser: a check in front of every write the page sends -------------------------------------------------------------------------------------------
 async function browser(target) {
   if (!HOST) return;
-  await target.route((u) => u.host === HOST, async (route) => {
+  await target.route((u) => u.host === HOST || u.host.endsWith('.supabase.co'), async (route) => {
     const r = route.request();
     const why = judge(r.method(), r.url(), r.postData() || '', r.headers());
     if (why) { report(`the page's ${r.method()} ${new URL(r.url()).pathname} was blocked: ${why}`); await route.abort('failed'); return; }
@@ -176,7 +208,7 @@ async function sharedRows(why, fn) {
   return true;
 }
 export const guard = {
-  target: TARGET, isLive: TARGET === 'live', host: HOST,
+  target: TARGET, isLive: TARGET === 'live', host: HOST, test: TEST, isWriter: IS_WRITER,
   own, sharedRows, browser, wrapBrowser, violations, owned: () => [...owned],
   install: installFetch,
   judge,                                                       // for the guard's own tests

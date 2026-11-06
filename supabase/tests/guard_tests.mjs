@@ -48,7 +48,7 @@ r = run({ ...LIVE, LB_ALLOW_LIVE_OWN_ROWS: '1' });
 check('with LB_ALLOW_LIVE_OWN_ROWS=1 it runs on live (still under the write guard)', r.status !== 3 && !/runs on the staging project/.test(r.stderr), `${r.status}`);
 r = run(LIVE, 'e2e_cart.mjs');
 check('a read-only test is not affected (no staging needed)', !/runs on the staging project/.test(r.stderr));
-check('a write to a different Supabase project than the one the test targets is refused (reads are fine)', /different Supabase project/.test(j2('POST', 'https://other.supabase.co/rest/v1/swatches')) && j2('GET', 'https://other.supabase.co/rest/v1/swatches') === null);
+check('a write to a different Supabase project than the one the test targets is refused (reads are fine)', /different Supabase project/.test(j2('POST', 'https://other.supabase.co/rest/v1/swatches')) && j2('GET', 'https://other.supabase.co/rest/v1/swatches') === '');
 function j2(m, u) { return guard.judge(m, u, '', {}) || ''; }
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);

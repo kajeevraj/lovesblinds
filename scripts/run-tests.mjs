@@ -62,9 +62,11 @@ function run(name, where) {
   const failedNames = failed ? failed.split('; ').filter((n) => n !== 'script ran to completion' || true) : [];
   const unexpected = failedNames.filter((n) => !(EXPECTED[name] || []).includes(n));
   const guard = /LIVE GUARD/.test(out);
-  const ok = r.status === 0 || (failedNames.length && !unexpected.length && !guard && !/TEST ERROR/.test(out));
+  let wrote = 0; try { wrote = JSON.parse(readFileSync(join(ROOT, '.test-logs', `${name}.guard.json`), 'utf8')).writes || 0; } catch { /* the test never loaded the guard (offline) */ }
+  const readOnlyWrote = (where === 'offline' || where === 'live (reads)') && wrote > 0;
+  const ok = !readOnlyWrote && (r.status === 0 || (failedNames.length && !unexpected.length && !guard && !/TEST ERROR/.test(out)));
   results.push({ name, where, ok, status: r.status, last: last.trim().slice(0, 160), unexpected, expected: failedNames.length - unexpected.length, secs: Math.round((Date.now() - t0) / 1000), guard });
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(30)} ${where.padEnd(14)} ${last.trim().slice(0, 110)}${failedNames.length && ok ? `  (${failedNames.length} expected failure(s): ${failedNames.join(', ')})` : ''}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(30)} ${where.padEnd(14)} ${readOnlyWrote ? `A READ-ONLY TEST WROTE (${wrote} write(s)): move it to "writes" in targets.json or fix it. ` : ''}${last.trim().slice(0, 110)}${failedNames.length && ok ? `  (${failedNames.length} expected failure(s): ${failedNames.join(', ')})` : ''}`);
   if (!ok) writeLog(name, out);
 }
 import { writeFileSync } from 'node:fs';
