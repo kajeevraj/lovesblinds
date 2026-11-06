@@ -31,8 +31,7 @@
   "e2e_preview",
   "e2e_product_update",
   "e2e_remotes",
-  "e2e_review",
-  "e2e_admin_preview_color"
+  "e2e_review"
  ],
  "writes": [
   "live_admin_tests",
@@ -51,7 +50,8 @@
   "e2e_round3",
   "e2e_signin_merge",
   "e2e_pr2",
-  "e2e_pr3"
+  "e2e_pr3",
+  "e2e_admin_preview_color"
  ],
  "expectedFailures": {
   "e2e_admin_pricing_browser": [

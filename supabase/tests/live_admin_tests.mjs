@@ -171,11 +171,12 @@ try {
   for (const id of created.users) await del(`/auth/v1/admin/users/${id}`);
   const left = [];
   for (const id of created.users) left.push((await call('GET', `/auth/v1/admin/users/${id}`, svc)).status);
-  const f = await call('GET', `/rest/v1/fabrics?id=like.zebra:-:zz-*&select=id`, svc);
-  const s = await call('GET', `/rest/v1/swatches?id=like.*zz-test*&select=id`, svc);
-  const s2 = await call('GET', `/rest/v1/swatches?id=like.zebra:ZZTEST*&select=id`, svc);
-  const o = await call('GET', `/rest/v1/orders?name=eq.zz-test%20order&select=id`, plainHdr);
-  const a = await call('GET', `/rest/v1/admins?email=like.zz-*&select=id`, svc);
+  // only what THIS run created is checked (a name search would also match rows left by some other run)
+  const f = await call('GET', `/rest/v1/fabrics?id=eq.${enc(FAB)}&select=id`, svc);
+  const s = await call('GET', `/rest/v1/swatches?id=in.(${enc(SW)},${enc(SW + 'b')})&select=id`, svc);
+  const s2 = { body: [] };
+  const o = created.orders.length ? await call('GET', `/rest/v1/orders?id=in.(${created.orders.join(',')})&select=id`, plainHdr) : { body: [] };
+  const a = created.admins.length ? await call('GET', `/rest/v1/admins?id=in.(${created.admins.join(',')})&select=id`, svc) : { body: [] };
   console.log(`\nclean-up: user lookups afterwards ${JSON.stringify(left)} (404 = gone); leftover test collections ${f.body.length}, colors ${s.body.length + s2.body.length}, orders ${Array.isArray(o.body) ? o.body.length : 'n/a'}, admin rows ${a.body.length}`);
   results.push({ name: 'clean-up left nothing behind', ok: left.every(x => x === 404) && !f.body.length && !s.body.length && !s2.body.length && (!Array.isArray(o.body) || !o.body.length) && !a.body.length });
 }
