@@ -1,6 +1,7 @@
 // Browser test of the order bar (the cart) at 390 and 1280 px: the bar on product pages and other pages, the panel (bottom sheet on
 // phones, side panel on desktop), adding, editing from the panel and from the order page, a refresh in the middle of an edit,
 // removing, and sentence case for option names. Needs a preview on BASE_URL (default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
@@ -14,7 +15,7 @@ const pickCurtains = async (page) => {
   await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
 };
 const TITLE_CASE = /Inside Mount|Outside Mount|Screen View|Top-Down|Day & Night|Plain Fold|Light Filtering|French Pleat|Euro Pleat|Pinch Pleat|Inverted Pleat|Ripple Fold/;
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   for (const [w, h] of [[390, 844], [1280, 900]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h } });

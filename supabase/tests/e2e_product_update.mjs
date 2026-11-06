@@ -3,13 +3,14 @@
 // Needs a preview server (BASE_URL, default http://localhost:4173) and the site's own Supabase keys. Works with or without migration 20: until it is applied the site
 // falls back to its built-in defaults (Best value on Zero gravity, Top of the line on Motorized) and the hardware price shows "we will email the price".
 // Checks marked (needs migration 20) are reported as SKIPPED until then.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const skip = (name) => console.log(`SKIP  ${name} (migration 20 is not applied to this database)`);
 const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 try {
   for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     const T = (s) => `[${vw}px] ${s}`;

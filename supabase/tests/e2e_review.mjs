@@ -1,10 +1,11 @@
 // Browser tests for the deep-review branch: the privacy and terms pages (built, not linked), the "Page not found" page.
 // Needs a preview on BASE_URL (default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   for (const [label, vp] of [['390px', { width: 390, height: 844 }], ['1280px', { width: 1280, height: 800 }]]) {
     const page = await (await browser.newContext({ viewport: vp })).newPage(); page.setDefaultTimeout(30000);

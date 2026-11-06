@@ -3,6 +3,7 @@
 // removed by the temporary admin (only the admin may delete). Also removes leftover test rows from earlier runs (customer name
 // starting zz-m14- or zz-m16-). Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
 // Exits 2 when migration 14 is missing. The status checks need migration 16 (new, confirmed, ordered, shipped) and say so if it is not applied.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Type': 'application/json', Prefer: 'return=representation' });
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
@@ -15,7 +16,8 @@ const mk = async (label) => {
   const tok = await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password });
   return { id: cu.body.id, email, hdr: H(ANON, tok.body.access_token) };
 };
-const seed = (name, extra = {}) => api('POST', '/rest/v1/sent_orders', H(SVC), { customer: { name, email: `${name}@example.com` }, lines: [{ qty: 2, description: 'x', price: { kind: 'price', unit: 100 } }], total: 200, ...extra });
+const seeded = [];
+const seed = async (name, extra = {}) => { const r = await api('POST', '/rest/v1/sent_orders', H(SVC), { customer: { name, email: `${name}@example.com` }, lines: [{ qty: 2, description: 'x', price: { kind: 'price', unit: 100 } }], total: 200, ...extra }); if (r.body?.[0]?.id) { seeded.push(r.body[0].id); own(r.body[0].id); } return r; };
 try {
   const probe = await api('GET', '/rest/v1/sent_orders?select=id&limit=1', H(SVC));
   if (probe.status === 404 || (probe.status === 400 && /sent_orders/.test(JSON.stringify(probe.body)))) { console.log('Migration 14 is not applied yet.'); process.exit(2); }
@@ -51,16 +53,16 @@ try {
   check('the server itself cannot delete orders', svcDel.status >= 400, `${svcDel.status}`);
 } catch (e) { console.log('TEST ERROR:', e.message); results.push({ name: 'script ran to completion', ok: false }); }
 finally {
-  // the temporary admin deletes this run's rows and any leftover test rows from earlier runs, then the admin and customer are removed
-  if (adminCtx) {
-    const del = await api('DELETE', `/rest/v1/sent_orders?or=(customer->>name.like.zz-m14-*,customer->>name.like.zz-m16-*)`, adminCtx.hdr);
+  // the temporary admin deletes the rows this run created (by id), then the admin and customer are removed
+  if (adminCtx && seeded.length) {
+    const del = await api('DELETE', `/rest/v1/sent_orders?id=in.(${seeded.join(',')})`, adminCtx.hdr);
     console.log(`cleanup: removed ${Array.isArray(del.body) ? del.body.length : 0} test order row(s)`);
   }
   for (const id of adminRows) await api('DELETE', `/rest/v1/admins?id=eq.${id}`, H(SVC)).catch(() => {});
   for (const id of users) await api('DELETE', `/auth/v1/admin/users/${id}`, H(SVC)).catch(() => {});
 }
-const left = (await api('GET', `/rest/v1/sent_orders?select=id&or=(customer->>name.like.zz-m14-*,customer->>name.like.zz-m16-*)`, H(SVC))).body;
-check('no test rows are left in sent_orders', Array.isArray(left) && left.length === 0, `${left?.length} left`);
+const left = seeded.length ? (await api('GET', `/rest/v1/sent_orders?select=id&id=in.(${seeded.join(',')})`, H(SVC))).body : [];
+check('none of the rows this test created are left in sent_orders', Array.isArray(left) && left.length === 0, `${left?.length} left`);
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((x) => x.name).join('; ')}` : ''}`);
 process.exit(bad.length ? 1 : 0);

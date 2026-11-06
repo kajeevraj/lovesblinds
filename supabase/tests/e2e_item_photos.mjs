@@ -1,5 +1,6 @@
 // Every item photo on the order page and in the order panel really loads (not blank), at 390 and 1280 px, for each kind of item.
 // Needs a preview on BASE_URL (default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
@@ -12,7 +13,7 @@ const pickCurtains = async (page) => {
   await st('Style').locator('.s2-card').nth(1).click(); await st('Fullness').locator('.s2-card').first().click();
   await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
 };
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   for (const [w, h] of [[390, 844], [1280, 900]]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } }); page.setDefaultTimeout(30000);

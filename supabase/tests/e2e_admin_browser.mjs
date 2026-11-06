@@ -3,6 +3,7 @@
 // session is handed to the page. Everything it creates is deleted at the end.
 // Needs: SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, a site on BASE_URL (default http://localhost:4173,
 // `npx vite build && npx vite preview --port 4173`), and Playwright (PLAYWRIGHT_MODULE or the global install).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 import sharp from 'sharp';
 import { writeFileSync, mkdirSync } from 'fs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
@@ -15,6 +16,7 @@ const svc = H(SVC);
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+own('ZZE2E1', 'ZZE2E2', 'ZZE2E3', 'ZZE2E3B', 'Zzcoll', 'Zzqx Browser Test', 'Zzqx Browser Renamed');       // the names this test types into the admin form: the rows made from them are its own
 const stamp = Date.now(); const startedAt = new Date(stamp - 1000).toISOString();
 const users = [], adminRows = [], orderIds = [];
 
@@ -37,7 +39,7 @@ try {
   const ar = await api('POST', '/rest/v1/admins', { ...svc, Prefer: 'return=representation' }, { email: admin.email, user_id: admin.id });
   adminRows.push(ar.body[0].id);
   const sessionFor = (u) => JSON.stringify(u.session);
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const newPage = async (u, vp = { width: 390, height: 844 }) => {
     const ctx = await browser.newContext({ viewport: vp, acceptDownloads: false });
     if (u) await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, sessionFor(u)]);

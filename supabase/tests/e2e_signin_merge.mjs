@@ -1,6 +1,7 @@
 // What happens when a customer signs in: a guest's order in progress joins a DRAFT of the account (never a sent order), a sent
 // order is never reopened or changed, and a guest's own sent order is never saved to any account (guests have no saved orders).
 // A temporary customer is created and removed. Needs a preview on BASE_URL (default http://localhost:4173) and the three env vars.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -11,7 +12,7 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 let userId, token, browser;
 try {
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   const orderCalls = []; page.on('request', (r) => { if (/rest\/v1\/orders/.test(r.url()) && r.method() !== 'GET') orderCalls.push(r.method()); });

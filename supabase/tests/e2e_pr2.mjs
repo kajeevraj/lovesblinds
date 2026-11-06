@@ -1,6 +1,7 @@
 // Browser and build tests for pull request 2: the restyled inner pages (Products list, Contact, Measuring guide, My Orders, Profile),
 // a title and description for every page, the share picture, the sitemap and the product data. Needs `npm run build` and a preview on
 // BASE_URL (default http://localhost:4173); the signed-in pages use a temporary customer (needs the three env vars; skipped without).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 import { readFileSync, existsSync } from 'node:fs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const sharp = (await import('sharp')).default;
@@ -41,7 +42,7 @@ const got = await sharp('dist/og-image.jpg').raw().toBuffer(); let diff = 0; for
 check('build: the share picture is the homepage hero', diff / (hero.length / 97) < 6, `average difference ${(diff / (hero.length / 97)).toFixed(2)}`);
 
 // ---------- in the browser ----------
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); const page = await ctx.newPage(); page.setDefaultTimeout(20000);
 const head = () => page.evaluate(() => ({ title: document.title, desc: document.querySelector('meta[name=description]')?.content, robots: document.querySelector('meta[name=robots]')?.content || null, canon: document.querySelector('link[rel=canonical]')?.href, og: document.querySelector('meta[property="og:image"]')?.content, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].length }));
 const seen = new Set();

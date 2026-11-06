@@ -1,6 +1,7 @@
 // The Zigbee hub tick is saved with the cart: for a signed-in customer it is written to their order (orders.hub), comes back on another device,
 // is cleared when the last Zigbee line goes, and the sent order keeps it with its price. The account's orders are answered by a fake REST
 // endpoint (so this runs before migration 20 is applied); prices and swatches are live. Needs a preview server (BASE_URL, default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const ref = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
@@ -11,7 +12,7 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
 const user = { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'hub-test@example.com', app_metadata: {}, user_metadata: { full_name: 'Hub Test' }, created_at: new Date().toISOString() };
 const session = { access_token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: user.id, role: 'authenticated', exp })}.sig`, refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: exp, user };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 // one fake `orders` table shared by every "device" (browser context)
 let row = null; const patches = [];
 const device = async (w = 1280, h = 900) => {

@@ -1,6 +1,7 @@
 // Browser test of the customer side at 390 px against the live Supabase project: what the page shows (and does not show)
 // about price groups and prices. Needs migration 10 and a preview server (BASE_URL, default http://localhost:4173).
 // Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (the service role only to compute the expected price and the names).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -21,7 +22,7 @@ const names = await (await fetch(`${URL_}/rest/v1/fabrics?select=id,collection_n
 const suppNames = (await (await fetch(`${URL_}/rest/v1/swatches?select=supplier_color_name&supplier_color_name=not.is.null&limit=2000`, { headers: H(SVC) })).json()).map((x) => x.supplier_color_name).filter((n) => n.length > 5);
 // "Cordless spring" and "Softens sun and glare" are our own wording on the page, not a price group: ordinary words in our own copy are not leaks
 const leak = (raw) => { const text = raw.replace(/Cordless spring|Softens sun and glare|Cellular Shades|Roller Shades|Zebra Shades|Roman Shades|Shangri-La Shades/gi, ''); return names.filter((f) => new RegExp(`\\b${f.collection_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)).map((f) => f.collection_name); };
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);

@@ -3,6 +3,7 @@
 // curtains by email, two colors for double-stack and Day & Night), quantity totals, the No fabric wrap deduction,
 // and that no price group or supplier field reaches the page. Needs a preview server (BASE_URL, default http://localhost:4173)
 // and SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (the service role only for the price group names).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -17,7 +18,7 @@ const catalogs = {};
 const catalog = async (scope) => (catalogs[scope] ||= (await rpc('public_catalog', { p_scope: [scope] })).flatMap((g) => g.swatches));
 const money = (t) => Number(String(t).replace(/[^\d]/g, ''));
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);

@@ -1,6 +1,7 @@
 // Browser test of the profile circle in the top bar and the Edit profile page, at 390 px and desktop width, against the live
 // project. A temporary customer signs in with a password through the API and its session is handed to the page; the account and
 // its orders are deleted afterwards. Needs a preview on BASE_URL (default http://localhost:4173) and the three env vars.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -22,7 +23,7 @@ try {
   const email = `zz-prof-${stamp}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
   const cu = await api('POST', '/auth/v1/admin/users', H(SVC), { email, password, email_confirm: true, user_metadata: { full_name: 'Ada Lovelace', avatar_url: '' } }); userId = cu.body.id;
   token = (await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password })).body;
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const noOverflow = async (page, label) => { const w = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]); check(`no sideways scroll: ${label}`, w[0] <= w[1], `${w[0]} of ${w[1]} px`); };
 
   for (const width of [390, 1280]) {

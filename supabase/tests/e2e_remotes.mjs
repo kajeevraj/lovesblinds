@@ -1,10 +1,11 @@
 // Browser test of the remotes: the right remote for each line and channel count, the buttons, and the room-count rule on the product pages.
 // Needs a preview server (BASE_URL, default http://localhost:4173) and the live Supabase project (prices must load to add items to the cart).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 const SHARE = /Shades in the same room share one remote that runs them one at a time or all together\./;
 try {
   for (const [vw, vh] of [[390, 844], [1280, 900]]) {

@@ -1,6 +1,7 @@
 // Admin: Products > Colors > a color has a "Preview color" field (a color picker plus a hex box) that overrides the color the fabric shows as in the
 // picker and the 3D preview. A temporary admin signs in with a password through the API. The swatch update is intercepted (nothing live is
 // changed, and this also runs before migration 20 adds the column); what the editor would have sent is checked.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -15,7 +16,7 @@ try {
   userId = (await api('POST', '/auth/v1/admin/users', H(SVC), { email, password, email_confirm: true })).body.id;
   const tok = (await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password })).body;
   adminRowId = (await api('POST', '/rest/v1/admins', H(SVC), { email, user_id: userId })).body[0].id;
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
   await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok)]);
   const page = await ctx.newPage(); page.setDefaultTimeout(25000);

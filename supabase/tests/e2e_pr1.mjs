@@ -2,6 +2,7 @@
 // the order staying in step across tabs, small accessibility and layout fixes. The database function size_limits() is answered by a
 // fixed fake (23 to 118 wide, 24 to 120 high for Roller; none for Curtains) so these run before and after migration 13 is applied;
 // /api/contact is a fake too, so nothing is sent. Needs a preview on BASE_URL (default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
@@ -15,7 +16,7 @@ const pickCurtains = async (page) => {
   await st('Liner').locator('.s2-card').first().click(); await st('Panels').locator('.s2-card').first().click();
 };
 const LIMITS = { roller: { min_width: 23, max_width: 118, min_height: 24, max_height: 120 }, 'dream-curtains': { min_width: 24, max_width: 352, min_height: 12, max_height: 228 }, drapery: {} };
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 const mockLimits = (page) => page.route('**/rest/v1/rpc/size_limits', async (route) => {
   const line = JSON.parse(route.request().postData()).p_line;
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ min_width: null, max_width: null, min_height: null, max_height: null, source: 'none', ...(LIMITS[line] || LIMITS.roller) }) });
