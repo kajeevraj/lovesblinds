@@ -7,8 +7,9 @@
 --                 cellular pleats); used when the photo has folds, is a whole shade, is too small or has strong shading
 --       null      not decided yet: the site looks at the photo itself (src/lib/textureAnalysis.js). scripts/backfill-textures.mjs --apply fills it in.
 --     A Zebra color is always drawn as the pattern, whatever this says. Set per color in Products > Colors > Texture.
---  2. swatches.zebra_solid_in / zebra_sheer_in: the widths of a Zebra color's solid and sheer bands in inches (empty = 3 in and 2 in).
---  3. public_catalog() also returns these three fields (customer-safe, same as preview_color).
+--  2. Zebra band widths, in inches: product_lines.band_solid_in / band_sheer_in are the DEFAULT for every color of that line (empty = 3 in and 2 in),
+--     swatches.zebra_solid_in / zebra_sheer_in are an optional per-color OVERRIDE (empty = use the line's default). Set in Products > Zebra and Colors.
+--  3. public_catalog() also returns these fields (customer-safe, same as preview_color).
 
 alter table public.swatches add column if not exists texture_mode text;
 alter table public.swatches drop constraint if exists swatches_texture_mode_check;
@@ -21,8 +22,17 @@ alter table public.swatches drop constraint if exists swatches_zebra_bands_check
 alter table public.swatches add constraint swatches_zebra_bands_check check (
   (zebra_solid_in is null or (zebra_solid_in >= 0.5 and zebra_solid_in <= 12))
   and (zebra_sheer_in is null or (zebra_sheer_in >= 0.5 and zebra_sheer_in <= 12)));
-comment on column public.swatches.zebra_solid_in is 'Zebra: width of the solid band in inches (0.5 to 12). Empty = 3.';
-comment on column public.swatches.zebra_sheer_in is 'Zebra: width of the sheer band in inches (0.5 to 12). Empty = 2.';
+comment on column public.swatches.zebra_solid_in is 'Zebra: this color''s own solid band width in inches (0.5 to 12). Empty = the line''s default.';
+comment on column public.swatches.zebra_sheer_in is 'Zebra: this color''s own sheer band width in inches (0.5 to 12). Empty = the line''s default.';
+
+alter table public.product_lines add column if not exists band_solid_in numeric;
+alter table public.product_lines add column if not exists band_sheer_in numeric;
+alter table public.product_lines drop constraint if exists product_lines_bands_check;
+alter table public.product_lines add constraint product_lines_bands_check check (
+  (band_solid_in is null or (band_solid_in >= 0.5 and band_solid_in <= 12))
+  and (band_sheer_in is null or (band_sheer_in >= 0.5 and band_sheer_in <= 12)));
+comment on column public.product_lines.band_solid_in is 'Default solid band width in inches for the colors of this line (Zebra). Empty = 3.';
+comment on column public.product_lines.band_sheer_in is 'Default sheer band width in inches for the colors of this line (Zebra). Empty = 2.';
 
 create or replace function public.public_catalog(p_scope text[]) returns jsonb
 language sql stable security definer set search_path = public as $$
@@ -33,7 +43,7 @@ language sql stable security definer set search_path = public as $$
           'id', f.public_key, 'product_line', f.product_line, 'shown_in', f.shown_in, 'family', f.family,
           'width', f.width, 'composition', f.composition, 'weight', f.weight, 'thickness', f.thickness,
           'openness', f.openness, 'opacity', f.opacity, 'use_area', f.use_area, 'extra_specs', f.extra_specs,
-          'sort_order', f.sort_order,
+          'sort_order', f.sort_order, 'line_band_solid_in', pl.band_solid_in, 'line_band_sheer_in', pl.band_sheer_in,
           'swatches', coalesce((
             select jsonb_agg(jsonb_build_object(
                      'id', s.id, 'fabric_id', f.public_key, 'product_line', f.product_line, 'shown_in', f.shown_in, 'family', x.family,
@@ -48,7 +58,7 @@ language sql stable security definer set search_path = public as $$
               join public.swatches s on s.id = x.id and s.active
           ), '[]'::jsonb)
         ) as g
-        from public.fabrics f
+        from public.fabrics f left join public.product_lines pl on pl.id = f.product_line
        where f.active and f.shown_in && p_scope
     ) t;
 $$;

@@ -5,7 +5,7 @@
 //    linen slubs, cellular pleats, zebra bands).
 import { analyzePhoto, LIMITS } from '../../src/lib/textureAnalysis.js';
 import { photoCropTexture, seamRatio, makeSeamless, TEX } from '../../src/room/textureCore.js';
-import { patternRGB, zebraPattern, weaveKindOf, WEAVES } from '../../src/lib/patternTexture.js';
+import { patternRGB, zebraPattern, weaveKindOf, sheerHexOf, WEAVES } from '../../src/lib/patternTexture.js';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const rng = (seed) => { let a = seed; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -94,7 +94,9 @@ check('a near-black and a near-white fabric still have a visible weave and keep 
 const z = zebraPattern('#7a6a58', 154 / 256), rows = z.rows;
 const solidMean = meanOf(z.rgb.subarray(0, rows * TEX * 3)), sheerMean = meanOf(z.rgb.subarray(rows * TEX * 3));
 check('zebra: the solid band (top rows) is the fabric color, within 1.5 levels', hexRgb('#7a6a58').every((v, i) => Math.abs(solidMean[i] - v) <= 1.5), solidMean.map(Math.round).join(','));
-check('zebra: the sheer band under it is a pale voile (lighter than 225), and the band edge is where the split says (row 154)', sheerMean.every((v) => v > 225) && rows === 154);
+check('zebra: the sheer band under it is a see-through mesh in the fabric\'s own color (a brown fabric: a lighter brown, not white), and the band edge is at row 154', hexRgb(sheerHexOf('#7a6a58')).every((v, i) => Math.abs(sheerMean[i] - v) <= 6) && sheerMean[0] < 200 && sheerMean[0] > solidMean[0] + 9 && Math.abs((sheerMean[0] - sheerMean[2]) - (solidMean[0] - solidMean[2])) < 25 && rows === 154, sheerMean.map(Math.round).join(','));
+const smoke = (h) => { const t = zebraPattern(h, 154 / 256); return meanOf(t.rgb.subarray(154 * TEX * 3)); };
+check('zebra: a Black or Brown fabric has a dark smoky sheer (lightness under 120), a Cream one a soft sheer (within 14 levels of its solid band)', smoke('#2a2a2c')[0] < 120 && smoke('#2a2a2c')[0] > 60 && smoke('#665758')[0] < 140 && Math.abs(smoke('#f6f1e4')[0] - 246) <= 14, `${smoke('#2a2a2c').map(Math.round)} | ${smoke('#665758').map(Math.round)} | ${smoke('#f6f1e4').map(Math.round)}`);
 check('zebra: the weave repeats left to right with no seam (the bands themselves are meant to change over)', seamRatio(z.rgb, TEX, 'x') <= 1, seamRatio(z.rgb, TEX, 'x').toFixed(2));
 const zw = zebraPattern('#f6f1e4', 154 / 256), zl = (a, y0, y1) => { let t = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < TEX; x++) { const k = (y * TEX + x) * 3; t += 0.3 * a[k] + 0.59 * a[k + 1] + 0.11 * a[k + 2]; n++; } return t / n; };
 check('zebra: even a cream or white fabric keeps its sheer band at least 8 levels lighter than its solid band (the bands can be told apart)', zl(zw.rgb, 156, TEX) - zl(zw.rgb, 0, 152) >= 8, (zl(zw.rgb, 156, TEX) - zl(zw.rgb, 0, 152)).toFixed(1));

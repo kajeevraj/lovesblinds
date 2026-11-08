@@ -16,7 +16,7 @@ function lookFor({ src, line, family, composition, colorFamily, previewColor, mo
 
 export const TEXTURE_LABEL = { photo: 'Photo crop', pattern: 'Pattern' };
 
-export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, mode, onMode, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
+export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, lineBands, mode, onMode, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
   const canvas = useRef(null);
   const [err, setErr] = useState('');
   // the auto-picked setting: from a new photo (already analysed when it was chosen), or for a color that has none stored, from its stored photo
@@ -29,7 +29,9 @@ export default function TextureField({ src, line, family, composition, colorFami
   }, [analysis, src?.id, src?.image]);                                  // eslint-disable-line react-hooks/exhaustive-deps
 
   const effective = zebra ? 'pattern' : (mode || auto?.mode || 'photo');
-  const solidN = cleanBand(solid, ZEBRA_DEFAULTS.solidIn), sheerN = cleanBand(sheer, ZEBRA_DEFAULTS.sheerIn);
+  // the line's default widths (Products > Zebra), else 3 in / 2 in; this color's own boxes override them
+  const defSolid = cleanBand(lineBands?.band_solid_in, ZEBRA_DEFAULTS.solidIn), defSheer = cleanBand(lineBands?.band_sheer_in, ZEBRA_DEFAULTS.sheerIn);
+  const solidN = cleanBand(solid, defSolid), sheerN = cleanBand(sheer, defSheer);
   useEffect(() => {
     const c = canvas.current; if (!c || !src) return undefined;
     let dead = false; setErr('');
@@ -67,11 +69,11 @@ export default function TextureField({ src, line, family, composition, colorFami
       </div>
       {zebra && (
         <div className="adm-grid2" style={{ marginTop: 10 }}>
-          <label className="adm-field"><span>Solid band <small>(inches, default {ZEBRA_DEFAULTS.solidIn})</small></span>
-            <input type="number" aria-label="Solid band width in inches" min={ZEBRA_LIMITS.min} max={ZEBRA_LIMITS.max} step="0.25" inputMode="decimal" placeholder={String(ZEBRA_DEFAULTS.solidIn)} value={solid} onChange={(e) => onSolid(e.target.value)} />
+          <label className="adm-field"><span>Solid band <small>(inches; empty = the line's {defSolid})</small></span>
+            <input type="number" aria-label="Solid band width in inches" min={ZEBRA_LIMITS.min} max={ZEBRA_LIMITS.max} step="0.25" inputMode="decimal" placeholder={String(defSolid)} value={solid} onChange={(e) => onSolid(e.target.value)} />
           </label>
-          <label className="adm-field"><span>Sheer band <small>(inches, default {ZEBRA_DEFAULTS.sheerIn})</small></span>
-            <input type="number" aria-label="Sheer band width in inches" min={ZEBRA_LIMITS.min} max={ZEBRA_LIMITS.max} step="0.25" inputMode="decimal" placeholder={String(ZEBRA_DEFAULTS.sheerIn)} value={sheer} onChange={(e) => onSheer(e.target.value)} />
+          <label className="adm-field"><span>Sheer band <small>(inches; empty = the line's {defSheer})</small></span>
+            <input type="number" aria-label="Sheer band width in inches" min={ZEBRA_LIMITS.min} max={ZEBRA_LIMITS.max} step="0.25" inputMode="decimal" placeholder={String(defSheer)} value={sheer} onChange={(e) => onSheer(e.target.value)} />
           </label>
           {bandProblem && <em className="adm-field-error" role="alert">{bandProblem}</em>}
         </div>

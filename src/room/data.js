@@ -50,7 +50,7 @@ export const PRODUCTS = [
     optics: { alpha: 1, glow: 0, block: 1 }, control: 'lower',
     fabrics: ['rbo-plaster-white', 'rbo-haze-gray', 'rbo-blue', 'rbo-caramel-brown', 'rbo-thunder-gray'] },
   { id: 'zebra', label: 'Zebra shade', short: 'Zebra', kind: 'zebra', family: 'Zebra', photo: 'zebra-dining', slug: 'zebra',
-    optics: { sheerAlpha: 0.3, glowSolid: 0.12, glowSheer: 0.9, block: 0.6 }, control: 'lower',
+    optics: { sheerAlpha: 0.3, glowSolid: 0.12, glowSheer: 0.55, block: 0.6 }, control: 'lower',
     fabrics: ['zeb-cream', 'zeb-camel-khaki', 'zeb-platinum-gray', 'zeb-cinnamon-latte', 'zeb-tuxedo-black'] },
 ];
 // Curtains are not a per-window product: one layer across all the windows (a track, panels that move together), over shades or bare glass.

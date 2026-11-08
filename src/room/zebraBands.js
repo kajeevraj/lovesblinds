@@ -15,6 +15,12 @@ export const TEX_ROWS = 256;                             // rows of the stripe t
 // A band width (inches) the admin typed: a finite number inside the limits, else the default.
 export const cleanBand = (v, fallback) => { const n = typeof v === 'string' ? parseFloat(v) : v; return Number.isFinite(n) && n >= ZEBRA_LIMITS.min && n <= ZEBRA_LIMITS.max ? n : fallback; };
 
+// The widths a color uses: its own (an optional override set on the color), else its product line's default (Products > Zebra), else 3 in / 2 in.
+// Each width is decided on its own: a color can override just the solid band and keep the line's sheer width.
+export function resolveBands({ own = {}, line = {} } = {}) {
+  return { solidIn: cleanBand(own.solidIn, cleanBand(line.solidIn, ZEBRA_DEFAULTS.solidIn)), sheerIn: cleanBand(own.sheerIn, cleanBand(line.sheerIn, ZEBRA_DEFAULTS.sheerIn)) };
+}
+
 // The bands of a color: { solidIn, sheerIn, period (metres), split (solid share of a period), rows (texture rows of the solid band) }.
 // `split` is the share the TEXTURE can draw (a whole number of rows), so the model and the picture agree exactly.
 export function zebraBands({ solidIn, sheerIn } = {}) {

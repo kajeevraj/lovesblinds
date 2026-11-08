@@ -1,6 +1,6 @@
 // Zebra bands, no browser (src/room/zebraBands.js, src/lib/patternTexture.js): the default 3 in solid + 2 in sheer, editable widths, and the front and
 // rear layers lining up correctly at every position of the shade, with the see-through map changing over at exactly the same row as the picture.
-import { zebraBands, zebraLayout, bandAt, seen, openShare, hiddenShare, solidnessAt, cleanBand, ZEBRA_DEFAULTS, IN, SLIDE, TEX_ROWS } from '../../src/room/zebraBands.js';
+import { resolveBands, zebraBands, zebraLayout, bandAt, seen, openShare, hiddenShare, solidnessAt, cleanBand, ZEBRA_DEFAULTS, IN, SLIDE, TEX_ROWS } from '../../src/room/zebraBands.js';
 import { zebraPattern } from '../../src/lib/patternTexture.js';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
@@ -15,12 +15,22 @@ check('editable: solid 4 in + sheer 1.5 in gives a 5.5 in period and a solid sha
 check('text from a form box works ("3.5"), and bad, empty or out-of-range values fall back to the default', zebraBands({ solidIn: '3.5', sheerIn: '' }).solidIn === 3.5 && zebraBands({ solidIn: '', sheerIn: '' }).sheerIn === 2 && cleanBand(0, 3) === 3 && cleanBand(50, 3) === 3 && cleanBand(NaN, 3) === 3 && cleanBand(-1, 3) === 3 && cleanBand(null, 2) === 2 && cleanBand(0.5, 3) === 0.5 && cleanBand(12, 3) === 12);
 check('the solid band is never 0 or the whole period, however extreme the widths (at least 1 texture row of each)', [[0.5, 12], [12, 0.5], [0.5, 0.5], [12, 12]].every(([s, h]) => { const b = zebraBands({ solidIn: s, sheerIn: h }); return b.rows >= 1 && b.rows <= TEX_ROWS - 1; }));
 
+// ---- one default per product line, optional override per color ----
+check('no override anywhere: 3 in solid, 2 in sheer', JSON.stringify(resolveBands()) === '{"solidIn":3,"sheerIn":2}' && JSON.stringify(resolveBands({ own: {}, line: {} })) === '{"solidIn":3,"sheerIn":2}');
+check('the line default applies to a color with no widths of its own (line 4 in + 1.5 in)', JSON.stringify(resolveBands({ own: {}, line: { solidIn: 4, sheerIn: 1.5 } })) === '{"solidIn":4,"sheerIn":1.5}');
+check('a color\'s own width wins, each width on its own: own solid 2 keeps the line\'s sheer 1.5; own sheer 3 keeps the line\'s solid 4', JSON.stringify(resolveBands({ own: { solidIn: 2 }, line: { solidIn: 4, sheerIn: 1.5 } })) === '{"solidIn":2,"sheerIn":1.5}' && JSON.stringify(resolveBands({ own: { sheerIn: 3 }, line: { solidIn: 4, sheerIn: 1.5 } })) === '{"solidIn":4,"sheerIn":3}');
+check('an own width of 3 (the same as the global default) still overrides a different line default (4)', resolveBands({ own: { solidIn: 3 }, line: { solidIn: 4 } }).solidIn === 3);
+check('bad values (0, 50, text) in the color or the line fall through to the next level', resolveBands({ own: { solidIn: 0 }, line: { solidIn: 4 } }).solidIn === 4 && resolveBands({ own: { solidIn: 'x' }, line: { solidIn: 99 } }).solidIn === 3);
+check('the resolved widths feed the bands: line 4 + 1.5 gives a 5.5 in period', Math.abs(zebraBands(resolveBands({ line: { solidIn: 4, sheerIn: 1.5 } })).period - 5.5 * IN) < 1e-9);
+
 // ---- the picture has its band edge at the same row as the layout says ----
 for (const [s, h] of [[3, 2], [4, 1.5], [2, 3], [3.25, 1.75]]) {
   const b = zebraBands({ solidIn: s, sheerIn: h }), z = zebraPattern('#7a6a58', b.split), L = (y) => 0.3 * z.rgb[y * TEX_ROWS * 3 + 100 * 3] + 0.59 * z.rgb[y * TEX_ROWS * 3 + 100 * 3 + 1] + 0.11 * z.rgb[y * TEX_ROWS * 3 + 100 * 3 + 2];
-  let edge = -1; for (let y = 1; y < TEX_ROWS; y++) if (L(y) - L(y - 1) > 40) { edge = y; break; }
+  const row = (r) => { let t = 0; for (let x = 0; x < TEX_ROWS; x++) t += 0.3 * z.rgb[(r * TEX_ROWS + x) * 3] + 0.59 * z.rgb[(r * TEX_ROWS + x) * 3 + 1] + 0.11 * z.rgb[(r * TEX_ROWS + x) * 3 + 2]; return t / TEX_ROWS; };
+  // the band edge: where the mean of the 8 rows below most exceeds the mean of the 8 rows above (the solid band's streaks come and go, its edge does not)
+  let edge = -1, best = -1e9; for (let y = 8; y <= TEX_ROWS - 8; y++) { let up = 0, dn = 0; for (let k = 1; k <= 8; k++) { up += row(y - k) / 8; dn += row(y + k - 1) / 8; } if (dn - up > best) { best = dn - up; edge = y; } }
   const half = [...Array(TEX_ROWS).keys()].filter((r) => solidnessAt(r, b.rows) >= 0.5).length;
-  check(`${s} in + ${h} in: the picture's solid band has ${b.rows} rows, its colour changes over at row ${edge}, and the see-through map is solid for exactly ${half} rows`, z.rows === b.rows && edge === b.rows && half === b.rows, `rows ${b.rows} edge ${edge} solid map rows ${half}`);
+  check(`${s} in + ${h} in: the picture's solid band has ${b.rows} rows, its colour changes over at row ${edge} (found by averaging 8 rows, so within 1 row), and the see-through map is solid for exactly ${half} rows`, z.rows === b.rows && Math.abs(edge - b.rows) <= 1 && half === b.rows, `rows ${b.rows} edge ${edge} solid map rows ${half}`);
   const rowAt = (r) => solidnessAt(r, b.rows);
   check(`${s} + ${h}: the see-through map is fully solid inside the solid band and fully see-through inside the sheer band (away from the 6-row blend)`, rowAt(5) === 1 && rowAt(b.rows - 5) === 1 && rowAt(b.rows + 5) === 0 && rowAt(TEX_ROWS - 5) === 0 && rowAt(b.rows - 1) > 0.5 && rowAt(b.rows) < 0.5);
 }

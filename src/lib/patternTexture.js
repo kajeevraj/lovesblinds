@@ -106,22 +106,29 @@ export function patternRGB(kind, hex, size = TEX) {
   return out;
 }
 
+// The sheer band's color for a zebra fabric: a see-through mesh in the FABRIC's own color, never plain white. A dark fabric (Black, Brown) has a dark smoky
+// sheer (its color lifted a little: 14 % toward white), a pale one (Cream) has a soft sheer barely lighter than its solid band. Lifting less as the fabric
+// gets lighter keeps a Black zebra's closed shade (sheer over the other layer's solid) reading as almost solid, with only faint overlap lines.
+export function sheerHexOf(hex) {
+  const c = hexToRgb(hex), lum = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2], t = Math.max(0.04, 0.16 - 0.12 * (lum / 255));
+  return `#${c.map((v) => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0')).join('')}`;
+}
+
 // The Zebra texture: one stripe period, size x size: a solid band on top (`split` of the height) and a sheer band under it. The solid band is the zebra
-// weave in the fabric's color; the sheer band is a light voile (fine open mesh, very pale, a hint of the fabric's color) that the 3D model makes see-through.
+// weave in the fabric's color; the sheer band is a fine see-through mesh in the fabric's sheer color (sheerHexOf) that the 3D model makes see-through.
 // `split` = solid / (solid + sheer) of the band widths in inches (src/room/zebraBands.js).
 export function zebraPattern(hex, split = 0.6, size = TEX) {
-  const rows = Math.round(size * split), solid = patternRGB('zebra', hex, size), pale = [244, 242, 238], c0 = hexToRgb(hex);
-  const sheerHex = `#${c0.map((v, i) => Math.round(pale[i] * 0.93 + v * 0.07).toString(16).padStart(2, '0')).join('')}`;
+  const rows = Math.round(size * split), solid = patternRGB('zebra', hex, size), sheerHex = sheerHexOf(hex), base = hexToRgb(sheerHex);
   const voile = patternRGB('mesh', sheerHex, size), out = new Uint8ClampedArray(size * size * 3);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const i = (y * size + x) * 3;
-    for (let c = 0; c < 3; c++) out[i + c] = y < rows ? solid[i + c] : 0.55 * voile[i + c] + 0.45 * (pale[c] * 0.93 + c0[c] * 0.07);      // the voile: the mesh at 55 % strength over plain pale
+    for (let c = 0; c < 3; c++) out[i + c] = y < rows ? solid[i + c] : 0.6 * voile[i + c] + 0.4 * base[c];      // the voile: the mesh at 60 % strength over its plain color
   }
-  // a white or cream fabric's solid band is nearly as pale as the voile: lift the voile toward white so the bands can always be told apart (at least 11 levels)
+  // a white or cream fabric's solid band is nearly as pale as its sheer: lift the sheer toward white so the bands can always be told apart (at least 9 levels)
   const lum = (a, y0, y1) => { let t = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < size; x++) { const k = (y * size + x) * 3; t += 0.3 * a[k] + 0.59 * a[k + 1] + 0.11 * a[k + 2]; n++; } return t / n; };
   const gap = lum(out, rows + 1, size) - lum(out, 0, rows - 1);
-  if (rows < size && gap < 11) {
-    const need = Math.min(1, (11 - gap) / Math.max(1, 255 - lum(out, rows + 1, size)));
+  if (rows < size && gap < 9) {
+    const need = Math.min(1, (9 - gap) / Math.max(1, 255 - lum(out, rows + 1, size)));
     for (let y = rows; y < size; y++) for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) { const k = (y * size + x) * 3 + c; out[k] = out[k] + (255 - out[k]) * need; }
   }
   return { rgb: out, rows };

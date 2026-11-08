@@ -10,7 +10,6 @@ import { imgUrl, insertRow, updateRow, deleteRow, swatchOrderCount, setSwatchLin
 import { explain } from '../lib/errors.js';
 import CollectionFields from './CollectionFields.jsx';
 import TextureField, { textureBandProblem } from './TextureField.jsx';
-import { ZEBRA_DEFAULTS } from '../../room/zebraBands.js';
 import History from './History.jsx';
 import { linesForSwatch, publishToSite } from '../lib/livecache.js';
 import { catalogLinesOf, thumb200Path, tex256Path, TEX_VERSION } from '../../data/catalogQuery.js';
@@ -45,7 +44,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const [previewColor, setPreviewColor] = useState(existing?.preview_color || '');         // '' = worked out from the photo inside the color family
   const [texMode, setTexMode] = useState(existing?.texture_mode || '');                  // '' = not chosen: the auto-picked setting (from the photo) applies
   const [texAuto, setTexAuto] = useState(null);                                           // { mode, reason } from the photo
-  const [zSolid, setZSolid] = useState(existing?.zebra_solid_in == null ? '' : String(existing.zebra_solid_in));   // '' = the default (3 in)
+  const [zSolid, setZSolid] = useState(existing?.zebra_solid_in == null ? '' : String(existing.zebra_solid_in));   // '' = use the line's default
   const [zSheer, setZSheer] = useState(existing?.zebra_sheer_in == null ? '' : String(existing.zebra_sheer_in));   // '' = the default (2 in)
   const [cfManual, setCfManual] = useState(!!existing);
   const [grade, setGrade] = useState(existing?.grade || '');
@@ -179,7 +178,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         // existing color the person did not touch
         ...(hasTexCols ? {
           ...(isZebra ? { texture_mode: 'pattern' } : texMode ? { texture_mode: texMode } : photo && texAuto ? { texture_mode: texAuto.mode } : isNew && texAuto ? { texture_mode: texAuto.mode } : {}),
-          ...(isZebra ? { zebra_solid_in: zSolid.trim() === '' || Number(zSolid) === ZEBRA_DEFAULTS.solidIn ? null : Number(zSolid), zebra_sheer_in: zSheer.trim() === '' || Number(zSheer) === ZEBRA_DEFAULTS.sheerIn ? null : Number(zSheer) } : {}),
+          ...(isZebra ? { zebra_solid_in: zSolid.trim() === '' ? null : Number(zSolid), zebra_sheer_in: zSheer.trim() === '' ? null : Number(zSheer) } : {}),
         } : {}),
       };
       if (isNew) {
@@ -335,7 +334,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
           </div>
           {(photo || existing) && (
             <TextureField src={textureSrc} line={mainLine} family={famOf(mainLine)} composition={composition || mainFabric?.composition || ''} colorFamily={colorFamily} previewColor={previewColor.trim()}
-              zebra={isZebra} mode={texMode} onMode={setTexMode} auto={texAuto} setAuto={setTexAuto} solid={zSolid} sheer={zSheer} onSolid={setZSolid} onSheer={setZSheer} analysis={photo?.analysis || null} />
+              zebra={isZebra} lineBands={(data.productLines || []).find((l) => l.id === 'zebra') || null} mode={texMode} onMode={setTexMode} auto={texAuto} setAuto={setTexAuto} solid={zSolid} sheer={zSheer} onSolid={setZSolid} onSheer={setZSheer} analysis={photo?.analysis || null} />
           )}
           {showRoman && (
             <label className="adm-field"><span>Grade <small>(internal)</small></span>

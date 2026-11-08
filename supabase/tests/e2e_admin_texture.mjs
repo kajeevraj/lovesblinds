@@ -30,6 +30,13 @@ try {
     if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ texture_mode: null, zebra_solid_in: null, zebra_sheer_in: null, preview_color: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
     return route.continue();
   });
+  const linePatches = [];
+  await page.route('**/rest/v1/product_lines*', async (route) => {
+    const req = route.request();
+    if (req.method() === 'PATCH') { linePatches.push(JSON.parse(req.postData() || '{}')); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ id: 'zebra' }]) }); }
+    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ band_solid_in: null, band_sheer_in: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
+    return route.continue();
+  });
   if (new URL(URL_).host !== new URL(LIVE).host) await page.route(`${URL_}/storage/v1/object/public/swatches/**`, async (route) => { const r = await fetch(route.request().url().replace(URL_, LIVE)); route.fulfill({ status: r.status, body: Buffer.from(await r.arrayBuffer()), headers: { 'content-type': r.headers.get('content-type') || 'image/jpeg', 'access-control-allow-origin': '*' } }); });
   const edit = async (code, heading) => { await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor(); await page.getByLabel('Search name or code').fill(code); await page.waitForTimeout(400); await page.getByRole('button', { name: heading }).first().click(); await page.getByRole('heading', { name: heading.source ? heading : heading }).first().waitFor(); };
   const prev = () => page.getByLabel('Texture preview');
@@ -37,19 +44,39 @@ try {
   const mode = () => prev().getAttribute('data-mode'), hexOf = () => prev().getAttribute('data-color');
   const solidShare = () => prev().evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, half = c.height / 2, L = []; for (let y = 0; y < half; y++) { let t = 0; for (let x = 0; x < c.width; x++) { const i = (y * c.width + x) * 4; t += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; } L.push(t / c.width); } const mid = (Math.max(...L) + Math.min(...L)) / 2; return L.filter((v) => v < mid).length / L.length; });
 
-  // ---- a Zebra color: always the pattern, band widths ----
+  // ---- the Zebra line: one default for every color ----
+  await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor();
+  await page.locator('.adm-nav-item', { hasText: /^Products/ }).click(); await page.getByRole('heading', { name: 'Products' }).waitFor();
+  await page.getByRole('button', { name: 'Zebra / Dual Shades' }).first().click();
+  const lsolid = page.getByLabel('Line solid band width in inches'), lsheer = page.getByLabel('Line sheer band width in inches');
+  await lsolid.waitFor();
+  check('Products > Zebra has "Zebra bands": the line\'s default solid and sheer widths, empty with 3 and 2 as hints', (await lsolid.inputValue()) === '' && (await lsolid.getAttribute('placeholder')) === '3' && (await lsheer.getAttribute('placeholder')) === '2');
+  await lsolid.fill('0');
+  check('a bad width (0) shows an error and blocks Save', /between 0.5 and 12/.test(await page.getByTestId('line-bands').innerText()) && await page.getByRole('button', { name: 'Save band widths' }).isDisabled());
+  await lsolid.fill('4'); await lsheer.fill('1.5'); await page.getByRole('button', { name: 'Save band widths' }).click(); await page.getByText(/Saved the band widths/).waitFor();
+  check('Save sends the two line defaults to the zebra line only', linePatches.length === 1 && linePatches[0].band_solid_in === 4 && linePatches[0].band_sheer_in === 1.5 && Object.keys(linePatches[0]).length === 2, JSON.stringify(linePatches));
+  // the answer from now on carries those defaults (as the database would)
+  await page.unroute('**/rest/v1/product_lines*');
+  await page.route('**/rest/v1/product_lines*', async (route) => {
+    const req = route.request();
+    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ band_solid_in: r.id === 'zebra' ? 4 : null, band_sheer_in: r.id === 'zebra' ? 1.5 : null, ...r })).map((r) => (r.id === 'zebra' ? { ...r, band_solid_in: 4, band_sheer_in: 1.5 } : r)); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
+    return route.continue();
+  });
+
+  // ---- a Zebra color: always the pattern, optional own widths over the line's default ----
+  patches.length = 0;
   await edit('YZB210', /Truffle Brown/);
   await ready();
   check('Zebra: the Texture field shows a live preview that is the pattern, with no Photo crop / Pattern choice (it is always the pattern)', (await mode()) === 'pattern' && (await page.getByRole('radio', { name: 'Photo crop' }).count()) === 0 && /always uses the pattern/.test(await page.getByTestId('texture-field').innerText()));
   const solid = page.getByLabel('Solid band width in inches'), sheer = page.getByLabel('Sheer band width in inches');
-  check('the band widths are empty with the defaults 3 and 2 as hints, and the preview shows 3 in solid of every 5 (60 %)', (await solid.inputValue()) === '' && (await solid.getAttribute('placeholder')) === '3' && (await sheer.getAttribute('placeholder')) === '2' && Math.abs((await solidShare()) - 0.6) < 0.04, String(await solidShare()));
-  await solid.fill('4'); await sheer.fill('1.5'); await page.waitForTimeout(800); await ready();
-  check('typing 4 in solid and 1.5 in sheer redraws the preview live (solid share about 73 %)', Math.abs((await solidShare()) - 4 / 5.5) < 0.05, String(await solidShare()));
+  check('the color\'s own boxes are empty and show the LINE\'s default (4 and 1.5) as hints; the preview already shows 4 in solid of every 5.5 (73 %)', (await solid.inputValue()) === '' && (await solid.getAttribute('placeholder')) === '4' && (await sheer.getAttribute('placeholder')) === '1.5' && Math.abs((await solidShare()) - 4 / 5.5) < 0.05, String(await solidShare()));
+  await solid.fill('2'); await page.waitForTimeout(800); await ready();
+  check('typing 2 in solid for this color redraws the preview live (2 of 3.5 = 57 %: its own solid width, the line\'s sheer width)', Math.abs((await solidShare()) - 2 / 3.5) < 0.05, String(await solidShare()));
   await solid.fill('0'); await page.waitForTimeout(300);
   check('an out-of-range width (0) shows an error and blocks Save', /between 0.5 and 12/.test(await page.getByTestId('texture-field').innerText()) && await page.getByRole('button', { name: 'Save changes' }).isDisabled());
-  await solid.fill('4');
+  await solid.fill('2');
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Truffle Brown”/).waitFor();
-  check('Save sends texture_mode pattern and the two widths, to this color only', patches.length === 1 && patches[0].texture_mode === 'pattern' && patches[0].zebra_solid_in === 4 && patches[0].zebra_sheer_in === 1.5, JSON.stringify(patches));
+  check('Save sends texture_mode pattern and only the override that was typed (solid 2; sheer empty = the line\'s), to this color only', patches.length === 1 && patches[0].texture_mode === 'pattern' && patches[0].zebra_solid_in === 2 && patches[0].zebra_sheer_in === null, JSON.stringify(patches));
 
   // ---- a roller color with a flat photo: auto-picked Photo crop, switch to Pattern ----
   patches.length = 0;
