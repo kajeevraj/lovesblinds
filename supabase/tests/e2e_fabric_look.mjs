@@ -2,12 +2,13 @@
 // Live swatches; needs a preview server (BASE_URL, default http://localhost:4173). Pixels are read from screenshots of the preview canvas.
 // Jet Black (YS180006), Clean White (YS180002), two different greys (Flint, Concrete) and Cashew Beige (YS180003) of the Roller colors.
 // "Real color" is the color the picker tile shows for the same swatch (src/lib/swatchColor.js): the preview shade must land within a small color distance of it.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const sharp = (await import('sharp')).default;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 const card = (p, n) => p.locator('.s2-card').filter({ has: p.locator('.s2-card-name', { hasText: new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).first();
 const raw = async (buf, box) => { const { data, info } = await sharp(buf).extract(box).removeAlpha().raw().toBuffer({ resolveWithObject: true }); return { data, ...info }; };
 const lum = (d, i) => 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];

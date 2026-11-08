@@ -5,6 +5,7 @@
 // works (redirect sign-in).
 // Needs a preview of a build made WITH a client id:  VITE_GOOGLE_CLIENT_ID=test-client.apps.googleusercontent.com npx vite build --outDir dist-gis
 // then  npx vite preview --outDir dist-gis --port 4174   and   BASE_URL=http://localhost:4174 node supabase/tests/e2e_google.mjs
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4174';
 const results = [];
@@ -18,7 +19,7 @@ window.google = { accounts: { id: {
   prompt() { window.__gsi.prompts += 1; }, cancel() {}, disableAutoSelect() {},
 } } };`;
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   // ---------- with Google's script
   for (const width of [1280, 390]) {

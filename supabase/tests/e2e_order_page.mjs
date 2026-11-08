@@ -2,6 +2,7 @@
 // estimated total and "Plus N item(s) priced by email", validation, what is sent to /api/quote (intercepted: no email goes out),
 // the confirmation screen, and that nothing on the page or in the responses reveals price groups or Dream Curtains codes.
 // Needs a preview server (BASE_URL, default http://localhost:4173) and SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -23,7 +24,7 @@ const WORDS = /Cordless spring|Softens sun and glare|Cellular Shades|Roller Shad
 const leak = (t) => groups.filter((g) => new RegExp(`\\b${g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(t.replace(WORDS, '')));
 const num = (t) => Number(String(t).replace(/[^\d]/g, ''));
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);

@@ -1,6 +1,7 @@
 // Tests of the protection on the order and contact endpoints (api/quote.js, api/contact.js, api/_guard.js), with the email
 // service, the rate-limit counter and the message store replaced by fakes, so nothing is sent and nothing is written.
 // Reads the real catalog for one Roller color (SUPABASE_URL, VITE_SUPABASE_ANON_KEY) to build a realistic order.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 import { handleQuote, checkSizes } from '../../api/quote.js';
 import { handleContact, firstName, confirmationText, CONFIRMATION_SUBJECT } from '../../api/contact.js';
 import { rateLimit, validateOrder, digest, LIMITS, SPAM_TRAP } from '../../api/_guard.js';

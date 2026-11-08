@@ -1,6 +1,7 @@
 // Browser test (390 px) of "Pricing details" in the color editor: one row per line the color is in, each with its own price
 // group, a single-group line shown as plain text, changes saved with Save, shown in the change history, and the cache cleared
 // for that line. Needs migration 10, a preview on BASE_URL (default http://localhost:4173), and the usual three env vars.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -29,7 +30,7 @@ try {
   if (ins.status >= 300) throw new Error('could not create the test color: ' + JSON.stringify(ins.body));
   cleanup.push(() => api('DELETE', `/rest/v1/swatches?id=eq.${encodeURIComponent(id)}`, H(SVC)));
 
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok)]);
   const page = await ctx.newPage(); page.setDefaultTimeout(30000); let warned = '', dismissNext = false;

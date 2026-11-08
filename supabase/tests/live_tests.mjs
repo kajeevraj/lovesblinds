@@ -2,6 +2,7 @@
 // Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY. Creates a temporary non-admin user and deletes it.
 // Usage: node supabase/tests/live_tests.mjs
 // REQUIRE_CLOSED=1: also assert that migration 11 (closing the public's direct table reads) is applied.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const REQUIRE_CLOSED = process.env.REQUIRE_CLOSED === '1';
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const H = (key, bearer = key, extra = {}) => ({ apikey: key, Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json', ...extra });
@@ -20,7 +21,10 @@ const svc = H(SVC);
 const zebraSw = (await call('GET', '/rest/v1/swatches?product_line=eq.zebra&select=*&order=sort_order&limit=2', svc)).body;
 const a = zebraSw[0], b = zebraSw[1];
 const base = (o) => ({ fabric_id: a.fabric_id, product_line: 'zebra', shown_in: ['zebra'], family: null, color_family: 'Gray', image_path: a.image_path, thumb_path: a.thumb_path, ...o });
-const tryInsert = async (hdr, row) => { const r = await call('POST', '/rest/v1/swatches', hdr, row); if (r.status < 300) strays.push(row.id); return r; };
+const tryInsert = async (hdr, row) => { own(row.id); const r = await call('POST', '/rest/v1/swatches', hdr, row); if (r.status < 300) strays.push(row.id); return r; };
+// The attempts to edit / delete below are aimed at a color and a price group THIS test creates (and removes at the end), never at a real one.
+const STAMP = Date.now(), MY_FAB = `zebra:-:zz-lt-${STAMP}`, MY_SW = `zz-lt:${STAMP}`;
+own(MY_FAB, MY_SW);
 
 console.log(`\n=== CONSTRAINTS (service role, which bypasses RLS: only the database's own rules can stop these) ===`);
 let r = await tryInsert(H(SVC, SVC, { [PRE]: 'return=minimal' }), base({ id: 'zz-test:dupname', display_name: a.display_name.toUpperCase(), supplier_code: 'ZZTESTDUP1' }));
@@ -32,7 +36,7 @@ check('3 duplicate supplier code in the same line (different case)', r.status ==
 
 // --- temporary non-admin user
 const email = `rls-test-${Date.now()}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
-let userId = null;
+let userId = null, mine = false;
 try {
   const cu = await call('POST', '/auth/v1/admin/users', svc, { email, password, email_confirm: true });
   userId = cu.body?.id;
@@ -41,8 +45,12 @@ try {
   const jwt = tok.body?.access_token;
   if (!userId || !jwt) throw new Error('could not create/sign in test user: ' + short(tok));
   const user = H(ANON, jwt), anon = H(ANON);
+  const mkFab = await call('POST', '/rest/v1/fabrics', H(SVC, SVC, { [PRE]: 'return=minimal' }), { id: MY_FAB, product_line: 'zebra', shown_in: ['zebra'], family: null, collection_name: `Zzlt ${STAMP}`, width: '118 in', active: false, sort_order: 9999 });       // hidden: it must not show in the public catalog counts below
+  const mkSw = await call('POST', '/rest/v1/swatches', H(SVC, SVC, { [PRE]: 'return=minimal' }), base({ id: MY_SW, fabric_id: MY_FAB, display_name: 'Zzqx Lt Gray', supplier_code: `ZZLT${STAMP}`, active: false }));
+  if (mkFab.status >= 300 || mkSw.status >= 300) throw new Error('could not create the test color: ' + short(mkFab) + ' / ' + short(mkSw));
+  mine = true;
 
-  const before = (await call('GET', `/rest/v1/swatches?id=eq.${encodeURIComponent(a.id)}&select=display_name,active`, svc)).body[0];
+  const before = (await call('GET', `/rest/v1/swatches?id=eq.${encodeURIComponent(MY_SW)}&select=display_name,active`, svc)).body[0];
   const newRow = base({ id: 'zz-test:nonadmin', display_name: 'Zzqx Writer Gray', supplier_code: 'ZZTESTW1' });
   const upd = { display_name: 'Hacked Name' };
   const rep = { [PRE]: 'return=representation' };
@@ -64,11 +72,11 @@ try {
     check(`${label} can read the catalog through public_catalog() (436 colors, 89 groups; SP26030004 is hidden since migration 20)`, cat.status === 200 && ids.size === 436 && cat.body.length === 89, `HTTP ${cat.status}, ${ids.size} colors, ${cat.body?.length} groups`);
     r = await tryInsert({ ...hdr, ...rep }, newRow);
     check(`${label} INSERT swatch is refused`, r.status === 401 || r.status === 403, short(r));
-    r = await call('PATCH', `/rest/v1/swatches?id=eq.${encodeURIComponent(a.id)}`, { ...hdr, ...rep }, upd);
+    r = await call('PATCH', `/rest/v1/swatches?id=eq.${encodeURIComponent(MY_SW)}`, { ...hdr, ...rep }, upd);
     check(`${label} UPDATE swatch is refused`, (r.status >= 400) || (Array.isArray(r.body) && r.body.length === 0), short(r) + (Array.isArray(r.body) ? ' (0 rows changed)' : ''));
-    r = await call('DELETE', `/rest/v1/swatches?id=eq.${encodeURIComponent(a.id)}`, { ...hdr, ...rep });
+    r = await call('DELETE', `/rest/v1/swatches?id=eq.${encodeURIComponent(MY_SW)}`, { ...hdr, ...rep });
     check(`${label} DELETE swatch is refused`, (r.status >= 400) || (Array.isArray(r.body) && r.body.length === 0), short(r) + (Array.isArray(r.body) ? ' (0 rows deleted)' : ''));
-    r = await call('PATCH', `/rest/v1/fabrics?id=eq.${encodeURIComponent(a.fabric_id)}`, { ...hdr, ...rep }, { collection_name: 'Hacked' });
+    r = await call('PATCH', `/rest/v1/fabrics?id=eq.${encodeURIComponent(MY_FAB)}`, { ...hdr, ...rep }, { collection_name: 'Hacked' });
     check(`${label} UPDATE fabric is refused`, (r.status >= 400) || (Array.isArray(r.body) && r.body.length === 0), short(r) + (Array.isArray(r.body) ? ' (0 rows changed)' : ''));
     r = await call('GET', '/rest/v1/admins?select=email', hdr);
     check(`${label} cannot read the admin list`, r.status >= 400 || (Array.isArray(r.body) && r.body.length === 0), short(r));
@@ -77,12 +85,13 @@ try {
     r = await call('POST', '/rest/v1/rpc/is_admin', hdr, {});
     check(`${label} is_admin() = false`, r.body === false, short(r) + ` -> ${JSON.stringify(r.body)}`);
   }
-  const after = (await call('GET', `/rest/v1/swatches?id=eq.${encodeURIComponent(a.id)}&select=display_name,active`, svc)).body[0];
-  check('swatch unchanged after all attempts', JSON.stringify(before) === JSON.stringify(after), `before ${JSON.stringify(before)} / after ${JSON.stringify(after)}`);
+  const after = (await call('GET', `/rest/v1/swatches?id=eq.${encodeURIComponent(MY_SW)}&select=display_name,active`, svc)).body[0];
+  check('the test color is unchanged after all attempts', JSON.stringify(before) === JSON.stringify(after), `before ${JSON.stringify(before)} / after ${JSON.stringify(after)}`);
   const pub = await fetch(URL_ + `/storage/v1/object/public/swatches/${a.thumb_path}`);
   check('swatch images are publicly readable', pub.status === 200, `GET public thumb ${a.thumb_path} -> HTTP ${pub.status}`);
 } finally {
   for (const id of strays) await call('DELETE', `/rest/v1/swatches?id=eq.${encodeURIComponent(id)}`, svc);
+  if (mine) { await call('DELETE', `/rest/v1/swatches?id=eq.${encodeURIComponent(MY_SW)}`, svc); await call('DELETE', `/rest/v1/fabrics?id=eq.${encodeURIComponent(MY_FAB)}`, svc); }
   if (strays.length) console.log(`\nWARNING: unexpected rows were created and deleted: ${strays.join(', ')}`);
   if (userId) {
     const d = await call('DELETE', `/auth/v1/admin/users/${userId}`, svc);

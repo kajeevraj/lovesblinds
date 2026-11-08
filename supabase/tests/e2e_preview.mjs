@@ -4,11 +4,12 @@
 // the shade moves by dragging the handle or the bottom bar or with the arrow keys (there is no slider bar and no "See it in a room", "Hide sizes" or
 // "Style photo" button); the gallery (dots, arrows, a style photo and back keeps the configurator state); the phone dock and its collapse button;
 // no sideways scroll; no console errors; and the room lab's names, hidden handles and curtains (the room view code is unused on the product page).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 
 async function open(vw, vh, path) {
   const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 1, hasTouch: vw < 500, isMobile: vw < 500 });

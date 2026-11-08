@@ -2,6 +2,7 @@
 // server, the customer email carries each item's estimate and the total but no supplier data, the internal email carries the
 // price group and the supplier codes, and the sheet gets the price columns. Sends nothing (no email service is called).
 // Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 import XLSX from 'xlsx';
 import { withCatalog, withEstimates, lineListHtml, internalEmailHtml, customerEmailHtml, buildWorkbook, priceText, totalText, ESTIMATE_NOTE } from '../../api/quote.js';
 import { sentEstimate } from '../../src/lib/orders.js';

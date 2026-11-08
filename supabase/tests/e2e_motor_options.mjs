@@ -1,6 +1,7 @@
 // Browser test of the movement and motor choices (Roller, Zebra, Shangri-La, Roman, Cellular, Curtains, Dream Curtains) against the live Supabase project.
 // Needs a preview server (BASE_URL, default http://localhost:4173) and the site's own Supabase keys in its environment.
 // Checks marked "(needs migration 20)" read prices that only exist once migration 20 (step A) has been applied; until then they are reported as SKIPPED, not passed.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
@@ -8,7 +9,7 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); console.l
 const skip = (name) => console.log(`SKIP  ${name} (migration 20 is not applied to this database)`);
 const money = (t) => Number(String(t).replace(/[^\d]/g, ''));
 const migrated = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/public_options`, { method: 'POST', headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{"p_line":"roller"}' }).then((r) => r.ok).catch(() => false);
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);

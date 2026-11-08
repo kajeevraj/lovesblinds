@@ -1,12 +1,13 @@
 // Layout test at 390, 768 and 1280 px: the sticky price bar lines up (label, price and button on one center line, the button as tall as
 // the price block, even padding, content on the same edges as the page above it), controls that sit side by side have the same height,
 // and padding on cards uses the spacing scale. Needs a preview on BASE_URL (default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const SCALE = [0, 4, 8, 12, 16, 24, 32, 48];
-const browser = await chromium.launch();
+const browser = await chromium.launch(); guard.wrapBrowser(browser);
 try {
   for (const [w, h] of [[390, 844], [768, 900], [1280, 900]]) {
     const page = await browser.newPage({ viewport: { width: w, height: h } }); page.setDefaultTimeout(30000);
@@ -63,7 +64,7 @@ try {
   // ---- phone: the sticky preview shows as a compact strip while scrolling down, never covers the color grid or the selected-color card, and opens only
   // on a tap or back at the top (never on scrolling up); folding and opening never move the page
   {
-    const wgl = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+    const wgl = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(wgl);
     const ctx = await wgl.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
     const page = await ctx.newPage(); page.setDefaultTimeout(30000);
     const T = (t) => `[phone strip] ${t}`;

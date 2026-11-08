@@ -1,13 +1,14 @@
 // Browser test of the Zigbee hub in the cart (live Supabase for prices; /api/quote is intercepted, nothing is sent). Needs a preview server (BASE_URL, default http://localhost:4173).
 // The hub appears once per order only while a cart line uses an App + Voice + Remote (Zigbee) motor, is unchecked by default, adds $35 once,
 // goes into the order as its own line (quantity 1), and disappears (unchecked) when the last Zigbee line is removed.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const num = (t) => Number(String(t).replace(/[^\d]/g, ''));
 const HUB_TEXT = 'Zigbee hub, $35. Needed once per home to control Zigbee shades with your phone or voice. Skip it if you already have one.';
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 try {
   for (const [vw, vh] of [[390, 844], [1280, 900]]) {
     const T = (s) => `[${vw}px] ${s}`;

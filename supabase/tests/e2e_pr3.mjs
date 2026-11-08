@@ -4,6 +4,7 @@
 // phone, and the homepage / footer / measuring-guide wording. A temporary customer is created for the signed-in checks and deleted
 // afterwards. Needs a preview on BASE_URL (default http://localhost:4173) and SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
 // SHOTS=<folder> also saves screenshots there.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -27,7 +28,7 @@ const shot = async (page, name) => { if (SHOTS) { await page.waitForTimeout(800)
 const AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#7A5C2E"/><circle cx="48" cy="38" r="18" fill="#F7F2EA"/><rect x="18" y="62" width="60" height="34" rx="17" fill="#F7F2EA"/></svg>');
 
 try {
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   for (const width of [390, 1280]) {
     const phone = width < 760;
     const T = (s) => `[${width}px] ${s}`;

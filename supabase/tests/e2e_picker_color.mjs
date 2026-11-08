@@ -2,13 +2,14 @@
 // shade's color are within a small color distance; the tile is really drawn in that color; the supplier photo stays as the large preview, labelled
 // "Close-up of the weave"; and an admin override (swatches.preview_color, simulated in the catalog answer, so this runs before migration 20) is used by
 // both, while a bad one is ignored. Live swatches; needs a preview server (BASE_URL, default http://localhost:4173).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const sharp = (await import('sharp')).default;
 const { colorDistance, hexOf } = await import('../../src/lib/swatchColor.js');
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 const COLORS = [['Jet Black', 'YS180006'], ['Clean White', 'YS180002'], ['Flint Gray', 'Flint'], ['Concrete Gray', 'Concrete'], ['Cashew Beige', 'YS180003']];
 const OVERRIDES = { YS180006: '#2a5d9f', YS180002: 'not-a-color' };      // a blue Jet Black, and a bad value on the white
 const open = async (w, h, overrides) => {

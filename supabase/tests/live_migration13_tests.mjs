@@ -1,13 +1,17 @@
 // Live tests of migration 13 against the real project (run after pasting the migration): the messages table (admins only), the
 // rate-limit counter (server only), size_limits() (four numbers, public) and read-only sent orders. Uses a temporary customer and
 // removes everything it creates. Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 import { handleContact } from '../../api/contact.js';
+import { digest } from '../../api/_guard.js';
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Type': 'application/json', Prefer: 'return=representation' });
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const stamp = Date.now(); let userId, token; const tag = `zz-m13-${stamp}`;
+const ip = `198.51.100.${stamp % 200}`;
+own(tag, digest(ip), digest(`${tag}@example.com`));       // what this test creates, directly and through the real handler (messages by name, rate-limit counters by the hash of its address and email)
 try {
   const probe = await api('POST', '/rest/v1/rpc/rate_limit_hit', H(SVC), { p_key: `${tag}:probe`, p_limit: 1, p_window_seconds: 60 });
   if (probe.status === 404) { console.log('Migration 13 is not applied yet (rate_limit_hit does not exist). Paste supabase/migrations/20261019000013_messages_limits_and_sent_orders.sql into the SQL Editor, then run this again.'); process.exit(2); }
@@ -27,7 +31,7 @@ try {
 
   // contact endpoint end to end with a fake email service: the message lands in the table
   const sent = []; const res = { code: 0, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
-  await handleContact({ method: 'POST', headers: { 'x-forwarded-for': `198.51.100.${stamp % 200}` }, body: { name: tag, email: `${tag}@example.com`, phone: '555', topic: 'General question', subject: 's', message: 'hello from the live test' } }, res, { env: { ...process.env, RESEND_API_KEY: 'x' }, resend: { emails: { send: async (m) => { sent.push(m); return { data: { id: '1' } }; } } } });
+  await handleContact({ method: 'POST', headers: { 'x-forwarded-for': ip }, body: { name: tag, email: `${tag}@example.com`, phone: '555', topic: 'General question', subject: 's', message: 'hello from the live test' } }, res, { env: { ...process.env, RESEND_API_KEY: 'x' }, resend: { emails: { send: async (m) => { sent.push(m); return { data: { id: '1' } }; } } } });
   const row = (await api('GET', `/rest/v1/messages?select=*&name=eq.${tag}&message=eq.hello from the live test`, H(SVC))).body[0];
   check('contact: a message through the real handler is emailed to us, confirmed to the customer, and stored (phone, topic, subject, message, created time, status)', res.code === 200 && res.body.stored && sent.length === 2 && sent[1].to === `${tag}@example.com` && row && row.phone === '555' && row.topic === 'General question' && row.status === 'new' && row.emailed === true && !!row.created_at, JSON.stringify(res.body));
 
@@ -68,6 +72,8 @@ try {
   if (token?.access_token) { const o = await api('GET', `/rest/v1/orders?select=id&user_id=eq.${userId}`, H(ANON, token.access_token)); for (const r of o.body || []) await api('DELETE', `/rest/v1/orders?id=eq.${r.id}`, H(ANON, token.access_token)); }
   await api('DELETE', `/rest/v1/messages?name=eq.${tag}`, H(SVC));
   await api('DELETE', `/rest/v1/rate_limits?key=like.${tag}*`, H(SVC));
+  await api('DELETE', `/rest/v1/rate_limits?key=like.*${digest(ip)}*`, H(SVC));
+  await api('DELETE', `/rest/v1/rate_limits?key=like.*${digest(`${tag}@example.com`)}*`, H(SVC));
   if (userId) await api('DELETE', `/auth/v1/admin/users/${userId}`, H(SVC));
   const left = (await api('GET', `/rest/v1/messages?select=id&name=eq.${tag}`, H(SVC))).body;
   console.log(`clean-up: messages left ${Array.isArray(left) ? left.length : 'n/a'}`);

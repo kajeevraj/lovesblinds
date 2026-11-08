@@ -4,6 +4,7 @@
 // Undo, the editing banner, Finish choosing, Add another like this, wording (Zebra Shades, Price by email), My orders, and the small fixes.
 // A temporary customer is used for My orders and deleted afterwards. Needs a preview on BASE_URL (default http://localhost:4173) and
 // SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY. Sends no email (the order and contact endpoints are answered by the test).
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -26,7 +27,7 @@ const ready = (page) => page.waitForFunction(() => { const b = document.querySel
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 try {
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   for (const width of [390, 1280]) {
     const phone = width < 760;
     const T = (s) => `[${width}px] ${s}`;

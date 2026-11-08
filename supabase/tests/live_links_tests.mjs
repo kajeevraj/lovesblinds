@@ -3,6 +3,7 @@
 // set_swatch_lines(); links and unlinks are audit-logged; the public reads only through public_catalog().
 // Creates a temporary admin and non-admin and two temporary colors, and removes everything it made.
 // Needs SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.   Usage: node supabase/tests/live_links_tests.mjs
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const H = (key, bearer = key, extra = {}) => ({ apikey: key, Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json', ...extra });
 const call = async (method, path, headers, body, raw) => {

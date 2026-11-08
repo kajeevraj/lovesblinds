@@ -3,6 +3,7 @@
 // cannot be automated). Three test orders are made by the server and removed at the end by the temporary admin. The status change is
 // checked against a fake answer (the status list changes with migration 16); the database side is in live_orders_admin_tests.mjs.
 // Needs the live Supabase variables, a site on BASE_URL (default http://localhost:4173) and Playwright. Exits 2 without migration 14.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
@@ -11,7 +12,7 @@ const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Typ
 const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const tag = `zz-m16-${Date.now()}`; const users = [], adminRows = []; let adminHdr = null, browser;
+const tag = `zz-m16-${Date.now()}`; own(tag); const users = [], adminRows = []; let adminHdr = null, browser;
 const line = (o = {}) => ({ qty: 2, productName: 'Roller Shades', description: 'Roller Shades, Single · Solar · Jet Black (YS180006)', internalDescription: 'Roller Shades, Single · Solar · Aries Black (YS180006) [Jet Black]', width: 40.5, length: 64, roomLabel: 'Den', windowLabel: 'Left window', mountId: 'inside', price: { kind: 'price', unit: 139 }, ...o });
 try {
   const probe = await api('GET', '/rest/v1/sent_orders?select=id&limit=1', H(SVC));
@@ -23,7 +24,7 @@ try {
   const mkOrder = (name, extra = {}) => api('POST', '/rest/v1/sent_orders', H(SVC), { customer: { name, email: `${name}@example.com`, phone: '555-0100', address: { street: '1 Way', apt: '', city: 'Raleigh', state: 'NC', zip: '27601', country: 'United States' } }, lines: [line(), line({ qty: 1, price: { kind: 'email', unit: null }, roomLabel: 'Hall', windowLabel: '' })], notes: 'Please call after 5', total: 278, by_email_count: 1, customer_copy: true, ...extra });
   await mkOrder(`${tag}-Ada`); await mkOrder(`${tag}-Ben`, { total: null, by_email_count: 2 }); await mkOrder(`${tag}-Cy`);
 
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   for (const [label, vp] of [['390px', { width: 390, height: 844 }], ['1280px', { width: 1280, height: 800 }]]) {
     const ctx = await browser.newContext({ viewport: vp });
     await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok.body)]);

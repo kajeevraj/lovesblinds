@@ -1,6 +1,8 @@
 // Browser test of the Products and Pricing admin screens against the live Supabase project, headless Chromium at 390 px.
 // A temporary admin signs in with a password through the API and its session is handed to the page. Everything edited is
 // restored and everything created is deleted. Needs the same environment as e2e_admin_browser.mjs and the workbooks in private/.
+import { guard, own } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
+own('zz-test-control', 'Zz test control', 'Zz cordless Roman shades');       // what this test types into the admin forms: the rows made from it are its own
 import sharp from 'sharp';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
@@ -22,7 +24,7 @@ try {
   const ar = await api('POST', '/rest/v1/admins', { ...svc, Prefer: 'return=representation' }, { email, user_id: cu.body.id }); adminRows.push(ar.body[0].id);
   const tok = await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password });
   const png = `${OUT}/option.png`; writeFileSync(png, await sharp({ create: { width: 600, height: 400, channels: 3, background: '#7a8f7c' } }).png().toBuffer());
-  browser = await chromium.launch();
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok.body)]);
   const page = await ctx.newPage(); page.setDefaultTimeout(30000); page.on('dialog', (d) => d.accept());
@@ -40,22 +42,19 @@ try {
   await page.getByRole('button', { name: 'Zebra / Dual Shades' }).first().click();
   await page.getByRole('tab', { name: 'Options' }).click();
   await page.getByRole('heading', { name: /^Control \(control\)/ }).waitFor();
-  const firstExpl = page.locator('input[aria-label="One-line explanation"]').first();
-  const oldExpl = await firstExpl.inputValue();
-  await firstExpl.fill(oldExpl + ' (edited by test)');
-  await page.getByRole('button', { name: 'Save', exact: true }).first().click();
-  await page.getByText(/saved\./).first().waitFor();
-  const zv = (await api('GET', '/rest/v1/option_values?group_id=eq.zebra:control&order=sort_order&limit=1', svc)).body[0];
-  check('editing an option explanation saves it', zv.explanation === oldExpl + ' (edited by test)', zv.explanation);
-  await api('PATCH', `/rest/v1/option_values?id=eq.${zv.id}`, svc, { explanation: zv.explanation.replace(' (edited by test)', '') });
   // add an option to a free group, hide it, then remove it with the service role
   await page.locator('.adm-subcard').first().getByLabel('Label').fill('Zz test control');
   await page.locator('.adm-subcard').first().getByRole('button', { name: 'Add option' }).click();
   await page.getByText('Option added.').waitFor();
   const added = (await api('GET', '/rest/v1/option_values?code=eq.zz-test-control', svc)).body;
   check('adding an option to a free group works (code made from the label)', added.length === 1 && added[0].group_id === 'zebra:control', JSON.stringify(added.map((a) => a.id)));
-  // picture upload on the new option
   const row = page.locator('tr', { has: page.locator('input[aria-label="Label"][value="Zz test control"]') });
+  // editing an option explanation (on the option this test just made: never on a real one)
+  await row.locator('input[aria-label="One-line explanation"]').fill('edited by test');
+  await row.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByText(/saved\./).first().waitFor();
+  check('editing an option explanation saves it', (await api('GET', '/rest/v1/option_values?code=eq.zz-test-control', svc)).body[0]?.explanation === 'edited by test');
+  // picture upload on the new option
   await row.getByRole('button', { name: 'Change picture' }).click();
   await row.locator('input[type=file]').setInputFiles(png);
   await page.getByText('Picture uploaded.').waitFor();

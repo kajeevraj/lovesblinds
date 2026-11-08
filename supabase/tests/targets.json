@@ -1,0 +1,63 @@
+{
+ "_about": "Which project each test file runs against (see scripts/run-tests.mjs and supabase/tests/lib/liveGuard.mjs). offline: no database. readOnly: reads the LIVE catalog and prices, never writes. writes: creates its own rows and removes them again: staging only.",
+ "offline": [
+  "guard_tests",
+  "drive_tests",
+  "hardware_tests",
+  "hub_tests",
+  "inches_tests",
+  "remote_tests",
+  "room_photo_size_tests",
+  "swatch_color_tests",
+  "texture_tests",
+  "api_guard_tests",
+  "quote_email_tests"
+ ],
+ "readOnly": [
+  "api_catalog_tests",
+  "e2e_cart",
+  "e2e_fabric_look",
+  "e2e_google",
+  "e2e_hub",
+  "e2e_hub_account",
+  "e2e_item_photos",
+  "e2e_layout",
+  "e2e_line_pages",
+  "e2e_customer_price",
+  "e2e_motor_options",
+  "e2e_order_page",
+  "e2e_picker_color",
+  "e2e_pr1",
+  "e2e_preview",
+  "e2e_product_update",
+  "e2e_remotes",
+  "e2e_review"
+ ],
+ "writes": [
+  "live_admin_tests",
+  "live_links_tests",
+  "live_migration13_tests",
+  "live_migration14_tests",
+  "live_migration20_tests",
+  "live_orders_admin_tests",
+  "live_pricing_tests",
+  "live_tests",
+  "e2e_admin_browser",
+  "e2e_admin_orders",
+  "e2e_admin_pricing_browser",
+  "e2e_price_groups_per_line",
+  "e2e_profile_menu",
+  "e2e_round3",
+  "e2e_signin_merge",
+  "e2e_pr2",
+  "e2e_pr3",
+  "e2e_admin_preview_color"
+ ],
+ "expectedFailures": {
+  "e2e_admin_pricing_browser": [
+   "re-import zebra",
+   "re-import roman",
+   "re-import dream-curtains"
+  ]
+ }
+}
