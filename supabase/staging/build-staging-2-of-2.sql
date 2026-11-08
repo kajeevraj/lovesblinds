@@ -1,4 +1,4 @@
--- STAGING ONLY. Part 2 of 2 (migrations 12 to 22). Paste into the STAGING project's SQL editor. NEVER run on live. Comments stripped; risky text phrases split with ' || ' (same values).
+-- STAGING ONLY. Part 2 of 2 (migrations 12 to 23). Paste into the STAGING project's SQL editor. NEVER run on live. Comments stripped; risky text phrases split with ' || ' (same values).
 alter table public.orders add column if not exists customer jsonb;
 
 comment on column public.orders.customer is 'Customer details and shipping address as sent with the order (set when the order is sent).';
@@ -902,4 +902,8 @@ update public.option_values set active = false, is_default = false where id in (
 update public.price_adders set applies_when = '{"control":["motorized"]}'::jsonb where line_id = 'dream-curtains' and adder_key = 'motor-cost';
 
 revoke update, delete, truncate on public.sent_orders from service_role;
+
+revoke insert, update, delete, truncate on public.audit_log from service_role;
+revoke select, insert, update, delete, truncate on public.orders from anon, service_role;
+revoke truncate on public.orders from authenticated;
 
