@@ -18,7 +18,7 @@ const refused = (r) => r.status >= 400 || (Array.isArray(r.body) && r.body.lengt
 const REP = { Prefer: 'return=representation' };
 const svc = H(SVC); const anon = H(ANON); const enc = encodeURIComponent;
 const stamp = Date.now();
-const users = [], adminRows = [], cleanup = [];
+const users = [], adminRows = [], cleanup = [], sharedCleanup = [];   // sharedCleanup: undo steps for edits made inside guard.sharedRows; they run inside it too (staging only)
 
 const TABLES = ['price_grids', 'grid_fabrics', 'price_adders', 'price_flags', 'price_imports', 'pricing_lines', 'collection_markups', 'product_lines', 'option_groups', 'option_values', 'size_rules'];
 const mk = async (label) => {
@@ -145,7 +145,7 @@ try {
     await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', { ...admin.hdr, ...REP }, { markup: orig.markup });
     const p50 = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
     check('admin changes a line markup (50% -> 60% -> 50%) and the customer price follows', p60 === 129 && p50 === 121, `60%: $${p60}, back to 50%: $${p50}`);
-    r = await call('POST', '/rest/v1/collection_markups', { ...admin.hdr, ...REP }, { fabric_id: 'roller:solar:sag', markup: 1.0 }); cleanup.push(() => call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', svc));
+    r = await call('POST', '/rest/v1/collection_markups', { ...admin.hdr, ...REP }, { fabric_id: 'roller:solar:sag', markup: 1.0 }); sharedCleanup.push(() => call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', svc));
     const po = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
     await call('DELETE', '/rest/v1/collection_markups?fabric_id=eq.roller:solar:sag', { ...admin.hdr, ...REP });
     check('admin sets and removes a per-collection markup override', r.status === 201 && po === 162, `override 100%: $${po}`);
@@ -218,7 +218,7 @@ try {
     globalThis.__lpShared = true;
     // extra cost is added to the customer price AFTER the markup, and only the price comes back
     const base = (await est(anon, 'estimate_price_for_swatch', SARGS())).body.price;
-    await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 12.5 }); cleanup.push(() => call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: orig.swatch.extra_cost }));
+    await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, { ...admin.hdr, ...REP }, { extra_cost: 12.5 }); sharedCleanup.push(() => call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: orig.swatch.extra_cost }));
     const withExtra = await est(anon, 'estimate_price_for_swatch', SARGS());
     const dbgExtra = (await est(admin.hdr, 'estimate_price_debug_for_swatch', SARGS())).body;
     check('an extra cost of $12.50 is added after the markup (price +$12 or +$13 after rounding, whole dollars)', Number.isInteger(withExtra.body.price) && withExtra.body.price - base >= 12 && withExtra.body.price - base <= 13, `$${base} -> $${withExtra.body.price}`);
@@ -243,6 +243,7 @@ try {
   // put back exactly what was read at the start (only if it was read: a failed start must not write guesses)
   // (only the staging project edits shared rows: against live nothing above changed a price, so there is nothing to put back)
   if (guard.target !== 'live' && globalThis.__lpShared) await guard.sharedRows('put back the shared rows', async () => {
+    for (const fn of sharedCleanup.reverse()) { try { await fn(); } catch { /* best effort */ } }
     if (orig.markup !== undefined) await call('PATCH', '/rest/v1/pricing_lines?id=eq.roller', svc, { markup: orig.markup });
     if (orig.dream !== undefined) await call('PATCH', '/rest/v1/price_adders?adder_key=eq.motor-cost&line_id=eq.dream-curtains', svc, { amount: orig.dream });
     if (orig.swatch) await call('PATCH', `/rest/v1/swatches?id=eq.${enc(SW.sag)}`, svc, { extra_cost: orig.swatch.extra_cost, active: orig.swatch.active });

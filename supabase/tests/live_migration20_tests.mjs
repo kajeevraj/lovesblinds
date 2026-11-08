@@ -10,6 +10,7 @@ const rpc = (fn, args, k = ANON) => api('POST', `/rest/v1/rpc/${fn}`, k, args);
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const restore = [];
+const restoreShared = [];   // undo steps for edits made inside guard.sharedRows: they must run inside it too (staging only), or the guard blocks them
 try {
   const probe = await rpc('public_options', { p_line: 'roller' });
   if (probe.status === 404) { console.log('Migration 20 is not applied yet. Paste supabase/migrations/20261029000020_product_page_options_step_a.sql into the Supabase SQL Editor, then run this again.'); process.exit(2); }
@@ -30,7 +31,7 @@ try {
   // These edit real option rows: staging only (skipped against the live project; the read-only checks above and below still run)
   await guard.sharedRows('Best value / Top of the line: set another one, see it move, put it back', async () => {
     const rows = (await api('GET', '/rest/v1/option_values?select=id,best_value,top_of_line&group_id=eq.roller:control', SVC)).body;
-    restore.push(async () => { for (const r of rows) await api('PATCH', `/rest/v1/option_values?id=eq.${r.id}`, SVC, { best_value: false, top_of_line: false }); for (const r of rows) if (r.best_value || r.top_of_line) await api('PATCH', `/rest/v1/option_values?id=eq.${r.id}`, SVC, { best_value: r.best_value, top_of_line: r.top_of_line }); });
+    restoreShared.push(async () => { for (const r of rows) await api('PATCH', `/rest/v1/option_values?id=eq.${r.id}`, SVC, { best_value: false, top_of_line: false }); for (const r of rows) if (r.best_value || r.top_of_line) await api('PATCH', `/rest/v1/option_values?id=eq.${r.id}`, SVC, { best_value: r.best_value, top_of_line: r.top_of_line }); });
     await api('PATCH', '/rest/v1/option_values?id=eq.roller:control:chain', SVC, { best_value: true });
     check('setting another Best value moves it (one per line)', JSON.stringify(await best('roller')) === JSON.stringify(['chain']));
     await api('PATCH', '/rest/v1/option_values?id=eq.roller:control:chain', SVC, { top_of_line: true });
@@ -73,7 +74,7 @@ try {
   check('the public cannot read the curtain fabric tables or their breakdown', (await api('GET', '/rest/v1/drapery_fabrics?select=*', ANON)).status >= 400 && (await api('GET', '/rest/v1/drapery_tiers?select=*', ANON)).status >= 400 && (await rpc('drapery_breakdown', { p_swatch: null, p_options: {}, p_width: 100, p_height: 100 })).status >= 400);
   await guard.sharedRows('the curtain tier table is editable and moves the price', async () => {
     const tier = (await api('GET', '/rest/v1/drapery_tiers?select=tier,p42&tier=eq.75', SVC)).body[0];
-    restore.push(() => api('PATCH', '/rest/v1/drapery_tiers?tier=eq.75', SVC, { p42: tier.p42 }));
+    restoreShared.push(() => api('PATCH', '/rest/v1/drapery_tiers?tier=eq.75', SVC, { p42: tier.p42 }));
     if (dr0) {
       const before = (await rpc('drapery_estimate', { p_swatch: dr0.id, p_options: { fullness: 2.6 }, p_width: 87, p_height: 84 })).body.price;
       await api('PATCH', '/rest/v1/drapery_tiers?tier=eq.75', SVC, { p42: Number(tier.p42) * 2 });
@@ -92,7 +93,7 @@ try {
   check('the public cannot read the rates, the breakdown or the cost parts', (await api('GET', '/rest/v1/hardware_rates?select=*', ANON)).status >= 400 && (await rpc('hardware_breakdown', { p_options: {}, p_width: 1 })).status >= 400 && (await rpc('hardware_parts', { p_options: {}, p_width: 1 })).status >= 400);
   await guard.sharedRows('the $/kg shipping rate is editable and moves the price', async () => {
     const rate = (await api('GET', '/rest/v1/hardware_rates?select=id,amount&id=eq.ship_per_kg', SVC)).body[0];
-    restore.push(() => api('PATCH', '/rest/v1/hardware_rates?id=eq.ship_per_kg', SVC, { amount: rate.amount }));
+    restoreShared.push(() => api('PATCH', '/rest/v1/hardware_rates?id=eq.ship_per_kg', SVC, { amount: rate.amount }));
     await api('PATCH', '/rest/v1/hardware_rates?id=eq.ship_per_kg', SVC, { amount: Number(rate.amount) * 2 });
     const doubled = await hw('arc-rail', 'pleated', 100);
     check('the $/kg rate is editable and moves the price', doubled.price > arc.price, `${arc.price} -> ${doubled.price}`);
@@ -103,7 +104,7 @@ try {
   check('the Zigbee hub is stored in the database at $35 and the customer price function returns exactly that (no 1.5x markup)', Number(hubRow?.amount) === 35 && (await hubNow()) === 35, JSON.stringify(hubRow));
   check('the hub price answer holds only the price', Object.keys((await rpc('zigbee_hub_price', {})).body || {}).join() === 'price');
   await guard.sharedRows('an admin edit of the hub price moves what customers see, and is undone', async () => {
-    restore.push(() => api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount }));
+    restoreShared.push(() => api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount }));
     await api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: 41 });
     check('an admin edit of the hub price moves what customers see', (await hubNow()) === 41, String(await hubNow()));
     await api('PATCH', '/rest/v1/hardware_rates?id=eq.zigbee_hub', SVC, { amount: hubRow.amount });
@@ -130,7 +131,10 @@ try {
     check('once sent, neither the hub nor its price can be changed (the sent-order guard)', t1.status >= 400 && t2.status >= 400 && after.hub === true && Number(after.hub_price) === 35, `${t1.status}/${t2.status} ${JSON.stringify(after)}`);
   }
 } catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
-finally { for (const f of restore.reverse()) await f().catch(() => {}); }
+finally {
+  if (restoreShared.length) await guard.sharedRows('put the edited shared rows back', async () => { for (const f of restoreShared.reverse()) await f().catch(() => {}); });
+  for (const f of restore.reverse()) await f().catch(() => {});
+}
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);
 process.exit(bad.length ? 1 : 0);
