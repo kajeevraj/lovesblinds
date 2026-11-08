@@ -1,6 +1,6 @@
 // Loads a line's catalog from Supabase and turns the rows into the shapes the pickers already use
 // (fabric.line / fabric.specs, swatch.code / displayName / image / thumb ...), so nothing downstream changes.
-import { catalogPath, edgePath, storageUrl, thumb200Path, tex256Path } from './catalogQuery.js';
+import { catalogPath, edgePath, storageUrl, thumb200Path, tex256Path, TEX_VERSION } from './catalogQuery.js';
 import { registerCatalog } from './swatchData.js';
 
 const BASE = import.meta.env.VITE_SUPABASE_URL;
@@ -29,7 +29,8 @@ export function mapRows(rows) {
         id: s.id, fabricId: s.fabric_id, line: s.product_line, lines: s.shown_in || shownIn, family: s.family || undefined,
         code: s.supplier_code,
         displayName: s.display_name, colorFamily: s.color_family, previewColor: nn(s.preview_color),
-        image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, tex256Path(s.thumb_path)) : undefined, imageKind: s.image_kind,
+        image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? `${storageUrl(BASE, tex256Path(s.thumb_path))}?v=${TEX_VERSION}` : undefined,
+        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, zebraSolidIn: nn(s.zebra_solid_in), zebraSheerIn: nn(s.zebra_sheer_in), imageKind: s.image_kind,
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,
         styles: s.styles ? s.styles.map(st => ({ style: st.style, code: st.code, image: storageUrl(BASE, st.image_path), thumb: storageUrl(BASE, st.thumb_path) })) : undefined,

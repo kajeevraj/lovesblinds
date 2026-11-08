@@ -9,9 +9,9 @@
 // The shade has a fabric-wrapped cassette at the top and a bottom rail. A Zebra has two layers of banded cloth that slide past each other
 // as it moves, because it is a loop of cloth (the stripes line up at some stopping points and close to solid at others). Soft shadows: under the cassette, down the jambs, and under the rail.
 import * as THREE from 'three';
-import { weaveTexture, tuneFabric, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { weaveTexture, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
 
-const SLIDE = 1;            // how far the zebra layers slide past each other per metre of drop
 const GAP = 0.003;          // clearance each side, like a real inside mount
 const CASS_H = 0.064, CASS_D = 0.054;
 const RAIL_H = 0.03, RAIL_D = 0.02;
@@ -60,6 +60,11 @@ class Shade {
 
   setAmount(a) { this.amount = clamp(a); this._layout(); }
 
+  // the zebra's stripe: from the color's band widths (admin), or a hand-cut preset's own split
+  _bands() {
+    const f = this.fabric || {};
+    return f.bands || { period: f.tile?.[1] || 0.127, split: f.split || 0.6 };
+  }
   get travel() { return this.height - CASS_H - RAIL_H; }
   get railTop() { return -CASS_H - this.amount * this.travel; }
   // fraction of the opening's height the shade covers (cassette and rail included)
@@ -68,10 +73,8 @@ class Shade {
   get block() {
     const o = this.optics; if (!o) return 0;
     let closed = 1;
-    if (this.kind === 'zebra') {             // the share of the sheer band that the other layer's solid band hides
-      const split = this.fabric?.split || 0.6; let hidden = 0, n = 0;
-      for (let i = 0; i < 40; i++) { const y = split + ((1 - split) * (i + 0.5)) / 40; n++; if (((y - this.zebraShift) % 1 + 1) % 1 < split) hidden++; }
-      closed = 0.7 + 0.3 * (hidden / n);
+    if (this.kind === 'zebra') {             // the share of the front layer's sheer band that the rear layer's solid band hides
+      closed = 0.7 + 0.3 * hiddenShare(zebraLayout(this._bands(), this.amount, this.travel));
     }
     return o.block * this.coverage * closed;
   }
@@ -90,11 +93,10 @@ class Shade {
     // Zebra is one loop of cloth: the front layer comes down from the roller, wraps the bottom rail and goes back up as the back layer.
     // Pulling the shade down makes the loop run round, so the two layers slide past each other by SLIDE x the distance dropped (a repeating
     // pattern of solid and sheer bands). Where solid lies over sheer only cloth shows; where the sheer bands of both layers line up you see through.
-    const P = this.fabric?.tile?.[1] || 0.17;
-    this.zebraShift = this.kind === 'zebra' ? ((SLIDE * a * this.travel) % P) / P : 0;     // fraction of one stripe period, 0..1
+    const zl = this.kind === 'zebra' ? zebraLayout(this._bands(), a, this.travel) : null;     // the bands and where the two layers are (src/room/zebraBands.js)
+    this.zebraShift = zl ? zl.shift : 0;                                                          // fraction of one stripe period, 0..1
     this.layers.forEach((l, i) => {
-      const v0 = this.kind === 'zebra' ? (1 - (this.fabric?.split || 0.6)) * P + (i === 1 ? this.zebraShift * P : 0) : 0;
-      setQuad(l.mesh.geometry, -iw / 2, iw / 2, clothTop, clothBottom, v0);
+      setQuad(l.mesh.geometry, -iw / 2, iw / 2, clothTop, clothBottom, zl ? zl.vBottom[i] : 0);
     });
     // shadows
     const topH = Math.min(0.1, len);
@@ -124,13 +126,14 @@ class Shade {
     const base = [];
     if (zebra) {
       const alphaTex = new THREE.Texture(), emTex = new THREE.Texture();
-      for (const t of [alphaTex, emTex]) { t.wrapS = THREE.MirroredRepeatWrapping; t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / fabric.tile[0], 1 / fabric.tile[1]); t.anisotropy = env.maxAniso || 1; }
+      for (const t of [alphaTex, emTex]) { t.wrapS = fabric.preset ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / fabric.tile[0], 1 / fabric.tile[1]); t.anisotropy = env.maxAniso || 1; }
       emTex.colorSpace = THREE.SRGBColorSpace;
       this.disposables.push(alphaTex, emTex);
       const m = fabricMaterial({ map: tex, emissiveMap: emTex, alphaMap: alphaTex, glow: 1, bump: 0.9, opacity: 1 }, env);
       m.color.copy(flat); m.userData.zebra = true;
-      whenFabric(fabric, (img) => {
-        const { alphaCanvas, emissiveCanvas } = zebraMaps(tuneFabric(img, fabric), fabric.split || 0.6, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
+      whenFabric(fabric, (img, look) => {
+        if (look?.hex) this.solid?.color.set(look.hex);                      // the cassette and rail: plain cloth in the color the picker tile shows
+        const { alphaCanvas, emissiveCanvas } = zebraMaps(img, this._bands().split, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
         alphaTex.image = alphaCanvas; alphaTex.needsUpdate = true;
         emTex.image = emissiveCanvas; emTex.needsUpdate = true;
         m.color.set(0xffffff); m.needsUpdate = true; env.invalidate();
@@ -196,11 +199,7 @@ class Shade {
 // and the emissive map (daylight comes mostly through the sheer bands).
 function zebraMaps(img, split, sheerAlpha, glowSolid, glowSheer) {
   const N = 256, sh = Math.round(split * N);
-  // 1 on the solid band, 0 on the sheer band, blended over about 6 px at each edge (the bottom edge wraps round to the top)
-  const solidness = (r) => {
-    const dist = r < sh ? -Math.min(r + 0.5, sh - r - 0.5) : Math.min(r - sh + 0.5, N - r - 0.5);
-    return clamp(0.5 - dist / 6);
-  };
+  const solidness = (r) => solidnessAt(r, sh, N);      // 1 on the solid band, 0 on the sheer band, blended over about 6 px at each edge (src/room/zebraBands.js)
   const a = document.createElement('canvas'); a.width = 4; a.height = N;
   const actx = a.getContext('2d'); const ad = actx.createImageData(4, N);
   for (let r = 0; r < N; r++) { const v = Math.round(255 * (sheerAlpha + (1 - sheerAlpha) * solidness(r))); for (let x = 0; x < 4; x++) { const i = (r * 4 + x) * 4; ad.data[i] = ad.data[i + 1] = ad.data[i + 2] = v; ad.data[i + 3] = 255; } }

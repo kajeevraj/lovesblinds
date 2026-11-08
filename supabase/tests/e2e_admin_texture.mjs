@@ -1,0 +1,81 @@
+// Admin: Products > Colors > a color has "Texture: Photo crop / Pattern" with a small live preview (auto-picked from the photo, overridable), and a
+// Zebra color has its solid and sheer band widths (defaults 3 in and 2 in). A temporary admin signs in through the API. The swatch update is intercepted
+// (nothing real is changed) and the answer carries the migration-24 columns, so this runs before migration 24 is applied; the photos are read from the
+// live bucket (staging has none). What the editor would have sent is checked.
+import { guard } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
+const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, SVC = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const LIVE = process.env.LB_LIVE_URL || URL_;
+const BASE = process.env.BASE_URL || 'http://localhost:4173';
+const ref = new URL(URL_).hostname.split('.')[0];
+const H = (k, b = k) => ({ apikey: k, Authorization: `Bearer ${b}`, 'Content-Type': 'application/json', Prefer: 'return=representation' });
+const api = async (m, p, h, b) => { const r = await fetch(URL_ + p, { method: m, headers: h, body: b === undefined ? undefined : JSON.stringify(b) }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j }; };
+const results = [];
+const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
+let userId, adminRowId, browser;
+try {
+  const email = `zz-tx-${Date.now()}@example.com`, password = `Tmp-${crypto.randomUUID()}`;
+  userId = (await api('POST', '/auth/v1/admin/users', H(SVC), { email, password, email_confirm: true })).body.id;
+  const tok = (await api('POST', '/auth/v1/token?grant_type=password', H(ANON), { email, password })).body;
+  adminRowId = (await api('POST', '/rest/v1/admins', H(SVC), { email, user_id: userId })).body[0].id;
+  browser = await chromium.launch(); guard.wrapBrowser(browser);
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+  await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, JSON.stringify(tok)]);
+  const page = await ctx.newPage(); page.setDefaultTimeout(25000);
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  const patches = [];
+  await page.route('**/rest/v1/swatches*', async (route) => {
+    const req = route.request();
+    if (req.method() === 'PATCH') { patches.push(JSON.parse(req.postData() || '{}')); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ id: 'mock' }]) }); }
+    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ texture_mode: null, zebra_solid_in: null, zebra_sheer_in: null, preview_color: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
+    return route.continue();
+  });
+  if (new URL(URL_).host !== new URL(LIVE).host) await page.route(`${URL_}/storage/v1/object/public/swatches/**`, async (route) => { const r = await fetch(route.request().url().replace(URL_, LIVE)); route.fulfill({ status: r.status, body: Buffer.from(await r.arrayBuffer()), headers: { 'content-type': r.headers.get('content-type') || 'image/jpeg', 'access-control-allow-origin': '*' } }); });
+  const edit = async (code, heading) => { await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor(); await page.getByLabel('Search name or code').fill(code); await page.waitForTimeout(400); await page.getByRole('button', { name: heading }).first().click(); await page.getByRole('heading', { name: heading.source ? heading : heading }).first().waitFor(); };
+  const prev = () => page.getByLabel('Texture preview');
+  const ready = async () => { await page.waitForFunction(() => document.querySelector('canvas[aria-label="Texture preview"]')?.dataset.ready === '1'); await page.waitForTimeout(300); };
+  const mode = () => prev().getAttribute('data-mode'), hexOf = () => prev().getAttribute('data-color');
+  const solidShare = () => prev().evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, half = c.height / 2, L = []; for (let y = 0; y < half; y++) { let t = 0; for (let x = 0; x < c.width; x++) { const i = (y * c.width + x) * 4; t += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; } L.push(t / c.width); } const mid = (Math.max(...L) + Math.min(...L)) / 2; return L.filter((v) => v < mid).length / L.length; });
+
+  // ---- a Zebra color: always the pattern, band widths ----
+  await edit('YZB210', /Truffle Brown/);
+  await ready();
+  check('Zebra: the Texture field shows a live preview that is the pattern, with no Photo crop / Pattern choice (it is always the pattern)', (await mode()) === 'pattern' && (await page.getByRole('radio', { name: 'Photo crop' }).count()) === 0 && /always uses the pattern/.test(await page.getByTestId('texture-field').innerText()));
+  const solid = page.getByLabel('Solid band width in inches'), sheer = page.getByLabel('Sheer band width in inches');
+  check('the band widths are empty with the defaults 3 and 2 as hints, and the preview shows 3 in solid of every 5 (60 %)', (await solid.inputValue()) === '' && (await solid.getAttribute('placeholder')) === '3' && (await sheer.getAttribute('placeholder')) === '2' && Math.abs((await solidShare()) - 0.6) < 0.04, String(await solidShare()));
+  await solid.fill('4'); await sheer.fill('1.5'); await page.waitForTimeout(800); await ready();
+  check('typing 4 in solid and 1.5 in sheer redraws the preview live (solid share about 73 %)', Math.abs((await solidShare()) - 4 / 5.5) < 0.05, String(await solidShare()));
+  await solid.fill('0'); await page.waitForTimeout(300);
+  check('an out-of-range width (0) shows an error and blocks Save', /between 0.5 and 12/.test(await page.getByTestId('texture-field').innerText()) && await page.getByRole('button', { name: 'Save changes' }).isDisabled());
+  await solid.fill('4');
+  await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Truffle Brown”/).waitFor();
+  check('Save sends texture_mode pattern and the two widths, to this color only', patches.length === 1 && patches[0].texture_mode === 'pattern' && patches[0].zebra_solid_in === 4 && patches[0].zebra_sheer_in === 1.5, JSON.stringify(patches));
+
+  // ---- a roller color with a flat photo: auto-picked Photo crop, switch to Pattern ----
+  patches.length = 0;
+  await edit('YS180006', /Jet Black/);
+  await ready();
+  const radios = page.getByRole('radiogroup', { name: 'Texture' });
+  await page.getByText(/Auto-picked: Photo crop/).waitFor();
+  check('Roller Jet Black: auto-picked Photo crop (a flat photo), both choices offered, preview is the photo crop', (await radios.count()) === 1 && await page.getByRole('radio', { name: 'Photo crop' }).isChecked() && (await mode()) === 'photo');
+  const photoHex = await hexOf();
+  await page.getByRole('radio', { name: 'Pattern' }).check(); await page.waitForTimeout(700); await ready();
+  check('choosing Pattern redraws the preview as the pattern in the very same color', (await mode()) === 'pattern' && (await hexOf()) === photoHex, `${photoHex} -> ${await hexOf()}`);
+  check('it says the choice was made by hand and offers "Use auto-pick"', /Set by hand/.test(await page.getByTestId('texture-field').innerText()) && (await page.getByRole('button', { name: 'Use auto-pick' }).count()) === 1);
+  await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
+  check('Save sends only texture_mode pattern', patches.length === 1 && Object.keys(patches[0]).join() === 'texture_mode' && patches[0].texture_mode === 'pattern', JSON.stringify(patches));
+
+  // ---- a cellular color whose photo is pleated: auto-picked Pattern ----
+  patches.length = 0;
+  await edit('YHCKB001', /Beige Linen/);
+  await ready();
+  await page.getByText(/Auto-picked: Pattern/).waitFor();
+  check('Cellular Beige Linen (pleated photo): auto-picked Pattern, preview is the pattern', await page.getByRole('radio', { name: 'Pattern' }).isChecked() && (await mode()) === 'pattern');
+  check('no page errors', errors.length === 0, errors.join(' | '));
+} catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
+await browser?.close();
+if (adminRowId) await api('DELETE', `/rest/v1/admins?id=eq.${adminRowId}`, H(SVC));
+if (userId) await api('DELETE', `/auth/v1/admin/users/${userId}`, H(SVC));
+const bad = results.filter((x) => !x.ok);
+console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);
+process.exit(bad.length ? 1 : 0);

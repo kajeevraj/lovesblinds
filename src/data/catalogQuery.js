@@ -38,6 +38,10 @@ export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swat
 // (made when a color is uploaded in the admin, and for older colors by scripts/backfill-thumbs.mjs). No database column.
 export const thumb200Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp') : null);
 
-// 256 px 3D fabric texture (room visualizer, product-page preview), by naming rule: thumb/<line>/<name>.webp has tex256/<line>/<name>.webp
-// (made when a color is uploaded in the admin, and for older colors by scripts/backfill-textures.mjs). No database column.
+// 256 px fabric texture (picker tiles, product-page preview, room visualizer), by naming rule: thumb/<line>/<name>.webp has tex256/<line>/<name>.webp: the
+// flattest part of the supplier photo, made to tile seamlessly (src/room/textureCore.js photoCropTexture), used when a color's Texture setting is "Photo crop".
+// Made when a color is uploaded in the admin, and for older colors by scripts/backfill-textures.mjs. No database column. TEX_VERSION is part of the url, so
+// a texture that was re-made in place is never served from a stale cached copy.
+export const TEX_VERSION = 2;
 export const tex256Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'tex256/').replace(/\.[^./]+$/, '.webp') : null);
+

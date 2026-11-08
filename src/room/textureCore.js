@@ -98,3 +98,68 @@ export function retargetZebra(rgb, target, size = TEX, split = SPLIT, maxSd = 16
   out.set(solid, 0);
   return out;
 }
+
+// ---- flat crop + seamless tiling (the "Photo crop" texture) ------------------------------------------------------------------------------------
+
+// Resamples the square `rect` ({ x, y, side }, in photo pixels) of an RGB photo to size x size: box average when shrinking, bilinear when stretching.
+export function cropResample(rgb, w, h, rect, size = TEX) {
+  const out = new Uint8ClampedArray(size * size * 3), k = rect.side / size;
+  const at = (x, y, c) => rgb[(Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))) * 3 + c];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const sx = rect.x + (x + 0.5) * k, sy = rect.y + (y + 0.5) * k;
+    for (let c = 0; c < 3; c++) {
+      let v;
+      if (k > 1.5) {                                                        // shrinking: average the source pixels this one covers
+        const x0 = Math.floor(sx - k / 2), x1 = Math.max(x0 + 1, Math.ceil(sx + k / 2)), y0 = Math.floor(sy - k / 2), y1 = Math.max(y0 + 1, Math.ceil(sy + k / 2));
+        let t = 0, n = 0; for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) { t += at(xx, yy, c); n++; } v = t / n;
+      } else {                                                              // stretching: bilinear
+        const fx = sx - 0.5, fy = sy - 0.5, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+        v = (at(x0, y0, c) * (1 - tx) + at(x0 + 1, y0, c) * tx) * (1 - ty) + (at(x0, y0 + 1, c) * (1 - tx) + at(x0 + 1, y0 + 1, c) * tx) * ty;
+      }
+      out[(y * size + x) * 3 + c] = v;
+    }
+  }
+  return out;
+}
+
+// Makes a square 3-channel texture repeat with no visible seam. Every pixel is a blend of itself and the pixel half a texture away (wrapping round):
+// the blend favours the pixel itself in the middle and the shifted one at the edges, and at the edges the shifted picture is continuous across the wrap
+// (its middle lies there), so the left edge meets the right edge, and the top the bottom, as if they were neighbours. The blend keeps the weave's contrast
+// (the weights are normalised for unrelated pictures) instead of washing it out. Returns a new Uint8ClampedArray.
+export function makeSeamless(rgb, size = TEX) {
+  const half = size >> 1, mean = [0, 0, 0], n = size * size;
+  for (let i = 0; i < rgb.length; i += 3) for (let c = 0; c < 3; c++) mean[c] += rgb[i + c] / n;
+  const out = new Uint8ClampedArray(rgb.length), ramp = (t) => Math.sin(Math.PI * t) ** 2;       // 0 at the edge, 1 in the middle
+  for (let y = 0; y < size; y++) {
+    const wy = ramp((y + 0.5) / size), y2 = (y + half) % size;
+    for (let x = 0; x < size; x++) {
+      const wa = wy * ramp((x + 0.5) / size), wb = 1 - wa, norm = Math.sqrt(wa * wa + wb * wb), x2 = (x + half) % size;
+      for (let c = 0; c < 3; c++) {
+        const a = rgb[(y * size + x) * 3 + c] - mean[c], b = rgb[(y2 * size + x2) * 3 + c] - mean[c];
+        out[(y * size + x) * 3 + c] = mean[c] + (wa * a + wb * b) / norm;
+      }
+    }
+  }
+  return out;
+}
+
+// How visible the repeat seam of a texture is: the colour step across the wrap (last column to first, last row to first) compared with the biggest ordinary
+// steps INSIDE the texture (the 90th percentile of the average step between neighbouring columns / rows). 1 or less means the seam is no louder than the
+// loudest ordinary weave joins, so it cannot be seen; a pasted-together tile is well above. `axes` limits the check ('x', 'y' or 'xy'): a zebra stripe
+// is made of bands, so only its left-right wrap is meant to be invisible.
+export function seamRatio(rgb, size = TEX, axes = 'xy') {
+  const px = (x, y) => (y * size + x) * 3, step = (x0, y0, x1, y1, along) => {              // mean |difference| of the pixel pairs along one line
+    let t = 0; for (let k = 0; k < size; k++) for (let c = 0; c < 3; c++) { const a = along === 'col' ? px(x0, k) : px(k, y0), b = along === 'col' ? px(x1, k) : px(k, y1); t += Math.abs(rgb[a + c] - rgb[b + c]); }
+    return t / (size * 3);
+  };
+  const p90 = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length * 0.9)];
+  let worst = 0;
+  if (axes.includes('x')) { const inner = []; for (let x = 0; x < size - 1; x++) inner.push(step(x, 0, x + 1, 0, 'col')); worst = Math.max(worst, step(size - 1, 0, 0, 0, 'col') / Math.max(0.01, p90(inner))); }
+  if (axes.includes('y')) { const inner = []; for (let y = 0; y < size - 1; y++) inner.push(step(0, y, 0, y + 1, 'row')); worst = Math.max(worst, step(0, size - 1, 0, 0, 'row') / Math.max(0.01, p90(inner))); }
+  return worst;
+}
+
+// The whole "Photo crop" recipe on a photo's RGB bytes: the flat window (from analyzePhoto), cut out at 256, uneven lighting taken out, made to repeat.
+export function photoCropTexture(rgb, w, h, rect, size = TEX) {
+  return makeSeamless(flatten(cropResample(rgb, w, h, rect, size), size), size);
+}
