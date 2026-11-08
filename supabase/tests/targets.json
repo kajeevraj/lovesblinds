@@ -14,7 +14,8 @@
   "quote_email_tests",
   "texture_pipeline_tests",
   "zebra_band_tests",
-  "cream_white_color_tests"
+  "cream_white_color_tests",
+  "backfill_tests"
  ],
  "readOnly": [
   "api_catalog_tests",

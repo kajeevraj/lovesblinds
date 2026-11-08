@@ -12,7 +12,7 @@ import CollectionFields from './CollectionFields.jsx';
 import TextureField, { textureBandProblem } from './TextureField.jsx';
 import History from './History.jsx';
 import { linesForSwatch, publishToSite } from '../lib/livecache.js';
-import { catalogLinesOf, thumb200Path, tex256Path, TEX_VERSION } from '../../data/catalogQuery.js';
+import { catalogLinesOf, thumb200Path, texFlatPath } from '../../data/catalogQuery.js';
 
 const NEW = '__new__';
 const blankRoman = () => Object.fromEntries(ROMAN_STYLE_LIST.map((s) => [s.id, { available: false, linings: [] }]));
@@ -253,7 +253,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
 
   const textureSrc = useMemo(() => (photo
     ? { id: `new:${photo.previewUrl}`, thumb: photo.previewUrl, tile: photo.previewUrl, image: photo.previewUrl }
-    : existing ? { id: existing.id, thumb: imgUrl(existing.thumb_path), tile: imgUrl(thumb200Path(existing.thumb_path)), image: imgUrl(existing.image_path), tex: `${imgUrl(tex256Path(existing.thumb_path))}?v=${TEX_VERSION}` } : null), [photo, existing]);
+    : existing ? { id: existing.id, thumb: imgUrl(existing.thumb_path), tile: imgUrl(thumb200Path(existing.thumb_path)), image: imgUrl(existing.image_path), tex: imgUrl(texFlatPath(existing.thumb_path)) } : null), [photo, existing]);
   const shownThumb = photo?.previewUrl || (existing ? imgUrl(existing.thumb_path) : '');
   const shownThumbB = photoB?.previewUrl || (exStyleB ? imgUrl(exStyleB.thumb_path) : '');
   const groupLabel = (f) => `${f.collection_name}${f.family ? ` (${FAMILY_LABELS[f.family]})` : ''}${f.active ? '' : ' — hidden'}`;

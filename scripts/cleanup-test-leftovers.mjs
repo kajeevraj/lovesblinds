@@ -22,7 +22,7 @@ const found = {
   size_rules: (await api('GET', `/rest/v1/size_rules?select=id,subject&subject=like.*Zz*`, H(SVC))).body,
 };
 const files = [];
-for (const sub of ['full', 'thumb', 'thumb200', 'tex256']) for (const line of ['zebra', 'drapery', 'dream-curtains']) {
+for (const sub of ['full', 'thumb', 'thumb200', 'tex256', 'texflat']) for (const line of ['zebra', 'drapery', 'dream-curtains']) {
   const l = await api('POST', '/storage/v1/object/list/swatches', H(SVC), { prefix: `${sub}/${line}`, search: 'zze2e', limit: 100 });
   for (const o of Array.isArray(l.body) ? l.body : []) files.push(`${sub}/${line}/${o.name}`);
 }

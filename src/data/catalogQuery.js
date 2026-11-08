@@ -38,10 +38,10 @@ export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swat
 // (made when a color is uploaded in the admin, and for older colors by scripts/backfill-thumbs.mjs). No database column.
 export const thumb200Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp') : null);
 
-// 256 px fabric texture (picker tiles, product-page preview, room visualizer), by naming rule: thumb/<line>/<name>.webp has tex256/<line>/<name>.webp: the
-// flattest part of the supplier photo, made to tile seamlessly (src/room/textureCore.js photoCropTexture), used when a color's Texture setting is "Photo crop".
-// Made when a color is uploaded in the admin, and for older colors by scripts/backfill-textures.mjs. No database column. TEX_VERSION is part of the url, so
-// a texture that was re-made in place is never served from a stale cached copy.
-export const TEX_VERSION = 2;
+// 256 px fabric texture, by naming rule: thumb/<line>/<name>.webp has texflat/<line>/<name>.webp: the flattest part of the supplier photo, cut out and made to
+// tile seamlessly ("Photo crop"; src/room/textureCore.js photoCropTexture). Made when a color is uploaded in the admin, and for older colors by
+// scripts/backfill-textures.mjs. No database column. It is a NEW name on purpose: the older uncut texture at tex256/ (same rule, tex256Path) is what the site
+// shows until this code is deployed, and the backfill never touches it, so adding these files changes nothing on the live site.
+export const texFlatPath = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'texflat/').replace(/\.[^./]+$/, '.webp') : null);
+// the older, uncut texture (no longer read by the site; the admin still writes it so older code keeps working until it is gone)
 export const tex256Path = (thumbPath) => (thumbPath ? thumbPath.replace(/^thumb\//, 'tex256/').replace(/\.[^./]+$/, '.webp') : null);
-

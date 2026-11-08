@@ -292,7 +292,7 @@ try {
     }
   }
   await api('DELETE', `/rest/v1/fabrics?collection_name=eq.${COLL}`, svc);
-  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains']) {
+  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains', 'texflat/zebra', 'texflat/drapery', 'texflat/dream-curtains']) {
     const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 });
     const mine = new Set(guard.owned());
     const names = (Array.isArray(l.body) ? l.body : []).map(o => `${sub}/${o.name}`).filter((n) => mine.has(`swatches/${n}`));       // only the files this run uploaded
@@ -308,7 +308,7 @@ try {
     admins: (adminRows.length ? (await api('GET', `/rest/v1/admins?id=in.(${adminRows.join(',')})&select=id`, svc)).body.length : 0),
   };
   let files = 0;
-  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains']) {
+  for (const sub of ['full/zebra', 'full/drapery', 'full/dream-curtains', 'thumb/zebra', 'thumb/drapery', 'thumb/dream-curtains', 'thumb200/zebra', 'thumb200/drapery', 'thumb200/dream-curtains', 'tex256/zebra', 'tex256/drapery', 'tex256/dream-curtains', 'texflat/zebra', 'texflat/drapery', 'texflat/dream-curtains']) {
     const l = await api('POST', '/storage/v1/object/list/swatches', svc, { prefix: sub, search: 'zze2e', limit: 50 }); const mine = new Set(guard.owned()); files += (Array.isArray(l.body) ? l.body : []).filter((o) => mine.has(`swatches/${sub}/${o.name}`)).length;
   }
   console.log(`\nclean-up: ${JSON.stringify(left)}, leftover image files ${files}`);

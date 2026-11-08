@@ -85,21 +85,26 @@ export async function uploadPrepared(line, code, prepared) {
   if (prepared.tile) await supabase.storage.from(BUCKET).upload(tilePathOf(thumbPath), prepared.tile, opts(prepared.tile));   // best effort
   const texs = prepared.texPromise ? await prepared.texPromise : null;
   const tex = texs ? texs.weave : null;
-  if (tex) await supabase.storage.from(BUCKET).upload(texPathOf(thumbPath), tex, opts(tex));                                   // best effort
+  if (tex) {                                                                                                                      // best effort
+    await supabase.storage.from(BUCKET).upload(texFlatPathOf(thumbPath), tex, opts(tex));                                         // what the site reads
+    await supabase.storage.from(BUCKET).upload(texPathOf(thumbPath), tex, opts(tex));                                             // the older name, kept so code that has not been deployed yet still finds a texture
+  }
   return { image_path: imagePath, thumb_path: thumbPath };
 }
 
 // thumb/<line>/<name>.<ext> -> thumb200/<line>/<name>.webp (same rule as the product pages)
 export const tilePathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp');
 
-// thumb/<line>/<name>.<ext> -> tex256/<line>/<name>.webp (the fabric texture; same rule as src/data/catalogQuery.js)
+// thumb/<line>/<name>.<ext> -> texflat/<line>/<name>.webp (the fabric texture the site reads; same rule as src/data/catalogQuery.js)
+export const texFlatPathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'texflat/').replace(/\.[^./]+$/, '.webp');
+// the older name tex256/ (see catalogQuery.js)
 export const texPathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'tex256/').replace(/\.[^./]+$/, '.webp');
 
-// Best effort: a leftover file is harmless, so failures are only logged. Removing a thumbnail also removes its 200 px tile and its 3D texture.
+// Best effort: a leftover file is harmless, so failures are only logged. Removing a thumbnail also removes its 200 px tile and its textures.
 export async function removePaths(paths) {
   const base = paths.filter(Boolean);
   const thumbs = base.filter((p) => p.startsWith('thumb/'));
-  const list = [...new Set([...base, ...thumbs.map(tilePathOf), ...thumbs.map(texPathOf)])];
+  const list = [...new Set([...base, ...thumbs.map(tilePathOf), ...thumbs.map(texPathOf), ...thumbs.map(texFlatPathOf)])];
   if (!list.length) return;
   const { error } = await supabase.storage.from(BUCKET).remove(list);
   if (error) console.warn('[admin] could not remove old images', list, error.message);
