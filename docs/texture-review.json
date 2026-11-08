@@ -11,8 +11,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.75,
+    "shade": 5.72,
+    "slope": 0.7,
     "edge": 2.44,
+    "line": 0,
     "hf": 11.15
    },
    "stored": null,
@@ -31,8 +33,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.38,
+    "shade": 4.25,
+    "slope": 0.8,
     "edge": 1.88,
+    "line": 0,
     "hf": 11.01
    },
    "stored": null,
@@ -51,8 +55,10 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 12.46,
+    "shade": 9.53,
+    "slope": 7.5,
     "edge": 4.6,
+    "line": 0,
     "hf": 23.77
    },
    "stored": null,
@@ -71,8 +77,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.85,
+    "shade": 6.01,
+    "slope": 1.4,
     "edge": 2.6,
+    "line": 0,
     "hf": 11.5
    },
    "stored": null,
@@ -91,9 +99,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.7,
-    "edge": 1.93,
-    "hf": 12.3
+    "shade": 4.52,
+    "slope": 0.8,
+    "edge": 1.98,
+    "line": 0,
+    "hf": 9.54
    },
    "stored": null,
    "tile": "#bccbcd",
@@ -111,9 +121,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5,
+    "shade": 4.71,
+    "slope": 1.1,
     "edge": 1.8,
-    "hf": 9.42
+    "line": 0,
+    "hf": 9.76
    },
    "stored": null,
    "tile": "#bdcbcd",
@@ -129,11 +141,13 @@
    "code": "YHCKB004",
    "colorFamily": "Brown",
    "mode": "pattern",
-   "reason": "folds or edges",
+   "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 10.78,
-    "edge": 3.62,
-    "hf": 17.49
+    "shade": 9.7,
+    "slope": 9.4,
+    "edge": 3.78,
+    "line": 0,
+    "hf": 21.59
    },
    "stored": null,
    "tile": "#847b74",
@@ -151,9 +165,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 7.28,
-    "edge": 2.71,
-    "hf": 14.7
+    "shade": 5.62,
+    "slope": 4.5,
+    "edge": 2.84,
+    "line": 0,
+    "hf": 14.94
    },
    "stored": null,
    "tile": "#958c87",
@@ -171,8 +187,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.98,
+    "shade": 6.01,
+    "slope": 0.6,
     "edge": 2.26,
+    "line": 0,
     "hf": 9.84
    },
    "stored": null,
@@ -192,8 +210,10 @@
    "reason": "flat area found",
    "metrics": {
     "shade": 6.16,
-    "edge": 2.28,
-    "hf": 10.07
+    "slope": 0.3,
+    "edge": 2.3,
+    "line": 0,
+    "hf": 10.28
    },
    "stored": null,
    "tile": "#b7cfb2",
@@ -211,9 +231,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.54,
-    "edge": 1.59,
-    "hf": 6.91
+    "shade": 4.92,
+    "slope": 3.2,
+    "edge": 1.57,
+    "line": 0,
+    "hf": 6.45
    },
    "stored": null,
    "tile": "#806a52",
@@ -231,8 +253,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.93,
+    "shade": 4.53,
+    "slope": 1.8,
     "edge": 1.44,
+    "line": 0,
     "hf": 7.27
    },
    "stored": null,
@@ -251,9 +275,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 7.14,
-    "edge": 2.64,
-    "hf": 13.34
+    "shade": 6.65,
+    "slope": 2.6,
+    "edge": 2.63,
+    "line": 0,
+    "hf": 13.32
    },
    "stored": null,
    "tile": "#c6c0a0",
@@ -271,9 +297,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.27,
-    "edge": 1.45,
-    "hf": 10.91
+    "shade": 4.9,
+    "slope": 6.9,
+    "edge": 1.46,
+    "line": 0,
+    "hf": 11.08
    },
    "stored": null,
    "tile": "#e5d9c6",
@@ -291,9 +319,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.59,
-    "edge": 2.29,
-    "hf": 14.28
+    "shade": 6.1,
+    "slope": 1.7,
+    "edge": 2.12,
+    "line": 0,
+    "hf": 12.74
    },
    "stored": null,
    "tile": "#adcdc6",
@@ -311,9 +341,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.32,
-    "edge": 1.65,
-    "hf": 7.57
+    "shade": 5.98,
+    "slope": 2.4,
+    "edge": 1.67,
+    "line": 0,
+    "hf": 7.6
    },
    "stored": null,
    "tile": "#b5cdc7",
@@ -329,11 +361,13 @@
    "code": "YHCKB003",
    "colorFamily": "Beige/Tan",
    "mode": "pattern",
-   "reason": "folds or edges",
+   "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 8.11,
-    "edge": 4.22,
-    "hf": 25.12
+    "shade": 8.19,
+    "slope": 2.5,
+    "edge": 4.34,
+    "line": 0,
+    "hf": 26.03
    },
    "stored": null,
    "tile": "#a29984",
@@ -351,9 +385,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 7.3,
-    "edge": 3.52,
-    "hf": 21.05
+    "shade": 7.69,
+    "slope": 1.4,
+    "edge": 3.65,
+    "line": 0,
+    "hf": 20.67
    },
    "stored": null,
    "tile": "#b0a792",
@@ -371,9 +407,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.18,
-    "edge": 2.27,
-    "hf": 10.45
+    "shade": 5.02,
+    "slope": 0.4,
+    "edge": 2.3,
+    "line": 0,
+    "hf": 10.42
    },
    "stored": null,
    "tile": "#d1d0d0",
@@ -391,9 +429,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 6.99,
+    "shade": 6.77,
+    "slope": 1.3,
     "edge": 3.5,
-    "hf": 16.02
+    "line": 0,
+    "hf": 15.07
    },
    "stored": null,
    "tile": "#cac9c9",
@@ -411,8 +451,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.49,
+    "shade": 5.57,
+    "slope": 3.4,
     "edge": 1.65,
+    "line": 0,
     "hf": 7.16
    },
    "stored": null,
@@ -431,8 +473,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.86,
+    "shade": 6.48,
+    "slope": 4.6,
     "edge": 2.08,
+    "line": 0,
     "hf": 9.61
    },
    "stored": null,
@@ -451,8 +495,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.5,
+    "shade": 2.01,
+    "slope": 2.9,
     "edge": 0.95,
+    "line": 0,
     "hf": 3.25
    },
    "stored": null,
@@ -471,9 +517,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.73,
-    "edge": 1.48,
-    "hf": 5.98
+    "shade": 4.75,
+    "slope": 0.4,
+    "edge": 1.47,
+    "line": 0,
+    "hf": 5.97
    },
    "stored": null,
    "tile": "#282a2a",
@@ -491,8 +539,10 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 6.71,
+    "shade": 6.52,
+    "slope": 1.9,
     "edge": 2.99,
+    "line": 0,
     "hf": 13.26
    },
    "stored": null,
@@ -511,9 +561,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.97,
-    "edge": 2.16,
-    "hf": 13.41
+    "shade": 4.77,
+    "slope": 1,
+    "edge": 2.17,
+    "line": 0,
+    "hf": 10.57
    },
    "stored": null,
    "tile": "#edc4be",
@@ -531,9 +583,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.04,
-    "edge": 2.43,
-    "hf": 9.66
+    "shade": 6.41,
+    "slope": 2.5,
+    "edge": 2.48,
+    "line": 0,
+    "hf": 9.61
    },
    "stored": null,
    "tile": "#90293b",
@@ -551,14 +605,38 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.87,
+    "shade": 7.29,
+    "slope": 2.8,
     "edge": 2.6,
+    "line": 0,
     "hf": 9.95
    },
    "stored": null,
    "tile": "#973044",
    "photoAvg": "#a02c43",
    "dE": 5.2,
+   "override": null
+  },
+  {
+   "id": "cellular:light-filtering:YHC38SL630",
+   "line": "cellular",
+   "family": "light-filtering",
+   "name": "Silver Mist",
+   "code": "YHC38SL630",
+   "colorFamily": "Gray",
+   "mode": "pattern",
+   "reason": "folds, edges and strong shading",
+   "metrics": {
+    "shade": 9.21,
+    "slope": 5.9,
+    "edge": 3.69,
+    "line": 0,
+    "hf": 19.1
+   },
+   "stored": null,
+   "tile": "#9fa2a9",
+   "photoAvg": "#a0a2aa",
+   "dE": 0.7,
    "override": null
   },
   {
@@ -571,34 +649,16 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 11.73,
+    "shade": 11,
+    "slope": 3.8,
     "edge": 4.8,
+    "line": 0.2,
     "hf": 21.63
    },
    "stored": null,
    "tile": "#a6adb2",
    "photoAvg": "#a8aeb3",
    "dE": 0.6,
-   "override": null
-  },
-  {
-   "id": "cellular:light-filtering:YHC38SL630",
-   "line": "cellular",
-   "family": "light-filtering",
-   "name": "Silver Mist",
-   "code": "YHC38SL630",
-   "colorFamily": "Gray",
-   "mode": "pattern",
-   "reason": "folds or edges",
-   "metrics": {
-    "shade": 9.86,
-    "edge": 3.72,
-    "hf": 15.06
-   },
-   "stored": null,
-   "tile": "#9fa2a9",
-   "photoAvg": "#a0a2aa",
-   "dE": 0.7,
    "override": null
   },
   {
@@ -611,9 +671,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.64,
-    "edge": 1.31,
-    "hf": 7.63
+    "shade": 3.54,
+    "slope": 0.7,
+    "edge": 1.32,
+    "line": 0,
+    "hf": 7.23
    },
    "stored": null,
    "tile": "#eeeeed",
@@ -631,9 +693,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 7.75,
-    "edge": 3.01,
-    "hf": 19.07
+    "shade": 6.2,
+    "slope": 7.6,
+    "edge": 2.93,
+    "line": 0,
+    "hf": 18.98
    },
    "stored": null,
    "tile": "#edece8",
@@ -651,9 +715,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.98,
-    "edge": 1.78,
-    "hf": 11.43
+    "shade": 4.79,
+    "slope": 5.2,
+    "edge": 1.79,
+    "line": 0,
+    "hf": 14.19
    },
    "stored": null,
    "tile": "#efece8",
@@ -671,9 +737,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.81,
-    "edge": 0.43,
-    "hf": 13.3
+    "shade": 3.05,
+    "slope": 2.7,
+    "edge": 0.41,
+    "line": 0,
+    "hf": 13.48
    },
    "stored": null,
    "tile": "#edece8",
@@ -691,9 +759,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.46,
-    "edge": 0.16,
-    "hf": 5.62
+    "shade": 1.16,
+    "slope": 1,
+    "edge": 0.15,
+    "line": 0,
+    "hf": 5.57
    },
    "stored": null,
    "tile": "#ececed",
@@ -711,9 +781,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.34,
+    "shade": 4.13,
+    "slope": 9.5,
     "edge": 1.1,
-    "hf": 16.62
+    "line": 0,
+    "hf": 16.7
    },
    "stored": null,
    "tile": "#8d8f94",
@@ -731,9 +803,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.65,
-    "edge": 0.2,
-    "hf": 9.56
+    "shade": 1.22,
+    "slope": 1.6,
+    "edge": 0.19,
+    "line": 0,
+    "hf": 9.43
    },
    "stored": null,
    "tile": "#eeece8",
@@ -751,9 +825,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.06,
-    "edge": 0.36,
-    "hf": 7.62
+    "shade": 2.52,
+    "slope": 5.1,
+    "edge": 0.3,
+    "line": 0,
+    "hf": 7.7
    },
    "stored": null,
    "tile": "#e0d9c4",
@@ -771,9 +847,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.38,
-    "edge": 2.04,
-    "hf": 43.08
+    "shade": 6.95,
+    "slope": 5,
+    "edge": 1.73,
+    "line": 0,
+    "hf": 42.67
    },
    "stored": null,
    "tile": "#383838",
@@ -791,8 +869,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.46,
+    "shade": 1.74,
+    "slope": 1.9,
     "edge": 0.31,
+    "line": 0,
     "hf": 8.54
    },
    "stored": null,
@@ -811,8 +891,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.87,
+    "shade": 0.82,
+    "slope": 3.1,
     "edge": 0.09,
+    "line": 0.3,
     "hf": 4.42
    },
    "stored": null,
@@ -831,8 +913,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4,
+    "shade": 3.21,
+    "slope": 2.7,
     "edge": 0.87,
+    "line": 0,
     "hf": 48.76
    },
    "stored": null,
@@ -851,9 +935,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.5,
+    "shade": 1.3,
+    "slope": 0.9,
     "edge": 0.28,
-    "hf": 6.56
+    "line": 0,
+    "hf": 6.65
    },
    "stored": null,
    "tile": "#eeece8",
@@ -871,9 +957,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 29.69,
-    "edge": 5.39,
-    "hf": 67.89
+    "shade": 32.93,
+    "slope": 1.7,
+    "edge": 5.33,
+    "line": 0,
+    "hf": 70.06
    },
    "stored": null,
    "tile": "#646468",
@@ -891,9 +979,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.39,
-    "edge": 0.14,
-    "hf": 6.52
+    "shade": 1.04,
+    "slope": 5.8,
+    "edge": 0.13,
+    "line": 0,
+    "hf": 6.38
    },
    "stored": null,
    "tile": "#eeece8",
@@ -911,9 +1001,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.65,
+    "shade": 0.83,
+    "slope": 2.9,
     "edge": 0.1,
-    "hf": 5.16
+    "line": 0,
+    "hf": 5.26
    },
    "stored": null,
    "tile": "#ecece8",
@@ -931,9 +1023,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.63,
+    "shade": 3.48,
+    "slope": 4.2,
     "edge": 0.69,
-    "hf": 19.59
+    "line": 0,
+    "hf": 18.92
    },
    "stored": null,
    "tile": "#eeebeb",
@@ -951,9 +1045,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.9,
-    "edge": 0.41,
-    "hf": 7.75
+    "shade": 2.69,
+    "slope": 5.3,
+    "edge": 0.24,
+    "line": 0,
+    "hf": 7.67
    },
    "stored": null,
    "tile": "#eeece8",
@@ -971,9 +1067,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.23,
-    "edge": 0.11,
-    "hf": 4.49
+    "shade": 0.85,
+    "slope": 1.2,
+    "edge": 0.12,
+    "line": 0,
+    "hf": 4.59
    },
    "stored": null,
    "tile": "#ededef",
@@ -991,9 +1089,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.15,
+    "shade": 1.14,
+    "slope": 5.4,
     "edge": 0.26,
-    "hf": 10.87
+    "line": 0,
+    "hf": 11.3
    },
    "stored": null,
    "tile": "#e5decb",
@@ -1011,9 +1111,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.06,
+    "shade": 4.54,
+    "slope": 2,
     "edge": 1.46,
-    "hf": 52.54
+    "line": 0,
+    "hf": 52.31
    },
    "stored": null,
    "tile": "#938c7f",
@@ -1031,8 +1133,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.59,
+    "shade": 2.48,
+    "slope": 2.1,
     "edge": 0.41,
+    "line": 0,
     "hf": 12.23
    },
    "stored": null,
@@ -1051,9 +1155,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.27,
+    "shade": 2.53,
+    "slope": 2.2,
     "edge": 0.6,
-    "hf": 23.62
+    "line": 0,
+    "hf": 23.71
    },
    "stored": null,
    "tile": "#a2a6ae",
@@ -1072,8 +1178,10 @@
    "reason": "flat area found",
    "metrics": {
     "shade": 3.65,
-    "edge": 0.47,
-    "hf": 8.51
+    "slope": 3.7,
+    "edge": 0.45,
+    "line": 0,
+    "hf": 8.15
    },
    "stored": null,
    "tile": "#ececeb",
@@ -1091,9 +1199,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.23,
-    "edge": 0.3,
-    "hf": 9.83
+    "shade": 1.52,
+    "slope": 3.1,
+    "edge": 0.28,
+    "line": 0,
+    "hf": 9.92
    },
    "stored": null,
    "tile": "#d6c8b3",
@@ -1111,9 +1221,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.21,
+    "shade": 3.47,
+    "slope": 5.1,
     "edge": 0.53,
-    "hf": 10.5
+    "line": 0,
+    "hf": 10.38
    },
    "stored": null,
    "tile": "#777063",
@@ -1131,9 +1243,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.79,
+    "shade": 2.36,
+    "slope": 3.2,
     "edge": 0.34,
-    "hf": 17.22
+    "line": 0,
+    "hf": 17.07
    },
    "stored": null,
    "tile": "#96928d",
@@ -1151,8 +1265,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.7,
+    "shade": 3.44,
+    "slope": 1.6,
     "edge": 0.76,
+    "line": 0,
     "hf": 25.58
    },
    "stored": null,
@@ -1171,8 +1287,10 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 17.3,
+    "shade": 15.41,
+    "slope": 10.4,
     "edge": 4.66,
+    "line": 2.6,
     "hf": 6.26
    },
    "stored": null,
@@ -1191,9 +1309,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.53,
-    "edge": 1.61,
-    "hf": 14.73
+    "shade": 7.42,
+    "slope": 6.5,
+    "edge": 1.49,
+    "line": 0,
+    "hf": 15.18
    },
    "stored": null,
    "tile": "#edece9",
@@ -1211,9 +1331,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.92,
-    "edge": 0.29,
-    "hf": 23.16
+    "shade": 1.96,
+    "slope": 4.9,
+    "edge": 0.3,
+    "line": 0,
+    "hf": 23.18
    },
    "stored": null,
    "tile": "#a7aab2",
@@ -1231,8 +1353,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.62,
+    "shade": 6.61,
+    "slope": 0.1,
     "edge": 1.12,
+    "line": 2.6,
     "hf": 5.53
    },
    "stored": null,
@@ -1251,9 +1375,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.02,
+    "shade": 1.07,
+    "slope": 1.8,
     "edge": 0.15,
-    "hf": 6.6
+    "line": 0,
+    "hf": 6.64
    },
    "stored": null,
    "tile": "#191a15",
@@ -1271,9 +1397,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.99,
-    "edge": 0.31,
-    "hf": 8.93
+    "shade": 1.69,
+    "slope": 2.9,
+    "edge": 0.29,
+    "line": 0,
+    "hf": 8.96
    },
    "stored": null,
    "tile": "#edece8",
@@ -1291,9 +1419,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.12,
+    "shade": 2.96,
+    "slope": 3.2,
     "edge": 0.75,
-    "hf": 22.39
+    "line": 0,
+    "hf": 22.61
    },
    "stored": null,
    "tile": "#b7ada2",
@@ -1311,9 +1441,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.96,
+    "shade": 1.88,
+    "slope": 0.7,
     "edge": 0.3,
-    "hf": 8.37
+    "line": 0,
+    "hf": 8.34
    },
    "stored": null,
    "tile": "#edece8",
@@ -1331,9 +1463,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.7,
-    "edge": 0.64,
-    "hf": 14.71
+    "shade": 3.42,
+    "slope": 6,
+    "edge": 0.66,
+    "line": 0,
+    "hf": 14.95
    },
    "stored": null,
    "tile": "#cecbc6",
@@ -1351,9 +1485,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.2,
-    "edge": 2.21,
-    "hf": 26.31
+    "shade": 7.75,
+    "slope": 4.6,
+    "edge": 2.35,
+    "line": 7.8,
+    "hf": 27.03
    },
    "stored": null,
    "tile": "#b8ac98",
@@ -1371,8 +1507,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.66,
+    "shade": 1.93,
+    "slope": 1.6,
     "edge": 0.24,
+    "line": 0,
     "hf": 14.32
    },
    "stored": null,
@@ -1391,8 +1529,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.49,
+    "shade": 1.39,
+    "slope": 0.6,
     "edge": 0.2,
+    "line": 0,
     "hf": 6.73
    },
    "stored": null,
@@ -1411,9 +1551,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.48,
-    "edge": 0.18,
-    "hf": 8.04
+    "shade": 1.76,
+    "slope": 3.5,
+    "edge": 0.2,
+    "line": 0,
+    "hf": 7.98
    },
    "stored": null,
    "tile": "#eeece8",
@@ -1431,8 +1573,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.52,
+    "shade": 1.45,
+    "slope": 2,
     "edge": 0.27,
+    "line": 0,
     "hf": 10.23
    },
    "stored": null,
@@ -1451,9 +1595,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.23,
-    "edge": 0.61,
-    "hf": 20.26
+    "shade": 3.58,
+    "slope": 3.6,
+    "edge": 0.63,
+    "line": 0,
+    "hf": 20.37
    },
    "stored": null,
    "tile": "#8d9391",
@@ -1471,9 +1617,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.62,
-    "edge": 0.22,
-    "hf": 9.92
+    "shade": 1.26,
+    "slope": 4,
+    "edge": 0.24,
+    "line": 0,
+    "hf": 9.78
    },
    "stored": null,
    "tile": "#efece8",
@@ -1491,8 +1639,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.02,
+    "shade": 1.96,
+    "slope": 0.7,
     "edge": 0.5,
+    "line": 0,
     "hf": 15.94
    },
    "stored": null,
@@ -1511,9 +1661,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.61,
+    "shade": 0.92,
+    "slope": 3,
     "edge": 0.16,
-    "hf": 10.34
+    "line": 0,
+    "hf": 10.43
    },
    "stored": null,
    "tile": "#ecece8",
@@ -1531,8 +1683,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.88,
+    "shade": 0.92,
+    "slope": 3.2,
     "edge": 0.12,
+    "line": 0,
     "hf": 4.72
    },
    "stored": null,
@@ -1551,9 +1705,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.77,
+    "shade": 2.91,
+    "slope": 5.7,
     "edge": 0.6,
-    "hf": 28.85
+    "line": 0,
+    "hf": 29.24
    },
    "stored": null,
    "tile": "#807c79",
@@ -1572,8 +1728,10 @@
    "reason": "flat area found",
    "metrics": {
     "shade": 2.41,
+    "slope": 0.7,
     "edge": 0.43,
-    "hf": 16.07
+    "line": 0,
+    "hf": 15.99
    },
    "stored": null,
    "tile": "#eeeceb",
@@ -1591,8 +1749,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.87,
+    "shade": 2.03,
+    "slope": 2.1,
     "edge": 0.4,
+    "line": 0,
     "hf": 9.67
    },
    "stored": null,
@@ -1611,8 +1771,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.24,
+    "shade": 1.29,
+    "slope": 4.3,
     "edge": 0.14,
+    "line": 0,
     "hf": 5.5
    },
    "stored": null,
@@ -1631,9 +1793,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.99,
-    "edge": 0.23,
-    "hf": 7.24
+    "shade": 0.65,
+    "slope": 5.2,
+    "edge": 0.16,
+    "line": 0,
+    "hf": 7.08
    },
    "stored": null,
    "tile": "#ebeced",
@@ -1651,9 +1815,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.14,
-    "edge": 0.32,
-    "hf": 9.4
+    "shade": 1.64,
+    "slope": 4.1,
+    "edge": 0.3,
+    "line": 0,
+    "hf": 9.41
    },
    "stored": null,
    "tile": "#edece8",
@@ -1671,8 +1837,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.99,
+    "shade": 4.68,
+    "slope": 2.3,
     "edge": 0.76,
+    "line": 0,
     "hf": 37.52
    },
    "stored": null,
@@ -1691,8 +1859,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.53,
+    "shade": 4.86,
+    "slope": 4.1,
     "edge": 1.28,
+    "line": 0,
     "hf": 37.62
    },
    "stored": null,
@@ -1711,8 +1881,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.12,
+    "shade": 5.81,
+    "slope": 2.7,
     "edge": 0.84,
+    "line": 0,
     "hf": 28.02
    },
    "stored": null,
@@ -1731,9 +1903,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.23,
+    "shade": 3.63,
+    "slope": 3.2,
     "edge": 0.56,
-    "hf": 18.72
+    "line": 0,
+    "hf": 18.81
    },
    "stored": null,
    "tile": "#b9b8b8",
@@ -1751,8 +1925,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.04,
+    "shade": 2.96,
+    "slope": 1,
     "edge": 0.39,
+    "line": 0,
     "hf": 15.13
    },
    "stored": null,
@@ -1771,9 +1947,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.73,
+    "shade": 4.45,
+    "slope": 1.9,
     "edge": 0.64,
-    "hf": 42.9
+    "line": 0,
+    "hf": 43.27
    },
    "stored": null,
    "tile": "#afafac",
@@ -1791,9 +1969,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.2,
+    "shade": 7.11,
+    "slope": 8.7,
     "edge": 1.98,
-    "hf": 34.45
+    "line": 2,
+    "hf": 33.98
    },
    "stored": null,
    "tile": "#bfc6c9",
@@ -1811,9 +1991,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.81,
-    "edge": 0.79,
-    "hf": 45.32
+    "shade": 3.95,
+    "slope": 3.4,
+    "edge": 0.76,
+    "line": 0,
+    "hf": 45.27
    },
    "stored": null,
    "tile": "#a9a39a",
@@ -1831,9 +2013,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.92,
+    "shade": 1.59,
+    "slope": 9.1,
     "edge": 0.32,
-    "hf": 14.05
+    "line": 0,
+    "hf": 13.76
    },
    "stored": null,
    "tile": "#c9c5bd",
@@ -1851,9 +2035,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 52.17,
-    "edge": 9.59,
-    "hf": 62.5
+    "shade": 45.04,
+    "slope": 29.7,
+    "edge": 9.33,
+    "line": 0,
+    "hf": 64.69
    },
    "stored": null,
    "tile": "#959ea1",
@@ -1871,9 +2057,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.63,
-    "edge": 0.27,
-    "hf": 10.46
+    "shade": 1.43,
+    "slope": 0.9,
+    "edge": 0.28,
+    "line": 0,
+    "hf": 10.35
    },
    "stored": null,
    "tile": "#ececec",
@@ -1891,8 +2079,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.57,
+    "shade": 4.81,
+    "slope": 5.3,
     "edge": 1.39,
+    "line": 0,
     "hf": 62.37
    },
    "stored": null,
@@ -1911,9 +2101,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.16,
-    "edge": 0.85,
-    "hf": 21.11
+    "shade": 5.61,
+    "slope": 4.5,
+    "edge": 0.78,
+    "line": 0,
+    "hf": 22.14
    },
    "stored": null,
    "tile": "#acada8",
@@ -1931,9 +2123,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.16,
+    "shade": 1.51,
+    "slope": 3.8,
     "edge": 0.28,
-    "hf": 13.2
+    "line": 0,
+    "hf": 13.17
    },
    "stored": null,
    "tile": "#6f7a7b",
@@ -1951,8 +2145,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.48,
+    "shade": 1.19,
+    "slope": 3.6,
     "edge": 0.12,
+    "line": 0.2,
     "hf": 5.62
    },
    "stored": null,
@@ -1971,8 +2167,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.14,
+    "shade": 1.65,
+    "slope": 1.3,
     "edge": 0.37,
+    "line": 0,
     "hf": 12.7
    },
    "stored": null,
@@ -1991,9 +2189,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.08,
+    "shade": 2.51,
+    "slope": 5.8,
     "edge": 0.41,
-    "hf": 7.38
+    "line": 0,
+    "hf": 7.32
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2011,9 +2211,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.75,
-    "edge": 0.57,
-    "hf": 17.61
+    "shade": 3.86,
+    "slope": 4.6,
+    "edge": 0.56,
+    "line": 0,
+    "hf": 17.55
    },
    "stored": null,
    "tile": "#959082",
@@ -2032,8 +2234,10 @@
    "reason": "flat area found",
    "metrics": {
     "shade": 3.07,
-    "edge": 0.36,
-    "hf": 10.51
+    "slope": 1.7,
+    "edge": 0.38,
+    "line": 0,
+    "hf": 10.49
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2051,9 +2255,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.18,
-    "edge": 1.11,
-    "hf": 10.91
+    "shade": 6.49,
+    "slope": 4.2,
+    "edge": 0.96,
+    "line": 0,
+    "hf": 10.76
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2071,9 +2277,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.63,
+    "shade": 1.91,
+    "slope": 4.5,
     "edge": 0.29,
-    "hf": 12.71
+    "line": 0,
+    "hf": 13.12
    },
    "stored": null,
    "tile": "#a2a6a9",
@@ -2091,9 +2299,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.69,
-    "edge": 0.18,
-    "hf": 6.24
+    "shade": 1.59,
+    "slope": 0.8,
+    "edge": 0.19,
+    "line": 0,
+    "hf": 6.28
    },
    "stored": null,
    "tile": "#ededec",
@@ -2111,8 +2321,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.7,
+    "shade": 5.37,
+    "slope": 6.6,
     "edge": 0.8,
+    "line": 0,
     "hf": 9.38
    },
    "stored": null,
@@ -2131,9 +2343,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.96,
-    "edge": 0.52,
-    "hf": 16.26
+    "shade": 2.09,
+    "slope": 7.1,
+    "edge": 0.56,
+    "line": 0,
+    "hf": 16.49
    },
    "stored": null,
    "tile": "#bfb3a7",
@@ -2151,9 +2365,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.48,
-    "edge": 0.34,
-    "hf": 17.18
+    "shade": 1.79,
+    "slope": 12.8,
+    "edge": 0.32,
+    "line": 0,
+    "hf": 17.12
    },
    "stored": null,
    "tile": "#8f8b85",
@@ -2171,9 +2387,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 21,
-    "edge": 5,
-    "hf": 65.84
+    "shade": 11.39,
+    "slope": 24.3,
+    "edge": 5.59,
+    "line": 0,
+    "hf": 64.04
    },
    "stored": null,
    "tile": "#9dabb6",
@@ -2191,9 +2409,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.92,
+    "shade": 3.54,
+    "slope": 3.4,
     "edge": 0.76,
-    "hf": 23.46
+    "line": 0,
+    "hf": 23.31
    },
    "stored": null,
    "tile": "#7f7a80",
@@ -2211,9 +2431,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.67,
+    "shade": 3.81,
+    "slope": 2.4,
     "edge": 0.55,
-    "hf": 8.87
+    "line": 0,
+    "hf": 8.57
    },
    "stored": null,
    "tile": "#2f3135",
@@ -2231,9 +2453,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.37,
-    "edge": 0.42,
-    "hf": 13.66
+    "shade": 2.22,
+    "slope": 2.8,
+    "edge": 0.4,
+    "line": 0,
+    "hf": 13.69
    },
    "stored": null,
    "tile": "#c7c3be",
@@ -2251,9 +2475,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.75,
-    "edge": 0.23,
-    "hf": 8.25
+    "shade": 1.32,
+    "slope": 1.5,
+    "edge": 0.24,
+    "line": 0,
+    "hf": 8.28
    },
    "stored": null,
    "tile": "#292a25",
@@ -2271,9 +2497,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.69,
+    "shade": 3.63,
+    "slope": 1.9,
     "edge": 0.62,
-    "hf": 7.7
+    "line": 0,
+    "hf": 7.55
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2291,9 +2519,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.63,
+    "shade": 1.62,
+    "slope": 2.1,
     "edge": 0.29,
-    "hf": 16.62
+    "line": 0,
+    "hf": 16.69
    },
    "stored": null,
    "tile": "#efece8",
@@ -2311,8 +2541,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.8,
+    "shade": 2.14,
+    "slope": 4.5,
     "edge": 0.36,
+    "line": 0,
     "hf": 14.28
    },
    "stored": null,
@@ -2331,9 +2563,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.78,
+    "shade": 1.52,
+    "slope": 7.1,
     "edge": 0.34,
-    "hf": 13.72
+    "line": 0.5,
+    "hf": 13.27
    },
    "stored": null,
    "tile": "#c9c4be",
@@ -2351,9 +2585,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.98,
-    "edge": 0.33,
-    "hf": 8.6
+    "shade": 1.71,
+    "slope": 2.8,
+    "edge": 0.32,
+    "line": 0,
+    "hf": 8.51
    },
    "stored": null,
    "tile": "#c7c3bc",
@@ -2371,8 +2607,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.83,
+    "shade": 3.53,
+    "slope": 1.5,
     "edge": 0.69,
+    "line": 0,
     "hf": 52.18
    },
    "stored": null,
@@ -2391,8 +2629,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.27,
+    "shade": 1.41,
+    "slope": 2.1,
     "edge": 0.16,
+    "line": 0,
     "hf": 7.52
    },
    "stored": null,
@@ -2411,9 +2651,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.33,
-    "edge": 0.38,
-    "hf": 9.84
+    "shade": 1.86,
+    "slope": 1.7,
+    "edge": 0.4,
+    "line": 0,
+    "hf": 9.85
    },
    "stored": null,
    "tile": "#edece8",
@@ -2431,9 +2673,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.74,
+    "shade": 2.2,
+    "slope": 3.3,
     "edge": 0.32,
-    "hf": 6.25
+    "line": 0,
+    "hf": 6.11
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2451,9 +2695,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.11,
-    "edge": 0.21,
-    "hf": 13.58
+    "shade": 1.57,
+    "slope": 2.4,
+    "edge": 0.2,
+    "line": 0,
+    "hf": 13.8
    },
    "stored": null,
    "tile": "#ecece8",
@@ -2471,9 +2717,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.04,
+    "shade": 3.03,
+    "slope": 5.5,
     "edge": 0.92,
-    "hf": 43.92
+    "line": 0,
+    "hf": 44.52
    },
    "stored": null,
    "tile": "#b3b0a8",
@@ -2491,8 +2739,10 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 12.83,
+    "shade": 11.86,
+    "slope": 5.2,
     "edge": 3.76,
+    "line": 1.9,
     "hf": 4.41
    },
    "stored": null,
@@ -2511,8 +2761,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.45,
+    "shade": 4.71,
+    "slope": 4.5,
     "edge": 0.7,
+    "line": 0,
     "hf": 15.55
    },
    "stored": null,
@@ -2531,9 +2783,11 @@
    "mode": "pattern",
    "reason": "folds or edges",
    "metrics": {
-    "shade": 9.33,
-    "edge": 2.98,
-    "hf": 27.1
+    "shade": 7.38,
+    "slope": 6.6,
+    "edge": 2.94,
+    "line": 0,
+    "hf": 27.13
    },
    "stored": null,
    "tile": "#cbcac6",
@@ -2551,9 +2805,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.25,
-    "edge": 0.91,
-    "hf": 62.21
+    "shade": 4.09,
+    "slope": 7.5,
+    "edge": 0.93,
+    "line": 0,
+    "hf": 61.61
    },
    "stored": null,
    "tile": "#ecebf0",
@@ -2568,12 +2824,14 @@
    "name": "Seal Gray",
    "code": "SP26001004",
    "colorFamily": "Gray",
-   "mode": "photo",
-   "reason": "flat area found",
+   "mode": "pattern",
+   "reason": "strong shading",
    "metrics": {
-    "shade": 10.7,
-    "edge": 2.05,
-    "hf": 45.12
+    "shade": 10.39,
+    "slope": 3.4,
+    "edge": 2.06,
+    "line": 0,
+    "hf": 45.63
    },
    "stored": null,
    "tile": "#9f9ea2",
@@ -2591,9 +2849,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.24,
+    "shade": 2.67,
+    "slope": 4.7,
     "edge": 0.46,
-    "hf": 18.03
+    "line": 0,
+    "hf": 18.1
    },
    "stored": null,
    "tile": "#aeaeb2",
@@ -2611,9 +2871,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.63,
-    "edge": 0.81,
-    "hf": 40.64
+    "shade": 2.99,
+    "slope": 5.8,
+    "edge": 0.78,
+    "line": 0,
+    "hf": 42.13
    },
    "stored": null,
    "tile": "#bcbcbe",
@@ -2631,8 +2893,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.57,
+    "shade": 2.23,
+    "slope": 2.9,
     "edge": 0.37,
+    "line": 0,
     "hf": 12.67
    },
    "stored": null,
@@ -2651,8 +2915,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.78,
+    "shade": 6.87,
+    "slope": 2.7,
     "edge": 1.68,
+    "line": 0,
     "hf": 31.09
    },
    "stored": null,
@@ -2671,9 +2937,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.97,
-    "edge": 0.24,
-    "hf": 8.44
+    "shade": 1.43,
+    "slope": 3.6,
+    "edge": 0.25,
+    "line": 0,
+    "hf": 8.74
    },
    "stored": null,
    "tile": "#ececeb",
@@ -2691,9 +2959,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.37,
-    "edge": 0.59,
-    "hf": 12.24
+    "shade": 3.42,
+    "slope": 6.4,
+    "edge": 0.67,
+    "line": 0,
+    "hf": 12.4
    },
    "stored": null,
    "tile": "#afb2bb",
@@ -2711,8 +2981,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.53,
+    "shade": 6.45,
+    "slope": 3.4,
     "edge": 1.38,
+    "line": 0,
     "hf": 49.19
    },
    "stored": null,
@@ -2731,9 +3003,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.49,
-    "edge": 0.66,
-    "hf": 18.44
+    "shade": 4.24,
+    "slope": 6.4,
+    "edge": 0.67,
+    "line": 0,
+    "hf": 18.34
    },
    "stored": null,
    "tile": "#bab6b3",
@@ -2751,9 +3025,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.19,
-    "edge": 0.33,
-    "hf": 7.76
+    "shade": 2.27,
+    "slope": 6.5,
+    "edge": 0.3,
+    "line": 0,
+    "hf": 7.89
    },
    "stored": null,
    "tile": "#eeece8",
@@ -2771,8 +3047,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.68,
+    "shade": 1.13,
+    "slope": 1.3,
     "edge": 0.25,
+    "line": 0,
     "hf": 12.48
    },
    "stored": null,
@@ -2791,9 +3069,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.89,
-    "edge": 0.18,
-    "hf": 6.66
+    "shade": 1.4,
+    "slope": 5,
+    "edge": 0.16,
+    "line": 0,
+    "hf": 7
    },
    "stored": null,
    "tile": "#edece8",
@@ -2811,8 +3091,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.43,
+    "shade": 1.1,
+    "slope": 1,
     "edge": 0.16,
+    "line": 0,
     "hf": 9.33
    },
    "stored": null,
@@ -2831,8 +3113,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.1,
+    "shade": 2.21,
+    "slope": 2.5,
     "edge": 0.41,
+    "line": 0,
     "hf": 11.24
    },
    "stored": null,
@@ -2851,9 +3135,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.23,
-    "edge": 0.63,
-    "hf": 18.14
+    "shade": 3.84,
+    "slope": 5.1,
+    "edge": 0.57,
+    "line": 0,
+    "hf": 18.25
    },
    "stored": null,
    "tile": "#b8b5ac",
@@ -2871,9 +3157,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.07,
-    "edge": 0.79,
-    "hf": 57.11
+    "shade": 3.7,
+    "slope": 4.9,
+    "edge": 0.75,
+    "line": 0,
+    "hf": 56.82
    },
    "stored": null,
    "tile": "#8e8e86",
@@ -2891,8 +3179,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.35,
+    "shade": 1.86,
+    "slope": 1.3,
     "edge": 0.36,
+    "line": 0,
     "hf": 14.73
    },
    "stored": null,
@@ -2911,8 +3201,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.58,
+    "shade": 4.1,
+    "slope": 4.2,
     "edge": 0.77,
+    "line": 0,
     "hf": 22.32
    },
    "stored": null,
@@ -2931,9 +3223,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.87,
+    "shade": 3.99,
+    "slope": 3.3,
     "edge": 0.65,
-    "hf": 18.95
+    "line": 0,
+    "hf": 18.75
    },
    "stored": null,
    "tile": "#b9ac9f",
@@ -2951,9 +3245,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.64,
+    "shade": 1.93,
+    "slope": 2.6,
     "edge": 0.29,
-    "hf": 9.49
+    "line": 1.1,
+    "hf": 9.52
    },
    "stored": null,
    "tile": "#efece8",
@@ -2971,9 +3267,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.33,
-    "edge": 1.04,
-    "hf": 23.07
+    "shade": 5.16,
+    "slope": 4.5,
+    "edge": 1.05,
+    "line": 0,
+    "hf": 23.16
    },
    "stored": null,
    "tile": "#7d8284",
@@ -2991,9 +3289,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.82,
+    "shade": 2.24,
+    "slope": 1.7,
     "edge": 0.3,
-    "hf": 13.73
+    "line": 0,
+    "hf": 13.72
    },
    "stored": null,
    "tile": "#eeece8",
@@ -3011,8 +3311,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.83,
+    "shade": 3.05,
+    "slope": 2.1,
     "edge": 0.56,
+    "line": 0,
     "hf": 37.79
    },
    "stored": null,
@@ -3031,9 +3333,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.79,
-    "edge": 0.17,
-    "hf": 7.72
+    "shade": 0.8,
+    "slope": 1.8,
+    "edge": 0.16,
+    "line": 0.8,
+    "hf": 7.66
    },
    "stored": null,
    "tile": "#eeece8",
@@ -3051,8 +3355,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.74,
+    "shade": 1.49,
+    "slope": 1,
     "edge": 0.12,
+    "line": 0,
     "hf": 4.85
    },
    "stored": null,
@@ -3071,8 +3377,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.92,
+    "shade": 1.37,
+    "slope": 1.7,
     "edge": 0.22,
+    "line": 0,
     "hf": 10.88
    },
    "stored": null,
@@ -3091,9 +3399,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.23,
-    "edge": 0.69,
-    "hf": 23.77
+    "shade": 4.04,
+    "slope": 5.6,
+    "edge": 0.65,
+    "line": 0,
+    "hf": 23.1
    },
    "stored": null,
    "tile": "#747a7c",
@@ -3111,9 +3421,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.79,
+    "shade": 1.46,
+    "slope": 12.1,
     "edge": 0.24,
-    "hf": 6.69
+    "line": 0,
+    "hf": 6.58
    },
    "stored": null,
    "tile": "#ececec",
@@ -3131,9 +3443,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.16,
-    "edge": 0.39,
-    "hf": 11.98
+    "shade": 3.79,
+    "slope": 15.9,
+    "edge": 0.52,
+    "line": 0,
+    "hf": 13.09
    },
    "stored": null,
    "tile": "#808588",
@@ -3151,8 +3465,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.03,
+    "shade": 1.31,
+    "slope": 1.7,
     "edge": 0.22,
+    "line": 0,
     "hf": 3.55
    },
    "stored": null,
@@ -3171,9 +3487,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.11,
-    "edge": 0.45,
-    "hf": 20.29
+    "shade": 2.5,
+    "slope": 9.8,
+    "edge": 0.47,
+    "line": 0,
+    "hf": 18.8
    },
    "stored": null,
    "tile": "#8390a7",
@@ -3188,12 +3506,14 @@
    "name": "Asphalt Gray",
    "code": "ZDS3003-17",
    "colorFamily": "Gray",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 12.9,
-    "edge": 0.77,
-    "hf": 12.7
+    "shade": 2.23,
+    "slope": 19,
+    "edge": 0.66,
+    "line": 0,
+    "hf": 12.73
    },
    "stored": null,
    "tile": "#8e9595",
@@ -3211,9 +3531,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.69,
-    "edge": 0.31,
-    "hf": 7.83
+    "shade": 1.94,
+    "slope": 19.8,
+    "edge": 0.33,
+    "line": 0,
+    "hf": 7.74
    },
    "stored": null,
    "tile": "#ececec",
@@ -3231,9 +3553,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.64,
-    "edge": 0.54,
-    "hf": 10.2
+    "shade": 2.39,
+    "slope": 14.8,
+    "edge": 0.48,
+    "line": 0,
+    "hf": 9.68
    },
    "stored": null,
    "tile": "#d4d6c2",
@@ -3251,9 +3575,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.85,
-    "edge": 0.27,
-    "hf": 7.34
+    "shade": 3.52,
+    "slope": 17.2,
+    "edge": 0.35,
+    "line": 0,
+    "hf": 7.71
    },
    "stored": null,
    "tile": "#ddd9c5",
@@ -3271,9 +3597,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.74,
-    "edge": 0.31,
-    "hf": 9.29
+    "shade": 3.02,
+    "slope": 20.1,
+    "edge": 0.46,
+    "line": 0,
+    "hf": 9.75
    },
    "stored": null,
    "tile": "#8e8f8a",
@@ -3291,9 +3619,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8,
-    "edge": 0.54,
-    "hf": 17.01
+    "shade": 2.08,
+    "slope": 11,
+    "edge": 0.5,
+    "line": 0,
+    "hf": 16.3
    },
    "stored": null,
    "tile": "#363935",
@@ -3311,9 +3641,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.96,
+    "shade": 3.09,
+    "slope": 10.3,
     "edge": 0.23,
-    "hf": 7.67
+    "line": 0,
+    "hf": 7.77
    },
    "stored": null,
    "tile": "#d9d4c1",
@@ -3331,8 +3663,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.38,
+    "shade": 4.71,
+    "slope": 2.1,
     "edge": 0.33,
+    "line": 0,
     "hf": 3.26
    },
    "stored": null,
@@ -3351,8 +3685,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.29,
+    "shade": 2.14,
+    "slope": 10.7,
     "edge": 0.38,
+    "line": 0,
     "hf": 6.14
    },
    "stored": null,
@@ -3371,8 +3707,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.42,
-    "edge": 0.32,
+    "shade": 3.12,
+    "slope": 19.9,
+    "edge": 0.31,
+    "line": 0,
     "hf": 8.03
    },
    "stored": null,
@@ -3391,9 +3729,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.68,
+    "shade": 1.46,
+    "slope": 15.8,
     "edge": 0.25,
-    "hf": 4.81
+    "line": 0,
+    "hf": 4.82
    },
    "stored": null,
    "tile": "#b8b8b8",
@@ -3411,9 +3751,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.15,
-    "edge": 0.55,
-    "hf": 5
+    "shade": 5.75,
+    "slope": 8,
+    "edge": 0.53,
+    "line": 1.1,
+    "hf": 4.8
    },
    "stored": null,
    "tile": "#ededec",
@@ -3431,8 +3773,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.21,
+    "shade": 4.62,
+    "slope": 10,
     "edge": 0.42,
+    "line": 0,
     "hf": 4.25
    },
    "stored": null,
@@ -3448,12 +3792,14 @@
    "name": "Granite Gray",
    "code": "ZDS3002-18",
    "colorFamily": "Gray",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 11.66,
-    "edge": 0.57,
-    "hf": 9.17
+    "shade": 4.08,
+    "slope": 19.4,
+    "edge": 0.68,
+    "line": 0,
+    "hf": 9.34
    },
    "stored": null,
    "tile": "#bebfbb",
@@ -3471,8 +3817,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.7,
+    "shade": 4.64,
+    "slope": 7.1,
     "edge": 0.37,
+    "line": 0.6,
     "hf": 7.25
    },
    "stored": null,
@@ -3491,9 +3839,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.3,
-    "edge": 0.5,
-    "hf": 10.15
+    "shade": 3.52,
+    "slope": 9.2,
+    "edge": 0.51,
+    "line": 0,
+    "hf": 10.01
    },
    "stored": null,
    "tile": "#b5b097",
@@ -3511,9 +3861,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.46,
-    "edge": 0.52,
-    "hf": 16.1
+    "shade": 2.42,
+    "slope": 7.2,
+    "edge": 0.51,
+    "line": 0,
+    "hf": 15.7
    },
    "stored": null,
    "tile": "#acaca8",
@@ -3528,12 +3880,14 @@
    "name": "Light Pink",
    "code": "ZDS3003-41",
    "colorFamily": "Pink/Red",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 11.79,
-    "edge": 0.39,
-    "hf": 6.95
+    "shade": 0.92,
+    "slope": 19.2,
+    "edge": 0.42,
+    "line": 0,
+    "hf": 8.78
    },
    "stored": null,
    "tile": "#cfc8be",
@@ -3551,8 +3905,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.69,
+    "shade": 3.04,
+    "slope": 6.3,
     "edge": 0.4,
+    "line": 0,
     "hf": 7.82
    },
    "stored": null,
@@ -3571,8 +3927,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.46,
+    "shade": 2.02,
+    "slope": 2,
     "edge": 0.39,
+    "line": 0.6,
     "hf": 4
    },
    "stored": null,
@@ -3591,9 +3949,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.78,
-    "edge": 0.28,
-    "hf": 7.66
+    "shade": 2.23,
+    "slope": 19.3,
+    "edge": 0.32,
+    "line": 0,
+    "hf": 7.59
    },
    "stored": null,
    "tile": "#868a90",
@@ -3611,8 +3971,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.4,
+    "shade": 2.87,
+    "slope": 4.8,
     "edge": 0.31,
+    "line": 0,
     "hf": 6.46
    },
    "stored": null,
@@ -3631,9 +3993,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.89,
+    "shade": 3.67,
+    "slope": 3.8,
     "edge": 0.38,
-    "hf": 5.66
+    "line": 0.5,
+    "hf": 5.83
    },
    "stored": null,
    "tile": "#ecede8",
@@ -3648,12 +4012,14 @@
    "name": "Pewter Gray",
    "code": "ZDS3001-18",
    "colorFamily": "Gray",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 11.4,
-    "edge": 0.36,
-    "hf": 9.61
+    "shade": 2.95,
+    "slope": 16.8,
+    "edge": 0.46,
+    "line": 0,
+    "hf": 9.72
    },
    "stored": null,
    "tile": "#bbbbbb",
@@ -3671,9 +4037,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.38,
-    "edge": 0.45,
-    "hf": 16.44
+    "shade": 1.93,
+    "slope": 13.9,
+    "edge": 0.4,
+    "line": 0,
+    "hf": 15.18
    },
    "stored": null,
    "tile": "#727570",
@@ -3691,9 +4059,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.3,
-    "edge": 0.5,
-    "hf": 8.89
+    "shade": 2.81,
+    "slope": 8,
+    "edge": 0.52,
+    "line": 0,
+    "hf": 8.44
    },
    "stored": null,
    "tile": "#ecece8",
@@ -3711,9 +4081,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.27,
-    "edge": 0.34,
-    "hf": 8.06
+    "shade": 7.5,
+    "slope": 13.9,
+    "edge": 0.65,
+    "line": 0.6,
+    "hf": 8.32
    },
    "stored": null,
    "tile": "#c0c0c0",
@@ -3731,9 +4103,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.59,
-    "edge": 0.64,
-    "hf": 19.55
+    "shade": 1.89,
+    "slope": 14.3,
+    "edge": 0.55,
+    "line": 0,
+    "hf": 17.99
    },
    "stored": null,
    "tile": "#543121",
@@ -3751,9 +4125,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.36,
-    "edge": 0.45,
-    "hf": 13.54
+    "shade": 6.36,
+    "slope": 20.2,
+    "edge": 0.49,
+    "line": 0,
+    "hf": 12.91
    },
    "stored": null,
    "tile": "#828789",
@@ -3771,9 +4147,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.82,
-    "edge": 0.68,
-    "hf": 10.99
+    "shade": 4.04,
+    "slope": 18.9,
+    "edge": 0.67,
+    "line": 0,
+    "hf": 10.43
    },
    "stored": null,
    "tile": "#acb0b5",
@@ -3791,9 +4169,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.6,
-    "edge": 0.25,
-    "hf": 4.73
+    "shade": 1.7,
+    "slope": 20.5,
+    "edge": 0.31,
+    "line": 0,
+    "hf": 6.52
    },
    "stored": null,
    "tile": "#ececec",
@@ -3811,8 +4191,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.54,
+    "shade": 2.06,
+    "slope": 9.3,
     "edge": 0.19,
+    "line": 0,
     "hf": 6.02
    },
    "stored": null,
@@ -3831,9 +4213,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.28,
-    "edge": 0.36,
-    "hf": 15.15
+    "shade": 6.23,
+    "slope": 20.5,
+    "edge": 0.81,
+    "line": 1.6,
+    "hf": 14.99
    },
    "stored": null,
    "tile": "#828282",
@@ -3851,9 +4235,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.86,
-    "edge": 0.47,
-    "hf": 7.05
+    "shade": 5.42,
+    "slope": 14.6,
+    "edge": 0.45,
+    "line": 0,
+    "hf": 7.37
    },
    "stored": null,
    "tile": "#ececec",
@@ -3871,9 +4257,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.39,
-    "edge": 0.23,
-    "hf": 7.65
+    "shade": 2.21,
+    "slope": 17.5,
+    "edge": 0.37,
+    "line": 0,
+    "hf": 7.61
    },
    "stored": null,
    "tile": "#bbb0c5",
@@ -3891,9 +4279,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.89,
+    "shade": 0.41,
+    "slope": 2,
     "edge": 0.08,
-    "hf": 5.53
+    "line": 0,
+    "hf": 5.46
    },
    "stored": null,
    "tile": "#ececec",
@@ -3911,9 +4301,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.37,
-    "edge": 0.98,
-    "hf": 30.72
+    "shade": 3.68,
+    "slope": 2.5,
+    "edge": 1.09,
+    "line": 0,
+    "hf": 32.07
    },
    "stored": null,
    "tile": "#817e84",
@@ -3931,9 +4323,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.59,
+    "shade": 1.28,
+    "slope": 7.2,
     "edge": 0.21,
-    "hf": 30.91
+    "line": 0,
+    "hf": 31.11
    },
    "stored": null,
    "tile": "#ecebf0",
@@ -3951,8 +4345,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.67,
+    "shade": 3.96,
+    "slope": 6,
     "edge": 1.22,
+    "line": 0,
     "hf": 30.12
    },
    "stored": null,
@@ -3971,8 +4367,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.16,
+    "shade": 2.65,
+    "slope": 3,
     "edge": 0.9,
+    "line": 0,
     "hf": 12.8
    },
    "stored": null,
@@ -3991,9 +4389,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.25,
+    "shade": 1.16,
+    "slope": 4.1,
     "edge": 0.13,
-    "hf": 13.85
+    "line": 0,
+    "hf": 14.44
    },
    "stored": null,
    "tile": "#373531",
@@ -4011,8 +4411,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.97,
+    "shade": 1.33,
+    "slope": 10.3,
     "edge": 0.24,
+    "line": 0,
     "hf": 13.06
    },
    "stored": null,
@@ -4031,9 +4433,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.8,
+    "shade": 2.86,
+    "slope": 6.6,
     "edge": 0.47,
-    "hf": 6.91
+    "line": 0,
+    "hf": 6.69
    },
    "stored": null,
    "tile": "#dfdad1",
@@ -4051,8 +4455,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.72,
+    "shade": 0.67,
+    "slope": 1.8,
     "edge": 0.16,
+    "line": 0,
     "hf": 22.47
    },
    "stored": null,
@@ -4071,9 +4477,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.61,
-    "edge": 1.31,
-    "hf": 21.51
+    "shade": 6.91,
+    "slope": 4.9,
+    "edge": 1.29,
+    "line": 0,
+    "hf": 21.89
    },
    "stored": null,
    "tile": "#6c7f96",
@@ -4091,9 +4499,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.54,
-    "edge": 1,
-    "hf": 24.73
+    "shade": 5.14,
+    "slope": 8,
+    "edge": 0.98,
+    "line": 0,
+    "hf": 24.46
    },
    "stored": null,
    "tile": "#547198",
@@ -4111,8 +4521,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.72,
+    "shade": 3.05,
+    "slope": 2.4,
     "edge": 0.67,
+    "line": 0,
     "hf": 7.83
    },
    "stored": null,
@@ -4131,8 +4543,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 0.95,
+    "shade": 0.67,
+    "slope": 0.8,
     "edge": 0.51,
+    "line": 0,
     "hf": 20.05
    },
    "stored": null,
@@ -4151,9 +4565,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.73,
-    "edge": 1.19,
-    "hf": 34.48
+    "shade": 5.02,
+    "slope": 9.8,
+    "edge": 1.2,
+    "line": 0,
+    "hf": 34.85
    },
    "stored": null,
    "tile": "#857e74",
@@ -4171,9 +4587,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.74,
-    "edge": 1.05,
-    "hf": 10.98
+    "shade": 4.03,
+    "slope": 2.6,
+    "edge": 1.03,
+    "line": 4.5,
+    "hf": 10.74
    },
    "stored": null,
    "tile": "#beb49f",
@@ -4191,8 +4609,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.26,
+    "shade": 2.11,
+    "slope": 5.1,
     "edge": 0.43,
+    "line": 0,
     "hf": 10.86
    },
    "stored": null,
@@ -4211,9 +4631,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.68,
+    "shade": 2.44,
+    "slope": 10.2,
     "edge": 0.73,
-    "hf": 16.46
+    "line": 0,
+    "hf": 16.36
    },
    "stored": null,
    "tile": "#a69289",
@@ -4231,8 +4653,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.29,
+    "shade": 3.52,
+    "slope": 2.4,
     "edge": 0.61,
+    "line": 0,
     "hf": 48.06
    },
    "stored": null,
@@ -4251,8 +4675,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.14,
+    "shade": 1.88,
+    "slope": 7.3,
     "edge": 0.63,
+    "line": 0,
     "hf": 20.93
    },
    "stored": null,
@@ -4271,9 +4697,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.24,
-    "edge": 0.89,
-    "hf": 32.21
+    "shade": 5.8,
+    "slope": 14.7,
+    "edge": 0.92,
+    "line": 0,
+    "hf": 30.45
    },
    "stored": null,
    "tile": "#6c5d4d",
@@ -4291,9 +4719,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.45,
-    "edge": 0.26,
-    "hf": 20.95
+    "shade": 1.18,
+    "slope": 2.7,
+    "edge": 0.25,
+    "line": 0,
+    "hf": 21.04
    },
    "stored": null,
    "tile": "#9b99a4",
@@ -4311,9 +4741,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.05,
-    "edge": 0.31,
-    "hf": 3.99
+    "shade": 1.29,
+    "slope": 8.7,
+    "edge": 0.17,
+    "line": 0,
+    "hf": 5.06
    },
    "stored": null,
    "tile": "#d1cdbe",
@@ -4331,9 +4763,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.9,
-    "edge": 0.86,
-    "hf": 22.42
+    "shade": 5.68,
+    "slope": 19.2,
+    "edge": 0.87,
+    "line": 0,
+    "hf": 26.1
    },
    "stored": null,
    "tile": "#76604e",
@@ -4351,9 +4785,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.96,
-    "edge": 0.36,
-    "hf": 12.99
+    "shade": 1.29,
+    "slope": 6.4,
+    "edge": 0.38,
+    "line": 0,
+    "hf": 13.59
    },
    "stored": null,
    "tile": "#949590",
@@ -4371,8 +4807,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.14,
+    "shade": 5.12,
+    "slope": 0.2,
     "edge": 0.73,
+    "line": 0,
     "hf": 22.46
    },
    "stored": null,
@@ -4391,9 +4829,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.11,
+    "shade": 4.12,
+    "slope": 10.8,
     "edge": 0.35,
-    "hf": 1.77
+    "line": 0.6,
+    "hf": 2.44
    },
    "stored": null,
    "tile": "#ececeb",
@@ -4411,8 +4851,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.91,
+    "shade": 1.67,
+    "slope": 1.4,
     "edge": 0.36,
+    "line": 0,
     "hf": 22.27
    },
    "stored": null,
@@ -4431,9 +4873,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.04,
-    "edge": 0.13,
-    "hf": 14.08
+    "shade": 0.59,
+    "slope": 1.7,
+    "edge": 0.14,
+    "line": 0,
+    "hf": 13.36
    },
    "stored": null,
    "tile": "#3b2a19",
@@ -4451,9 +4895,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.87,
-    "edge": 1.18,
-    "hf": 31.59
+    "shade": 5.31,
+    "slope": 6.5,
+    "edge": 1.2,
+    "line": 0,
+    "hf": 31.12
    },
    "stored": null,
    "tile": "#6a584f",
@@ -4471,9 +4917,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.01,
+    "shade": 0.98,
+    "slope": 3,
     "edge": 0.21,
-    "hf": 37.26
+    "line": 0.7,
+    "hf": 38.97
    },
    "stored": null,
    "tile": "#4c4139",
@@ -4491,8 +4939,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.29,
+    "shade": 1.47,
+    "slope": 6.8,
     "edge": 0.41,
+    "line": 0,
     "hf": 10.5
    },
    "stored": null,
@@ -4511,9 +4961,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.84,
+    "shade": 0.69,
+    "slope": 7.5,
     "edge": 0.14,
-    "hf": 9.41
+    "line": 0,
+    "hf": 9.23
    },
    "stored": null,
    "tile": "#ecebf0",
@@ -4531,8 +4983,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.49,
+    "shade": 1.11,
+    "slope": 1,
     "edge": 0.1,
+    "line": 0,
     "hf": 2.52
    },
    "stored": null,
@@ -4551,9 +5005,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.64,
-    "edge": 0.25,
-    "hf": 44.93
+    "shade": 1.2,
+    "slope": 9.7,
+    "edge": 0.23,
+    "line": 0,
+    "hf": 45.77
    },
    "stored": null,
    "tile": "#9fa0a7",
@@ -4571,9 +5027,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.07,
+    "shade": 0.82,
+    "slope": 0.7,
     "edge": 0.26,
-    "hf": 13.41
+    "line": 0,
+    "hf": 12.55
    },
    "stored": null,
    "tile": "#dbd3cb",
@@ -4591,9 +5049,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.73,
-    "edge": 1.62,
-    "hf": 25.64
+    "shade": 5.41,
+    "slope": 7.8,
+    "edge": 1.5,
+    "line": 4.1,
+    "hf": 24.45
    },
    "stored": null,
    "tile": "#4e4d52",
@@ -4612,7 +5072,9 @@
    "reason": "flat area found",
    "metrics": {
     "shade": 5.14,
+    "slope": 0.2,
     "edge": 0.72,
+    "line": 0,
     "hf": 22.44
    },
    "stored": null,
@@ -4631,8 +5093,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.42,
+    "shade": 3.11,
+    "slope": 3.8,
     "edge": 0.71,
+    "line": 1.9,
     "hf": 12.51
    },
    "stored": null,
@@ -4651,9 +5115,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.45,
+    "shade": 1.37,
+    "slope": 3.1,
     "edge": 0.24,
-    "hf": 6.33
+    "line": 0,
+    "hf": 6.27
    },
    "stored": null,
    "tile": "#e4e1d9",
@@ -4671,8 +5137,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.61,
+    "shade": 4.28,
+    "slope": 2,
     "edge": 1.01,
+    "line": 0,
     "hf": 18.78
    },
    "stored": null,
@@ -4691,9 +5159,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.29,
-    "edge": 0.78,
-    "hf": 15.61
+    "shade": 3.02,
+    "slope": 13.1,
+    "edge": 0.74,
+    "line": 0,
+    "hf": 16.01
    },
    "stored": null,
    "tile": "#cdc2ae",
@@ -4711,9 +5181,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.61,
+    "shade": 0.67,
+    "slope": 1.7,
     "edge": 0.33,
-    "hf": 19.17
+    "line": 0,
+    "hf": 18.66
    },
    "stored": null,
    "tile": "#ececee",
@@ -4731,9 +5203,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.5,
-    "edge": 0.99,
-    "hf": 11.83
+    "shade": 7.65,
+    "slope": 10.3,
+    "edge": 0.97,
+    "line": 2.7,
+    "hf": 8.91
    },
    "stored": null,
    "tile": "#87857b",
@@ -4751,9 +5225,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.74,
-    "edge": 0.46,
-    "hf": 13.59
+    "shade": 2.13,
+    "slope": 3.6,
+    "edge": 0.43,
+    "line": 0,
+    "hf": 13.9
    },
    "stored": null,
    "tile": "#e3d4c6",
@@ -4771,8 +5247,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.57,
+    "shade": 0.97,
+    "slope": 2.4,
     "edge": 0.1,
+    "line": 0,
     "hf": 1.36
    },
    "stored": null,
@@ -4791,9 +5269,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.43,
-    "edge": 0.64,
-    "hf": 34
+    "shade": 1.65,
+    "slope": 5.3,
+    "edge": 0.61,
+    "line": 0,
+    "hf": 32.44
    },
    "stored": null,
    "tile": "#bcbcc1",
@@ -4811,8 +5291,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.16,
+    "shade": 0.55,
+    "slope": 1.2,
     "edge": 0.09,
+    "line": 0,
     "hf": 1.84
    },
    "stored": null,
@@ -4831,9 +5313,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.07,
-    "edge": 0.45,
-    "hf": 7.96
+    "shade": 2.35,
+    "slope": 4.7,
+    "edge": 0.49,
+    "line": 0,
+    "hf": 8.44
    },
    "stored": null,
    "tile": "#d4d3d8",
@@ -4851,9 +5335,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.89,
+    "shade": 3.12,
+    "slope": 6,
     "edge": 0.37,
-    "hf": 2.97
+    "line": 0,
+    "hf": 3.42
    },
    "stored": null,
    "tile": "#ebeceb",
@@ -4871,9 +5357,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.48,
-    "edge": 0.24,
-    "hf": 9.42
+    "shade": 2.87,
+    "slope": 4.3,
+    "edge": 0.25,
+    "line": 0,
+    "hf": 9.41
    },
    "stored": null,
    "tile": "#ecece8",
@@ -4891,9 +5379,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.46,
+    "shade": 0.51,
+    "slope": 4.3,
     "edge": 0.18,
-    "hf": 30.03
+    "line": 0,
+    "hf": 30.29
    },
    "stored": null,
    "tile": "#ececf0",
@@ -4911,8 +5401,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.67,
+    "shade": 1.48,
+    "slope": 3.3,
     "edge": 0.74,
+    "line": 0,
     "hf": 24.45
    },
    "stored": null,
@@ -4931,8 +5423,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.91,
+    "shade": 1.52,
+    "slope": 1.4,
     "edge": 0.6,
+    "line": 0,
     "hf": 24.38
    },
    "stored": null,
@@ -4951,9 +5445,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.81,
-    "edge": 0.62,
-    "hf": 14.98
+    "shade": 2.62,
+    "slope": 6.2,
+    "edge": 0.61,
+    "line": 0,
+    "hf": 15.07
    },
    "stored": null,
    "tile": "#cdcbd1",
@@ -4971,9 +5467,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.84,
-    "edge": 1.14,
-    "hf": 29.55
+    "shade": 7.98,
+    "slope": 9.4,
+    "edge": 1.38,
+    "line": 0,
+    "hf": 28.38
    },
    "stored": null,
    "tile": "#605147",
@@ -4991,9 +5489,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.61,
+    "shade": 2.93,
+    "slope": 2,
     "edge": 0.26,
-    "hf": 2.35
+    "line": 0,
+    "hf": 2.61
    },
    "stored": null,
    "tile": "#aeafad",
@@ -5011,9 +5511,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.33,
-    "edge": 1.41,
-    "hf": 36.12
+    "shade": 5.71,
+    "slope": 14,
+    "edge": 1.53,
+    "line": 0,
+    "hf": 36.76
    },
    "stored": null,
    "tile": "#9f9585",
@@ -5031,9 +5533,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 0.61,
-    "edge": 0.15,
-    "hf": 37.27
+    "shade": 0.47,
+    "slope": 1.5,
+    "edge": 0.17,
+    "line": 0,
+    "hf": 36.3
    },
    "stored": null,
    "tile": "#38383c",
@@ -5051,9 +5555,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.1,
-    "edge": 0.74,
-    "hf": 29.65
+    "shade": 2.51,
+    "slope": 2.8,
+    "edge": 0.62,
+    "line": 0,
+    "hf": 29.79
    },
    "stored": null,
    "tile": "#a09ea7",
@@ -5071,8 +5577,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.95,
+    "shade": 1,
+    "slope": 6.2,
     "edge": 0.16,
+    "line": 0,
     "hf": 8.15
    },
    "stored": null,
@@ -5091,9 +5599,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.58,
+    "shade": 7.32,
+    "slope": 1.1,
     "edge": 2.05,
-    "hf": 68.41
+    "line": 0,
+    "hf": 67.5
    },
    "stored": null,
    "tile": "#37383c",
@@ -5111,9 +5621,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.85,
-    "edge": 0.31,
-    "hf": 21.13
+    "shade": 1.85,
+    "slope": 8.5,
+    "edge": 0.25,
+    "line": 0,
+    "hf": 21.11
    },
    "stored": null,
    "tile": "#c5c1b2",
@@ -5131,9 +5643,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.56,
-    "edge": 0.57,
-    "hf": 27.79
+    "shade": 3.56,
+    "slope": 11.6,
+    "edge": 0.58,
+    "line": 0,
+    "hf": 28.88
    },
    "stored": null,
    "tile": "#b0a89b",
@@ -5151,8 +5665,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.3,
+    "shade": 6.16,
+    "slope": 1.6,
     "edge": 1.36,
+    "line": 0,
     "hf": 46.59
    },
    "stored": null,
@@ -5171,9 +5687,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.35,
-    "edge": 0.4,
-    "hf": 22.93
+    "shade": 0.89,
+    "slope": 7.5,
+    "edge": 0.42,
+    "line": 0,
+    "hf": 19.75
    },
    "stored": null,
    "tile": "#6b6867",
@@ -5191,9 +5709,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.91,
-    "edge": 0.45,
-    "hf": 8.14
+    "shade": 4.56,
+    "slope": 12.7,
+    "edge": 0.52,
+    "line": 0,
+    "hf": 7.48
    },
    "stored": null,
    "tile": "#99968b",
@@ -5211,9 +5731,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.39,
-    "edge": 0.21,
-    "hf": 10.58
+    "shade": 1.12,
+    "slope": 2.3,
+    "edge": 0.22,
+    "line": 0,
+    "hf": 11.23
    },
    "stored": null,
    "tile": "#d3d3d3",
@@ -5231,8 +5753,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.68,
+    "shade": 1,
+    "slope": 3.8,
     "edge": 0.24,
+    "line": 1.5,
     "hf": 8.83
    },
    "stored": null,
@@ -5251,9 +5775,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.41,
-    "edge": 0.2,
-    "hf": 3.79
+    "shade": 1.73,
+    "slope": 12.9,
+    "edge": 0.23,
+    "line": 0,
+    "hf": 3.8
    },
    "stored": null,
    "tile": "#eaede8",
@@ -5271,9 +5797,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.66,
+    "shade": 0.91,
+    "slope": 6.3,
     "edge": 0.22,
-    "hf": 20.73
+    "line": 0,
+    "hf": 21.02
    },
    "stored": null,
    "tile": "#efebe9",
@@ -5291,9 +5819,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.22,
-    "edge": 0.18,
-    "hf": 4.08
+    "shade": 0.85,
+    "slope": 10.5,
+    "edge": 0.19,
+    "line": 0,
+    "hf": 4.03
    },
    "stored": null,
    "tile": "#ecece8",
@@ -5311,8 +5841,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.66,
+    "shade": 3.65,
+    "slope": 0.4,
     "edge": 0.55,
+    "line": 0,
     "hf": 13.8
    },
    "stored": null,
@@ -5331,9 +5863,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.86,
-    "edge": 1.37,
-    "hf": 29.7
+    "shade": 7.45,
+    "slope": 4.5,
+    "edge": 1.7,
+    "line": 0,
+    "hf": 38.7
    },
    "stored": null,
    "tile": "#383838",
@@ -5351,9 +5885,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.26,
-    "edge": 1.21,
-    "hf": 26.12
+    "shade": 2.43,
+    "slope": 12.2,
+    "edge": 1.19,
+    "line": 0,
+    "hf": 27.42
    },
    "stored": null,
    "tile": "#8f8e93",
@@ -5371,9 +5907,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.59,
-    "edge": 2.01,
-    "hf": 25.46
+    "shade": 1.45,
+    "slope": 0.6,
+    "edge": 2.02,
+    "line": 0,
+    "hf": 24.28
    },
    "stored": null,
    "tile": "#332b2a",
@@ -5391,9 +5929,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.36,
-    "edge": 0.88,
-    "hf": 5.95
+    "shade": 4.25,
+    "slope": 7.3,
+    "edge": 0.79,
+    "line": 0.7,
+    "hf": 5.48
    },
    "stored": null,
    "tile": "#b7afa6",
@@ -5411,9 +5951,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.91,
-    "edge": 2.17,
-    "hf": 59.17
+    "shade": 7.62,
+    "slope": 11.6,
+    "edge": 2.09,
+    "line": 0,
+    "hf": 61.04
    },
    "stored": null,
    "tile": "#777883",
@@ -5431,8 +5973,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.16,
+    "shade": 1.15,
+    "slope": 0.1,
     "edge": 0.2,
+    "line": 0,
     "hf": 18.94
    },
    "stored": null,
@@ -5451,8 +5995,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.14,
+    "shade": 1.88,
+    "slope": 7.3,
     "edge": 0.63,
+    "line": 0,
     "hf": 20.93
    },
    "stored": null,
@@ -5471,9 +6017,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.38,
-    "edge": 1.79,
-    "hf": 47.54
+    "shade": 6.72,
+    "slope": 4.7,
+    "edge": 1.93,
+    "line": 0,
+    "hf": 43.34
    },
    "stored": null,
    "tile": "#3a373d",
@@ -5491,9 +6039,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.13,
-    "edge": 2.11,
-    "hf": 67.67
+    "shade": 7.05,
+    "slope": 2.3,
+    "edge": 2.27,
+    "line": 0,
+    "hf": 69.66
    },
    "stored": null,
    "tile": "#37383c",
@@ -5511,9 +6061,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.57,
-    "edge": 0.62,
-    "hf": 8.1
+    "shade": 2.65,
+    "slope": 9,
+    "edge": 0.57,
+    "line": 0,
+    "hf": 8.18
    },
    "stored": null,
    "tile": "#eae5d8",
@@ -5531,8 +6083,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.26,
+    "shade": 5.14,
+    "slope": 3.4,
     "edge": 0.98,
+    "line": 0,
     "hf": 21.83
    },
    "stored": null,
@@ -5551,9 +6105,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.44,
-    "edge": 1.07,
-    "hf": 13.65
+    "shade": 5.79,
+    "slope": 9.7,
+    "edge": 1.06,
+    "line": 0,
+    "hf": 13.53
    },
    "stored": null,
    "tile": "#d7d0c8",
@@ -5571,9 +6127,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.43,
+    "shade": 1.23,
+    "slope": 7.9,
     "edge": 0.32,
-    "hf": 10.73
+    "line": 0,
+    "hf": 11.42
    },
    "stored": null,
    "tile": "#c7c3c5",
@@ -5591,9 +6149,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.87,
+    "shade": 1.13,
+    "slope": 8.9,
     "edge": 0.22,
-    "hf": 8.51
+    "line": 0,
+    "hf": 8.34
    },
    "stored": null,
    "tile": "#ececf0",
@@ -5611,8 +6171,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.3,
+    "shade": 1.15,
+    "slope": 0.9,
     "edge": 0.24,
+    "line": 0,
     "hf": 13.6
    },
    "stored": null,
@@ -5631,8 +6193,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.06,
+    "shade": 1.27,
+    "slope": 10.6,
     "edge": 0.28,
+    "line": 0,
     "hf": 13.4
    },
    "stored": null,
@@ -5651,9 +6215,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.43,
-    "edge": 0.17,
-    "hf": 27.3
+    "shade": 0.97,
+    "slope": 1.2,
+    "edge": 0.15,
+    "line": 0,
+    "hf": 27.29
    },
    "stored": null,
    "tile": "#ececf0",
@@ -5671,9 +6237,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.87,
-    "edge": 0.34,
-    "hf": 1.52
+    "shade": 2.58,
+    "slope": 3.1,
+    "edge": 0.3,
+    "line": 0.3,
+    "hf": 1.58
    },
    "stored": null,
    "tile": "#ececec",
@@ -5691,9 +6259,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.06,
-    "edge": 0.15,
-    "hf": 5.93
+    "shade": 0.59,
+    "slope": 6.6,
+    "edge": 0.16,
+    "line": 0,
+    "hf": 5.84
    },
    "stored": null,
    "tile": "#efece8",
@@ -5711,8 +6281,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.8,
+    "shade": 1.71,
+    "slope": 0.7,
     "edge": 0.34,
+    "line": 0,
     "hf": 4.55
    },
    "stored": null,
@@ -5731,8 +6303,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.65,
+    "shade": 1.62,
+    "slope": 0.1,
     "edge": 0.32,
+    "line": 0,
     "hf": 8.69
    },
    "stored": null,
@@ -5751,9 +6325,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.56,
-    "edge": 0.26,
-    "hf": 7.58
+    "shade": 1.77,
+    "slope": 8.6,
+    "edge": 0.28,
+    "line": 0,
+    "hf": 7.13
    },
    "stored": null,
    "tile": "#ebede8",
@@ -5771,9 +6347,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.87,
-    "edge": 0.38,
-    "hf": 6.49
+    "shade": 3.4,
+    "slope": 2.7,
+    "edge": 0.36,
+    "line": 0,
+    "hf": 5.87
    },
    "stored": null,
    "tile": "#c3beb5",
@@ -5791,9 +6369,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.16,
-    "edge": 0.39,
-    "hf": 12.44
+    "shade": 1.57,
+    "slope": 3.7,
+    "edge": 0.37,
+    "line": 0,
+    "hf": 12.48
    },
    "stored": null,
    "tile": "#c9c6c7",
@@ -5811,9 +6391,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.92,
-    "edge": 1.64,
-    "hf": 32.67
+    "shade": 7.92,
+    "slope": 8.4,
+    "edge": 1.4,
+    "line": 0,
+    "hf": 31.34
    },
    "stored": null,
    "tile": "#363935",
@@ -5831,9 +6413,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.65,
-    "edge": 0.68,
-    "hf": 20.12
+    "shade": 4.2,
+    "slope": 6.1,
+    "edge": 0.64,
+    "line": 0,
+    "hf": 17.69
    },
    "stored": null,
    "tile": "#eeece8",
@@ -5851,9 +6435,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.97,
-    "edge": 1.21,
-    "hf": 36.05
+    "shade": 5.88,
+    "slope": 1.1,
+    "edge": 1.3,
+    "line": 0,
+    "hf": 34.47
    },
    "stored": null,
    "tile": "#95816e",
@@ -5871,8 +6457,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.74,
+    "shade": 2.7,
+    "slope": 0.5,
     "edge": 0.59,
+    "line": 2.1,
     "hf": 16.99
    },
    "stored": null,
@@ -5891,9 +6479,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.14,
-    "edge": 0.46,
-    "hf": 12.25
+    "shade": 1.57,
+    "slope": 9.6,
+    "edge": 0.45,
+    "line": 0.8,
+    "hf": 12.83
    },
    "stored": null,
    "tile": "#d9d5cb",
@@ -5911,9 +6501,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.86,
-    "edge": 0.3,
-    "hf": 37.36
+    "shade": 0.65,
+    "slope": 7.6,
+    "edge": 0.31,
+    "line": 0,
+    "hf": 38.15
    },
    "stored": null,
    "tile": "#c3baa4",
@@ -5931,9 +6523,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.87,
+    "shade": 2,
+    "slope": 3.9,
     "edge": 0.44,
-    "hf": 62.01
+    "line": 0,
+    "hf": 60.96
    },
    "stored": null,
    "tile": "#1f2124",
@@ -5951,9 +6545,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.64,
-    "edge": 0.41,
-    "hf": 21.27
+    "shade": 2.39,
+    "slope": 12.6,
+    "edge": 0.54,
+    "line": 0,
+    "hf": 21.52
    },
    "stored": null,
    "tile": "#8f8e93",
@@ -5971,9 +6567,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.29,
+    "shade": 0.76,
+    "slope": 2.7,
     "edge": 0.1,
-    "hf": 39.99
+    "line": 0,
+    "hf": 39.22
    },
    "stored": null,
    "tile": "#ececf0",
@@ -5991,9 +6589,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.04,
-    "edge": 0.41,
-    "hf": 4.36
+    "shade": 1.38,
+    "slope": 3.7,
+    "edge": 0.31,
+    "line": 2.3,
+    "hf": 5
    },
    "stored": null,
    "tile": "#d2d1d8",
@@ -6011,9 +6611,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.39,
-    "edge": 0.26,
-    "hf": 9.4
+    "shade": 0.77,
+    "slope": 20,
+    "edge": 0.28,
+    "line": 0,
+    "hf": 10.66
    },
    "stored": null,
    "tile": "#babcc4",
@@ -6031,9 +6633,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.16,
-    "edge": 1.02,
-    "hf": 12.26
+    "shade": 6.97,
+    "slope": 7.6,
+    "edge": 0.99,
+    "line": 0,
+    "hf": 13.08
    },
    "stored": null,
    "tile": "#b6bcb2",
@@ -6051,9 +6655,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.67,
+    "shade": 2.22,
+    "slope": 5.5,
     "edge": 0.31,
-    "hf": 14.11
+    "line": 0,
+    "hf": 14.26
    },
    "stored": null,
    "tile": "#e5e0d3",
@@ -6071,8 +6677,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.7,
+    "shade": 4.95,
+    "slope": 2.9,
     "edge": 0.76,
+    "line": 0,
     "hf": 36
    },
    "stored": null,
@@ -6091,9 +6699,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.91,
+    "shade": 2.65,
+    "slope": 3.8,
     "edge": 0.27,
-    "hf": 8.07
+    "line": 0,
+    "hf": 5.82
    },
    "stored": null,
    "tile": "#ececec",
@@ -6111,9 +6721,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.1,
+    "shade": 0.82,
+    "slope": 8,
     "edge": 0.14,
-    "hf": 3.79
+    "line": 0,
+    "hf": 3.14
    },
    "stored": null,
    "tile": "#a5a6a1",
@@ -6131,9 +6743,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.4,
+    "shade": 2.24,
+    "slope": 6.5,
     "edge": 0.42,
-    "hf": 44.71
+    "line": 0,
+    "hf": 44.63
    },
    "stored": null,
    "tile": "#777478",
@@ -6151,9 +6765,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 6.91,
-    "edge": 0.28,
-    "hf": 21.77
+    "shade": 2.38,
+    "slope": 8.3,
+    "edge": 0.29,
+    "line": 0,
+    "hf": 21.51
    },
    "stored": null,
    "tile": "#dedace",
@@ -6171,9 +6787,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.36,
-    "edge": 0.25,
-    "hf": 2.85
+    "shade": 3.08,
+    "slope": 3.6,
+    "edge": 0.21,
+    "line": 0,
+    "hf": 2.92
    },
    "stored": null,
    "tile": "#e9edec",
@@ -6191,8 +6809,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.31,
+    "shade": 2.57,
+    "slope": 8.1,
     "edge": 0.29,
+    "line": 0,
     "hf": 2.28
    },
    "stored": null,
@@ -6211,9 +6831,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.21,
-    "edge": 0.44,
-    "hf": 9.75
+    "shade": 1.76,
+    "slope": 8.8,
+    "edge": 0.42,
+    "line": 0,
+    "hf": 9.37
    },
    "stored": null,
    "tile": "#ececf0",
@@ -6231,9 +6853,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 5.22,
+    "shade": 3.39,
+    "slope": 4.4,
     "edge": 0.28,
-    "hf": 3.72
+    "line": 0,
+    "hf": 3.53
    },
    "stored": null,
    "tile": "#ebedea",
@@ -6251,8 +6875,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.74,
+    "shade": 2.04,
+    "slope": 2,
     "edge": 0.42,
+    "line": 0,
     "hf": 40.93
    },
    "stored": null,
@@ -6271,9 +6897,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.54,
-    "edge": 1.16,
-    "hf": 29.79
+    "shade": 4.16,
+    "slope": 12.4,
+    "edge": 1.35,
+    "line": 0,
+    "hf": 26.77
    },
    "stored": null,
    "tile": "#8e8d92",
@@ -6291,8 +6919,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 7.49,
+    "shade": 5.48,
+    "slope": 5.6,
     "edge": 1.15,
+    "line": 0,
     "hf": 10.08
    },
    "stored": null,
@@ -6311,9 +6941,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 9.88,
+    "shade": 4.82,
+    "slope": 9.8,
     "edge": 1.18,
-    "hf": 34.01
+    "line": 0,
+    "hf": 34.77
    },
    "stored": null,
    "tile": "#857e75",
@@ -6331,9 +6963,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.61,
+    "shade": 0.67,
+    "slope": 1.7,
     "edge": 0.33,
-    "hf": 19.17
+    "line": 0,
+    "hf": 18.66
    },
    "stored": null,
    "tile": "#ececee",
@@ -6351,9 +6985,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 3.75,
-    "edge": 1.49,
-    "hf": 37.71
+    "shade": 3.81,
+    "slope": 2.1,
+    "edge": 1.47,
+    "line": 0,
+    "hf": 37.42
    },
    "stored": null,
    "tile": "#343434",
@@ -6371,9 +7007,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.91,
-    "edge": 2.01,
-    "hf": 47.73
+    "shade": 1.58,
+    "slope": 1.1,
+    "edge": 1.99,
+    "line": 0,
+    "hf": 47.69
    },
    "stored": null,
    "tile": "#181819",
@@ -6391,9 +7029,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.88,
+    "shade": 0.51,
+    "slope": 4.1,
     "edge": 0.13,
-    "hf": 8.23
+    "line": 0,
+    "hf": 7.69
    },
    "stored": null,
    "tile": "#e3ddc6",
@@ -6411,8 +7051,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.97,
+    "shade": 1.52,
+    "slope": 4.6,
     "edge": 0.25,
+    "line": 0,
     "hf": 5.51
    },
    "stored": null,
@@ -6431,9 +7073,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.07,
-    "edge": 0.15,
-    "hf": 27.74
+    "shade": 0.84,
+    "slope": 3.4,
+    "edge": 0.14,
+    "line": 0,
+    "hf": 27.52
    },
    "stored": null,
    "tile": "#f0ebec",
@@ -6451,9 +7095,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 4.29,
+    "shade": 0.29,
+    "slope": 5.6,
     "edge": 0.08,
-    "hf": 8.19
+    "line": 0,
+    "hf": 8.5
    },
    "stored": null,
    "tile": "#edece8",
@@ -6471,8 +7117,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 2.84,
+    "shade": 1.97,
+    "slope": 2.3,
     "edge": 0.8,
+    "line": 0,
     "hf": 32.98
    },
    "stored": null,
@@ -6491,9 +7139,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.92,
-    "edge": 0.35,
-    "hf": 9.17
+    "shade": 1.23,
+    "slope": 1.6,
+    "edge": 0.36,
+    "line": 4.4,
+    "hf": 9.34
    },
    "stored": null,
    "tile": "#ecebf0",
@@ -6511,9 +7161,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.24,
+    "shade": 1.07,
+    "slope": 0.7,
     "edge": 0.11,
-    "hf": 3.14
+    "line": 0,
+    "hf": 3.93
    },
    "stored": null,
    "tile": "#ececeb",
@@ -6531,8 +7183,10 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 1.25,
+    "shade": 1.08,
+    "slope": 0.7,
     "edge": 0.2,
+    "line": 0,
     "hf": 4.55
    },
    "stored": null,
@@ -6551,8 +7205,10 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 28.83,
+    "shade": 14.22,
+    "slope": 28.2,
     "edge": 2.62,
+    "line": 1.6,
     "hf": 10.57
    },
    "stored": null,
@@ -6568,12 +7224,14 @@
    "name": "Canary Yellow",
    "code": "YSLP1002",
    "colorFamily": "Cream/Ivory",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 12.94,
-    "edge": 1.17,
-    "hf": 5.77
+    "shade": 6.09,
+    "slope": 12.3,
+    "edge": 1.18,
+    "line": 0,
+    "hf": 5.71
    },
    "stored": null,
    "tile": "#dcdacd",
@@ -6591,9 +7249,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 14.55,
-    "edge": 1.83,
-    "hf": 7.35
+    "shade": 10.86,
+    "slope": 12.5,
+    "edge": 1.92,
+    "line": 0.7,
+    "hf": 7.36
    },
    "stored": null,
    "tile": "#bcb9b0",
@@ -6611,9 +7271,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 24.04,
-    "edge": 2.23,
-    "hf": 10.64
+    "shade": 10.71,
+    "slope": 24.6,
+    "edge": 1.9,
+    "line": 0,
+    "hf": 10.27
    },
    "stored": null,
    "tile": "#726d5d",
@@ -6631,8 +7293,10 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 17.69,
+    "shade": 9.19,
+    "slope": 16.7,
     "edge": 1.73,
+    "line": 1.1,
     "hf": 7.75
    },
    "stored": null,
@@ -6651,9 +7315,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 25.12,
+    "shade": 20.29,
+    "slope": 13.9,
     "edge": 3.63,
-    "hf": 7.41
+    "line": 0.9,
+    "hf": 7.92
    },
    "stored": null,
    "tile": "#a6a7ab",
@@ -6671,9 +7337,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 10.14,
-    "edge": 0.75,
-    "hf": 2.81
+    "shade": 4.89,
+    "slope": 15,
+    "edge": 0.77,
+    "line": 0,
+    "hf": 2.8
    },
    "stored": null,
    "tile": "#e4e0d0",
@@ -6691,9 +7359,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 29.54,
-    "edge": 3.27,
-    "hf": 9.16
+    "shade": 18.45,
+    "slope": 31.1,
+    "edge": 2.63,
+    "line": 0,
+    "hf": 9
    },
    "stored": null,
    "tile": "#a9a8ac",
@@ -6711,9 +7381,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 18.7,
-    "edge": 2.65,
-    "hf": 9.29
+    "shade": 12.09,
+    "slope": 16.1,
+    "edge": 2.66,
+    "line": 1.3,
+    "hf": 9.64
    },
    "stored": null,
    "tile": "#ececef",
@@ -6731,9 +7403,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 24.46,
-    "edge": 1.63,
-    "hf": 6.41
+    "shade": 5.67,
+    "slope": 24.7,
+    "edge": 1.65,
+    "line": 0.6,
+    "hf": 6.47
    },
    "stored": null,
    "tile": "#b6b7bb",
@@ -6751,8 +7425,10 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 30.32,
+    "shade": 9.71,
+    "slope": 31.6,
     "edge": 2.38,
+    "line": 0,
     "hf": 12.63
    },
    "stored": null,
@@ -6771,9 +7447,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 25.8,
-    "edge": 2.16,
-    "hf": 6.4
+    "shade": 13.76,
+    "slope": 25,
+    "edge": 2.01,
+    "line": 0,
+    "hf": 6.64
    },
    "stored": null,
    "tile": "#c1b9b3",
@@ -6791,9 +7469,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 22.73,
-    "edge": 1.22,
-    "hf": 4.19
+    "shade": 7.33,
+    "slope": 24.2,
+    "edge": 1.07,
+    "line": 0,
+    "hf": 4.11
    },
    "stored": null,
    "tile": "#cbc3be",
@@ -6808,12 +7488,14 @@
    "name": "Lily White",
    "code": "YSLP601",
    "colorFamily": "White",
-   "mode": "pattern",
-   "reason": "strong shading",
+   "mode": "photo",
+   "reason": "flat area found",
    "metrics": {
-    "shade": 13.28,
-    "edge": 0.84,
-    "hf": 3.42
+    "shade": 2.84,
+    "slope": 14,
+    "edge": 0.72,
+    "line": 0,
+    "hf": 3.32
    },
    "stored": null,
    "tile": "#edebee",
@@ -6831,9 +7513,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 17.24,
-    "edge": 1.61,
-    "hf": 5.19
+    "shade": 6.33,
+    "slope": 26.9,
+    "edge": 1.25,
+    "line": 0.5,
+    "hf": 3.73
    },
    "stored": null,
    "tile": "#d2c8bf",
@@ -6851,9 +7535,11 @@
    "mode": "pattern",
    "reason": "folds, edges and strong shading",
    "metrics": {
-    "shade": 24.35,
-    "edge": 3.66,
-    "hf": 13.18
+    "shade": 16.74,
+    "slope": 23.5,
+    "edge": 3.44,
+    "line": 1.1,
+    "hf": 16.37
    },
    "stored": null,
    "tile": "#929395",
@@ -6871,9 +7557,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 13.48,
-    "edge": 1.3,
-    "hf": 4.21
+    "shade": 5.26,
+    "slope": 33.7,
+    "edge": 1.24,
+    "line": 0,
+    "hf": 3.63
    },
    "stored": null,
    "tile": "#c4c5c6",
@@ -6891,8 +7579,10 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 21.93,
+    "shade": 13.66,
+    "slope": 19.5,
     "edge": 1.96,
+    "line": 0.3,
     "hf": 4.55
    },
    "stored": null,
@@ -6911,9 +7601,11 @@
    "mode": "photo",
    "reason": "flat area found",
    "metrics": {
-    "shade": 8.83,
-    "edge": 1.13,
-    "hf": 3.67
+    "shade": 7.77,
+    "slope": 20.5,
+    "edge": 1.04,
+    "line": 0.8,
+    "hf": 4.19
    },
    "stored": null,
    "tile": "#efebec",
@@ -6931,8 +7623,10 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 20.98,
+    "shade": 7.99,
+    "slope": 23.1,
     "edge": 1.52,
+    "line": 0.5,
     "hf": 4.33
    },
    "stored": null,
@@ -6951,9 +7645,11 @@
    "mode": "pattern",
    "reason": "strong shading",
    "metrics": {
-    "shade": 19.18,
-    "edge": 1.29,
-    "hf": 3.72
+    "shade": 4.78,
+    "slope": 24.3,
+    "edge": 1.14,
+    "line": 0.6,
+    "hf": 2.99
    },
    "stored": null,
    "tile": "#eeece8",
@@ -6971,9 +7667,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 21.72,
-    "edge": 2.21,
-    "hf": 6.36
+    "shade": 10.96,
+    "slope": 37.3,
+    "edge": 2.17,
+    "line": 6.4,
+    "hf": 4.7
    },
    "stored": null,
    "tile": "#dbd5c8",
@@ -6991,9 +7689,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 87.14,
-    "edge": 7.97,
-    "hf": 22.84
+    "shade": 76.14,
+    "slope": 42.4,
+    "edge": 8.48,
+    "line": 0,
+    "hf": 24.92
    },
    "stored": null,
    "tile": "#878268",
@@ -7011,9 +7711,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 50.88,
-    "edge": 5.44,
-    "hf": 13.68
+    "shade": 25.43,
+    "slope": 96.8,
+    "edge": 5.3,
+    "line": 16.3,
+    "hf": 11.75
    },
    "stored": null,
    "tile": "#7e7d87",
@@ -7031,8 +7733,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 10.21,
+    "shade": 7.78,
+    "slope": 5.4,
     "edge": 1.53,
+    "line": 1.3,
     "hf": 1.67
    },
    "stored": null,
@@ -7051,8 +7755,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 6.74,
+    "shade": 6.82,
+    "slope": 0.9,
     "edge": 1.07,
+    "line": 0,
     "hf": 7
    },
    "stored": null,
@@ -7071,8 +7777,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 9.3,
+    "shade": 4.84,
+    "slope": 7.3,
     "edge": 1.26,
+    "line": 3,
     "hf": 4.91
    },
    "stored": null,
@@ -7091,9 +7799,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.85,
-    "edge": 0.65,
-    "hf": 3.24
+    "shade": 7.55,
+    "slope": 1.9,
+    "edge": 0.64,
+    "line": 0,
+    "hf": 2.74
    },
    "stored": null,
    "tile": "#e7e0d6",
@@ -7111,9 +7821,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 6.65,
-    "edge": 1.24,
-    "hf": 5.65
+    "shade": 7.31,
+    "slope": 15.3,
+    "edge": 1.91,
+    "line": 8.4,
+    "hf": 8.29
    },
    "stored": null,
    "tile": "#cec7ab",
@@ -7131,9 +7843,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 95.81,
-    "edge": 10.9,
-    "hf": 24.93
+    "shade": 48.11,
+    "slope": 195.7,
+    "edge": 10.35,
+    "line": 32.5,
+    "hf": 18.88
    },
    "stored": null,
    "tile": "#54412f",
@@ -7151,9 +7865,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 51.88,
-    "edge": 7.26,
-    "hf": 16.01
+    "shade": 21.04,
+    "slope": 101.5,
+    "edge": 7.22,
+    "line": 21.5,
+    "hf": 14.9
    },
    "stored": null,
    "tile": "#3b3734",
@@ -7171,9 +7887,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 17.01,
-    "edge": 3.59,
-    "hf": 12.04
+    "shade": 11.49,
+    "slope": 13.7,
+    "edge": 3.58,
+    "line": 7.9,
+    "hf": 11.99
    },
    "stored": null,
    "tile": "#383838",
@@ -7191,9 +7909,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 8.91,
-    "edge": 1.47,
-    "hf": 12.05
+    "shade": 3.58,
+    "slope": 10.9,
+    "edge": 1.25,
+    "line": 0,
+    "hf": 11.98
    },
    "stored": null,
    "tile": "#383839",
@@ -7211,9 +7931,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 17.77,
-    "edge": 1.3,
-    "hf": 4.66
+    "shade": 7.61,
+    "slope": 28,
+    "edge": 1.1,
+    "line": 0,
+    "hf": 3.14
    },
    "stored": null,
    "tile": "#ececec",
@@ -7231,9 +7953,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 9.77,
-    "edge": 1.47,
-    "hf": 5.5
+    "shade": 4.59,
+    "slope": 14.5,
+    "edge": 1,
+    "line": 0,
+    "hf": 6.05
    },
    "stored": null,
    "tile": "#e1e2da",
@@ -7251,9 +7975,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 31.1,
+    "shade": 18.53,
+    "slope": 67.5,
     "edge": 3.77,
-    "hf": 10.58
+    "line": 11.8,
+    "hf": 9.29
    },
    "stored": null,
    "tile": "#c7c0b0",
@@ -7271,8 +7997,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 62.91,
+    "shade": 40.24,
+    "slope": 59.6,
     "edge": 6.02,
+    "line": 17.9,
     "hf": 17.25
    },
    "stored": null,
@@ -7291,8 +8019,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 14.79,
+    "shade": 14.83,
+    "slope": 1.7,
     "edge": 3.45,
+    "line": 5.8,
     "hf": 7.33
    },
    "stored": null,
@@ -7311,9 +8041,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 67.41,
-    "edge": 8.4,
-    "hf": 22.77
+    "shade": 66.61,
+    "slope": 21.1,
+    "edge": 8.42,
+    "line": 22.3,
+    "hf": 22.79
    },
    "stored": null,
    "tile": "#89744e",
@@ -7331,9 +8063,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 111.22,
-    "edge": 10.54,
-    "hf": 30.93
+    "shade": 53.45,
+    "slope": 163.7,
+    "edge": 10.6,
+    "line": 31.8,
+    "hf": 20.73
    },
    "stored": null,
    "tile": "#695e4e",
@@ -7351,9 +8085,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 48.25,
-    "edge": 4.61,
-    "hf": 12.68
+    "shade": 25.93,
+    "slope": 67.6,
+    "edge": 4.79,
+    "line": 15.2,
+    "hf": 12.13
    },
    "stored": null,
    "tile": "#b4aa96",
@@ -7371,8 +8107,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 21.31,
+    "shade": 21.21,
+    "slope": 6.7,
     "edge": 3.81,
+    "line": 0.3,
     "hf": 4.97
    },
    "stored": null,
@@ -7391,9 +8129,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 4.54,
-    "edge": 0.72,
-    "hf": 2.18
+    "shade": 3.89,
+    "slope": 3.4,
+    "edge": 0.68,
+    "line": 0.3,
+    "hf": 2.15
    },
    "stored": null,
    "tile": "#d4d6de",
@@ -7411,9 +8151,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 20.49,
-    "edge": 3.89,
-    "hf": 5.17
+    "shade": 20.19,
+    "slope": 7.7,
+    "edge": 3.82,
+    "line": 2.5,
+    "hf": 5.22
    },
    "stored": null,
    "tile": "#2e3034",
@@ -7431,9 +8173,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 38.2,
-    "edge": 11.61,
-    "hf": 44.15
+    "shade": 42.51,
+    "slope": 12.8,
+    "edge": 11.74,
+    "line": 0,
+    "hf": 49.76
    },
    "stored": null,
    "tile": "#4c4443",
@@ -7451,8 +8195,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 4.08,
+    "shade": 3.27,
+    "slope": 2.6,
     "edge": 0.34,
+    "line": 0.6,
     "hf": 1.16
    },
    "stored": null,
@@ -7471,8 +8217,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 104.73,
+    "shade": 103.55,
+    "slope": 31.7,
     "edge": 14.1,
+    "line": 36,
     "hf": 28.79
    },
    "stored": null,
@@ -7491,9 +8239,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 136.44,
-    "edge": 12.38,
-    "hf": 34.61
+    "shade": 67.15,
+    "slope": 193.5,
+    "edge": 12.36,
+    "line": 37.5,
+    "hf": 25.84
    },
    "stored": null,
    "tile": "#513e2c",
@@ -7511,9 +8261,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 22.91,
-    "edge": 2.41,
-    "hf": 6.56
+    "shade": 10.77,
+    "slope": 43.4,
+    "edge": 2.39,
+    "line": 7.6,
+    "hf": 5.19
    },
    "stored": null,
    "tile": "#daccbf",
@@ -7531,9 +8283,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 33.94,
-    "edge": 3.09,
-    "hf": 10.18
+    "shade": 16.06,
+    "slope": 48.1,
+    "edge": 2.97,
+    "line": 9,
+    "hf": 8.92
    },
    "stored": null,
    "tile": "#c2c1c7",
@@ -7551,8 +8305,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 10.74,
+    "shade": 6.77,
+    "slope": 9.3,
     "edge": 1.8,
+    "line": 2.1,
     "hf": 3.7
    },
    "stored": null,
@@ -7571,8 +8327,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 25.43,
+    "shade": 23.47,
+    "slope": 10.2,
     "edge": 3.43,
+    "line": 7.5,
     "hf": 6.45
    },
    "stored": null,
@@ -7591,8 +8349,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.55,
+    "shade": 6.62,
+    "slope": 2.9,
     "edge": 0.68,
+    "line": 0.3,
     "hf": 2.45
    },
    "stored": null,
@@ -7611,9 +8371,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 55.8,
-    "edge": 5.22,
-    "hf": 15.46
+    "shade": 31.1,
+    "slope": 82.1,
+    "edge": 5.2,
+    "line": 15.3,
+    "hf": 12.7
    },
    "stored": null,
    "tile": "#7d7c85",
@@ -7631,9 +8393,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 90.71,
-    "edge": 9.63,
-    "hf": 23.92
+    "shade": 47.39,
+    "slope": 167,
+    "edge": 9.44,
+    "line": 28.6,
+    "hf": 20.87
    },
    "stored": null,
    "tile": "#1f1f20",
@@ -7651,9 +8415,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 6.12,
-    "edge": 0.4,
-    "hf": 3.08
+    "shade": 2.58,
+    "slope": 10,
+    "edge": 0.39,
+    "line": 1,
+    "hf": 2.69
    },
    "stored": null,
    "tile": "#e6e0d6",
@@ -7671,9 +8437,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 10.34,
-    "edge": 1.03,
-    "hf": 2.13
+    "shade": 6.45,
+    "slope": 8,
+    "edge": 0.98,
+    "line": 0.2,
+    "hf": 2.17
    },
    "stored": null,
    "tile": "#ececec",
@@ -7691,9 +8459,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 35.54,
-    "edge": 3.16,
-    "hf": 9.32
+    "shade": 19.08,
+    "slope": 43.2,
+    "edge": 3.09,
+    "line": 9.1,
+    "hf": 6.8
    },
    "stored": null,
    "tile": "#b7b5c0",
@@ -7711,8 +8481,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 12.38,
-    "edge": 1,
+    "shade": 6.3,
+    "slope": 18.1,
+    "edge": 1.07,
+    "line": 0,
     "hf": 2.39
    },
    "stored": null,
@@ -7731,9 +8503,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 19.83,
+    "shade": 12.79,
+    "slope": 28.7,
     "edge": 1.61,
-    "hf": 4.53
+    "line": 0,
+    "hf": 3.11
    },
    "stored": null,
    "tile": "#ececec",
@@ -7751,8 +8525,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 35.55,
+    "shade": 35.45,
+    "slope": 2.3,
     "edge": 4.85,
+    "line": 7.6,
     "hf": 11.22
    },
    "stored": null,
@@ -7771,9 +8547,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 43.77,
-    "edge": 5.37,
-    "hf": 13.2
+    "shade": 22.45,
+    "slope": 102.4,
+    "edge": 5.3,
+    "line": 16.4,
+    "hf": 9.97
    },
    "stored": null,
    "tile": "#a1a1ac",
@@ -7791,9 +8569,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 17.93,
-    "edge": 3.25,
-    "hf": 7.83
+    "shade": 11.53,
+    "slope": 20,
+    "edge": 2.46,
+    "line": 1.7,
+    "hf": 4.84
    },
    "stored": null,
    "tile": "#858587",
@@ -7811,9 +8591,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 36.07,
-    "edge": 6.6,
-    "hf": 14.19
+    "shade": 32.76,
+    "slope": 14.7,
+    "edge": 6.55,
+    "line": 6.8,
+    "hf": 14.3
    },
    "stored": null,
    "tile": "#8b8479",
@@ -7831,8 +8613,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 46.34,
+    "shade": 45.52,
+    "slope": 20.4,
     "edge": 8.02,
+    "line": 0,
     "hf": 34.79
    },
    "stored": null,
@@ -7851,9 +8635,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 46.13,
+    "shade": 25.6,
+    "slope": 57.2,
     "edge": 7.36,
-    "hf": 15.59
+    "line": 21.5,
+    "hf": 15.65
    },
    "stored": null,
    "tile": "#848791",
@@ -7871,9 +8657,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 55.39,
-    "edge": 9.03,
-    "hf": 33.79
+    "shade": 26.99,
+    "slope": 71.8,
+    "edge": 8.92,
+    "line": 26.3,
+    "hf": 26.7
    },
    "stored": null,
    "tile": "#79685d",
@@ -7891,9 +8679,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 76.15,
-    "edge": 11.79,
-    "hf": 28.38
+    "shade": 24.72,
+    "slope": 198.5,
+    "edge": 11.8,
+    "line": 36.1,
+    "hf": 28.81
    },
    "stored": null,
    "tile": "#544636",
@@ -7911,9 +8701,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 19.57,
-    "edge": 3.93,
-    "hf": 8.37
+    "shade": 14.2,
+    "slope": 51.8,
+    "edge": 2.15,
+    "line": 2.7,
+    "hf": 5.45
    },
    "stored": null,
    "tile": "#c9c5af",
@@ -7931,9 +8723,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 25.66,
-    "edge": 3.15,
-    "hf": 8.05
+    "shade": 14.76,
+    "slope": 46.1,
+    "edge": 3.03,
+    "line": 10.1,
+    "hf": 6.28
    },
    "stored": null,
    "tile": "#bdb9ad",
@@ -7951,9 +8745,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 10.5,
-    "edge": 0.94,
-    "hf": 2.68
+    "shade": 7.61,
+    "slope": 15.8,
+    "edge": 1,
+    "line": 2.9,
+    "hf": 2.73
    },
    "stored": null,
    "tile": "#eae0ca",
@@ -7971,8 +8767,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.9,
+    "shade": 7.11,
+    "slope": 5,
     "edge": 1.27,
+    "line": 3.3,
     "hf": 3.18
    },
    "stored": null,
@@ -7991,9 +8789,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 103.91,
-    "edge": 14.81,
-    "hf": 47.98
+    "shade": 29.39,
+    "slope": 255.3,
+    "edge": 14.46,
+    "line": 44.1,
+    "hf": 35.68
    },
    "stored": null,
    "tile": "#0d0e0f",
@@ -8011,8 +8811,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 6.53,
+    "shade": 4.44,
+    "slope": 6.8,
     "edge": 1.29,
+    "line": 1.2,
     "hf": 5.24
    },
    "stored": null,
@@ -8031,9 +8833,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 50.77,
-    "edge": 4.62,
-    "hf": 12.52
+    "shade": 24.95,
+    "slope": 78.6,
+    "edge": 4.56,
+    "line": 13.7,
+    "hf": 9.28
    },
    "stored": null,
    "tile": "#a5a7b2",
@@ -8051,9 +8855,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 42.73,
-    "edge": 3.81,
-    "hf": 10.31
+    "shade": 24.35,
+    "slope": 59.3,
+    "edge": 4.12,
+    "line": 12.9,
+    "hf": 8.14
    },
    "stored": null,
    "tile": "#b6b9c2",
@@ -8071,9 +8877,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.68,
-    "edge": 1.02,
-    "hf": 5.5
+    "shade": 6.37,
+    "slope": 4.3,
+    "edge": 1,
+    "line": 0,
+    "hf": 5
    },
    "stored": null,
    "tile": "#ecede8",
@@ -8091,9 +8899,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 60.94,
-    "edge": 7.87,
-    "hf": 25.19
+    "shade": 19.68,
+    "slope": 118.3,
+    "edge": 7.61,
+    "line": 23,
+    "hf": 18.54
    },
    "stored": null,
    "tile": "#37383c",
@@ -8111,9 +8921,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 64.46,
-    "edge": 6.91,
-    "hf": 22.67
+    "shade": 28.2,
+    "slope": 120.4,
+    "edge": 6.34,
+    "line": 20.2,
+    "hf": 18.65
    },
    "stored": null,
    "tile": "#856f5c",
@@ -8131,8 +8943,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 23.43,
+    "shade": 18.8,
+    "slope": 14.9,
     "edge": 6.84,
+    "line": 0.5,
     "hf": 26.78
    },
    "stored": null,
@@ -8151,9 +8965,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 10.81,
-    "edge": 1.19,
-    "hf": 4.12
+    "shade": 6.32,
+    "slope": 14.1,
+    "edge": 1,
+    "line": 2.9,
+    "hf": 3.42
    },
    "stored": null,
    "tile": "#dad0ba",
@@ -8171,9 +8987,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 47.91,
-    "edge": 4.95,
-    "hf": 14.04
+    "shade": 21.92,
+    "slope": 85.5,
+    "edge": 4.58,
+    "line": 13.4,
+    "hf": 10.25
    },
    "stored": null,
    "tile": "#b6aa96",
@@ -8191,9 +9009,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 5.09,
+    "shade": 2.85,
+    "slope": 4.9,
     "edge": 0.33,
-    "hf": 1.87
+    "line": 0.8,
+    "hf": 1.77
    },
    "stored": null,
    "tile": "#eae0ca",
@@ -8211,8 +9031,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 6.22,
+    "shade": 4.83,
+    "slope": 3.3,
     "edge": 0.5,
+    "line": 0,
     "hf": 2.59
    },
    "stored": null,
@@ -8231,9 +9053,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 40.7,
+    "shade": 20.37,
+    "slope": 93,
     "edge": 4.69,
-    "hf": 14.49
+    "line": 14,
+    "hf": 11.63
    },
    "stored": null,
    "tile": "#a9a8b2",
@@ -8251,9 +9075,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 15.05,
-    "edge": 2.77,
-    "hf": 5.3
+    "shade": 8.44,
+    "slope": 31.6,
+    "edge": 2.03,
+    "line": 4,
+    "hf": 5.96
    },
    "stored": null,
    "tile": "#adb1b1",
@@ -8271,9 +9097,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 8.86,
-    "edge": 1.73,
-    "hf": 2.63
+    "shade": 6.96,
+    "slope": 5.5,
+    "edge": 1.72,
+    "line": 1.3,
+    "hf": 2.77
    },
    "stored": null,
    "tile": "#a09eaa",
@@ -8291,9 +9119,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 125.22,
-    "edge": 14.62,
-    "hf": 34.87
+    "shade": 63.91,
+    "slope": 271.7,
+    "edge": 14.42,
+    "line": 43.7,
+    "hf": 28.74
    },
    "stored": null,
    "tile": "#121313",
@@ -8311,9 +9141,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 113.99,
-    "edge": 10.23,
-    "hf": 28.7
+    "shade": 54.72,
+    "slope": 162.1,
+    "edge": 10.21,
+    "line": 32.2,
+    "hf": 22.63
    },
    "stored": null,
    "tile": "#60626c",
@@ -8331,9 +9163,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 9.21,
+    "shade": 7.3,
+    "slope": 7.1,
     "edge": 1.01,
-    "hf": 1.12
+    "line": 0.3,
+    "hf": 1.29
    },
    "stored": null,
    "tile": "#a0a2ad",
@@ -8351,8 +9185,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 54.56,
+    "shade": 53.17,
+    "slope": 17.5,
     "edge": 8.34,
+    "line": 12.3,
     "hf": 12.49
    },
    "stored": null,
@@ -8371,9 +9207,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.96,
+    "shade": 5.99,
+    "slope": 6,
     "edge": 1,
-    "hf": 3.91
+    "line": 1.6,
+    "hf": 4.06
    },
    "stored": null,
    "tile": "#eae0ca",
@@ -8391,9 +9229,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 11.11,
-    "edge": 1.62,
-    "hf": 8.23
+    "shade": 7.27,
+    "slope": 7.5,
+    "edge": 1.7,
+    "line": 5.2,
+    "hf": 9.26
    },
    "stored": null,
    "tile": "#ececec",
@@ -8411,9 +9251,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 14.22,
-    "edge": 3.23,
-    "hf": 6.53
+    "shade": 15.05,
+    "slope": 5.3,
+    "edge": 3.7,
+    "line": 2,
+    "hf": 10.57
    },
    "stored": null,
    "tile": "#919491",
@@ -8431,9 +9273,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 9.08,
-    "edge": 1.45,
-    "hf": 1.23
+    "shade": 8.55,
+    "slope": 4.8,
+    "edge": 1.33,
+    "line": 0.2,
+    "hf": 1.18
    },
    "stored": null,
    "tile": "#cdba9e",
@@ -8451,9 +9295,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 116.53,
-    "edge": 10.57,
-    "hf": 27.6
+    "shade": 60.19,
+    "slope": 164.7,
+    "edge": 10.95,
+    "line": 32.8,
+    "hf": 21.76
    },
    "stored": null,
    "tile": "#655746",
@@ -8471,8 +9317,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 29.79,
+    "shade": 29.47,
+    "slope": 9.5,
     "edge": 4.43,
+    "line": 1,
     "hf": 5.02
    },
    "stored": null,
@@ -8491,9 +9339,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 102.92,
-    "edge": 10.44,
-    "hf": 27.22
+    "shade": 45.17,
+    "slope": 186.8,
+    "edge": 10.22,
+    "line": 31.2,
+    "hf": 19.05
    },
    "stored": null,
    "tile": "#5d5c65",
@@ -8511,9 +9361,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 39.9,
-    "edge": 12.8,
-    "hf": 49.84
+    "shade": 47.48,
+    "slope": 7.4,
+    "edge": 12.94,
+    "line": 0.4,
+    "hf": 48.58
    },
    "stored": null,
    "tile": "#42322e",
@@ -8531,9 +9383,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 86.25,
-    "edge": 10.49,
-    "hf": 23.41
+    "shade": 50.17,
+    "slope": 200.4,
+    "edge": 10.5,
+    "line": 31.7,
+    "hf": 20.49
    },
    "stored": null,
    "tile": "#665758",
@@ -8551,9 +9405,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 92.09,
-    "edge": 11.27,
-    "hf": 24.35
+    "shade": 84.55,
+    "slope": 39.3,
+    "edge": 11.24,
+    "line": 33.9,
+    "hf": 23.87
    },
    "stored": null,
    "tile": "#3e3336",
@@ -8571,8 +9427,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 16.08,
+    "shade": 7.91,
+    "slope": 14.4,
     "edge": 2.21,
+    "line": 2.1,
     "hf": 3.29
    },
    "stored": null,
@@ -8591,9 +9449,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 145.57,
-    "edge": 13.42,
-    "hf": 37.29
+    "shade": 72.95,
+    "slope": 212,
+    "edge": 13.61,
+    "line": 40.3,
+    "hf": 26.7
    },
    "stored": null,
    "tile": "#313035",
@@ -8611,9 +9471,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 90.52,
-    "edge": 8.63,
-    "hf": 21.61
+    "shade": 41.6,
+    "slope": 159.2,
+    "edge": 8.66,
+    "line": 25.9,
+    "hf": 14.44
    },
    "stored": null,
    "tile": "#757782",
@@ -8631,9 +9493,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 16.39,
-    "edge": 7.33,
-    "hf": 29.56
+    "shade": 19.28,
+    "slope": 9.5,
+    "edge": 7.37,
+    "line": 0.7,
+    "hf": 32.1
    },
    "stored": null,
    "tile": "#5a504c",
@@ -8651,8 +9515,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 7.15,
+    "shade": 2.97,
+    "slope": 7.5,
     "edge": 0.62,
+    "line": 3.1,
     "hf": 7.44
    },
    "stored": null,
@@ -8671,9 +9537,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 50.5,
+    "shade": 27.13,
+    "slope": 103.9,
     "edge": 5.61,
-    "hf": 13.66
+    "line": 16.7,
+    "hf": 10.77
    },
    "stored": null,
    "tile": "#a1948b",
@@ -8691,9 +9559,11 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 29.54,
-    "edge": 2.74,
-    "hf": 7.88
+    "shade": 15.92,
+    "slope": 32.3,
+    "edge": 2.73,
+    "line": 7.9,
+    "hf": 7.6
    },
    "stored": null,
    "tile": "#d6d2c2",
@@ -8711,8 +9581,10 @@
    "mode": "pattern",
    "reason": "Zebra is always the pattern",
    "metrics": {
-    "shade": 73.82,
+    "shade": 73.05,
+    "slope": 18,
     "edge": 10.64,
+    "line": 20.2,
     "hf": 21.83
    },
    "stored": null,

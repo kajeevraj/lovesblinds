@@ -1,53 +1,48 @@
 # Fabric texture review (phase 1)
 
-Made by `node scripts/texture-report.mjs` from the live catalog (read-only). 436 colors: **308 Photo crop**, **128 Pattern** (88 Zebra, always; 40 others).
+Made by `node scripts/texture-report.mjs` from the live catalog (read-only). 436 colors: **313 Photo crop**, **123 Pattern** (88 Zebra, always; 35 others).
 
-## 1. Swatches switched to Pattern (not Zebra): 40
+## 1. Swatches switched to Pattern (not Zebra): 35
 
 Each has no usable flat area in its photo. In the admin: Products > Colors > the color > Texture. "shade" and "edge" are the measures behind the decision (limits 11 and 2.6).
 
 | Line | Color | Code | Why | shade | edge |
 |---|---|---|---|---|---|
-| cellular/blackout | Beige Linen | YHCKB001 | folds, edges and strong shading | 12.46 | 4.6 |
-| cellular/blackout | Coffee Linen | YHCKB004 | folds or edges | 10.78 | 3.62 |
-| cellular/light-filtering | Coffee Linen | YHCK004 | folds or edges | 7.28 | 2.71 |
-| cellular/blackout | Goose Yellow | YHC38LB11 | folds or edges | 7.14 | 2.64 |
-| cellular/blackout | Latte Linen | YHCKB003 | folds or edges | 8.11 | 4.22 |
-| cellular/light-filtering | Latte Linen | YHCK003 | folds or edges | 7.3 | 3.52 |
-| cellular/light-filtering | Light Grey | YHC38L007 | folds or edges | 6.99 | 3.5 |
-| cellular/blackout | Pink | YHC38LB009 | folds or edges | 6.71 | 2.99 |
-| cellular/blackout | Silver Mist | YHC38LB630 | folds, edges and strong shading | 11.73 | 4.8 |
-| cellular/light-filtering | Silver Mist | YHC38SL630 | folds or edges | 9.86 | 3.72 |
-| cellular/blackout | White Linen | YHCKB002 | folds or edges | 7.75 | 3.01 |
-| drapery | Black Lattice | SP26056014 | folds, edges and strong shading | 29.69 | 5.39 |
-| drapery | Clean White | SP26060003 | folds, edges and strong shading | 17.3 | 4.66 |
-| drapery | Hunter Green Damask | SP26062004 | folds, edges and strong shading | 52.17 | 9.59 |
-| drapery | Navy Leaf | SP26062006 | folds, edges and strong shading | 21 | 5 |
-| drapery | Pristine White | SP26060002 | folds, edges and strong shading | 12.83 | 3.76 |
-| drapery | Rain Gray | SP26048002 | folds or edges | 9.33 | 2.98 |
-| dream-curtains | Asphalt Gray | ZDS3003-17 | strong shading | 12.9 | 0.77 |
-| dream-curtains | Granite Gray | ZDS3002-18 | strong shading | 11.66 | 0.57 |
-| dream-curtains | Light Pink | ZDS3003-41 | strong shading | 11.79 | 0.39 |
-| dream-curtains | Pewter Gray | ZDS3001-18 | strong shading | 11.4 | 0.36 |
-| shangri-la | Blossom White | YSLL901 | folds, edges and strong shading | 28.83 | 2.62 |
-| shangri-la | Canary Yellow | YSLP1002 | strong shading | 12.94 | 1.17 |
-| shangri-la | Chai Latte | YSLP608 | strong shading | 14.55 | 1.83 |
-| shangri-la | Chocolate | YSLP1004 | strong shading | 24.04 | 2.23 |
-| shangri-la | Clean White | YSLP1001 | strong shading | 17.69 | 1.73 |
-| shangri-la | Concrete Gray | YSLS905 | folds, edges and strong shading | 25.12 | 3.63 |
-| shangri-la | Dark Grey | YSLP103 | folds, edges and strong shading | 29.54 | 3.27 |
-| shangri-la | Fresh White | YSLS901 | folds, edges and strong shading | 18.7 | 2.65 |
-| shangri-la | Glacier | YSLP603 | strong shading | 24.46 | 1.63 |
-| shangri-la | Gunmetal Gray | YSLP1003 | strong shading | 30.32 | 2.38 |
-| shangri-la | Honey Latte | YSLS903 | strong shading | 25.8 | 2.16 |
-| shangri-la | Khaki | YSLH203 | strong shading | 22.73 | 1.22 |
-| shangri-la | Lily White | YSLP601 | strong shading | 13.28 | 0.84 |
-| shangri-la | Linen | YSLM605 | strong shading | 17.24 | 1.61 |
-| shangri-la | Linen Ash | YSLK904 | folds, edges and strong shading | 24.35 | 3.66 |
-| shangri-la | Silver Grey | YSLM604 | strong shading | 13.48 | 1.3 |
-| shangri-la | Smoke Gray | YSLP605 | strong shading | 21.93 | 1.96 |
-| shangri-la | Steel Gray | YSLH204 | strong shading | 20.98 | 1.52 |
-| shangri-la | Sunbeam Yellow | YSLM602 | strong shading | 19.18 | 1.29 |
+| cellular/blackout | Beige Linen | YHCKB001 | folds, edges and strong shading | 9.53 | 4.6 |
+| cellular/blackout | Coffee Linen | YHCKB004 | folds, edges and strong shading | 9.7 | 3.78 |
+| cellular/light-filtering | Coffee Linen | YHCK004 | folds or edges | 5.62 | 2.84 |
+| cellular/blackout | Goose Yellow | YHC38LB11 | folds or edges | 6.65 | 2.63 |
+| cellular/blackout | Latte Linen | YHCKB003 | folds, edges and strong shading | 8.19 | 4.34 |
+| cellular/light-filtering | Latte Linen | YHCK003 | folds or edges | 7.69 | 3.65 |
+| cellular/light-filtering | Light Grey | YHC38L007 | folds or edges | 6.77 | 3.5 |
+| cellular/blackout | Pink | YHC38LB009 | folds or edges | 6.52 | 2.99 |
+| cellular/light-filtering | Silver Mist | YHC38SL630 | folds, edges and strong shading | 9.21 | 3.69 |
+| cellular/blackout | Silver Mist | YHC38LB630 | folds, edges and strong shading | 11 | 4.8 |
+| cellular/blackout | White Linen | YHCKB002 | folds or edges | 6.2 | 2.93 |
+| drapery | Black Lattice | SP26056014 | folds, edges and strong shading | 32.93 | 5.33 |
+| drapery | Clean White | SP26060003 | folds, edges and strong shading | 15.41 | 4.66 |
+| drapery | Hunter Green Damask | SP26062004 | folds, edges and strong shading | 45.04 | 9.33 |
+| drapery | Navy Leaf | SP26062006 | folds, edges and strong shading | 11.39 | 5.59 |
+| drapery | Pristine White | SP26060002 | folds, edges and strong shading | 11.86 | 3.76 |
+| drapery | Rain Gray | SP26048002 | folds or edges | 7.38 | 2.94 |
+| drapery | Seal Gray | SP26001004 | strong shading | 10.39 | 2.06 |
+| shangri-la | Blossom White | YSLL901 | folds, edges and strong shading | 14.22 | 2.62 |
+| shangri-la | Chai Latte | YSLP608 | strong shading | 10.86 | 1.92 |
+| shangri-la | Chocolate | YSLP1004 | strong shading | 10.71 | 1.9 |
+| shangri-la | Clean White | YSLP1001 | strong shading | 9.19 | 1.73 |
+| shangri-la | Concrete Gray | YSLS905 | folds, edges and strong shading | 20.29 | 3.63 |
+| shangri-la | Dark Grey | YSLP103 | folds, edges and strong shading | 18.45 | 2.63 |
+| shangri-la | Fresh White | YSLS901 | folds, edges and strong shading | 12.09 | 2.66 |
+| shangri-la | Glacier | YSLP603 | strong shading | 5.67 | 1.65 |
+| shangri-la | Gunmetal Gray | YSLP1003 | strong shading | 9.71 | 2.38 |
+| shangri-la | Honey Latte | YSLS903 | strong shading | 13.76 | 2.01 |
+| shangri-la | Khaki | YSLH203 | strong shading | 7.33 | 1.07 |
+| shangri-la | Linen | YSLM605 | strong shading | 6.33 | 1.25 |
+| shangri-la | Linen Ash | YSLK904 | folds, edges and strong shading | 16.74 | 3.44 |
+| shangri-la | Silver Grey | YSLM604 | strong shading | 5.26 | 1.24 |
+| shangri-la | Smoke Gray | YSLP605 | strong shading | 13.66 | 1.96 |
+| shangri-la | Steel Gray | YSLH204 | strong shading | 7.99 | 1.52 |
+| shangri-la | Sunbeam Yellow | YSLM602 | strong shading | 4.78 | 1.14 |
 
 ## 2. Zebra: every color is Pattern (88)
 
