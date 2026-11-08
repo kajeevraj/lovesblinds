@@ -298,7 +298,7 @@ try {
     const names = (Array.isArray(l.body) ? l.body : []).map(o => `${sub}/${o.name}`).filter((n) => mine.has(`swatches/${n}`));       // only the files this run uploaded
     if (names.length) await api('DELETE', '/storage/v1/object/swatches', svc, { prefixes: names });
   }
-  for (const id of orderIds) await api('DELETE', `/rest/v1/orders?id=eq.${id}`, svc);
+  // (no service-key delete of orders here: the server key has no access to the orders table. Any order left by an aborted run belongs to a temporary user, and deleting that user below removes it: on delete cascade)
   for (const id of adminRows) await api('DELETE', `/rest/v1/admins?id=eq.${id}`, svc);
   for (const id of users) await api('DELETE', `/auth/v1/admin/users/${id}`, svc);
   const left = {
