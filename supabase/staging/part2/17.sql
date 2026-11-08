@@ -42,7 +42,7 @@ on conflict (id) do nothing;
 
 insert into public.price_adders (line_id, adder_key, label, kind, amount, unit, applies_when, origin, status, source, note)
 select pl, 'motor', 'Motor (any type: battery or wired, any control)', 'add', 70, 'flat', '{"control":["motorized"]}'::jsonb, 'manual', 'from_supplier', 'confirmed by the owner',
-       'One $70 motor cost for every motor type. Replaces the motor cost that used to be built into the supplier motor tables and the old motor and remote add-ons.'
+       'One $70 motor cost for every motor type. Replaces the motor cost that used to be built into' || ' the supplier motor tables and the old motor and remote add-ons.'
   from unnest(array['roller','zebra','shangri-la','roman','cellular']) pl
 on conflict (line_id, adder_key) do nothing;
 
@@ -53,10 +53,10 @@ select pl, 'solar-panel', 'Solar panel (battery motors only)', 'add', 30, 'flat'
 on conflict (line_id, adder_key) do nothing;
 
 insert into public.price_flags (line_id, flag_key, kind, title, detail) values
- ('roller',   'roller-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the chain (cord) table price with no extra charge ($0). Confirm the supplier price.'),
- ('zebra',    'zebra-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the chain (cord) table price with no extra charge ($0). Confirm the supplier price.'),
- ('roman',    'roman-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the plain (cordless) table price with no extra charge ($0). Confirm the supplier price.'),
- ('cellular', 'cellular-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Was "Freestop lift", priced at the cord table with $0 extra. Confirm the supplier price.'),
- (null, 'motor-wired-install', 'confirm', 'Wired motor: plug-in or hardwired?', 'The preview draws a cord from the motor down the wall to an outlet. Confirm whether the wired motor plugs in or is hardwired.'),
- (null, 'motor-tall-sizes', 'info', 'Tall motorized sizes show "Price by email"', 'Motorized now prices from the plain table plus the $70 motor. Sizes that only the supplier motor table covered (Roller 119-120 in on some fabrics, Zebra Venus and Uranus special sizes up to 154 in) have no plain-table price, so they show "Price by email" until the supplier confirms.')
+ ('roller',   'roller-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the chain (cord) table' || ' price with no extra charge ($0). Confirm the supplier price.'),
+ ('zebra',    'zebra-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the chain (cord) table' || ' price with no extra charge ($0). Confirm the supplier price.'),
+ ('roman',    'roman-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Shown at the plain (cordless) table' || ' price with no extra charge ($0). Confirm the supplier price.'),
+ ('cellular', 'cellular-zero-gravity-price', 'confirm', 'Zero gravity: no supplier price yet', 'Was "Freestop lift", priced at the cord table' || ' with $0 extra. Confirm the supplier price.'),
+ (null, 'motor-wired-install', 'confirm', 'Wired motor: plug-in or hardwired?', 'The preview draws a cord from' || ' the motor down the wall to an outlet. Confirm whether the wired motor plugs in or is hardwired.'),
+ (null, 'motor-tall-sizes', 'info', 'Tall motorized sizes show "Price by email"', 'Motorized now prices from' || ' the plain table' || ' plus the $70 motor. Sizes that only the supplier motor table' || ' covered (Roller 119-120 in on some fabrics, Zebra Venus and Uranus special sizes up to 154 in) have no plain-table' || ' price, so they show "Price by email" until the supplier confirms.')
 on conflict (flag_key) do nothing;

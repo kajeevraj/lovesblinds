@@ -76,12 +76,12 @@ on conflict (line_id, adder_key) do nothing;
 update public.price_adders set applies_when = '{"control":["remote","matter","motorized"]}'::jsonb
  where line_id = 'dream-curtains' and adder_key = 'motor-cost';
 
-update public.price_flags set resolved = true, resolution_note = 'Zero gravity = Cordless = Free-stop, priced from the supplier sheet cordless table on each line (owner, confirmed). No extra charge.'
+update public.price_flags set resolved = true, resolution_note = 'Zero gravity = Cordless = Free-stop, priced from' || ' the supplier sheet cordless table' || ' on each line (owner, confirmed). No extra charge.'
  where flag_key in ('roller-zero-gravity-price','zebra-zero-gravity-price','roman-zero-gravity-price','cellular-zero-gravity-price');
 
 insert into public.price_flags (line_id, flag_key, kind, title, detail) values
- (null, 'drapery-fabric-prices', 'info', 'Curtain fabric prices come from the supplier order form', 'Measured from the supplier drapery order form (matches their quotes within about 0.2%): units x tier price by height, liner, shipping, then the 1.5x markup. Edit under Pricing > Curtain hardware and fabric. Sizes outside 40-236 wide or 42-236 high show "Price by email".'),
- (null, 'drapery-codes-unmatched', 'confirm', 'Curtain colors and supplier codes that do not line up', 'The supplier does not sell SP26030004, so it is hidden on the site. The fabric table lists SP260030004, treated here as our SP26003004 (same family, same row). Table codes we do not carry: SP2603501, SP2603901, SP2604801, SP2605001, SP2605401, SPT261001, SP26018045.'),
+ (null, 'drapery-fabric-prices', 'info', 'Curtain fabric prices come from' || ' the supplier order form', 'Measured from' || ' the supplier drapery order form (matches their quotes within about 0.2%): units x tier price by height, liner, shipping, then the 1.5x markup. Edit under Pricing > Curtain hardware and fabric. Sizes outside 40-236 wide or 42-236 high show "Price by email".'),
+ (null, 'drapery-codes-unmatched', 'confirm', 'Curtain colors and supplier codes that do not line up', 'The supplier does not sell SP26030004, so it is hidden on the site. The fabric table' || ' lists SP260030004, treated here as our SP26003004 (same family, same row). Table' || ' codes we do not carry: SP2603501, SP2603901, SP2604801, SP2605001, SP2605401, SPT261001, SP26018045.'),
  (null, 'hardware-finial-price', 'confirm', 'Finial $18: per finial or per pair?', 'The site charges $18 (cost) once per rod or rail, for the pair of finials. If it is $18 each, double the "finial" rate in Hardware.'),
  ('dream-curtains', 'dream-pull-rod-price', 'confirm', 'Dream Curtains pull rod price', 'Pull rod is priced like Manual ($0 extra). Confirm.'),
  (null, 'roll-direction-wording', 'confirm', 'Roll direction wording', 'Standard: fabric hangs behind the roller, close to the glass. Reverse: in front of the roller, closer to the room. Confirm this matches the supplier.')
@@ -157,7 +157,7 @@ select v.grp || ':' || v.code, v.grp, v.code, v.label, v.expl, null, true, v.dfl
     ('drapery:curtain-style','rod-pocket','Rod pocket',null,false,13),
     ('drapery:return','pleat','Same as pleat spacing',null,true,0), ('drapery:return','2','2 in',null,false,1), ('drapery:return','3.5','3.5 in',null,false,2),
     ('drapery:panels','single','Single panel',null,true,0), ('drapery:panels','pair','Pair',null,false,1),
-    ('drapery:hardware','own','I have my own','No track or rod from us ($0).',true,0), ('drapery:hardware','add','Add a track or rod','Priced by the meter, plus shipping.',false,1),
+    ('drapery:hardware','own','I have my own','No track or rod from' || ' us ($0).',true,0), ('drapery:hardware','add','Add a track or rod','Priced by the meter, plus shipping.',false,1),
     ('drapery:hw-layers','single','Single',null,true,0), ('drapery:hw-layers','double','Double','A sheer in front and a blackout behind, each on its own track.',false,1),
     ('drapery:hw-mount','ceiling','Ceiling',null,true,0), ('drapery:hw-mount','wall','Wall (side)',null,false,1),
     ('drapery:hw-track','classic-rail','Classic rail','Square track.',false,0), ('drapery:hw-track','arc-rail','Arc rail',null,true,1),
@@ -210,7 +210,7 @@ insert into public.hardware_rates (id, label, amount, unit, note, sort_order) va
   ('zigbee_hub',                 'Zigbee hub: customer price', 35, '$ each, flat', 'a SELLING price: no markup is added. Shown once per order when a cart line uses a Zigbee motor', 50),
   ('drapery_ship_base',          'Curtain fabric shipping, base', 37.65, '$', 'supplier cost, before markup', 60),
   ('drapery_liner_base',         'Liner (light filtering or blackout) at 42 in high, per unit', 16.22, '$', 'same price for both liners', 61),
-  ('drapery_liner_slope',        'Liner added per unit from 42 to 236 in high', 54.37, '$', 'liner = units x (base + slope x (H - 42) / 194)', 62),
+  ('drapery_liner_slope',        'Liner added per unit from' || ' 42 to 236 in high', 54.37, '$', 'liner = units x (base + slope x (H - 42) / 194)', 62),
   ('drapery_liner_ship_k',       'Extra shipping rate when there is a liner', 0.00158, '$ per in3 of F x W x H', 'shipping = base + (ship_k / 10000 + this if liner) x F x W x H', 63),
   ('drapery_ripple_factor',      'Ripple fold fabric factor', 0.92, 'x', 'ripple fold styles: fabric x this', 64),
   ('drapery_min_w',              'Curtain width: smallest we price', 40, 'in', 'outside the range the price is by email', 65),
