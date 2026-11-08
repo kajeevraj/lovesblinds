@@ -9,6 +9,7 @@
 //   node scripts/run-tests.mjs --only live_tests,e2e_cart
 //   node scripts/run-tests.mjs --live-own-rows run the writers on LIVE instead, under the write guard (own rows only; edits of shared rows are skipped).
 //                                              Use sparingly: a leftover row on live is possible if a run is cut off.
+//   node scripts/run-tests.mjs --skip-build   do not run npm run prebuild and the plain build into dist/ first (they run by default, so a fresh clone works)
 //   node scripts/run-tests.mjs --list
 //
 // Staging is configured with STAGING_SUPABASE_URL, STAGING_SUPABASE_ANON_KEY and STAGING_SUPABASE_SERVICE_ROLE_KEY (docs/staging-setup.md).
@@ -74,6 +75,16 @@ function writeLog(name, out) { try { writeFileSync(join(ROOT, '.test-logs', `${n
 
 const pick = (list) => list.filter((n) => !onlySet || onlySet.has(n));
 const offline = pick(T.offline), readOnly = pick(T.readOnly), writes = pick(T.writes);
+
+// Before any browser or build-reading suite: the generated site photos and explainer images (npm run prebuild, which `vite build` alone skips) and a plain
+// build into dist/ (e2e_pr2 and others read dist/ directly). Without this a fresh clone fails on missing images and on dist/index.html. --skip-build to reuse them.
+if ((readOnly.length || writes.length) && !has('--skip-build')) {
+  for (const [label, cmd, a] of [['site photos and explainers (npm run prebuild)', 'npm', ['run', 'prebuild']], ['plain build into dist/ (vite build)', 'npx', ['vite', 'build']]]) {
+    console.log(`preparing: ${label} ...`);
+    const r = spawnSync(cmd, a, { cwd: ROOT, env, encoding: 'utf8', maxBuffer: 1 << 28 });
+    if (r.status !== 0) { console.error(r.stdout, r.stderr); console.error(`STOP: ${label} failed.`); process.exit(1); }
+  }
+}
 
 try {
   for (const n of offline) run(n, 'offline');
