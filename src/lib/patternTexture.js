@@ -117,5 +117,12 @@ export function zebraPattern(hex, split = 0.6, size = TEX) {
     const i = (y * size + x) * 3;
     for (let c = 0; c < 3; c++) out[i + c] = y < rows ? solid[i + c] : 0.55 * voile[i + c] + 0.45 * (pale[c] * 0.93 + c0[c] * 0.07);      // the voile: the mesh at 55 % strength over plain pale
   }
+  // a white or cream fabric's solid band is nearly as pale as the voile: lift the voile toward white so the bands can always be told apart (at least 11 levels)
+  const lum = (a, y0, y1) => { let t = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < size; x++) { const k = (y * size + x) * 3; t += 0.3 * a[k] + 0.59 * a[k + 1] + 0.11 * a[k + 2]; n++; } return t / n; };
+  const gap = lum(out, rows + 1, size) - lum(out, 0, rows - 1);
+  if (rows < size && gap < 11) {
+    const need = Math.min(1, (11 - gap) / Math.max(1, 255 - lum(out, rows + 1, size)));
+    for (let y = rows; y < size; y++) for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) { const k = (y * size + x) * 3 + c; out[k] = out[k] + (255 - out[k]) * need; }
+  }
   return { rgb: out, rows };
 }

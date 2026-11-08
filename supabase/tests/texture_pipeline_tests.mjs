@@ -96,6 +96,8 @@ const solidMean = meanOf(z.rgb.subarray(0, rows * TEX * 3)), sheerMean = meanOf(
 check('zebra: the solid band (top rows) is the fabric color, within 1.5 levels', hexRgb('#7a6a58').every((v, i) => Math.abs(solidMean[i] - v) <= 1.5), solidMean.map(Math.round).join(','));
 check('zebra: the sheer band under it is a pale voile (lighter than 225), and the band edge is where the split says (row 154)', sheerMean.every((v) => v > 225) && rows === 154);
 check('zebra: the weave repeats left to right with no seam (the bands themselves are meant to change over)', seamRatio(z.rgb, TEX, 'x') <= 1, seamRatio(z.rgb, TEX, 'x').toFixed(2));
+const zw = zebraPattern('#f6f1e4', 154 / 256), zl = (a, y0, y1) => { let t = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < TEX; x++) { const k = (y * TEX + x) * 3; t += 0.3 * a[k] + 0.59 * a[k + 1] + 0.11 * a[k + 2]; n++; } return t / n; };
+check('zebra: even a cream or white fabric keeps its sheer band at least 8 levels lighter than its solid band (the bands can be told apart)', zl(zw.rgb, 156, TEX) - zl(zw.rgb, 0, 152) >= 8, (zl(zw.rgb, 156, TEX) - zl(zw.rgb, 0, 152)).toFixed(1));
 const bad = results.filter((x) => !x.ok);
 console.log(`\n${results.length - bad.length}/${results.length} passed${bad.length ? ` | FAILED: ${bad.map((b) => b.name).join('; ')}` : ''}`);
 process.exit(bad.length ? 1 : 0);
