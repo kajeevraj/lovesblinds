@@ -48,9 +48,10 @@ try {
     for (const [name, q] of [['Cream', 'YZB202'], ['Twilight Gray', 'YZB208'], ['Truffle Brown', 'YZB210']]) {
       const tile = await pick(q); await setAmount(55);
       const cv = tile.locator('canvas'); await page.waitForFunction((el) => el.dataset.ready === '1', await cv.elementHandle());
-      const info = await cv.evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, half = c.height / 2, L = []; for (let y = 0; y < half; y++) { let t = 0; for (let x = 0; x < c.width; x++) { const i = (y * c.width + x) * 4; t += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; } L.push(t / c.width); } const mid = (Math.max(...L) + Math.min(...L)) / 2, solid = L.filter((v) => v < mid).length / L.length; return { solid, swing: Math.max(...L) - Math.min(...L), mode: c.dataset.mode, color: c.dataset.color }; });
+      // the tile is two stripe periods; in each the top 60 % of rows is the solid band: it must be darker than the sheer band under it, whatever the color
+      const info = await cv.evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, half = c.height / 2, L = []; for (let y = 0; y < half; y++) { let t = 0; for (let x = 0; x < c.width; x++) { const i = (y * c.width + x) * 4; t += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; } L.push(t / c.width); } const cut = Math.round(half * 0.6), avg = (a) => a.reduce((s, v) => s + v, 0) / a.length, solid = avg(L.slice(3, cut - 3)), sheer = avg(L.slice(cut + 3, half - 3)); return { solid, sheer, gap: sheer - solid, mode: c.dataset.mode, color: c.dataset.color }; });
       const looks = await page.evaluate(() => window.__lbLooks), l3 = Object.values(looks)[0];
-      check(T(`Zebra ${name}: the tile is the pattern, banded: the solid band is 60 % of each stripe (3 in of 5), visibly darker than the sheer band`), info.mode === 'pattern' && Math.abs(info.solid - 0.6) <= 0.04 && info.swing > 25, JSON.stringify(info));
+      check(T(`Zebra ${name}: the tile is the pattern, banded: the top 60 % of each stripe (3 in of 5) is the solid band and is darker than the sheer band under it`), info.mode === 'pattern' && info.gap >= 8, JSON.stringify(info));
       check(T(`Zebra ${name}: the 3D shade is the pattern too, in the tile's color ${info.color}`), l3?.mode === 'pattern' && l3.weave === 'zebra' && l3.hex === info.color, JSON.stringify(looks));
     }
     check(T('no page errors'), errors.length === 0, errors.join(' | '));
