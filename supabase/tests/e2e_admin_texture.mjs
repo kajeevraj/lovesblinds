@@ -76,7 +76,7 @@ try {
   check('an out-of-range width (0) shows an error and blocks Save', /between 0.5 and 12/.test(await page.getByTestId('texture-field').innerText()) && await page.getByRole('button', { name: 'Save changes' }).isDisabled());
   await solid.fill('2');
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Truffle Brown”/).waitFor();
-  check('Save sends texture_mode pattern and only the override that was typed (solid 2; sheer empty = the line\'s), to this color only', patches.length === 1 && patches[0].texture_mode === 'pattern' && patches[0].zebra_solid_in === 2 && patches[0].zebra_sheer_in === null, JSON.stringify(patches));
+  check('Save sends texture_mode pattern and only the override that was typed (solid 2; the empty sheer box is left alone), to this color only', patches.length === 1 && patches[0].texture_mode === 'pattern' && patches[0].zebra_solid_in === 2 && !('zebra_sheer_in' in patches[0]), JSON.stringify(patches));
 
   // ---- a roller color with a flat photo: auto-picked Photo crop, switch to Pattern ----
   patches.length = 0;
