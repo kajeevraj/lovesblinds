@@ -56,6 +56,7 @@ async function cell(v, [text, line, o]) {
     if (o.amount != null) await setA('.pv-grip, .pv-bar', o.amount);
     if (o.upper != null) await setA('[data-rail=top], [data-rail=middle]', o.upper);
     for (const c of o.clicks || []) { await top(); await page.getByRole('button', { name: c, exact: true }).first().click(); await page.waitForTimeout(2200); }
+    await page.addStyleTag({ content: '.s2-bar, .s2-pricebar { display: none !important; }' });       // the sticky price bar would cover the bottom of the preview in the picture
     await top(); await page.waitForTimeout(1200);
     const buf = await page.locator('.pv').screenshot();
     return label(await sharp(buf).resize({ width: v.cell }).png().toBuffer(), text, v.cell);

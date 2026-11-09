@@ -79,7 +79,7 @@ try {
     await card('Day & night').click(); await settle();
     check(T('Cellular day & night: the Dual Motor remote'), (await remoteType()) === 'dual-single');
     await room('Office'); await qty(2); await settle();
-    check(T('two day & night shades in a room: the Dual Motor, Multi Channel remote, and the sharing line'), (await remoteType()) === 'dual-multi' && SHARE.test(await page.locator('.rm-card').innerText()));
+    check(T('two day & night shades in a room: the Dual Motor, Multi Channel remote, and the sharing line'), (await remoteType()) === 'dual-multi' && SHARE.test((await toTop(), await page.locator('.pv-incl, .rm-card').first().innerText())));       // (the remote is in the preview's tile now that Cellular has a 3D preview)
     await card('Standard').click(); await settle();
     check(T('two standard cellular shades in a room: the Single Motor, Multi Channel remote'), (await remoteType()) === 'single-multi');
     check(T('no console errors'), errors.length === 0, errors.join(' | '));
