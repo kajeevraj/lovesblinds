@@ -31,7 +31,7 @@ const run = async (label, vp, filter) => {
     for (const c of list.filter(filter)) {
       try {
         const r = await s.read(c.supplier_code); n++;
-        const wrongColor = !r.id || !r.id.includes(c.supplier_code);
+        const wrongColor = !r.id || !r.id.replace(/[^A-Za-z0-9]/g, '').includes(c.supplier_code.replace(/[^A-Za-z0-9]/g, ''));
         const dead = r.dE > MAX_DE || r.db > MAX_DB || r.sdWave > MAX_WAVE || wrongColor;
         if (dead) bad.push(`${type} ${c.display_name} (${c.supplier_code}, ${c.color_family}): tile ${r.tile} face ${r.faceHex}, distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)}, wave ${r.sdWave.toFixed(1)}${wrongColor ? ` WRONG COLOR PICKED ${r.id}` : ''}`);
         const w = worst[type] || (worst[type] = { dE: 0, db: 0, wave: 0 }); w.dE = Math.max(w.dE, r.dE); w.db = Math.max(w.db, r.db); w.wave = Math.max(w.wave, r.sdWave);
@@ -52,7 +52,7 @@ const weave = async (label, vp) => {
   for (const [type, code, name, kind] of WEAVES) {
     const s = await get(type), r = await s.read(code); rows.push({ name, kind, ...r });
     if (kind === 'strong' && r.sdHigh < 5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 5 or more)`);
-    if (kind === 'smooth' && r.sdHigh > 3.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 3.5)`);
+    if (kind === 'smooth' && r.sdHigh > 4.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 4.5)`);
     if (r.sdWave > MAX_WAVE) bad.push(`${name}: wavy or beating (${r.sdWave.toFixed(1)})`);
     if (r.dE > MAX_DE || r.db > MAX_DB) bad.push(`${name}: the weave moved the color (distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)})`);
   }

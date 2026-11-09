@@ -45,7 +45,7 @@ export const headroomSd = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex
 // strength: the admin's multiple (null / undefined = auto = 1)
 export function desiredSd(photoSd, hex, strength = null) {
   const m = Number.isFinite(strength) ? Math.min(STRENGTH.max, Math.max(STRENGTH.min, strength)) : 1;
-  return Math.min(photoSd, headroomSd(hex)) * m;
+  return Math.min(photoSd, headroomSd(hex), 24) * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
 }
 
 // metres of cloth one 256 px texture covers, so that the weave repeat is DISPLAY.periodPx screen pixels on the shade (pxPerMeter: css pixels per metre at the shade)

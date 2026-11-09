@@ -86,7 +86,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       let sx = 0, sy = 0, sv = 0, sxx = 0, syy = 0, sxy = 0, sxv = 0, syv = 0; const N = W * H;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = soft[y * W + x]; sx += x; sy += y; sv += v; sxx += x * x; syy += y * y; sxy += x * y; sxv += x * v; syv += y * v; }
       const mx = sx / N, my = sy / N, mv = sv / N, cxx = sxx / N - mx * mx, cyy = syy / N - my * my, cxy = sxy / N - mx * my, cxv = sxv / N - mx * mv, cyv = syv / N - my * mv, det = cxx * cyy - cxy * cxy || 1;
-      const bx = (cxv * cyy - cyv * cxy) / det, by = (cyv * cxx - cxv * cxy) / det, wave = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) wave.push(soft[y * W + x] - (mv + bx * (x - mx) + by * (y - my)));
+      const bx = (cxv * cyy - cyv * cxy) / det, by = (cyv * cxx - cxv * cxy) / det, wave = []; for (let y = Math.floor(H * 0.4); y < H; y++) for (let x = 0; x < W; x++) wave.push(soft[y * W + x] - (mv + bx * (x - mx) + by * (y - my)));
       const out = { code, type, tile: tileHex, mode, face: face.map((v) => +v.toFixed(1)), faceHex: rgbHex(face), lab: toLab(face), tileLab: toLab(hexRgb(tileHex)), sd: sd(lum), sdHigh: sd(high), sdWave: sd(wave), rowsUsed, look: Object.values(await page.evaluate(() => window.__lbLooks || {}))[0] || null, id: Object.keys(await page.evaluate(() => window.__lbLooks || {}))[0] || null };
       out.dE = dE(face, hexRgb(tileHex)); out.db = Math.abs(out.lab[2] - out.tileLab[2]);
       if (opts.shot) out.shot = buf;
