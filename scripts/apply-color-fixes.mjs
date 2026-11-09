@@ -4,7 +4,7 @@
 //     (a sheer open weave, see-through between its threads) so it reads light and open, not dark.
 //   * Bark Brown, Cocoa Chocolate (roller) and Dark Chocolate, Bittersweet Chocolate (zebra): a preview color that reads brown, not black.
 //
-//   node scripts/apply-color-fixes.mjs                          dry run (default): shows before and after for each color, writes nothing
+//   node scripts/apply-color-fixes.mjs [--fixes part2]          dry run (default): shows before and after for each color, writes nothing
 //   node scripts/apply-color-fixes.mjs --apply                  does it and writes a manifest to backfill-logs/
 //   node scripts/apply-color-fixes.mjs --undo <manifest.json>   puts back exactly what it changed (a value the owner changed since is left alone)
 // Each color is found by supplier code + line and checked by name; a color that is not exactly as expected stops the run before anything is written.
@@ -13,17 +13,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const FIXES = [
-  { name: 'Ash Gray', code: 'WSS660105', line: 'roller', set: { color_family: 'Gray' }, expect: { color_family: 'White' } },
-  { name: 'Granite Gray', code: 'WSS360105', line: 'roller', set: { color_family: 'Gray' }, expect: { color_family: 'White' } },
-  { name: 'Shadow Gray', code: 'YSS-A12-103', line: 'roller', set: { color_family: 'Gray' }, expect: { color_family: 'White' } },
-  { name: 'White Slate', code: 'WSS481277', line: 'roller', set: { color_family: 'Gray' }, expect: { color_family: 'White' } },
-  { name: 'Salt White', code: 'SP26027008', line: 'drapery', set: { preview_color: '#efede9', texture_mode: 'pattern', weave: 'voile' }, expect: { color_family: 'White' } },
-  { name: 'Bark Brown', code: 'YSS-T12-305', line: 'roller', set: { preview_color: '#4a3829' }, expect: { color_family: 'Brown' } },
-  { name: 'Cocoa Chocolate', code: 'XSS000539', line: 'roller', set: { preview_color: '#4a3223' }, expect: { color_family: 'Brown' } },
-  { name: 'Dark Chocolate', code: 'YZB2008', line: 'zebra', set: { preview_color: '#4b3626' }, expect: { color_family: 'Brown' } },
-  { name: 'Bittersweet Chocolate', code: 'YZB3007', line: 'zebra', set: { preview_color: '#523927' }, expect: { color_family: 'Brown' } },
-];
+// The fixes live in scripts/color-fixes/<part>.mjs; `--fixes part2` picks another list (default: part1, the phase 1 fixes).
+const PART = process.argv.includes('--fixes') ? process.argv[process.argv.indexOf('--fixes') + 1] : 'part1';
+export const { FIXES } = await import(`./color-fixes/${PART}.mjs`).catch(() => { console.error(`There is no fix list called "${PART}" (scripts/color-fixes/).`); process.exit(1); });
 
 const BASE = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!BASE || !KEY) { console.error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed.'); process.exit(1); }
@@ -56,7 +48,8 @@ try {
     if (rows.length !== 1) throw new Error(`${fx.name} (${fx.code}, ${fx.line}): expected exactly one color, found ${rows.length}`);
     const cur = rows[0];
     if (cur.display_name !== fx.name) throw new Error(`${fx.code} is "${cur.display_name}", not "${fx.name}"`);
-    for (const [f, v] of Object.entries(fx.expect)) if (cur[f] !== v && !Object.keys(fx.set).includes(f)) throw new Error(`${fx.name}: ${f} is "${cur[f]}", expected "${v}"`);
+    // each field must be as expected, or (for a field this fix also sets) already as wanted: a color that is in a third family stops the run
+    for (const [f, v] of Object.entries(fx.expect)) if (cur[f] !== v && !(f in fx.set && cur[f] === fx.set[f])) throw new Error(`${fx.name}: ${f} is "${cur[f]}", expected "${v}"`);
     for (const f of Object.keys(fx.set)) if (!(f in cur)) throw new Error(`${fx.name}: the column ${f} does not exist yet (apply migration 24 first)`);
     plan.push({ fx, cur });
   }
@@ -75,7 +68,7 @@ for (const { fx, cur } of plan) {
 }
 if (APPLY) {
   mkdirSync(LOG_DIR, { recursive: true });
-  const file = join(LOG_DIR, `color-fixes-${manifest.at.replace(/[:.]/g, '-')}.json`);
+  const file = join(LOG_DIR, `color-fixes-${PART}-${manifest.at.replace(/[:.]/g, '-')}.json`);
   writeFileSync(file, JSON.stringify(manifest, null, 1));
   console.log(`applied to ${manifest.rows.length} colors.\nmanifest: ${file}\nto undo:  node scripts/apply-color-fixes.mjs --undo ${file}`);
 } else console.log('dry run, nothing written (add --apply)');
