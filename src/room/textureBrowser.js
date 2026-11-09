@@ -132,7 +132,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   const crop = await cropTexture(look, small, lit), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
   // the photo's own weave contrast (held back only where it would clip), times the color's Weave strength; the average stays exactly the color
-  const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength);
+  const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines);
   const out = retargetWeave(raw, targetFor(hex, { lit, type }), sd);
   return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, photoSd: stats.sd, sd };
 }

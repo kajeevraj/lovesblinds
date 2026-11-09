@@ -41,20 +41,31 @@ function dominantPeriod(l, size) {
   return best > 0.2 * 48 * 0.35 ? bl : null;       // 48 = lines summed; a peak under a third of a fifth is noise
 }
 
+// How much of the contrast is ONE-directional (horizontal or vertical rows of thread: stripes): the spread of the row (or column) averages over the spread of the
+// whole picture. About 0.85 for a solar weave of white thread on black or a stripe, about 0.2 for a printed shape pattern (a mosaic, a trellis).
+function lineness(l, size, total) {
+  const rows = new Float64Array(size), cols = new Float64Array(size);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) { const v = l[y * size + x]; rows[y] += v / size; cols[x] += v / size; }
+  const sdOf = (a) => { let m = 0; for (const v of a) m += v; m /= a.length; let t = 0; for (const v of a) t += (v - m) ** 2; return Math.sqrt(t / a.length); };
+  return total > 0 ? Math.max(sdOf(rows), sdOf(cols)) / total : 0;
+}
+
 export function weaveStats(rgb, size = TEX) {
   const l = lumOf(rgb), n = l.length; let m = 0; for (const v of l) m += v; m /= n;
   let v = 0; for (const x of l) v += (x - m) ** 2;
   const sd = Math.sqrt(v / n);
-  return { sd, period: dominantPeriod(l, size) };
+  return { sd, period: dominantPeriod(l, size), lines: lineness(l, size, sd) };
 }
 
 // the most contrast a color can carry around its average without much of it clipping against black or white
 export const headroomSd = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)), L = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; return 0.55 * Math.min(L, 255 - L) + 4; };
 
 // strength: the admin's multiple (null / undefined = auto = 1)
-export function desiredSd(photoSd, hex, strength = null) {
+export function desiredSd(photoSd, hex, strength = null, lines = 1) {
   const m = Number.isFinite(strength) ? Math.min(STRENGTH.max, Math.max(STRENGTH.min, strength)) : 1;
-  return Math.min(photoSd, headroomSd(hex), 24) * AUTO_WEAVE * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
+  // rows of thread (stripes, a solar weave) are drawn at AUTO_WEAVE of their contrast; a printed shape pattern (lines near 0.2) is the design itself and keeps all of it
+  const auto = AUTO_WEAVE + (1 - AUTO_WEAVE) * Math.min(1, Math.max(0, (0.6 - lines) / 0.3));
+  return Math.min(photoSd, headroomSd(hex), 24) * auto * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
 }
 
 // metres of cloth one 256 px texture covers, so that the weave repeat is DISPLAY.periodPx screen pixels on the shade (pxPerMeter: css pixels per metre at the shade)
