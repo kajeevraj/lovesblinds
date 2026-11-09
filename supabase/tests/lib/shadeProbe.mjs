@@ -20,7 +20,7 @@ export const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16
 export const rgbHex = (c) => `#${c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('')}`;
 export const dE = (a, b) => { const A = toLab(a), B = toLab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
 
-export async function probeSession(browser, { width = 1280, height = 900, dpr = 1, overrides = null, mobile = false } = {}) {
+export async function probeSession(browser, { width = 1280, height = 900, dpr = 1, overrides = null, mobile = false, base = BASE } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr, hasTouch: mobile, isMobile: mobile });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
@@ -35,7 +35,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
   let line = null;
   const open = async (l) => {
     if (line === l) return; line = l;
-    await page.goto(`${BASE}/products/${l}`, { waitUntil: 'networkidle' }); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
+    await page.goto(`${base}/products/${l}`, { waitUntil: 'networkidle' }); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
     await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill(l === 'zebra' ? '72' : '64');
   };
   const card = (name) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${name}$`) }) }).first();
@@ -83,6 +83,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       const out = { code, type, tile: tileHex, mode, face: face.map((v) => +v.toFixed(1)), faceHex: rgbHex(face), lab: toLab(face), tileLab: toLab(hexRgb(tileHex)), sd: sd(lum), sdLow: sd(Array.from(soft)), rowsUsed, look: Object.values(await page.evaluate(() => window.__lbLooks || {}))[0] || null };
       out.dE = dE(face, hexRgb(tileHex)); out.db = Math.abs(out.lab[2] - out.tileLab[2]);
       if (opts.shot) out.shot = buf;
+      if (opts.zoom) out.zoom = await sharp(buf).extract({ left: Math.max(0, Math.round(gx - 0.2 * meta.width)), top: Math.max(0, Math.round(gy - 0.36 * meta.height)), width: Math.round(0.4 * meta.width), height: Math.round(0.3 * meta.height) }).png().toBuffer();
       return out;
     },
     close: () => ctx.close(),
