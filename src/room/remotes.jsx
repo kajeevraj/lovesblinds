@@ -173,7 +173,8 @@ const NAMES = {
 };
 
 // `shades` (a roller double-stack): one small row of up, stop, down for each shade, named "Front shade" and "Back shade". A press is reported as "front:up", "back:stop" ...
-export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '', shades = null }) {
+// `upperLabel` (a two-motor cellular): what the upper rail is called ("Top rail" on a top-down shade, "Middle rail" on day & night)
+export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '', shades = null, upperLabel = null }) {
   if (shades) {
     return (
       <div className={`rm rm-simple rm-two ${className}`} role="group" aria-label="Remote control" data-remote={type}>
@@ -194,14 +195,16 @@ export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = ''
     );
   }
   const dual = type.startsWith('dual');
-  const rows = dual ? [['Top rail', ['topUp', 'topDown']], ['Bottom rail', ['botUp', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
+  const upper = upperLabel || 'Top rail';
+  const rows = dual ? [[upper, ['topUp', 'topDown']], ['Bottom rail', ['botUp', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
+  const nameOf = (id) => (upperLabel && /^top/.test(id) ? NAMES[id].replace('top rail', upper.toLowerCase()) : NAMES[id]);
   return (
     <div className={`rm rm-simple ${className}`} role="group" aria-label="Remote control" data-remote={type}>
       {rows.map(([label, ids]) => (
         <div className="rm-row" key={label || 'main'}>
           {label && <span className="rm-row-label">{label}</span>}
           {ids.map((id) => (
-            <button key={id} type="button" className={`rm-key${lit === id ? ' lit' : ''}`} aria-label={NAMES[id]} data-btn={id} onClick={() => onPress?.(id)}>
+            <button key={id} type="button" className={`rm-key${lit === id ? ' lit' : ''}`} aria-label={nameOf(id)} data-btn={id} onClick={() => onPress?.(id)}>
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{glyphOf(id)}</svg>
             </button>
           ))}

@@ -10,7 +10,7 @@
 // `look` is { id, line, family, composition, colorFamily, previewColor, textureMode, solidIn, sheerIn, tile, thumb, image, tex }.
 // `lit: true` is for the 3D room: the room's light lifts and warms every cloth a little, so the texture is set a touch darker and cooler and the shade on
 // screen lands on the swatch's own color (measured: rendered = 1.04 x texture + 8). The picker tiles are not lit, they are the color itself.
-import { TEX, retargetWeave, photoCropTexture } from './textureCore.js';
+import { TEX, retargetWeave, photoCropTexture, flattenRows } from './textureCore.js';
 import { weaveStats, desiredSd } from '../lib/weaveStrength.js';
 import { analyzePhoto } from '../lib/textureAnalysis.js';
 import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, PATTERN_PERIOD } from '../lib/patternTexture.js';
@@ -125,14 +125,18 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
     try { mode = decideMode(look, pixelsAt(await loadImage((small ? look.thumb : look.image) || look.image || look.thumb), 1000)); } catch { mode = 'photo'; }
   }
   const type = typeOfLook(look), target = lit ? litHex(hex, type) : hex;
+  // the 3D cellular shade draws its own pleats (they open and press flat as it moves), so its cloth is the plain face: the pattern without pleat lines, the photo
+  // with its pleat bands taken out. The picker tile keeps the pleats.
+  const face3d = lit && look.lit3d === 'cellular';
   if (mode === 'pattern') {
-    const strength = Number.isFinite(look.weaveStrength) ? look.weaveStrength : 1, { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands, strength);
-    return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer, period: PATTERN_PERIOD[weaveOf(look)] || null };
+    const weave = face3d && weaveOf(look) === 'pleat' ? 'smooth' : weaveOf(look);
+    const strength = Number.isFinite(look.weaveStrength) ? look.weaveStrength : 1, { canvas, rows, sheer } = patternCanvas(weave, target, bands, strength);
+    return { mode, hex, canvas, weave, bands, rows, sheer: !!sheer, period: PATTERN_PERIOD[weave] || null };
   }
   const crop = await cropTexture(look, small, lit), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
   // the photo's own weave contrast (held back only where it would clip), times the color's Weave strength; the average stays exactly the color
-  const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines);
+  const raw = face3d ? flattenRows(rgbOf(ctx, TEX, TEX)) : rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines);
   const out = retargetWeave(raw, targetFor(hex, { lit, type }), sd);
   return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, photoSd: stats.sd, sd };
 }

@@ -1565,6 +1565,16 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .pv-bar { position: absolute; height: 36px; margin: -18px 0 0; padding: 0; border: 0; background: transparent; cursor: grab; touch-action: none; z-index: 3; }
 .pv-bar:active { cursor: grabbing; }
 .pv-bar:focus-visible { outline: 3px solid #2f7fe0; outline-offset: -3px; border-radius: 6px; }
+/* small buttons under the picture: Open / Close vanes with raise and lower (Shangri-La), Day fabric / Night fabric (Cellular day & night) */
+.pv-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.pv-ctl-btn { min-height: 44px; padding: 0 16px; border: 1px solid var(--s2-line); border-radius: 99px; background: var(--s2-card); color: var(--s2-ink); font: 600 13px/1 "Montserrat", sans-serif; cursor: pointer; }
+.pv-ctl-btn:hover { border-color: var(--s2-brass-text); color: var(--s2-brass-text); }
+.pv-ctl-btn.on { background: var(--s2-ink); border-color: var(--s2-ink); color: #fff; }
+.pv-ctl-btn:focus-visible { outline: 3px solid #2f7fe0; outline-offset: 2px; }
+.pv-ctl-icon { width: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.pv-ctl-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.pv-ctl-note { font-size: 13px; line-height: 1.4; color: var(--s2-muted); }
+@media (max-width: 959px) { .has-preview .pv-ctl { margin-top: 4px; gap: 6px; } .has-preview .pv-ctl-btn { min-height: 40px; padding: 0 14px; } .has-preview .pv-ctl-icon { width: 44px; padding: 0; } .has-preview .pv-ctl-note { display: none; } }
 
 /* "Best value": a small, quiet tag on one movement option */
 .s2-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 1px 0 3px; }
@@ -1657,7 +1667,7 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 @media (max-width: 959px) {
   .has-preview.compact { clip-path: inset(0 0 calc(100% - 108px) 0); }
   .has-preview.compact .gal-stage, .has-preview.compact > .pv-wrap { transform-origin: top center; transform: translateY(calc(6px - var(--pv-top, 52px))) scale(var(--pv-k, .33)); }
-  .has-preview.compact .gal-dots, .has-preview.compact .gal-arrow, .has-preview.compact .pv-incl, .has-preview.compact .pv-note, .has-preview.compact .pv-tools, .has-preview.compact .pv-size, .has-preview.compact .pv-drag, .has-preview.compact .pv-bar, .has-preview.compact .pv-grip, .has-preview.compact .pv-xlabel { visibility: hidden; }
+  .has-preview.compact .gal-dots, .has-preview.compact .gal-arrow, .has-preview.compact .pv-incl, .has-preview.compact .pv-note, .has-preview.compact .pv-tools, .has-preview.compact .pv-size, .has-preview.compact .pv-drag, .has-preview.compact .pv-bar, .has-preview.compact .pv-grip, .has-preview.compact .pv-xlabel, .has-preview.compact .pv-ctl { visibility: hidden; }
   .has-preview.compact .pv-tabs { min-height: 44px; }      /* its button leaves the flow; the row keeps its height so nothing below moves */
   .has-preview.compact .pv-collapse { position: absolute; top: 4px; right: 20px; z-index: 3; min-height: 28px; padding: 0 8px; font-size: 12px; background: rgba(250, 247, 241, .86); border-radius: 99px; }
   .has-preview.compact::after { content: ""; position: absolute; left: 0; right: 0; top: 107px; height: 1px; background: var(--s2-line); }

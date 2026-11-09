@@ -32,6 +32,7 @@ export function ShangriLaPage({ line, navigate, edit = null }) {
   return (
     <LineShell line={line} navigate={navigate} edit={edit} start={start} title={PAGE['shangri-la'].title} intro={PAGE['shangri-la'].intro}
       photos={PHOTOS['shangri-la']} photoNote="Shangri-La shades are made as horizontal shades. Your color is shown in the swatch." chip={pick}
+      preview={{ kind: 'shangri-la', picks: [pick] }}
       c={{ pick }} colorNeeds="Pick a color" checks={[{ label: 'Color', done: !!pick }]}
       leadSteps={[{ title: 'Color', node: <ColorStep id="c-shangrila" lineKey="shangri-la" value={pick} onChange={setPick} /> }]} />
   );
@@ -77,6 +78,7 @@ export function RomanPage({ line, navigate, edit = null }) {
   return (
     <LineShell line={line} navigate={navigate} edit={edit} start={start} title={PAGE.roman.title} intro={PAGE.roman.intro}
       photos={PHOTOS.roman} photoNote={NOTE} chip={pick}
+      preview={{ kind: 'roman', picks: [pick], style, lining }}
       c={{ pick, romanStyle: style, lining }}
       colorNeeds={!pick ? 'Pick a color' : !style ? 'Pick a style' : 'Pick a lining'}
       checks={[{ label: 'Color', done: !!pick }, { label: 'Style', done: !!style }, { label: 'Lining', done: !!lining }]}
@@ -125,6 +127,7 @@ export function CellularPage({ line, navigate, edit = null }) {
   return (
     <LineShell line={line} navigate={navigate} edit={edit} start={start} ui={{ family }} title={PAGE.cellular.title} intro={PAGE.cellular.intro}
       photos={photos} photoNote={NOTE} chip={dn ? night || day : pick}
+      preview={{ kind: 'cellular', picks: dn ? [day, night] : [pick], style: type, family }}
       c={{ type, pick, day, night }}
       colorNeeds={dn ? 'Pick a day and a night color' : 'Pick a color'}
       checks={dn ? [{ label: 'Day color', done: !!day }, { label: 'Night color', done: !!night }] : [{ label: 'Color', done: !!pick }]}

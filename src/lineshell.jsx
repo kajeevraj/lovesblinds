@@ -271,7 +271,7 @@ export default function LineShell({
                   <div className="pv-wrap">
                     <Suspense fallback={<div className="pv"><div className="pv-stage"><div className="s2-photo-frame"><SitePhoto name={photos[0].name} alt={photos[0].alt} sizes="(min-width: 960px) 45vw, 92vw" eager /></div></div></div>}>
                       <PreviewPane kind={preview.kind} picks={preview.picks} double={!!preview.double} width={parseFloat(width) || null} height={parseFloat(height) || null}
-                        mount={mount} mech={mech} cover={preview.cover} phone={phone} remoteType={remote.type} shareNote={motorized && remote.count >= 2}
+                        mount={mount} mech={mech} cover={preview.cover} style={preview.style} lining={preview.lining} family={preview.family} phone={phone} remoteType={remote.type} shareNote={motorized && remote.count >= 2}
                         extras={{ ...extrasFor(line.id, drive.movement, extras, { double }), bottomWrap: preview.bottomWrap }}
                         fallback={<div className="s2-photo-frame"><SitePhoto name={photos[0].name} alt={photos[0].alt} sizes="(min-width: 960px) 45vw, 92vw" eager /></div>} />
                     </Suspense>

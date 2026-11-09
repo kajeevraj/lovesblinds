@@ -2,12 +2,15 @@
 // 3D light (scripts/calibrate-shade-light.mjs) and the tests that check every color (supabase/tests/e2e_shade_colors.mjs).
 //
 //   const s = await probeSession(browser, { width: 1280, height: 900, overrides: { YS180002: { preview_color: '#ececec' } } });
-//   await s.select('blackout');                       // 'solar' | 'screen-view' | 'blackout' (roller) or 'zebra'
+//   await s.select('blackout');                       // 'solar' | 'screen-view' | 'blackout' (roller), 'zebra', 'cellular' | 'cellular-blackout',
+//                                                     // 'roman' | 'roman-blackout' (flat style, light-filtering or blackout lining), 'shangri-la' (vanes closed)
 //   const r = await s.read('YB010001');               // { tile: '#ecece8', face: [r,g,b], lab, ... }
 //
 // The face is the average of a patch of the lit cloth above the handle (a Zebra: the solid band, the darker half of the rows in the closed position, because
 // a sheer band is never darker than its solid band). The tile color is what the picker tile shows for the same color (canvas data-color).
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
+const LINE_OF = { zebra: 'zebra', cellular: 'cellular', 'cellular-blackout': 'cellular', roman: 'roman', 'roman-blackout': 'roman', 'shangri-la': 'shangri-la' };
+const AMOUNT_OF = { zebra: 55, roman: 85, 'roman-blackout': 85 };       // a roman nearly lowered: the patch is on the flat face, above its folds
 const sharp = (await import('sharp')).default;
 
 export const toLab = (rgb) => {
@@ -37,6 +40,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
     if (line === l) return; line = l;
     await page.goto(`${base}/products/${l}`, { waitUntil: 'networkidle' }); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
     await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill(l === 'zebra' ? '72' : '64');
+    if (l === 'cellular') { await card('Chain').click(); await page.waitForTimeout(300); }                        // a plain bottom rail: no handle over the cloth
   };
   const card = (name) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${name}$`) }) }).first();
   const setAmount = async (amt) => {
@@ -49,8 +53,9 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
   const api = {
     page, ctx, errors, dpr,
     async select(t) {
-      type = t; await open(t === 'zebra' ? 'zebra' : 'roller');
-      if (t !== 'zebra') { await card({ solar: 'Solar', 'screen-view': 'Screen view', blackout: 'Blackout' }[t]).click(); await page.waitForTimeout(500); }
+      type = t; await open(LINE_OF[t] || 'roller');
+      if (t === 'cellular' || t === 'cellular-blackout') { await card(t === 'cellular' ? 'Light filtering' : 'Blackout').click(); await page.waitForTimeout(500); }
+      else if (!LINE_OF[t]) { await card({ solar: 'Solar', 'screen-view': 'Screen view', blackout: 'Blackout' }[t]).click(); await page.waitForTimeout(500); }
     },
     // renders `code` and reads it; opts.shot = true also returns the screenshot of the preview
     async read(code, opts = {}) {
@@ -61,7 +66,13 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       await page.waitForTimeout(1500);
       const cv = tile.locator('canvas'); await page.waitForFunction((el) => el.dataset.ready === '1', await cv.elementHandle());
       const tileHex = await cv.getAttribute('data-color'), mode = await cv.getAttribute('data-mode');
-      await setAmount(type === 'zebra' ? 55 : 50); await page.waitForTimeout(1000);
+      if (type === 'roman' || type === 'roman-blackout') {                   // the flat style, with the lining the type names (a fabric that does not offer it reads as skipped)
+        await card('Flat').click(); await page.waitForTimeout(200);
+        const lining = card(type === 'roman' ? 'Light-filtering lining' : 'Blackout lining');
+        if (!(await lining.count()) || await lining.isDisabled()) return { code, type, skipped: 'this fabric does not offer that lining' };
+        await lining.click(); await page.waitForTimeout(1500);
+      }
+      await setAmount(AMOUNT_OF[type] || 50); await page.waitForTimeout(1000);
       await page.locator('.pv-canvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       const buf = await page.locator('.pv-canvas').screenshot(), meta = await sharp(buf).metadata();
       const g = await page.locator('.pv-grip, .pv-bar').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;

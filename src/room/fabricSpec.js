@@ -12,10 +12,12 @@ const DEFAULT_HEX = '#cfc6b6';
 
 export const presetSpec = (key) => ({ key, ...FABRICS[key], url: `/room-lab/fabrics/${key}.webp`, preset: true, thumbUrl: `/room-lab/fabrics/${key}.webp` });
 
-export function specFromEntry(entry, kind) {
+// `lightType` (cellular, roman, shangri-la): which calibrated light the cloth is shown under (shadeKinds.js lightTypeFor); it is part of the key, so a roman's
+// cloth is made again when its lining changes
+export function specFromEntry(entry, kind, lightType = null) {
   const s = entry.swatch, zebra = kind === 'zebra', bands = zebraBands({ solidIn: s.zebraSolidIn, sheerIn: s.zebraSheerIn });
   return {
-    key: `sw:${s.id}`, name: s.displayName, code: s.code, thumbUrl: s.tile || s.thumb || s.image, look: lookOfSwatch(s),
+    key: lightType ? `sw:${s.id}:${lightType}` : `sw:${s.id}`, name: s.displayName, code: s.code, thumbUrl: s.tile || s.thumb || s.image, look: lightType ? { ...lookOfSwatch(s), lightType, lit3d: kind } : lookOfSwatch(s),
     // the flat color the model wears until its texture is ready (the family's color; the admin's override when there is one)
     color: isHex(s.previewColor) ? s.previewColor.toLowerCase() : FAMILY_HEX[entry.color] || DEFAULT_HEX, override: isHex(s.previewColor), colorFamily: entry.color,
     // a zebra's picture is one stripe period (solid + sheer inches) on a square; a weave covers 7.5 cm

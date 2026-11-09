@@ -2,7 +2,9 @@
 // pages (a headless browser; the live catalog with the preview colors of 13 swatches overridden), reads the face of the shade, and prints, per type and channel,
 // the straight-line fit  face = a x texture + b  that src/room/lightCalibration.js is built from, plus how far each color lands from its tile.
 //
-//   BASE_URL=http://localhost:4173 node scripts/calibrate-shade-light.mjs [solar,screen-view,blackout,zebra] [--json out.json]
+//   BASE_URL=http://localhost:4173 node scripts/calibrate-shade-light.mjs [solar,screen-view,blackout,zebra,cellular,cellular-blackout,roman,roman-blackout,shangri-la] [--json out.json]
+// The fit printed is face against the TILE color with the table as it stands: for a new type, set its a to 1 and its b to 0 in lightCalibration.js first, so the
+// fit IS the type's line (a Shangri-La: against what its vanes show under the front sheer, see `veil`).
 // Needs a preview server of the built site (npm run build; npx vite preview --port 4173).
 import { writeFileSync } from 'node:fs';
 import { probeSession, hexRgb, dE } from '../supabase/tests/lib/shadeProbe.mjs';
@@ -14,6 +16,12 @@ const CODES = { solar: ['YS180006', 'YS180003', 'YS180002', 'YS180004', 'YS12000
   'screen-view': ['XSS000105', 'XSS000107', 'XSS000101', 'XSS000505', 'XSS000540', 'XSS000539', 'XSS000405', 'XSS000404', 'XSS030101', 'XSS030107', 'XSS050M16', 'XSS050M01', 'YSS-T10-302'],
   blackout: ['YB180006', 'YB180003', 'YB180002', 'YB120002', 'YB120004', 'YB120001', 'YB120007', 'YB190002', 'YB190005', 'YB190001', 'YB190007', 'YB050007', 'YB050011'],
   zebra: ['YZB202', 'YZB201', 'YZB208', 'YZB210', 'YZB802', 'YZB804', 'YZB801', 'YZB807', 'YZB902', 'YZB901', 'YZB904', 'YZB2003', 'YZB2005'] };
+// Cellular, Roman and Shangri-La: the first 13 colors of the live catalog stand in for the 13 test colors (their preview colors are overridden for the render)
+const SOFT = { cellular: ['cellular', 'light-filtering'], 'cellular-blackout': ['cellular', 'blackout'], roman: ['roman'], 'roman-blackout': ['roman'], 'shangri-la': ['shangri-la'] };
+for (const t of TYPES) if (SOFT[t]) {
+  const rows = await (await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent(`{${SOFT[t][0]}}`)}`, { headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY } })).json();
+  CODES[t] = rows.flatMap((g) => g.swatches || []).filter((s) => (!SOFT[t][1] || s.family === SOFT[t][1]) && (t !== 'roman-blackout' || s.roman_styles?.flat?.linings?.includes('blackout')) && (!s.roman_styles || s.roman_styles.flat?.available !== false || !t.startsWith('roman'))).map((s) => s.supplier_code).slice(0, COLORS.length);
+}
 const fit = (xs, ys) => { const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxx = 0, sxy = 0; xs.forEach((x, i) => { sxx += (x - mx) ** 2; sxy += (x - mx) * (ys[i] - my); }); const a = sxy / sxx; return { a, b: my - a * mx, r: Math.sqrt(xs.reduce((s, x, i) => s + (ys[i] - (my + a * (x - mx))) ** 2, 0) / n) }; };
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const all = {};
