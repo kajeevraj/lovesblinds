@@ -1,0 +1,247 @@
+{
+ "kind": "apply-color-fixes",
+ "base": "https://njhlhjdbcesidgixycxj.supabase.co",
+ "at": "2026-11-09T01:52:42.075Z",
+ "rows": [
+  {
+   "id": "zebra:YZB901",
+   "name": "Tundra White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:screen-view:WSS380192",
+   "name": "Tundra White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:screen-view:XSS000105",
+   "name": "Platinum Gray",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:blackout:YB204304",
+   "name": "White Gray",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "zebra:YZB1001",
+   "name": "Dove White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "zebra:YZB501",
+   "name": "Off-white",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "shangri-la:YSLM602",
+   "name": "Sunbeam Yellow",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26049006",
+   "name": "Breeze White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26004001",
+   "name": "Whisper White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26041001",
+   "name": "Wisp White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26003001",
+   "name": "Porcelain White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "cellular:light-filtering:YHCK002",
+   "name": "White Linen",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "dream-curtains:ZDS3008-2",
+   "name": "Powder White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "roller:solar:XS170001",
+   "name": "Breeze White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-501",
+   "name": "Rice White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26057003",
+   "name": "Vanilla White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Cream/Ivory"
+   }
+  },
+  {
+   "id": "drapery:SP26060003",
+   "name": "Clean White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "drapery:SP26060001",
+   "name": "Crisp White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "drapery:SP26060002",
+   "name": "Pristine White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "drapery:SP26062005",
+   "name": "Moonbeam White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "drapery:SP26010002",
+   "name": "Milk White",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "roller:solar:XS140004",
+   "name": "Pinstripe",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Pattern/Multi"
+   }
+  },
+  {
+   "id": "roller:screen-view:WSS385858",
+   "name": "Bronze",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Beige/Tan"
+   }
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L11",
+   "name": "Goose Yellow",
+   "before": {
+    "preview_color": null
+   },
+   "after": {
+    "preview_color": "#e6d1a8"
+   }
+  }
+ ]
+}
