@@ -44,7 +44,7 @@ const run = async (label, vp, filter) => {
   check(`${label}: ${n} colors, every shade face is within distance ${MAX_DE} and b* ${MAX_DB} of its tile, with no waviness (wave under ${MAX_WAVE})`, bad.length === 0, bad.length ? `${bad.length} off: ${bad.slice(0, 12).join(' | ')}` : summary);
 };
 // ---- the weave: strong where the photo has one, flat where it does not (desktop and phone) ----
-const WEAVES = [['solar', 'YS180006', 'Jet Black', 'strong'], ['blackout', 'YB180006', 'Onyx Black', 'strong'], ['solar', 'YS180004', 'Flint Gray (a grey solar)', 'strong'], ['screen-view', 'YSS-T12-305', 'Bark Brown (its pattern)', 'strong'],
+const WEAVES = [['solar', 'YS180006', 'Jet Black', 'dark'], ['blackout', 'YB180006', 'Onyx Black', 'dark'], ['solar', 'YS120007', 'Obsidian Black', 'dark'], ['solar', 'YS180004', 'Flint Gray (a grey solar)', 'strong'], ['screen-view', 'YSS-T12-305', 'Bark Brown (its pattern)', 'shapes'],
   ['blackout', 'YB050252', 'Steel Gray (a smooth blackout)', 'smooth'], ['blackout', 'YB010001', 'Fresh White (a smooth blackout)', 'smooth'],
   ['solar', 'XS140004', 'Pinstripe (stripes)', 'pattern'], ['solar', 'XS140006', 'Wide Stripe (stripes)', 'pattern']];
 const SHADE_M = 40 * 0.0254;                // the probe sets every shade to 40 in wide
@@ -57,13 +57,15 @@ const weave = async (label, vp) => {
     const tile = await s.page.evaluate((id) => (window.__lbTiles || {})[id], r.id), reps = tile ? SHADE_M / tile : NaN;
     scales.push(`${name} ${Number.isFinite(reps) ? reps.toFixed(1) : '?'}`);
     if (!(reps >= 8 && reps <= 30)) bad.push(`${name}: the pattern repeats ${Number.isFinite(reps) ? reps.toFixed(1) : '?'} times across a 40 in shade (needs 8 to 30)`);
+    if (kind === 'dark' && r.sdHigh < 9) bad.push(`${name}: a dark thread weave looks nearly solid (fine contrast ${r.sdHigh.toFixed(1)}, needs 9 or more, like Flint Gray)`);
+    if (kind === 'shapes' && r.sdHigh < 6) bad.push(`${name}: the pattern's shapes are too faint (fine contrast ${r.sdHigh.toFixed(1)}, needs 6 or more)`);
     if (kind === 'strong' && r.sdHigh < 3.5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 3.5 or more)`);
     if (kind === 'smooth' && r.sdHigh > 4.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 4.5)`);
     if (r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : MAX_WAVE)) bad.push(`${name}: wavy or beating (${r.sdWave.toFixed(1)})`);
     if (r.dE > MAX_DE || r.db > MAX_DB) bad.push(`${name}: the weave moved the color (distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)})`);
   }
   for (const t of Object.values(sessions)) await (await t).close();
-  const strong = rows.filter((r) => r.kind === 'strong').map((r) => r.sdHigh), smooth = rows.filter((r) => r.kind === 'smooth').map((r) => r.sdHigh);
+  const strong = rows.filter((r) => ['strong', 'dark', 'shapes'].includes(r.kind)).map((r) => r.sdHigh), smooth = rows.filter((r) => r.kind === 'smooth').map((r) => r.sdHigh);
   check(`${label}: strong weaves show clearly (fine contrast ${strong.map((v) => v.toFixed(0)).join(', ')}), smooth blackouts stay smooth (${smooth.map((v) => v.toFixed(1)).join(', ')}), nothing wavy, the average color still matches the tile`, bad.length === 0, bad.join(' | '));
   check(`${label}: every patterned fabric repeats at least 8 times across a 40 in shade (a real fabric sample is about 10 cm)`, !bad.some((b) => /times across/.test(b)), `repeats: ${scales.join(', ')}`);
 };

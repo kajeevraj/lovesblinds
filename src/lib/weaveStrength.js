@@ -60,11 +60,20 @@ export function weaveStats(rgb, size = TEX) {
 // the most contrast a color can carry around its average without much of it clipping against black or white
 export const headroomSd = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)), L = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; return 0.55 * Math.min(L, 255 - L) + 4; };
 
+// Dark thread weaves (white thread on black) lose more of their contrast on screen than mid tones do: the same texture contrast is a darker, finer picture that the
+// mipmaps flatten sooner. So the rows-of-thread auto is raised as the color gets darker (x1.6 at lightness 30 or below, none from 130 up): Jet Black and Onyx Black then
+// read like Flint Gray (a fine contrast of 11 to 12 on a desktop).
+export const DARK_BOOST = { full: 30, none: 130, gain: 0.6 };
+// A printed shape pattern (Bark Brown's mosaic) is drawn at this multiple of the photo's contrast so the shapes read at normal desktop size.
+export const SHAPE_GAIN = 1.4;
+const lightnessOf = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; };
+
 // strength: the admin's multiple (null / undefined = auto = 1)
 export function desiredSd(photoSd, hex, strength = null, lines = 1) {
   const m = Number.isFinite(strength) ? Math.min(STRENGTH.max, Math.max(STRENGTH.min, strength)) : 1;
-  // rows of thread (stripes, a solar weave) are drawn at AUTO_WEAVE of their contrast; a printed shape pattern (lines near 0.2) is the design itself and keeps all of it
-  const auto = AUTO_WEAVE + (1 - AUTO_WEAVE) * Math.min(1, Math.max(0, (0.6 - lines) / 0.3));
+  const shape = Math.min(1, Math.max(0, (0.6 - lines) / 0.3));                    // 0: rows of thread / stripes, 1: a printed shape pattern (lines near 0.2)
+  const dark = 1 + DARK_BOOST.gain * Math.min(1, Math.max(0, (DARK_BOOST.none - lightnessOf(hex)) / (DARK_BOOST.none - DARK_BOOST.full)));
+  const auto = AUTO_WEAVE * dark + (SHAPE_GAIN - AUTO_WEAVE * dark) * shape;
   return Math.min(photoSd, headroomSd(hex), 24) * auto * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
 }
 
