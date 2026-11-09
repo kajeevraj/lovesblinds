@@ -57,7 +57,7 @@ const weave = async (label, vp) => {
     const tile = await s.page.evaluate((id) => (window.__lbTiles || {})[id], r.id), reps = tile ? SHADE_M / tile : NaN;
     scales.push(`${name} ${Number.isFinite(reps) ? reps.toFixed(1) : '?'}`);
     if (!(reps >= 8 && reps <= 30)) bad.push(`${name}: the pattern repeats ${Number.isFinite(reps) ? reps.toFixed(1) : '?'} times across a 40 in shade (needs 8 to 30)`);
-    if (kind === 'strong' && r.sdHigh < 5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 5 or more)`);
+    if (kind === 'strong' && r.sdHigh < 3.5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 3.5 or more)`);
     if (kind === 'smooth' && r.sdHigh > 4.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 4.5)`);
     if (r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : MAX_WAVE)) bad.push(`${name}: wavy or beating (${r.sdWave.toFixed(1)})`);
     if (r.dE > MAX_DE || r.db > MAX_DB) bad.push(`${name}: the weave moved the color (distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)})`);

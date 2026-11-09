@@ -12,12 +12,14 @@ import { TEX } from '../room/textureCore.js';
 
 export const DISPLAY = { periodPx: 3.6, minM: 0.008, maxM: 0.03, tileMin: 0.075, tileMax: 1.2, fallbackPxPerM: 236 };
 export const STRENGTH = { min: 0, max: 3 };
-// Auto is HALF of what the photo's own contrast would draw: the photo's full contrast read as bold stripes at shade size (measured on Jet Black, Onyx Black and Flint
-// Gray); half reads as a fine woven texture that is still clearly not flat. The admin's slider is a multiple of this auto.
-export const AUTO_WEAVE = 0.5;
-// A photo is a small physical sample of cloth, about 10 cm across, so a photo-crop texture covers 10 cm of shade: a 40 in shade shows the pattern about 10 times
-// across, whatever the fabric (a mosaic repeats at the size it really has; a fine weave is a few pixels per thread at desktop size).
-export const SAMPLE_M = 0.10;            // the admin's multiple of auto: 0 = flat, 1 = auto, 3 = three times
+// Auto is a little over HALF of the contrast the photo itself would draw: measured on screen, the full contrast read as bold stripes on Jet Black, Onyx Black and
+// Flint Gray (fine contrast 16 to 20); 0.7 of it (a fine contrast of about 8 to 12) is a fine woven texture that is still clearly not flat. The admin's slider is a
+// multiple of this auto.
+export const AUTO_WEAVE = 0.7;
+// A photo is a small physical sample of cloth, about 10 cm across, so a photo-crop texture covers about 10 cm of shade (never more than 12 cm, never less than
+// 7.5 cm): a 40 in shade shows the pattern 8.5 to 13.5 times across, whatever the fabric. Inside that range a fine weave is drawn as large as it can be so that its
+// threads still read on screen.
+export const SAMPLE_M = { min: 0.075, max: 0.12 };            // the admin's multiple of auto: 0 = flat, 1 = auto, 3 = three times
 
 const lumOf = (rgb) => { const n = rgb.length / 3, l = new Float32Array(n); for (let i = 0, j = 0; i < n; i++, j += 3) l[i] = 0.3 * rgb[j] + 0.59 * rgb[j + 1] + 0.11 * rgb[j + 2]; return l; };
 
@@ -42,7 +44,8 @@ function dominantPeriod(l, size) {
 export function weaveStats(rgb, size = TEX) {
   const l = lumOf(rgb), n = l.length; let m = 0; for (const v of l) m += v; m /= n;
   let v = 0; for (const x of l) v += (x - m) ** 2;
-  return { sd: Math.sqrt(v / n), period: dominantPeriod(l, size) };
+  const sd = Math.sqrt(v / n);
+  return { sd, period: dominantPeriod(l, size) };
 }
 
 // the most contrast a color can carry around its average without much of it clipping against black or white
@@ -56,8 +59,8 @@ export function desiredSd(photoSd, hex, strength = null) {
 
 // metres of cloth one 256 px texture covers, so that the weave repeat is DISPLAY.periodPx screen pixels on the shade (pxPerMeter: css pixels per metre at the shade)
 export function weaveTileMetres(periodTexPx, pxPerMeter = DISPLAY.fallbackPxPerM, { photo = false } = {}) {
-  if (photo) return SAMPLE_M;                      // a photo crop is a real sample of cloth: its physical size, not a size chosen to show its threads
-  if (!periodTexPx) return DISPLAY.tileMin;
+  if (!periodTexPx) return photo ? 0.1 : DISPLAY.tileMin;
   const periodM = Math.min(DISPLAY.maxM, Math.max(DISPLAY.minM, DISPLAY.periodPx / Math.max(20, pxPerMeter)));
-  return Math.min(DISPLAY.tileMax, Math.max(DISPLAY.tileMin, (periodM * TEX) / periodTexPx));
+  const t = (periodM * TEX) / periodTexPx;
+  return photo ? Math.min(SAMPLE_M.max, Math.max(SAMPLE_M.min, t)) : Math.min(DISPLAY.tileMax, Math.max(DISPLAY.tileMin, t));
 }
