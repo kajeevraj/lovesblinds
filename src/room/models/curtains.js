@@ -116,7 +116,7 @@ class Curtains {
     this.mat = fabricMaterial({ map: this.tex, glow: optics.glow ?? 0.2, bump: 1.4, vertexColors: true, side: THREE.DoubleSide }, this.env);
     this.mat.color.set(fabric.color);
     const m = this.mat;
-    whenFabric(fabric, () => { m.color.set(0xffffff); m.needsUpdate = true; });
+    whenFabric(fabric, (img, look) => { m.color.set(0xffffff); if (look?.sheer) { m.transparent = true; m.depthWrite = false; m.alphaTest = 0.02; } m.needsUpdate = true; });       // a sheer open weave: see-through between its threads (the texture's own alpha)
     this.mat.userData.uHeight.value = this.height;
     this.panels.forEach((p) => { p.mesh.material = this.mat; });
     this.applyEnv();

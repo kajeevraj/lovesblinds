@@ -1,8 +1,7 @@
 // Shared pieces of the window-treatment models (shade.js, curtains.js): image loading, fabric materials, soft shadows.
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
-import { makeTextureCanvas, tunedCanvas, pixelsOf } from '../textureBrowser.js';
-import { deriveHex } from '../../lib/swatchColor.js';
+import { resolveLook } from '../textureBrowser.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
 const imgCache = new Map();
@@ -23,43 +22,29 @@ export function whenImage(url, cb, cross = false, fail = null) {
   else { e.cbs.push(cb); if (fail) e.fails.push(fail); }
 }
 
-// A color's 3D texture is normally ready-made (public/room-lab/fabrics for the presets, tex256/ in the storage bucket for every other swatch). If a
-// swatch has none yet, one is made here from its picture (same steps as the admin upload and the backfill: textureBrowser.js) as a fallback.
-const dynCache = new Map();
+// A fabric's texture comes from ONE place for every surface (src/room/textureBrowser.js resolveLook): a flat crop of the supplier photo made to tile, or a
+// generated pattern (always for Zebra), centred on the color the picker tile shows. The hand-cut presets (public/room-lab/fabrics, only the sample shown
+// before a color is picked) are plain images.
+const lookCache = new Map();
 export function whenFabric(spec, cb) {
-  const make = () => {
-    const hit = dynCache.get(spec.key);
-    if (hit) { cb(hit); return; }
-    whenImage(spec.fallbackUrl || spec.url, (img) => {
-      let r; try { r = makeTextureCanvas(img, spec.kind === 'zebra'); } catch { return; }       // a tainted or broken picture: keep the flat colour
-      dynCache.set(spec.key, r.canvas); cb(r.canvas);
-    }, true);
-  };
-  if (spec.dynamic) { make(); return; }
-  whenImage(spec.url, cb, !!spec.prepared, spec.prepared ? make : undefined);       // a prepared texture that is missing (404) falls back to making one
+  if (spec.preset) { whenImage(spec.url, cb); return; }
+  const key = `${spec.key}|${spec.look.textureMode || ''}|${spec.look.weave || ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
+  let p = lookCache.get(key);
+  if (!p) { p = resolveLook(spec.look, { lit: true }); lookCache.set(key, p); p.catch(() => lookCache.delete(key)); }
+  p.then((r) => { try { (window.__lbLooks = window.__lbLooks || {})[spec.swatchId] = { mode: r.mode, hex: r.hex, weave: r.weave, sheer: !!r.sheer }; } catch { /* no window */ } cb(r.canvas, r); }, () => { /* no picture and no color: the model keeps its flat color */ });       // window.__lbLooks: what the 3D shows, for the tests
 }
 
-// A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Mirrored in u so the swatch edges never show a seam.
-// A catalog photo is re-centred on the color the fabric shows as (src/lib/swatchColor.js: the admin's override, else its own picture placed inside
-// its color family) and its contrast capped; the preset textures are already cut for this. The color is read once per fabric.
-const looks = new Map();
-export const looksHex = (img, spec) => {
-  if (spec.override) return spec.color;
-  let h = looks.get(spec.key);
-  if (!h) { try { h = deriveHex(pixelsOf(img, 64, spec.kind === 'zebra' ? 0.6 : 1), spec.colorFamily); } catch { h = spec.color; } looks.set(spec.key, h); }
-  return h;
-};
-export const tuneFabric = (img, spec) => (!(spec.preset && !spec.override) && spec.color ? tunedCanvas(img, spec.key, looksHex(img, spec), spec.kind === 'zebra') : img);
-
+// A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Presets are hand-cut, so they are mirrored in u to hide their seams;
+// every other texture is made to repeat on its own (seamless), so it repeats plainly (a mirror would show a symmetric pattern).
 export function weaveTexture(spec, env, { mirrorV = true } = {}) {
-  const t = new THREE.Texture();
+  const t = new THREE.Texture(), mirror = !!spec.preset;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = THREE.MirroredRepeatWrapping;
-  t.wrapT = mirrorV ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping;
+  t.wrapS = mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping;
+  t.wrapT = mirror && mirrorV ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping;
   t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;     // trilinear + anisotropic: the weave melts into its average color when small, never into moire
   t.anisotropy = env.maxAniso || 1;
   t.repeat.set(1 / spec.tile[0], 1 / spec.tile[1]);
-  whenFabric(spec, (img) => { t.image = tuneFabric(img, spec); t.needsUpdate = true; env.invalidate(); });
+  whenFabric(spec, (img) => { t.image = img; t.needsUpdate = true; env.invalidate(); });
   return t;
 }
 

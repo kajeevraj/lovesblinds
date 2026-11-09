@@ -9,9 +9,10 @@ import { emptyCollection, newCollectionRow, diffPatch } from '../lib/collections
 import { imgUrl, insertRow, updateRow, deleteRow, swatchOrderCount, setSwatchLines } from '../lib/db.js';
 import { explain } from '../lib/errors.js';
 import CollectionFields from './CollectionFields.jsx';
+import TextureField, { textureBandProblem } from './TextureField.jsx';
 import History from './History.jsx';
 import { linesForSwatch, publishToSite } from '../lib/livecache.js';
-import { catalogLinesOf } from '../../data/catalogQuery.js';
+import { catalogLinesOf, thumb200Path, texFlatPath } from '../../data/catalogQuery.js';
 
 const NEW = '__new__';
 const blankRoman = () => Object.fromEntries(ROMAN_STYLE_LIST.map((s) => [s.id, { available: false, linings: [] }]));
@@ -41,6 +42,11 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const [extra, setExtra] = useState(String(existing?.extra_cost ?? 0));
   const [colorFamily, setColorFamily] = useState(existing?.color_family || '');
   const [previewColor, setPreviewColor] = useState(existing?.preview_color || '');         // '' = worked out from the photo inside the color family
+  const [texMode, setTexMode] = useState(existing?.texture_mode || '');                  // '' = not chosen: the auto-picked setting (from the photo) applies
+  const [weave, setWeave] = useState(existing?.weave || '');                           // '' = by fabric type (Pattern only)
+  const [texAuto, setTexAuto] = useState(null);                                           // { mode, reason } from the photo
+  const [zSolid, setZSolid] = useState(existing?.zebra_solid_in == null ? '' : String(existing.zebra_solid_in));   // '' = use the line's default
+  const [zSheer, setZSheer] = useState(existing?.zebra_sheer_in == null ? '' : String(existing.zebra_sheer_in));   // '' = the default (2 in)
   const [cfManual, setCfManual] = useState(!!existing);
   const [grade, setGrade] = useState(existing?.grade || '');
   const [width, setWidth] = useState(existing?.width || '');
@@ -100,7 +106,11 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   if (isNew && !photo) missing.push('a photo');
   if (!colorFamily) missing.push('a color family');
   const pcProblem = previewColor.trim() && !isHex(previewColor.trim()) ? 'The preview color must be a hex color like #3b3a3c (or empty).' : '';
-  const problems = [pcProblem, nameProblem, codeProblem, bProblem, romanProblem, extraProblem, collNameClash && 'That price group name is already used in this line.'].filter(Boolean);
+  const isZebra = mainLine === 'zebra';
+  const texProblem = isZebra ? textureBandProblem(zSolid, zSheer) : '';
+  const hasWeaveCol = data.swatches.some((x) => 'weave' in x);
+  const hasTexCols = data.swatches.some((x) => 'texture_mode' in x);                       // false until migration 24 is applied: then these fields are never sent
+  const problems = [pcProblem, texProblem, nameProblem, codeProblem, bProblem, romanProblem, extraProblem, collNameClash && 'That price group name is already used in this line.'].filter(Boolean);
   const canSave = !busy && missing.length === 0 && problems.length === 0;
 
   const choosePhoto = (which) => async (e) => {
@@ -110,6 +120,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
     try {
       const p = await prepareImage(file);
       which === 'B' ? setPhotoB(p) : setPhoto(p);
+      if (which !== 'B') { setTexMode(''); setTexAuto(null); }          // a new photo: the Texture setting is auto-picked again
       if (which !== 'B' && isNew) setCfManual(false);   // an existing color keeps its family; the suggestion is offered, not applied
     } catch (err) { setPhotoErr(err.message); }
   };
@@ -165,6 +176,13 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         extra_cost: extraNum,
         // sent only when set or already stored, so adding colors keeps working before migration 20 adds the column
         ...(previewColor.trim() ? { preview_color: previewColor.trim().toLowerCase() } : existing && 'preview_color' in existing ? { preview_color: null } : {}),
+        // the Texture setting (migration 24): a Zebra is always the pattern; otherwise what was chosen, else the auto-pick for a new photo; never guessed for an
+        // existing color the person did not touch
+        ...(hasWeaveCol && !isZebra ? { weave: weave || null } : {}),
+        ...(hasTexCols ? {
+          ...(isZebra ? { texture_mode: 'pattern' } : texMode ? { texture_mode: texMode } : photo && texAuto ? { texture_mode: texAuto.mode } : isNew && texAuto ? { texture_mode: texAuto.mode } : {}),
+          ...(isZebra ? { zebra_solid_in: zSolid.trim() === '' ? null : Number(zSolid), zebra_sheer_in: zSheer.trim() === '' ? null : Number(zSheer) } : {}),
+        } : {}),
       };
       if (isNew) {
         const sort = Math.max(-1, ...data.swatches.filter((s) => s.product_line === mainLine).map((s) => s.sort_order)) + 1;
@@ -236,6 +254,9 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
     return { ...r, [id]: { ...r[id], linings: cur.includes(lining) ? cur.filter((l) => l !== lining) : [...cur, lining] } };
   });
 
+  const textureSrc = useMemo(() => (photo
+    ? { id: `new:${photo.previewUrl}`, thumb: photo.previewUrl, tile: photo.previewUrl, image: photo.previewUrl }
+    : existing ? { id: existing.id, thumb: imgUrl(existing.thumb_path), tile: imgUrl(thumb200Path(existing.thumb_path)), image: imgUrl(existing.image_path), tex: imgUrl(texFlatPath(existing.thumb_path)) } : null), [photo, existing]);
   const shownThumb = photo?.previewUrl || (existing ? imgUrl(existing.thumb_path) : '');
   const shownThumbB = photoB?.previewUrl || (exStyleB ? imgUrl(exStyleB.thumb_path) : '');
   const groupLabel = (f) => `${f.collection_name}${f.family ? ` (${FAMILY_LABELS[f.family]})` : ''}${f.active ? '' : ' — hidden'}`;
@@ -314,6 +335,10 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
             <em className="adm-field-ok">{previewColor ? 'This exact color is shown in the picker and on the 3D shade.' : 'Default: the photo\'s own lightness and tint, kept inside its color family (Jet Black stays black, a white stays white).'}</em>
             {pcProblem && <em className="adm-field-error" role="alert">{pcProblem}</em>}
           </div>
+          {(photo || existing) && (
+            <TextureField src={textureSrc} line={mainLine} family={famOf(mainLine)} composition={composition || mainFabric?.composition || ''} colorFamily={colorFamily} previewColor={previewColor.trim()}
+              zebra={isZebra} lineBands={(data.productLines || []).find((l) => l.id === 'zebra') || null} mode={texMode} onMode={setTexMode} weave={weave} onWeave={setWeave} canWeave={hasWeaveCol} auto={texAuto} setAuto={setTexAuto} solid={zSolid} sheer={zSheer} onSolid={setZSolid} onSheer={setZSheer} analysis={photo?.analysis || null} />
+          )}
           {showRoman && (
             <label className="adm-field"><span>Grade <small>(internal)</small></span>
               <select value={grade} onChange={(e) => setGrade(e.target.value)}><option value="">None</option>{GRADES.map((g) => <option key={g}>{g}</option>)}</select>

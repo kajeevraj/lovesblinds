@@ -1,7 +1,8 @@
 // Loads a line's catalog from Supabase and turns the rows into the shapes the pickers already use
 // (fabric.line / fabric.specs, swatch.code / displayName / image / thumb ...), so nothing downstream changes.
-import { catalogPath, edgePath, storageUrl, thumb200Path, tex256Path } from './catalogQuery.js';
+import { catalogPath, edgePath, storageUrl, thumb200Path, texFlatPath } from './catalogQuery.js';
 import { registerCatalog } from './swatchData.js';
+import { resolveBands } from '../room/zebraBands.js';
 
 const BASE = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -9,6 +10,9 @@ const TIMEOUT_MS = 12000;
 
 const nn = (v) => (v === null || v === undefined || v === '' ? undefined : v);
 const compact = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+
+// a Zebra color's band widths: its own override, else its line's default, else 3 in / 2 in (src/room/zebraBands.js)
+const zebraWidths = (s, r) => { const b = resolveBands({ own: { solidIn: nn(s.zebra_solid_in), sheerIn: nn(s.zebra_sheer_in) }, line: { solidIn: nn(r.line_band_solid_in), sheerIn: nn(r.line_band_sheer_in) } }); return { zebraSolidIn: b.solidIn, zebraSheerIn: b.sheerIn }; };
 
 export function mapRows(rows) {
   const fabrics = [];
@@ -29,7 +33,8 @@ export function mapRows(rows) {
         id: s.id, fabricId: s.fabric_id, line: s.product_line, lines: s.shown_in || shownIn, family: s.family || undefined,
         code: s.supplier_code,
         displayName: s.display_name, colorFamily: s.color_family, previewColor: nn(s.preview_color),
-        image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, tex256Path(s.thumb_path)) : undefined, imageKind: s.image_kind,
+        image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, texFlatPath(s.thumb_path)) : undefined,
+        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, weave: nn(s.weave), ...zebraWidths(s, r), imageKind: s.image_kind,
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,
         styles: s.styles ? s.styles.map(st => ({ style: st.style, code: st.code, image: storageUrl(BASE, st.image_path), thumb: storageUrl(BASE, st.thumb_path) })) : undefined,

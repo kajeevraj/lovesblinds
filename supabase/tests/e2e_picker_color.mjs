@@ -12,12 +12,14 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); console.l
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 const COLORS = [['Jet Black', 'YS180006'], ['Clean White', 'YS180002'], ['Flint Gray', 'Flint'], ['Concrete Gray', 'Concrete'], ['Cashew Beige', 'YS180003']];
 const OVERRIDES = { YS180006: '#2a5d9f', YS180002: 'not-a-color' };      // a blue Jet Black, and a bad value on the white
+const BROWN_OVERRIDES = { 'YSS-T12-305': '#4a3829', XSS000539: '#4a3223' };      // the approved preview colors of Bark Brown and Cocoa Chocolate (live has none yet)
 const open = async (w, h, overrides) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   if (overrides) {
-    const patch = async (route) => { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } rows = rows.map((g) => ({ ...g, swatches: (g.swatches || []).map((s) => (OVERRIDES[s.supplier_code] ? { ...s, preview_color: OVERRIDES[s.supplier_code] } : s)) })); await route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); };
+    const map = overrides === true ? OVERRIDES : overrides;
+    const patch = async (route) => { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } rows = rows.map((g) => ({ ...g, swatches: (g.swatches || []).map((s) => (map[s.supplier_code] ? { ...s, preview_color: map[s.supplier_code] } : s)) })); await route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); };
     await page.route('**/rest/v1/rpc/public_catalog*', patch); await page.route('**/api/catalog*', patch);
   }
   await page.goto(`${BASE}/products/roller`, { waitUntil: 'networkidle' }); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
@@ -66,6 +68,18 @@ try {
   const beige = await pickAndRead(page, 'YS180003');
   check('a color with no override is untouched by the others (Cashew Beige is still beige)', parseInt(beige.tileHex.slice(1, 3), 16) - parseInt(beige.tileHex.slice(5, 7), 16) >= 12, beige.tileHex);
   await ctx.close();
+  // dark Screen view colors (a see-through fabric): from inside the room a dark screen still reads dark, so the 3D shade matches its tile like any other fabric
+  for (const [label, ov] of [['as the catalog has them now', false], ['with their approved preview colors', BROWN_OVERRIDES]]) {
+    const { page: pg, ctx: cx } = await open(1280, 900, ov);
+    for (const [name, q] of [['Bark Brown', 'YSS-T12-305'], ['Cocoa Chocolate', 'XSS000539']]) {
+      await pg.locator('.s2-card').filter({ has: pg.locator('.s2-card-name', { hasText: /^Screen view$/ }) }).first().click(); await pg.waitForTimeout(500);
+      const r = await pickAndRead(pg, q);
+      const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; };
+      check(`screen view ${name}, ${label}: the 3D shade ${r.shadeHex} is within color distance 7 of its picker tile ${r.tileHex}`, colorDistance(r.shadeHex, r.tileHex) <= 7, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
+      check(`screen view ${name}, ${label}: the tile and the "This blind" chip agree, and the shade reads dark (lightness under 90), not light taupe`, r.chipHex === r.tileHex && lum(r.shadeHex) < 90, `shade lightness ${lum(r.shadeHex).toFixed(0)}`);
+    }
+    await cx.close();
+  }
 } catch (e) { console.log('TEST ERROR:', e.stack || e.message); results.push({ name: 'script ran to completion', ok: false }); }
 await browser.close();
 const bad = results.filter((x) => !x.ok);

@@ -3,7 +3,8 @@
 // product pages. All go to the "swatches" bucket under unique names (thumb200/<line>/<name>.webp sits next to thumb/ and
 // full/, found by the naming rule, no database column), so a replacement never shows a stale copy from the 24-hour cache.
 import { supabase } from '../../lib/supabase.js';
-import { makeTextureCanvas, textureBlob } from '../../room/textureBrowser.js';
+import { makeTextureCanvas, textureBlob, pixelsAt } from '../../room/textureBrowser.js';
+import { analyzePhoto } from '../../lib/textureAnalysis.js';
 
 export const BUCKET = 'swatches';
 const FULL_MAX = 1000, FULL_QUALITY = 0.88, THUMB_PX = 320, THUMB_QUALITY = 0.62, TILE_PX = 200, TILE_QUALITY = 0.6;
@@ -51,19 +52,20 @@ export async function prepareImage(file) {
     const t = await toBlob(sc, 'image/webp', TILE_QUALITY);
     if (t.type === 'image/webp') tile = t;
   } catch { tile = null; }
-  // 3D fabric textures for the room visualizer and the product-page preview: a flat cloth piece, and a stripe tile for the zebra line. Made after
-  // the photo is ready (the form does not wait for them); uploadPrepared() waits for them. Best effort: a color without one still works, the
-  // page makes one on the spot.
+  // The fabric texture (tex256/): the flattest part of the photo, cut out and made to tile (src/room/textureCore.js photoCropTexture), for every line (a
+  // Zebra never uses it, it is always the generated pattern, but a color that is moved to another line later still has one). Made after the photo is ready
+  // (the form does not wait for it); uploadPrepared() waits for it. Best effort: without one the pages make one on the spot from the full photo.
+  // `analysis` is the photo looked at once: Photo crop or Pattern (src/lib/textureAnalysis.js), offered in the form as the auto-picked Texture setting.
+  const fp = pixelsAt(fc, FULL_MAX), analysis = analyzePhoto(fp.rgb, fp.w, fp.h);
   const texPromise = (async () => {
     await new Promise((r) => setTimeout(r, 0));
-    const out = { weave: null, zebra: null };
-    try { out.weave = await textureBlob(makeTextureCanvas(bmp, false).canvas); } catch { /* none */ }
-    try { out.zebra = await textureBlob(makeTextureCanvas(bmp, true).canvas); } catch { /* none */ }
+    const out = { weave: null };
+    try { out.weave = await textureBlob(makeTextureCanvas(bmp).canvas); } catch { /* none */ }
     bmp.close?.();
     return out;
   })();
   const px = tx.getImageData(0, 0, THUMB_PX, THUMB_PX);
-  return { full, thumb, tile, texPromise, previewUrl: URL.createObjectURL(thumb), pixels: { data: px.data, width: THUMB_PX, height: THUMB_PX } };
+  return { full, thumb, tile, texPromise, analysis, previewUrl: URL.createObjectURL(thumb), pixels: { data: px.data, width: THUMB_PX, height: THUMB_PX } };
 }
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'color';
@@ -82,22 +84,27 @@ export async function uploadPrepared(line, code, prepared) {
   if (b.error) { await removePaths([imagePath]); throw b.error; }
   if (prepared.tile) await supabase.storage.from(BUCKET).upload(tilePathOf(thumbPath), prepared.tile, opts(prepared.tile));   // best effort
   const texs = prepared.texPromise ? await prepared.texPromise : null;
-  const tex = texs ? (line === 'zebra' ? texs.zebra : texs.weave) : null;
-  if (tex) await supabase.storage.from(BUCKET).upload(texPathOf(thumbPath), tex, opts(tex));                                   // best effort
+  const tex = texs ? texs.weave : null;
+  if (tex) {                                                                                                                      // best effort
+    await supabase.storage.from(BUCKET).upload(texFlatPathOf(thumbPath), tex, opts(tex));                                         // what the site reads
+    await supabase.storage.from(BUCKET).upload(texPathOf(thumbPath), tex, opts(tex));                                             // the older name, kept so code that has not been deployed yet still finds a texture
+  }
   return { image_path: imagePath, thumb_path: thumbPath };
 }
 
 // thumb/<line>/<name>.<ext> -> thumb200/<line>/<name>.webp (same rule as the product pages)
 export const tilePathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'thumb200/').replace(/\.[^./]+$/, '.webp');
 
-// thumb/<line>/<name>.<ext> -> tex256/<line>/<name>.webp (the 3D fabric texture; same rule as src/data/catalogQuery.js)
+// thumb/<line>/<name>.<ext> -> texflat/<line>/<name>.webp (the fabric texture the site reads; same rule as src/data/catalogQuery.js)
+export const texFlatPathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'texflat/').replace(/\.[^./]+$/, '.webp');
+// the older name tex256/ (see catalogQuery.js)
 export const texPathOf = (thumbPath) => thumbPath.replace(/^thumb\//, 'tex256/').replace(/\.[^./]+$/, '.webp');
 
-// Best effort: a leftover file is harmless, so failures are only logged. Removing a thumbnail also removes its 200 px tile and its 3D texture.
+// Best effort: a leftover file is harmless, so failures are only logged. Removing a thumbnail also removes its 200 px tile and its textures.
 export async function removePaths(paths) {
   const base = paths.filter(Boolean);
   const thumbs = base.filter((p) => p.startsWith('thumb/'));
-  const list = [...new Set([...base, ...thumbs.map(tilePathOf), ...thumbs.map(texPathOf)])];
+  const list = [...new Set([...base, ...thumbs.map(tilePathOf), ...thumbs.map(texPathOf), ...thumbs.map(texFlatPathOf)])];
   if (!list.length) return;
   const { error } = await supabase.storage.from(BUCKET).remove(list);
   if (error) console.warn('[admin] could not remove old images', list, error.message);

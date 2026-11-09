@@ -7,13 +7,15 @@ export const imgUrl = (path) => (path ? storageUrl(BASE, path) : '');
 const must = ({ data, error }) => { if (error) throw error; return data; };
 
 export async function loadCatalog() {
-  const [fabrics, swatches, links] = await Promise.all([
+  const [fabrics, swatches, links, productLines] = await Promise.all([
     supabase.from('fabrics').select('*').order('product_line').order('sort_order').then(must),
     supabase.from('swatches').select('*').order('product_line').order('sort_order').then(must),
     // swatches linked into other lines (migration 9); an older database without the table just has none
     supabase.from('swatch_links').select('*').order('created_at').then(({ data, error }) => (error ? [] : data)),
+    // each line's default Zebra band widths (migration 24)
+    supabase.from('product_lines').select('*').then(({ data, error }) => (error ? [] : data)),
   ]);
-  return { fabrics, swatches, links };
+  return { fabrics, swatches, links, productLines };
 }
 
 // Updates a row and checks that something actually changed (an update the database refuses silently returns no rows).
