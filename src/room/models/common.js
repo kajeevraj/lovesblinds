@@ -2,6 +2,7 @@
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
 import { resolveLook } from '../textureBrowser.js';
+import { weaveTileMetres } from '../../lib/weaveStrength.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
 const imgCache = new Map();
@@ -28,7 +29,7 @@ export function whenImage(url, cb, cross = false, fail = null) {
 const lookCache = new Map();
 export function whenFabric(spec, cb) {
   if (spec.preset) { whenImage(spec.url, cb); return; }
-  const key = `${spec.key}|${spec.look.textureMode || ''}|${spec.look.weave || ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
+  const key = `${spec.key}|${spec.look.textureMode || ''}|${spec.look.weave || ''}|${spec.look.weaveStrength ?? ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
   let p = lookCache.get(key);
   if (!p) { p = resolveLook(spec.look, { lit: true }); lookCache.set(key, p); p.catch(() => lookCache.delete(key)); }
   p.then((r) => { try { (window.__lbLooks = window.__lbLooks || {})[spec.swatchId] = { mode: r.mode, hex: r.hex, weave: r.weave, sheer: !!r.sheer }; } catch { /* no window */ } cb(r.canvas, r); }, () => { /* no picture and no color: the model keeps its flat color */ });       // window.__lbLooks: what the 3D shows, for the tests
@@ -36,6 +37,13 @@ export function whenFabric(spec, cb) {
 
 // A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Presets are hand-cut, so they are mirrored in u to hide their seams;
 // every other texture is made to repeat on its own (seamless), so it repeats plainly (a mirror would show a symmetric pattern).
+// The weave is shown at a size that reads on the shade as it is on screen (src/lib/weaveStrength.js): called when the texture arrives and whenever the picture is
+// resized. Only where the scene says how many pixels a metre is (the product-page preview); a Zebra's texture is one stripe period (its geometry), never rescaled.
+export function applyWeaveScale(t, env) {
+  const spec = t.userData?.spec; if (!spec || spec.preset || spec.kind === 'zebra' || !env.pxPerMeter) return;
+  const tile = weaveTileMetres(t.userData.period, env.pxPerMeter);
+  t.repeat.set(1 / tile, 1 / tile); env.invalidate();
+}
 export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   const t = new THREE.Texture(), mirror = !!spec.preset;
   t.colorSpace = THREE.SRGBColorSpace;
@@ -44,7 +52,8 @@ export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;     // trilinear + anisotropic: the weave melts into its average color when small, never into moire
   t.anisotropy = env.maxAniso || 1;
   t.repeat.set(1 / spec.tile[0], 1 / spec.tile[1]);
-  whenFabric(spec, (img) => { t.image = img; t.needsUpdate = true; env.invalidate(); });
+  t.userData.spec = spec;
+  whenFabric(spec, (img, r) => { t.image = img; if (r) t.userData.period = r.period || null; applyWeaveScale(t, env); t.needsUpdate = true; env.invalidate(); });
   return t;
 }
 

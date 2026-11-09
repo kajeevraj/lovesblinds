@@ -83,6 +83,25 @@ export function retarget(rgb, target, maxSd = 16) {
   return out;
 }
 
+// Re-centres a flat texture on `target` and sets its contrast to `sd` (luminance spread, in levels): out = target + (pixel - mean) * sd / photoSd. Unlike
+// retarget() it can raise the contrast as well as lower it. Where the swing would clip against black or white the pixels are clipped, and the whole texture is
+// then shifted back (a few passes) so its AVERAGE is still exactly `target`.
+export function retargetWeave(rgb, target, sd) {
+  const n = rgb.length / 3, mean = [0, 0, 0];
+  for (let i = 0; i < rgb.length; i += 3) for (let c = 0; c < 3; c++) mean[c] += rgb[i + c];
+  for (let c = 0; c < 3; c++) mean[c] /= n;
+  let v = 0; const m = 0.3 * mean[0] + 0.59 * mean[1] + 0.11 * mean[2];
+  for (let i = 0; i < rgb.length; i += 3) { const l = 0.3 * rgb[i] + 0.59 * rgb[i + 1] + 0.11 * rgb[i + 2] - m; v += l * l; }
+  const k = v > 1e-6 ? sd / Math.sqrt(v / n) : 0, tmp = new Float32Array(rgb.length);
+  for (let i = 0; i < rgb.length; i += 3) for (let c = 0; c < 3; c++) tmp[i + c] = target[c] + (rgb[i + c] - mean[c]) * k;
+  for (let pass = 0; pass < 4; pass++) for (let c = 0; c < 3; c++) {
+    let s = 0; for (let i = c; i < tmp.length; i += 3) s += Math.min(255, Math.max(0, tmp[i])); const d = target[c] - s / n;
+    if (Math.abs(d) < 0.05) continue; for (let i = c; i < tmp.length; i += 3) tmp[i] += d;
+  }
+  const out = new Uint8ClampedArray(rgb.length); for (let i = 0; i < tmp.length; i++) out[i] = tmp[i];
+  return out;
+}
+
 // A zebra picture is one stripe period (solid band on top, `split` of the height, sheer band under it). The photo's uneven lighting shows as dark
 // vertical bars once it repeats, so the slow left-to-right brightness of the solid band is taken out of every row, and the solid band is then
 // re-centred on `target` like a weave (retarget). The sheer band keeps its own look. `rgb` is size x size x 3.

@@ -34,7 +34,7 @@ export function mapRows(rows) {
         code: s.supplier_code,
         displayName: s.display_name, colorFamily: s.color_family, previewColor: nn(s.preview_color),
         image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, texFlatPath(s.thumb_path)) : undefined,
-        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, weave: nn(s.weave), ...zebraWidths(s, r), imageKind: s.image_kind,
+        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, weave: nn(s.weave), weaveStrength: Number.isFinite(Number(s.weave_strength)) && s.weave_strength !== null ? Number(s.weave_strength) : undefined, ...zebraWidths(s, r), imageKind: s.image_kind,
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,
         styles: s.styles ? s.styles.map(st => ({ style: st.style, code: st.code, image: storageUrl(BASE, st.image_path), thumb: storageUrl(BASE, st.thumb_path) })) : undefined,

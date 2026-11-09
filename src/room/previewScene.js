@@ -117,6 +117,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const t = Math.tan((FOV * Math.PI) / 360), aspect = size.w / size.h;
     const d = Math.max(built.fit.h / (2 * t), built.fit.w / (2 * t * aspect), 0.9);
     camera.aspect = aspect; camera.position.set(0, built.fit.cy, d); camera.lookAt(0, built.fit.cy, 0); camera.updateProjectionMatrix();
+    env.pxPerMeter = size.h / (2 * d * t);                       // css pixels per metre at the shade (the weave is sized to read at this scale)
+    shades.forEach((sh) => sh.applyScale?.());
   }
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------

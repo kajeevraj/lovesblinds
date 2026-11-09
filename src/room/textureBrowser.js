@@ -10,9 +10,10 @@
 // `look` is { id, line, family, composition, colorFamily, previewColor, textureMode, solidIn, sheerIn, tile, thumb, image, tex }.
 // `lit: true` is for the 3D room: the room's light lifts and warms every cloth a little, so the texture is set a touch darker and cooler and the shade on
 // screen lands on the swatch's own color (measured: rendered = 1.04 x texture + 8). The picker tiles are not lit, they are the color itself.
-import { TEX, retarget, photoCropTexture } from './textureCore.js';
+import { TEX, retargetWeave, photoCropTexture } from './textureCore.js';
+import { weaveStats, desiredSd } from '../lib/weaveStrength.js';
 import { analyzePhoto } from '../lib/textureAnalysis.js';
-import { patternRGB, patternAlpha, zebraPattern, weaveKindOf } from '../lib/patternTexture.js';
+import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, PATTERN_PERIOD } from '../lib/patternTexture.js';
 import { deriveHex, previewHex, isHex, familyHex, bandPixels } from '../lib/swatchColor.js';
 import { zebraBands } from './zebraBands.js';
 import { litTarget, typeOfLook } from './lightCalibration.js';
@@ -107,10 +108,10 @@ export const litHex = (hex, type = 'solar') => `#${litTarget(hex, type).map((v) 
 export function weaveOf(look) { return weaveKindOf({ line: look.line, family: look.family, composition: look.composition, weave: look.weave }); }
 
 // The pattern canvas for a weave in a color (zebra: one stripe period, solid on top). Also returns the solid band's rows.
-export function patternCanvas(weave, hex, bands) {
-  if (weave === 'zebra') { const z = zebraPattern(hex, bands.split, TEX); return { canvas: toCanvas(z.rgb, TEX, TEX), rows: z.rows }; }
+export function patternCanvas(weave, hex, bands, strength = 1) {
+  if (weave === 'zebra') { const z = zebraPattern(hex, bands.split, TEX, { strength }); return { canvas: toCanvas(z.rgb, TEX, TEX), rows: z.rows }; }
   const alpha = patternAlpha(weave, TEX);                          // a sheer open weave is see-through between its threads
-  return { canvas: toCanvas(patternRGB(weave, hex, TEX), TEX, TEX, alpha), rows: 0, sheer: !!alpha };
+  return { canvas: toCanvas(patternRGB(weave, hex, TEX, { strength }), TEX, TEX, alpha), rows: 0, sheer: !!alpha };
 }
 
 // Everything above in one call. `look.textureMode` may be forced for a preview ({ ...look, textureMode: 'pattern' }).
@@ -124,18 +125,20 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   }
   const type = typeOfLook(look), target = lit ? litHex(hex, type) : hex;
   if (mode === 'pattern') {
-    const { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands);
-    return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer };
+    const strength = Number.isFinite(look.weaveStrength) ? look.weaveStrength : 1, { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands, strength);
+    return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer, period: PATTERN_PERIOD[weaveOf(look)] || null };
   }
   const crop = await cropTexture(look, small), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
-  const out = retarget(rgbOf(ctx, TEX, TEX), targetFor(hex, { lit, type }));
-  return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0 };
+  // the photo's own weave contrast (held back only where it would clip), times the color's Weave strength; the average stays exactly the color
+  const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength);
+  const out = retargetWeave(raw, targetFor(hex, { lit, type }), sd);
+  return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, photoSd: stats.sd, sd };
 }
 
 // The same, as a "look" description built from a catalog swatch (what the customer pages and the room use)
 export const lookOfSwatch = (s) => ({
   id: s.id, line: s.line, family: s.family, composition: s.specs?.composition, colorFamily: s.colorFamily, previewColor: s.previewColor,
-  textureMode: s.textureMode, weave: s.weave, solidIn: s.zebraSolidIn, sheerIn: s.zebraSheerIn, tile: s.tile, thumb: s.thumb, image: s.image, tex: s.tex,
+  textureMode: s.textureMode, weave: s.weave, weaveStrength: s.weaveStrength, solidIn: s.zebraSolidIn, sheerIn: s.zebraSheerIn, tile: s.tile, thumb: s.thumb, image: s.image, tex: s.tex,
 });
 
