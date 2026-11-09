@@ -11,7 +11,13 @@
 import { TEX } from '../room/textureCore.js';
 
 export const DISPLAY = { periodPx: 3.6, minM: 0.008, maxM: 0.03, tileMin: 0.075, tileMax: 1.2, fallbackPxPerM: 236 };
-export const STRENGTH = { min: 0, max: 3 };            // the admin's multiple of auto: 0 = flat, 1 = auto, 3 = three times
+export const STRENGTH = { min: 0, max: 3 };
+// Auto is HALF of what the photo's own contrast would draw: the photo's full contrast read as bold stripes at shade size (measured on Jet Black, Onyx Black and Flint
+// Gray); half reads as a fine woven texture that is still clearly not flat. The admin's slider is a multiple of this auto.
+export const AUTO_WEAVE = 0.5;
+// A photo is a small physical sample of cloth, about 10 cm across, so a photo-crop texture covers 10 cm of shade: a 40 in shade shows the pattern about 10 times
+// across, whatever the fabric (a mosaic repeats at the size it really has; a fine weave is a few pixels per thread at desktop size).
+export const SAMPLE_M = 0.10;            // the admin's multiple of auto: 0 = flat, 1 = auto, 3 = three times
 
 const lumOf = (rgb) => { const n = rgb.length / 3, l = new Float32Array(n); for (let i = 0, j = 0; i < n; i++, j += 3) l[i] = 0.3 * rgb[j] + 0.59 * rgb[j + 1] + 0.11 * rgb[j + 2]; return l; };
 
@@ -45,11 +51,12 @@ export const headroomSd = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex
 // strength: the admin's multiple (null / undefined = auto = 1)
 export function desiredSd(photoSd, hex, strength = null) {
   const m = Number.isFinite(strength) ? Math.min(STRENGTH.max, Math.max(STRENGTH.min, strength)) : 1;
-  return Math.min(photoSd, headroomSd(hex), 24) * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
+  return Math.min(photoSd, headroomSd(hex), 24) * AUTO_WEAVE * m;     // 24: a very strong weave on a mid grey would drift the average (the screen averages in linear light)
 }
 
 // metres of cloth one 256 px texture covers, so that the weave repeat is DISPLAY.periodPx screen pixels on the shade (pxPerMeter: css pixels per metre at the shade)
-export function weaveTileMetres(periodTexPx, pxPerMeter = DISPLAY.fallbackPxPerM) {
+export function weaveTileMetres(periodTexPx, pxPerMeter = DISPLAY.fallbackPxPerM, { photo = false } = {}) {
+  if (photo) return SAMPLE_M;                      // a photo crop is a real sample of cloth: its physical size, not a size chosen to show its threads
   if (!periodTexPx) return DISPLAY.tileMin;
   const periodM = Math.min(DISPLAY.maxM, Math.max(DISPLAY.minM, DISPLAY.periodPx / Math.max(20, pxPerMeter)));
   return Math.min(DISPLAY.tileMax, Math.max(DISPLAY.tileMin, (periodM * TEX) / periodTexPx));

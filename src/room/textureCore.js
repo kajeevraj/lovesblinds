@@ -7,9 +7,9 @@ export const TEX = 256;
 export const SPLIT = 0.6;
 
 // Box blur, three passes (close to a Gaussian), edges mirrored. `data` is interleaved with `ch` channels; returns Float32Array.
-export function blur(data, w, h, ch, radius) {
+export function blur(data, w, h, ch, radius, wrap = false) {
   let src = Float32Array.from(data), dst = new Float32Array(src.length);
-  const mir = (i, n) => (i < 0 ? -i - 1 : i >= n ? 2 * n - i - 1 : i);
+  const mir = wrap ? (i, n) => ((i % n) + n) % n : (i, n) => (i < 0 ? -i - 1 : i >= n ? 2 * n - i - 1 : i);      // wrap: the picture is a tile, its left edge is next to its right edge
   for (let pass = 0; pass < 3; pass++) {
     for (let y = 0; y < h; y++) for (let c = 0; c < ch; c++) {        // horizontal
       let sum = 0;
@@ -34,8 +34,8 @@ export function blur(data, w, h, ch, radius) {
 }
 
 // Takes the slow brightness changes out of a 256 x 256 RGB picture (3 channels): keeps the weave, subtracts a blurred copy, adds back the average.
-export function flatten(rgb, size = TEX) {
-  const soft = blur(rgb, size, size, 3, Math.round(size / 20));
+export function flatten(rgb, size = TEX, wrap = false) {
+  const soft = blur(rgb, size, size, 3, Math.round(size / 20), wrap);
   const mean = [0, 0, 0];
   for (let i = 0; i < soft.length; i += 3) { mean[0] += soft[i]; mean[1] += soft[i + 1]; mean[2] += soft[i + 2]; }
   const n = soft.length / 3; for (let c = 0; c < 3; c++) mean[c] /= n;
@@ -118,6 +118,48 @@ export function retargetZebra(rgb, target, size = TEX, split = SPLIT, maxSd = 16
   return out;
 }
 
+
+// ---- tileable: a min-cost cut through the overlap ---------------------------------------------------------------------------------------------------
+// A crop of a photo does not repeat: its left edge does not meet its right edge. The photo gives a little more than one tile (the crop is cut a band wider than
+// the texture), so the pixels that really CONTINUE the right edge are known, and the texture is made to wrap with a graph-cut quilt: in the band along each edge
+// the two versions (the continuation of the far edge, and the picture's own pixels) are joined along the cheapest path through the weave (the line where they
+// already agree, between two threads or along a printed line), so no ghosted band and no cross is made and the weave itself is untouched.
+export const TILE_BAND = 96;
+// img: w x h x 3 (w = size + band). -> a size-wide, h-tall image whose last column is followed by its first.
+function wrapColumns(img, w, h, size, band) {
+  const out = new Float32Array(size * h * 3), err = new Float32Array(h * band);
+  const L = (y, x, c) => img[(y * w + x) * 3 + c], R = (y, x, c) => img[(y * w + size + x) * 3 + c];     // L: the picture's own band, R: what follows column size-1
+  for (let y = 0; y < h; y++) for (let x = 0; x < band; x++) { let e = 0; for (let c = 0; c < 3; c++) { const d = L(y, x, c) - R(y, x, c); e += d * d; } err[y * band + x] = e; }
+  const acc = new Float32Array(h * band), from = new Int16Array(h * band);
+  for (let x = 0; x < band; x++) acc[x] = err[x];
+  for (let y = 1; y < h; y++) for (let x = 0; x < band; x++) {
+    let best = acc[(y - 1) * band + x], bx = x;
+    if (x > 0 && acc[(y - 1) * band + x - 1] < best) { best = acc[(y - 1) * band + x - 1]; bx = x - 1; }
+    if (x < band - 1 && acc[(y - 1) * band + x + 1] < best) { best = acc[(y - 1) * band + x + 1]; bx = x + 1; }
+    acc[y * band + x] = err[y * band + x] + best; from[y * band + x] = bx;
+  }
+  let x = 0; for (let k = 1; k < band; k++) if (acc[(h - 1) * band + k] < acc[(h - 1) * band + x]) x = k;
+  const cut = new Int16Array(h); for (let y = h - 1; y >= 0; y--) { cut[y] = x; x = from[y * band + x]; }
+  for (let y = 0; y < h; y++) for (let k = 0; k < size; k++) for (let c = 0; c < 3; c++) {
+    let v;
+    if (k >= band) v = img[(y * w + k) * 3 + c];
+    else if (k <= cut[y]) v = R(y, k, c);                                 // up to the cut: the continuation of the far edge (so column 0 really follows the last column)
+    else v = L(y, k, c);                                                  // after it: the picture's own pixels
+    out[(y * size + k) * 3 + c] = v;
+  }
+  return out;
+}
+function transpose(img, w, h) { const o = new Float32Array(img.length); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) o[(x * h + y) * 3 + c] = img[(y * w + x) * 3 + c]; return o; }
+// rgb: M x M x 3 with M = size + band. -> size x size x 3 that wraps both ways.
+export function makeTileable(rgb, size = TEX, band = TILE_BAND) {
+  const M = size + band;
+  const a = wrapColumns(Float32Array.from(rgb), M, M, size, band);          // size wide, M tall
+  const b = transpose(a, size, M);                                          // M wide, size tall
+  const c = transpose(wrapColumns(b, M, size, size, band), size, size);      // size wide, size tall, back the right way up
+  const out = new Uint8ClampedArray(size * size * 3); for (let i = 0; i < out.length; i++) out[i] = c[i];
+  return out;
+}
+
 // ---- flat crop + seamless tiling (the "Photo crop" texture) ------------------------------------------------------------------------------------
 
 // Resamples the square `rect` ({ x, y, side }, in photo pixels) of an RGB photo to size x size: box average when shrinking, bilinear when stretching.
@@ -166,12 +208,12 @@ export function makeSeamless(rgb, size = TEX) {
 // steps INSIDE the texture (the 90th percentile of the average step between neighbouring columns / rows). 1 or less means the seam is no louder than the
 // loudest ordinary weave joins, so it cannot be seen; a pasted-together tile is well above. `axes` limits the check ('x', 'y' or 'xy'): a zebra stripe
 // is made of bands, so only its left-right wrap is meant to be invisible.
-export function seamRatio(rgb, size = TEX, axes = 'xy') {
+export function seamRatio(rgb, size = TEX, axes = 'xy', quantile = 0.9) {
   const px = (x, y) => (y * size + x) * 3, step = (x0, y0, x1, y1, along) => {              // mean |difference| of the pixel pairs along one line
     let t = 0; for (let k = 0; k < size; k++) for (let c = 0; c < 3; c++) { const a = along === 'col' ? px(x0, k) : px(k, y0), b = along === 'col' ? px(x1, k) : px(k, y1); t += Math.abs(rgb[a + c] - rgb[b + c]); }
     return t / (size * 3);
   };
-  const p90 = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length * 0.9)];
+  const p90 = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length * quantile)];
   let worst = 0;
   if (axes.includes('x')) { const inner = []; for (let x = 0; x < size - 1; x++) inner.push(step(x, 0, x + 1, 0, 'col')); worst = Math.max(worst, step(size - 1, 0, 0, 0, 'col') / Math.max(0.01, p90(inner))); }
   if (axes.includes('y')) { const inner = []; for (let y = 0; y < size - 1; y++) inner.push(step(0, y, 0, y + 1, 'row')); worst = Math.max(worst, step(0, size - 1, 0, 0, 'row') / Math.max(0.01, p90(inner))); }
@@ -180,5 +222,6 @@ export function seamRatio(rgb, size = TEX, axes = 'xy') {
 
 // The whole "Photo crop" recipe on a photo's RGB bytes: the flat window (from analyzePhoto), cut out at 256, uneven lighting taken out, made to repeat.
 export function photoCropTexture(rgb, w, h, rect, size = TEX) {
-  return makeSeamless(flatten(cropResample(rgb, w, h, rect, size), size), size);
+  const M = size + TILE_BAND;                                  // cut a band wider than the tile (the crop covers the same cloth, a touch smaller): the overlap the cut works in
+  return flatten(makeTileable(flatten(cropResample(rgb, w, h, rect, M), M), size), size, true);     // lighting out before the cut (it cannot hide a gradient), and across the wrap after it
 }

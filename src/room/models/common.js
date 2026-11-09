@@ -41,8 +41,9 @@ export function whenFabric(spec, cb) {
 // resized. Only where the scene says how many pixels a metre is (the product-page preview); a Zebra's texture is one stripe period (its geometry), never rescaled.
 export function applyWeaveScale(t, env) {
   const spec = t.userData?.spec; if (!spec || spec.preset || spec.kind === 'zebra' || !env.pxPerMeter) return;
-  const tile = weaveTileMetres(t.userData.period, env.pxPerMeter);
+  const tile = weaveTileMetres(t.userData.period, env.pxPerMeter, { photo: t.userData.mode === 'photo' });
   t.repeat.set(1 / tile, 1 / tile); env.invalidate();
+  try { (window.__lbTiles = window.__lbTiles || {})[spec.swatchId] = tile; } catch { /* no window */ }          // metres of cloth one texture covers: read by the scale tests
 }
 export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   const t = new THREE.Texture(), mirror = !!spec.preset;
@@ -53,7 +54,7 @@ export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   t.anisotropy = env.maxAniso || 1;
   t.repeat.set(1 / spec.tile[0], 1 / spec.tile[1]);
   t.userData.spec = spec;
-  whenFabric(spec, (img, r) => { t.image = img; if (r) t.userData.period = r.period || null; applyWeaveScale(t, env); t.needsUpdate = true; env.invalidate(); });
+  whenFabric(spec, (img, r) => { t.image = img; if (r) { t.userData.period = r.period || null; t.userData.mode = r.mode; } applyWeaveScale(t, env); t.needsUpdate = true; env.invalidate(); });
   return t;
 }
 
@@ -131,6 +132,14 @@ export function barGeometry(width, height, depth, radius) {
   const g = new THREE.ExtrudeGeometry(s, { depth: width, bevelEnabled: false, curveSegments: 6 });
   g.rotateY(-Math.PI / 2);                       // shape x (depth) -> +z, extrusion -> -x
   g.translate(width / 2, 0, -depth / 2);
+  // Texture coordinates in metres, in the SAME direction as the cloth below (u along the width, v up): the extrusion's own UVs run the wrong way round on the
+  // long faces, which turned a horizontal weave on the cassette vertical. Front/back: (x, y); top/bottom: (x, z); the two end caps: (z, y).
+  const pos = g.attributes.position, nor = g.attributes.normal, uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), ax = Math.abs(nor.getX(i)), ay = Math.abs(nor.getY(i));
+    if (ax > 0.7) { uv[i * 2] = z; uv[i * 2 + 1] = y; } else if (ay > 0.7) { uv[i * 2] = x; uv[i * 2 + 1] = z; } else { uv[i * 2] = x; uv[i * 2 + 1] = y; }
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return g;
 }
 // A quad whose four corners and texture coordinates (in metres) are rewritten when the cloth changes length: cheap, no new geometry.

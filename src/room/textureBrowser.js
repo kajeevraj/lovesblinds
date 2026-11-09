@@ -86,12 +86,13 @@ export const textureBlob = (canvas) => new Promise((resolve) => canvas.toBlob((b
 
 // the ready-made texture (tex256/ in the bucket) if there is one, else made here from the full photo
 const crops = new Map();
-function cropTexture(look, small) {
-  const key = `${look.id}|${small ? 's' : 'f'}`;
+// `fresh` (the 3D shade): always cut from the full photo with the current recipe, so the shade repeats with no seam whatever recipe the stored file was made with.
+function cropTexture(look, small, fresh = false) {
+  const key = `${look.id}|${small ? 's' : 'f'}${fresh ? 'n' : ''}`;
   let p = crops.get(key);
   if (!p) {
     const make = () => loadImage((small ? look.thumb : look.image) || look.image || look.thumb).then((img) => makeTextureCanvas(img).canvas);
-    p = (look.tex ? loadImage(look.tex).catch(make) : make());
+    p = fresh ? make().catch(() => (look.tex ? loadImage(look.tex) : Promise.reject(new Error('no photo')))) : (look.tex ? loadImage(look.tex).catch(make) : make());
     crops.set(key, p);
   }
   return p;
@@ -128,7 +129,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
     const strength = Number.isFinite(look.weaveStrength) ? look.weaveStrength : 1, { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands, strength);
     return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer, period: PATTERN_PERIOD[weaveOf(look)] || null };
   }
-  const crop = await cropTexture(look, small), c = document.createElement('canvas'); c.width = c.height = TEX;
+  const crop = await cropTexture(look, small, lit), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
   // the photo's own weave contrast (held back only where it would clip), times the color's Weave strength; the average stays exactly the color
   const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength);

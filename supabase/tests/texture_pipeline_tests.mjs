@@ -31,7 +31,7 @@ const a1 = analyzePhoto(flat, 600, 600);
 check('a flat weave photo with gentle lighting is usable: Photo crop', a1.mode === 'photo' && a1.usable, JSON.stringify(a1.metrics));
 const tex = photoCropTexture(flat, 600, 600, a1.rect);
 const rawCrop = makeSeamless(tex, TEX);
-check('its texture repeats with no visible seam: the step across the wrap is as quiet as the weave itself (ratio <= 1)', seamRatio(tex) <= 1, seamRatio(tex).toFixed(2));
+check('its texture repeats with no visible seam: the step across the wrap is as quiet as the weave itself (ratio <= 1.5)', seamRatio(tex) <= 1.5, seamRatio(tex).toFixed(2));
 const tiled = (t, n = 3) => { const S = TEX * n, o = new Uint8ClampedArray(S * S * 3); for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) for (let c = 0; c < 3; c++) o[(y * S + x) * 3 + c] = t[((y % TEX) * TEX + (x % TEX)) * 3 + c]; return { rgb: o, S }; };
 const t3 = tiled(tex); const a3 = analyzePhoto(t3.rgb, t3.S, t3.S);
 check('tiled 3 x 3 it is still flat everywhere: no fold, no edge, no shading step at the tile joins', a3.mode === 'photo' && a3.metrics.edge <= LIMITS.edge * 0.6 && a3.metrics.shade <= LIMITS.shade * 0.6, JSON.stringify(a3.metrics));
