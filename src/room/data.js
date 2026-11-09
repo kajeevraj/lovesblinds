@@ -35,7 +35,8 @@ export const FAR_WINDOW = (() => {
 })();
 
 // ---- products ----------------------------------------------------------------------------------------------------------------------
-// optics: alpha = how much of the room's window view is hidden (1 solid); glow = how much daylight comes through the cloth;
+// optics: alpha = how much of the room's window view is hidden (1 solid); glow = how much daylight lifts the face of the cloth (the same for every type, so a white
+// shade is as white from inside whatever its light control: a blackout blocks the light BEHIND it, `block`, not the face you see);
 // block = how much of the room's light the product stops when fully closed (the room in the photo dims by this).
 export const PRODUCTS = [
   { id: 'none', label: 'Bare window', short: 'Bare', kind: null, photo: null, slug: null },
@@ -44,13 +45,13 @@ export const PRODUCTS = [
     optics: { alpha: 1, glow: 0.7, block: 0.25 }, control: 'lower',
     fabrics: ['rlf-soft-cream', 'rlf-fawn-beige', 'rlf-mineral-gray', 'rlf-blue', 'rlf-iced-coffee'] },
   { id: 'roller-screen', label: 'Screen view roller', short: 'Screen view', kind: 'roller', family: 'Roller', photo: 'screen-view', slug: 'roller',
-    optics: { alpha: 0.72, glow: 0.42, block: 0.12 }, control: 'lower',
+    optics: { alpha: 0.72, glow: 0.7, block: 0.12 }, control: 'lower',
     fabrics: ['rsol-linen', 'rsol-latte', 'rsol-cement-gray', 'rsol-sterling-gray', 'rsol-basalt-charcoal'] },
   { id: 'roller-blackout', label: 'Blackout roller', short: 'Blackout', kind: 'roller', family: 'Roller', photo: 'blackout', slug: 'roller',
-    optics: { alpha: 1, glow: 0, block: 1 }, control: 'lower',
+    optics: { alpha: 1, glow: 0.7, block: 1 }, control: 'lower',
     fabrics: ['rbo-plaster-white', 'rbo-haze-gray', 'rbo-blue', 'rbo-caramel-brown', 'rbo-thunder-gray'] },
   { id: 'zebra', label: 'Zebra shade', short: 'Zebra', kind: 'zebra', family: 'Zebra', photo: 'zebra-dining', slug: 'zebra',
-    optics: { sheerAlpha: 0.3, glowSolid: 0.12, glowSheer: 0.55, block: 0.6 }, control: 'lower',
+    optics: { sheerAlpha: 0.3, glowSolid: 0.55, glowSheer: 0.55, block: 0.6 }, control: 'lower',
     fabrics: ['zeb-cream', 'zeb-camel-khaki', 'zeb-platinum-gray', 'zeb-cinnamon-latte', 'zeb-tuxedo-black'] },
 ];
 // Curtains are not a per-window product: one layer across all the windows (a track, panels that move together), over shades or bare glass.

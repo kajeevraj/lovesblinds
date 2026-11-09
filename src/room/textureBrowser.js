@@ -15,6 +15,7 @@ import { analyzePhoto } from '../lib/textureAnalysis.js';
 import { patternRGB, patternAlpha, zebraPattern, weaveKindOf } from '../lib/patternTexture.js';
 import { deriveHex, previewHex, isHex, familyHex, bandPixels } from '../lib/swatchColor.js';
 import { zebraBands } from './zebraBands.js';
+import { litTarget, typeOfLook } from './lightCalibration.js';
 
 const sizeOf = (s) => ({ W: s.naturalWidth || s.width, H: s.naturalHeight || s.height });
 const rgbOf = (ctx, w, h) => { const d = ctx.getImageData(0, 0, w, h).data, out = new Uint8ClampedArray(w * h * 3); for (let i = 0, j = 0; i < d.length; i += 4, j += 3) { out[j] = d[i]; out[j + 1] = d[i + 1]; out[j + 2] = d[i + 2]; } return out; };
@@ -96,12 +97,12 @@ function cropTexture(look, small) {
 }
 
 // ---- tuning to a color ---------------------------------------------------------------------------------------------------------------------------
-const LIGHT_GAIN = 1.04, LIGHT_LIFT = 8, ZEBRA_GAIN = 0.92;     // a zebra's solid band is lit less (rendered = 0.92 x texture)
-const WARMTH = [1, 1.02, 1.055];
-export function targetFor(hex, { lit = false, zebra = false } = {}) {
-  return [1, 3, 5].map((i, k) => { const v = parseInt(hex.slice(i, i + 2), 16); return lit ? Math.min(255, Math.max(0, (zebra ? v / ZEBRA_GAIN : (v - LIGHT_LIFT) / LIGHT_GAIN) * WARMTH[k])) : v; });
+// `lit: true` is for the 3D preview: the texture is aimed at the inverse of that type's calibrated light (src/room/lightCalibration.js), so the lit face of the
+// shade shows `hex` as it is. The picker tiles are not lit, they are the color itself.
+export function targetFor(hex, { lit = false, type = 'solar' } = {}) {
+  return lit ? litTarget(hex, type) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 }
-export const litHex = (hex, zebra = false) => `#${targetFor(hex, { lit: true, zebra }).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+export const litHex = (hex, type = 'solar') => `#${litTarget(hex, type).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
 
 export function weaveOf(look) { return weaveKindOf({ line: look.line, family: look.family, composition: look.composition, weave: look.weave }); }
 
@@ -121,14 +122,14 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   if (!mode) {                                                       // not decided yet: look at the photo (the tile picture is enough to tell)
     try { mode = decideMode(look, pixelsAt(await loadImage((small ? look.thumb : look.image) || look.image || look.thumb), 1000)); } catch { mode = 'photo'; }
   }
-  const target = lit ? litHex(hex, zebra) : hex;
+  const type = typeOfLook(look), target = lit ? litHex(hex, type) : hex;
   if (mode === 'pattern') {
     const { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands);
     return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer };
   }
   const crop = await cropTexture(look, small), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
-  const out = retarget(rgbOf(ctx, TEX, TEX), targetFor(hex, { lit }));
+  const out = retarget(rgbOf(ctx, TEX, TEX), targetFor(hex, { lit, type }));
   return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0 };
 }
 
