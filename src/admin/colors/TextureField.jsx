@@ -38,7 +38,7 @@ export default function TextureField({ src, line, family, composition, colorFami
     let dead = false; setErr('');
     resolveLook(lookFor({ src, line, family, composition, colorFamily, previewColor, mode: effective, solid: solidN, sheer: sheerN, weave }), { small: true }).then((r) => {
       if (dead) return;
-      const ctx = c.getContext('2d');
+      const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);          // a sheer weave is see-through: do not keep the previous drawing in its gaps
       if (zebra) { const half = c.height / 2; for (let k = 0; k < 2; k++) ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, k * half, c.width, half); }
       else ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, 0, c.width, c.height);
       c.dataset.color = r.hex; c.dataset.mode = r.mode; c.dataset.ready = '1';
