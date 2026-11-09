@@ -107,11 +107,12 @@ try {
   await slider.fill('0'); await page.waitForTimeout(800); await ready();
   const sdFlat = await spread();
   check('0 % flattens the weave (almost no contrast left)', sdFlat < sdAuto * 0.25, `${sdAuto.toFixed(1)} -> ${sdFlat.toFixed(1)}`);
-  await slider.fill('2');
+  await auto.check(); await page.waitForTimeout(300);
+  check('ticking Auto again goes back to the photo\'s own weave', await slider.isDisabled() && Math.abs((await spread()) - sdAuto) < 1.5);
+  await auto.uncheck(); await slider.fill('2');
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
   check('Save sends weave_strength 2 and nothing else', patches.length === 1 && patches[0].weave_strength === 2 && Object.keys(patches[0]).join() === 'weave_strength', JSON.stringify(patches));
-  await auto.check(); patches.length = 0; await page.waitForTimeout(300);
-  check('ticking Auto again goes back to the photo\'s own weave', await slider.isDisabled() && Math.abs((await spread()) - sdAuto) < 1.5);
+  patches.length = 0;
 
   // ---- a cellular color whose photo is pleated: auto-picked Pattern ----
   patches.length = 0;
@@ -120,7 +121,7 @@ try {
   await page.getByText(/Auto-picked: Pattern/).waitFor();
   check('Cellular Beige Linen (pleated photo): auto-picked Pattern, preview is the pattern', await page.getByRole('radio', { name: 'Pattern' }).isChecked() && (await mode()) === 'pattern');
   // the Weave choice for a Pattern color
-  const wsel = page.getByLabel('Weave');
+  const wsel = page.getByLabel('Weave', { exact: true });
   check('a Pattern color offers a Weave choice, Automatic first (pleat lines for a cellular color)', (await wsel.count()) === 1 && /Automatic: Pleat lines/.test(await wsel.locator('option').first().innerText()));
   const wbefore = await prev().evaluate((c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.slice(0, 4000).join());
   await wsel.selectOption('voile'); await page.waitForTimeout(800); await ready();
