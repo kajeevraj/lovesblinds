@@ -16,12 +16,12 @@ export const LIGHT = {
   // the rest of the window behind it (`bg`, the sky seen through the mesh)
   'screen-view': { a: [1.0425, 1.0407, 1.039], b: [9.05, 9.19, 9.54], bg: [202.2, 209.7, 215.6], opacity: 0.72 },
   // Cellular, Roman and Shangri-La (src/room/models/soft.js), measured the same way. Light filtering glows more towards the top of the shade and less towards the
-  // bottom; a blackout cloth or lining has an even face. A Shangri-La's face is its closed vanes seen through the front sheer (`veil`: the share of the sheer's
+  // bottom (most of all a light-filtering roman lining); a blackout cloth or lining has an even face, and a roman's blackout lining lets less daylight through. A Shangri-La's face is its closed vanes seen through the front sheer (`veil`: the share of the sheer's
   // own color, src/lib/patternTexture.js sheerHexOf, laid over them).
   cellular: { a: [1.0752, 1.075, 1.0762], b: [6.05, 6.11, 5.97] },
   'cellular-blackout': { a: [1.046, 1.0454, 1.0448], b: [5.48, 5.51, 5.55] },
-  roman: { a: [1.0364, 1.0332, 1.03], b: [12.22, 12.63, 13.21] },
-  'roman-blackout': { a: [1.0427, 1.0392, 1.0362], b: [12.25, 12.72, 13.29] },
+  roman: { a: [1.0992, 1.094, 1.0908], b: [13.61, 14.25, 14.84] },
+  'roman-blackout': { a: [1.0015, 0.999, 0.9955], b: [11.48, 11.84, 12.47] },
   'shangri-la': { a: [1.0473, 1.0489, 1.0484], b: [8.84, 8.55, 8.48], veil: 0.1 },
 };
 const veilOf = (hex) => { const s = sheerHexOf(hex); return [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16)); };

@@ -108,7 +108,14 @@ try {
     // ---- color ----
     await P.pick(def.dark); const dark = await P.shot(), dTile = await tileColor(page), dFace = mean(dark, 0.3, 0.3, 0.4, 0.3);
     check(T(`a new color redraws the shade in that color (dark face ${dFace.map((v) => Math.round(v)).join(',')}, tile ${dTile})`), dist(dFace, hexRgb(dTile)) <= 9 && lum(face) - lum(dFace) > 60);
-    check(T('the headrail (or cassette) follows the color'), lum(mean(white, 0.2, 0.004, 0.6, 0.012)) - lum(mean(dark, 0.2, 0.004, 0.6, 0.012)) > 40);
+    // ---- headrail / rail / cassette color: a real choice, Pearl White unless another is picked ----
+    const headLabel = { cellular: 'Rail color', roman: 'Headrail color', 'shangri-la': 'Cassette color' }[line], head = (s) => mean(s, 0.2, 0.006, 0.6, 0.012);
+    if (!(await page.locator('.s2-more').evaluate((d) => d.open))) await page.locator('.s2-more summary').click();
+    const headDots = page.locator(`.s2-cdots[aria-label="${headLabel}"] .s2-cdot`);
+    check(T(`"${headLabel}" offers the supplier's four colors, Pearl White by default, and the dark cloth has a light ${headLabel.split(' ')[0].toLowerCase()}`), (await headDots.allInnerTexts()).map((t) => t.trim()).join('|') === 'Pearl White|Sand Beige|Iron Gray|Night Black' && (await headDots.first().getAttribute('aria-pressed')) === 'true' && lum(head(dark)) > 170, `${(await headDots.allInnerTexts()).join('|')}; ${head(dark).map(Math.round)}`);
+    await headDots.filter({ hasText: /^Night Black$/ }).click(); await page.waitForTimeout(700); const blackHead = await P.shot();
+    check(T(`picking Night Black redraws it in black, and the options summary says "${headLabel}: Night Black"`), lum(head(blackHead)) < 90 && new RegExp(`${headLabel}: Night Black`).test(await page.locator('.s2-more-sum').innerText()), `${head(blackHead).map(Math.round)}`);
+    await headDots.filter({ hasText: /^Pearl White$/ }).click(); await page.waitForTimeout(500);
     // ---- size and mount ----
     await P.fill('w', '60'); await page.waitForTimeout(700); const wide = await P.shot();
     check(T('a new size redraws the window to scale'), (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '60 × 64 in' && wide.shade.w / wide.shade.h > dark.shade.w / dark.shade.h * 1.3);
@@ -131,6 +138,9 @@ try {
     }
     await P.card('Chain').click(); await page.waitForTimeout(600); await P.setAmount(60);
     const chainR = await P.shot();
+    // the chain comes straight out of the end of the cassette: no bracket or cover there (the end of the cassette is the same color as its middle)
+    const endOf = (s) => mean(s, 0.955, 0.008, 0.035, 0.016), midOf = (s) => mean(s, 0.45, 0.008, 0.1, 0.016);
+    check(T('no bracket or cover over the cassette where the chain is'), dist(endOf(chainR), midOf(chainR)) < 26, `end ${endOf(chainR).map(Math.round)}, middle ${midOf(chainR).map(Math.round)}`);
     check(T('Chain: no handle, the bottom bar moves it, and the note says which side'), (await page.locator('.pv-grip').count()) === 0 && (await page.locator('.pv-bar').count()) === 1 && (phone || /chain, on the right/i.test(await page.locator('.pv-note').innerText())));
     await P.card('Left').click(); await page.waitForTimeout(600); const chainL = await P.shot();
     const right = (s) => lum(mean(s, 0.9, 0.1, 0.1, 0.3)), left = (s) => lum(mean(s, 0, 0.1, 0.1, 0.3));
@@ -153,6 +163,9 @@ try {
     check(T('the remote lowers the shade at a steady speed and Stop holds it'), a1 > a0 + 3 && (await P.amount()) === a1, `${a0} -> ${a1}`);
     const mR = await P.shot(); await P.card('Right').click(); await page.waitForTimeout(700); const mL = await P.shot();
     check(T('the motor side follows the choice (the small charging port on the end cap moves)'), diffPx(mR, mL) >= 1, `${diffPx(mR, mL)} px changed`);
+    // nothing is drawn on the wall beside the window (no bracket, no remote holder): the wall there is the same with a chain and with a motor
+    const wallOf = (s) => [mean(s, -0.3, 0.3, 0.2, 0.4), mean(s, 1.1, 0.3, 0.2, 0.4)];
+    check(T('motorized draws nothing on the wall beside the window'), dist(wallOf(mL)[0], wallOf(chainL)[0]) < 3 && dist(wallOf(mL)[1], wallOf(chainL)[1]) < 3 && dist(wallOf(mL)[0], wallOf(mL)[1]) < 12, `${wallOf(mL).map((c) => c.map(Math.round)).join(' / ')} vs ${wallOf(chainL).map((c) => c.map(Math.round)).join(' / ')}`);
     check(T('no sideways scrolling and no console errors'), (await page.evaluate(() => document.documentElement.scrollWidth)) <= vw && P.errors.length === 0, P.errors.join(' | '));
     await P.close();
   }
@@ -192,12 +205,12 @@ try {
     await P.setAmount(80, BOT); await P.setAmount(20, TOP);
     await P.card('Motorized').click(); await page.waitForTimeout(900); await P.top();
     const rows = await page.locator('.pv-incl .rm-row-label').allInnerTexts();
-    check(T('motorized TDBU uses the Top rail and Bottom rail button rows'), rows.join('|') === 'Top rail|Bottom rail' && (await page.locator('.pv-incl .rm-key').count()) === 4 && (await page.locator('.pv-bar').count()) === 2, rows.join('|'));
+    check(T('motorized TDBU uses the Top rail and Bottom rail button rows, each with up, stop and down'), rows.join('|') === 'Top rail|Bottom rail' && (await page.locator('.pv-incl .rm-key').count()) === 6 && (await page.locator('.pv-incl .rm-row').first().locator('.rm-key').evaluateAll((b) => b.map((x) => x.dataset.btn).join())) === 'topUp,topStop,topDown' && (await page.locator('.pv-bar').count()) === 2, rows.join('|'));
     const tb = await P.amount(TOP), bb = await P.amount(BOT);
-    await page.getByRole('button', { name: 'Lower the top rail' }).click(); await page.waitForTimeout(1300); await page.getByRole('button', { name: 'Lower the top rail' }).click();
+    await page.getByRole('button', { name: 'Lower the top rail' }).click(); await page.waitForTimeout(1300); await page.getByRole('button', { name: 'Stop the top rail' }).click();
     const ta = await P.amount(TOP); await page.waitForTimeout(500);
-    check(T('"Lower the top rail" moves only the top rail; the same button again stops it'), ta > tb + 3 && (await P.amount(BOT)) === bb && (await P.amount(TOP)) === ta, `top ${tb} -> ${ta}, bottom ${bb} -> ${await P.amount(BOT)}`);
-    await page.getByRole('button', { name: 'Raise the bottom rail' }).click(); await page.waitForTimeout(1000); await page.getByRole('button', { name: 'Raise the bottom rail' }).click(); await page.waitForTimeout(300);
+    check(T('"Lower the top rail" moves only the top rail; its Stop button holds it'), ta > tb + 3 && (await P.amount(BOT)) === bb && (await P.amount(TOP)) === ta, `top ${tb} -> ${ta}, bottom ${bb} -> ${await P.amount(BOT)}`);
+    await page.getByRole('button', { name: 'Raise the bottom rail' }).click(); await page.waitForTimeout(1000); await page.getByRole('button', { name: 'Stop the bottom rail' }).click(); await page.waitForTimeout(300);
     check(T('"Raise the bottom rail" moves only the bottom rail'), (await P.amount(BOT)) < bb - 3 && (await P.amount(TOP)) === ta);
 
     // day & night
@@ -215,6 +228,10 @@ try {
     await page.getByRole('button', { name: 'Day fabric', exact: true }).click(); await page.waitForTimeout(1600);
     const day = await P.shot();
     check(T('Day fabric: the light-filtering cloth covers the window'), (await page.locator('.pv-ctl').getAttribute('data-cover')) === 'day' && (await P.amount(MID)) >= 99 && dist(mean(day, 0.3, 0.3, 0.4, 0.4), dayTile) < 14, `${mean(day, 0.3, 0.3, 0.4, 0.4).map(Math.round)}`);
+    // switched to the day cloth the two rails are close together: their handles sit side by side, clear of each other, and each still moves its own rail
+    const box = async (sel) => page.locator(sel).boundingBox(), mb = await box(MID), bb2 = await box(BOT);
+    const apart = mb.x + mb.width <= bb2.x + 1 || bb2.x + bb2.width <= mb.x + 1 || mb.y + mb.height <= bb2.y + 1;
+    check(T('switched to the day fabric, the two handles do not overlap (the middle rail\'s to the left, the bottom rail\'s to the right)'), apart && mb.x < bb2.x, `middle ${Math.round(mb.x)},${Math.round(mb.y)} ${Math.round(mb.width)}x${Math.round(mb.height)}; bottom ${Math.round(bb2.x)},${Math.round(bb2.y)}`);
     await P.setAmount(50, MID);
     const slid = await P.shot();
     check(T('sliding the middle rail by hand changes which cloth covers the window'), Math.abs((await P.amount(MID)) - 50) <= 2 && (await P.amount(BOT)) >= 99 && dist(mean(slid, 0.3, 0.15, 0.4, 0.1), dayTile) < 16 && dist(mean(slid, 0.3, 0.75, 0.4, 0.1), nightTile) < 16);
@@ -262,7 +279,9 @@ try {
     await P.top(); await P.card('Flat').click(); await page.waitForTimeout(400); await P.card('Light-filtering lining').click(); await page.waitForTimeout(1500); const lf = await P.shot();
     await P.card('Blackout lining').click(); await page.waitForTimeout(1500); const bo = await P.shot();
     const slope = (s) => lum(mean(s, 0.3, 0.16, 0.4, 0.1)) - lum(mean(s, 0.3, 0.8, 0.4, 0.1)), tile = hexRgb(await tileColor(page));
-    check(T('the lining changes how much light comes through: light filtering glows from the top, blackout is lit evenly'), slope(lf) > slope(bo) + 8 && Math.abs(slope(bo)) < 6, `top minus bottom: light filtering ${slope(lf).toFixed(1)}, blackout ${slope(bo).toFixed(1)}`);
+    const wallAt = (s) => lum(mean(s, -0.3, 0.2, 0.18, 0.6));
+    check(T('a blackout lining makes the room a little dimmer (the wall, not the cloth); light filtering leaves it bright'), wallAt(lf) - wallAt(bo) > 10 && wallAt(lf) - wallAt(bo) < 40 && Math.abs(wallAt(lf) - wallAt(flat)) < 2, `wall: light filtering ${wallAt(lf).toFixed(0)}, blackout ${wallAt(bo).toFixed(0)}`);
+    check(T('the lining changes how much light comes through: light filtering glows from the top, blackout is lit evenly'), slope(lf) > slope(bo) + 9 && Math.abs(slope(bo)) < 6, `top minus bottom: light filtering ${slope(lf).toFixed(1)}, blackout ${slope(bo).toFixed(1)}`);
     check(T('a blackout lining does not darken the face'), dist(mean(bo, 0.3, 0.3, 0.4, 0.25), tile) < 9 && dist(mean(lf, 0.3, 0.3, 0.4, 0.25), tile) < 9, `tile ${tile}, light filtering ${mean(lf, 0.3, 0.3, 0.4, 0.25).map(Math.round)}, blackout ${mean(bo, 0.3, 0.3, 0.4, 0.25).map(Math.round)}`);
     check(T('no console errors'), P.errors.length === 0, P.errors.join(' | '));
     await P.close();

@@ -10,7 +10,7 @@ import { PRODUCT_BY_ID } from './data.js';
 import { presetSpec, specFromEntry } from './fabricSpec.js';
 import { isSoft, lightTypeFor, opticsFor, moversFor, startAmounts, sampleSpec, DAY_NIGHT, HEAD_WORD } from './shadeKinds.js';
 import { parseMech, SIDE_NAME, MOTOR_CONTROL_NAME } from '../lib/drive.js';
-import { chainColorOf, barColorOf, CORD_LOOP_COLORS } from '../lib/choices.js';
+import { chainColorOf, barColorOf, headColorOf, CORD_LOOP_COLORS } from '../lib/choices.js';
 import { SimpleRemote } from './remotes.jsx';
 import { SHARE_NOTE, WORKS_NOTE } from '../lib/remote.js';
 import { useHubPrice } from '../lib/hubPrice.js';
@@ -90,7 +90,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const sceneExtras = useMemo(() => ({
     chainHex: chain.hex, chainMetal: chain.id === 'stainless-steel', cordLoop,
     railHex: double && extras.bottomWrap !== 'none' ? null : barColorOf(extras.barColor).hex,
-  }), [chain.hex, chain.id, cordLoop, double, extras.bottomWrap, extras.barColor]);
+    headHex: soft ? headColorOf(extras.headColor).hex : null,                    // cellular rails, roman headrail, shangri-la cassette
+  }), [chain.hex, chain.id, cordLoop, double, extras.bottomWrap, extras.barColor, soft, extras.headColor]);
 
   useEffect(() => {
     if (status === 'nowebgl' || room) return undefined;
@@ -126,11 +127,9 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const press = (k) => {
     touch();
     const ctrl = ctrlRef.current;
-    const two = /^(top|bot)(Up|Down)$/.exec(String(k));                          // a two-rail cellular: one row for the upper rail, one for the bottom rail
-    if (two) {
-      const i = two[1] === 'top' ? 1 : 0, dir = two[2] === 'Up' ? -1 : 1;
-      ctrl?.drive(ctrl.driving(i) === dir ? 0 : dir, i);                           // these rows have no Stop button: the same button again stops the rail
-    } else {
+    const two = /^(top|bot)(Up|Down|Stop)$/.exec(String(k));                     // a two-rail cellular: one row of up, stop, down for the upper rail, one for the bottom rail
+    if (two) ctrl?.drive(two[2] === 'Up' ? -1 : two[2] === 'Down' ? 1 : 0, two[1] === 'top' ? 1 : 0);
+    else {
       const [who, what] = String(k).includes(':') ? String(k).split(':') : ['front', k];
       const i = who === 'back' ? 1 : 0;
       if (what === 'up') closeVanes();
@@ -197,7 +196,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const part = (i) => (many || rails ? moverList[i]?.id : undefined);
   const dayOn = dayNight && (amounts[1] ?? 0) > 0.5;
   // a handle matches its bottom bar: the bar color, or the shade's fabric when a double-stack's bar is wrapped
-  const barHex = (i) => (double && extras.bottomWrap !== 'none' ? (layers[i]?.fabric?.color || '#efece5') : barColorOf(extras.barColor).hex);
+  const barHex = (i) => (soft ? headColorOf(extras.headColor).hex : double && extras.bottomWrap !== 'none' ? (layers[i]?.fabric?.color || '#efece5') : barColorOf(extras.barColor).hex);
   const lum = (hex) => { const n = parseInt(String(hex).replace('#', '').padEnd(6, '0').slice(0, 6), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; };
   const gripStyle = (i, h) => { const bg = barHex(i); return { left: h.x, top: h.y, '--grip-bg': bg, '--grip-ink': lum(bg) > 0.55 ? '#7A5C2E' : '#f4efe4' }; };
 
@@ -224,7 +223,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
                   {(layout.handles || [layout.handle]).slice(0, moverList.length).map((h, i) => (
                     <button key={i} type="button" className="pv-bar" {...ariaFor(i)} data-shade={many ? part(i) : undefined} data-rail={rails ? part(i) : undefined}
                       aria-label={who(i) || 'Bottom bar. Drag it, or use the arrow keys, to move the shade'}
-                      style={many ? { left: layout.x0 + (i === 0 ? 0 : 0.5) * (layout.x1 - layout.x0), width: 0.5 * (layout.x1 - layout.x0), top: h.y } : { left: layout.x0, width: layout.x1 - layout.x0, top: h.y }}
+                      style={many || (rails && layout.near > 0.5) ? { left: layout.x0 + ((many ? i === 0 : i === 1) ? 0 : 0.5) * (layout.x1 - layout.x0), width: 0.5 * (layout.x1 - layout.x0), top: h.y } : { left: layout.x0, width: layout.x1 - layout.x0, top: h.y }}
                       onPointerDown={down(i)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_(i)} />
                   ))}
                   {!many && <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}

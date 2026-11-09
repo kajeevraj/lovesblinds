@@ -161,7 +161,7 @@ export function Remote({ type = 'ch1', lit = null, onPress, active = 1, classNam
 }
 
 // ---- the simple remote: just the buttons ----------------------------------------------------------------------------------------------------------
-// What the product pages use now: a row of plain 44 px buttons (up, stop, down); two small rows for a two-motor cellular shade (top rail, bottom rail).
+// What the product pages use now: a row of plain 44 px buttons (up, stop, down); two such rows for a two-motor cellular shade (top rail, bottom rail).
 // Same wrapper and ids as <Remote>, so the picture version above can come back for a photo any time.
 const GLYPH = {
   up: <path d="M6 15l6-6 6 6" />, down: <path d="M6 9l6 6 6-6" />, stop: <path d="M6 12h12" />,
@@ -169,7 +169,7 @@ const GLYPH = {
 const glyphOf = (id) => (/up$/i.test(id) ? GLYPH.up : /down$/i.test(id) ? GLYPH.down : GLYPH.stop);
 const NAMES = {
   up: 'Raise the shade', stop: 'Stop', down: 'Lower the shade',
-  topUp: 'Raise the top rail', topDown: 'Lower the top rail', botUp: 'Raise the bottom rail', botDown: 'Lower the bottom rail',
+  topUp: 'Raise the top rail', topStop: 'Stop the top rail', topDown: 'Lower the top rail', botUp: 'Raise the bottom rail', botStop: 'Stop the bottom rail', botDown: 'Lower the bottom rail',
 };
 
 // `shades` (a roller double-stack): one small row of up, stop, down for each shade, named "Front shade" and "Back shade". A press is reported as "front:up", "back:stop" ...
@@ -196,7 +196,7 @@ export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = ''
   }
   const dual = type.startsWith('dual');
   const upper = upperLabel || 'Top rail';
-  const rows = dual ? [[upper, ['topUp', 'topDown']], ['Bottom rail', ['botUp', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
+  const rows = dual ? [[upper, ['topUp', 'topStop', 'topDown']], ['Bottom rail', ['botUp', 'botStop', 'botDown']]] : [[null, ['up', 'stop', 'down']]];
   const nameOf = (id) => (upperLabel && /^top/.test(id) ? NAMES[id].replace('top rail', upper.toLowerCase()) : NAMES[id]);
   return (
     <div className={`rm rm-simple ${className}`} role="group" aria-label="Remote control" data-remote={type}>

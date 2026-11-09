@@ -39,7 +39,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const trimMat = new THREE.MeshStandardMaterial({ color: 0xfffbed, roughness: 0.5 });       // (these colors are what the old warm light made of the old base colors)
   const jambMat = new THREE.MeshStandardMaterial({ color: 0xe9e0cd, roughness: 0.7 });
   const jambTopMat = new THREE.MeshStandardMaterial({ color: 0xd8cdb8, roughness: 0.8 });
-  const wallMat = new THREE.MeshBasicMaterial({ color: 0xf3ede2, toneMapped: false });          // plain, evenly lit
+  const WALL = 0xf3ede2, ROOM_DIM = 0.1; let wallDim = 0;
+  const wallMat = new THREE.MeshBasicMaterial({ color: WALL, toneMapped: false });          // plain, evenly lit
   const glassMat = new THREE.MeshBasicMaterial({ map: sky, toneMapped: false });
   const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6cebd, metalness: 0.35, roughness: 0.4 });
   const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.5 });
@@ -140,7 +141,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     });
     else {                                                               // cellular, roman, shangri-la: one shade; its layers are its cloths (day & night has two)
       const s = createShade(cfg.kind, env, { style: cfg.style });
-      s.setSize(sp.w, sp.h); s.setFabrics(cfg.layers); s.setVanes?.(vane.v);
+      s.setSize(sp.w, sp.h); s.setRailColor(cfg.extras?.headHex); s.setWindow(built.ow / 2 - 0.03, built.top - 0.03 - sp.top, built.bottom + 0.04 - sp.top); s.setFabrics(cfg.layers); s.setVanes?.(vane.v);
       s.group.position.set(sp.x, sp.top, sp.z);
       scene.add(s.group); shades.push(s);
     }
@@ -156,13 +157,13 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const hh = shades[0].headHeight, hd = shades[0].headDepth;          // the cassette or headrail everything hangs from
     const zOf = (i) => sp.z + (n - 1 - i) * 0.058;                       // each shade's own depth (double-stack: the back shade is further from the room)
     const sx = d.side === 'left' ? -1 : 1, endX = sx * (sp.w / 2 - 0.03);
-    const edge = Math.max(sp.w / 2, built.ow / 2 + TRIM);                // where the wall starts, beside the trim
-    let reach = 0;                                                       // how far beside the window something is drawn (the camera makes room for it)
+    const reach = 0;                                                     // how far beside the window something is drawn (the camera makes room for it): nothing is drawn on the wall
     chainMat.color.set(cfg.extras?.chainHex || '#f4f1ea'); chainMat.metalness = cfg.extras?.chainMetal ? 0.7 : 0.04; chainMat.roughness = cfg.extras?.chainMetal ? 0.3 : 0.55;   // thin, true-color chain
     if (d.movement === 'chain') {
       const z = zOf(0);
-      const cz = z + hd / 2 + 0.007, y0 = sp.top - hh - 0.006;           // the loop hangs just in front of the cassette or headrail, from its underside
-      g.add(box(0.034, Math.min(0.05, hh * 0.8), 0.034, plasticMat, endX, sp.top - hh * 0.7, cz));        // the clutch at the end of the cassette
+      // The chain comes straight out of the end of the cassette (or headrail): no bracket and no cover over it. It leaves the underside at the very end and
+      // hangs a little in front of the cloth.
+      const endX = sx * (sp.w / 2 - 0.014), cz = z + Math.min(0.018, hd / 2 - 0.008), y0 = sp.top - hh + 0.002;
       const beads = 64, len = Math.min(sp.h * 0.55, 1.0), step = len / beads;
       if (cfg.extras?.cordLoop) {                                        // a soft cord loop (Cellular and Roman): two smooth cords in the chosen color, no beads
         for (const k of [0, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, len, 8), chainMat); c.position.set(endX + (k ? 0.006 : -0.006), y0 - len / 2, cz + 0.004 + (k ? 0.004 : 0)); g.add(c); }
@@ -191,12 +192,6 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
         const gz = -DEPTH + 0.03 - 0.02 + 0.006;
         const panel = box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz); panel.renderOrder = -1; g.add(panel);
       }
-      if (cfg.kind === 'shangri-la') {                                    // the wall bracket is confirmed for the Shangri-La remote only
-        const rx = -sx * (edge + 0.07), ry = built.oy + 0.06;
-        g.add(box(0.06, 0.16, 0.008, trimMat, rx, ry, 0.004));
-        g.add(box(0.044, 0.125, 0.014, motorMat, rx, ry, 0.015));
-        reach = Math.max(reach, Math.abs(rx) + 0.045);
-      }
     }
     scene.add(g); accessory = g;
     applyXray();
@@ -218,9 +213,17 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     // (a shade with two rails has both handles at the center, one on each rail)
     const n = shades.length, xAt = (i) => (n > 1 ? x0 + (i === 0 ? 0.4 : 0.6) * (x1 - x0) : (x0 + x1) / 2);
     const handles = movers.map((m, i) => ({ x: xAt(i), y: Math.min(y1, y0 + m.s.handleAt(m.k) * (y1 - y0)) }));
+    // two rails of one shade that are close together (day & night switched to the day cloth, a top-down shade nearly closed): their handles move apart
+    // sideways, the upper rail's to the left and the bottom rail's to the right, so both are easy to grab
+    let near = 0;
+    if (n === 1 && handles.length === 2) {
+      near = Math.min(1, Math.max(0, (60 - Math.abs(handles[0].y - handles[1].y)) / 16));
+      const dx = near * Math.min(38, (x1 - x0) * 0.22);
+      handles[0].x += dx; handles[1].x -= dx;
+    }
     // the back shade's bar is hidden when it is not lower than the front shade's
     const hidden = movers.map((_, i) => n > 1 && i > 0 && (current[i] ?? 0) <= (current[0] ?? 0) + 0.004);
-    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, canvasW: size.w, canvasH: size.h });
+    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, near, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -245,6 +248,9 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   function setShadeAmounts(a) {
     let i = 0;
     for (const s of shades) { if (s.movers > 1) s.setAmounts(a.slice(i, i + s.movers)); else s.setAmount(a[i] ?? a[0] ?? 0); i += s.movers; }
+    // a blackout cloth (cellular blackout, a roman's blackout lining) makes the room a little dimmer as it comes down: the wall, never the cloth's own face
+    const dim = Math.max(0, ...shades.map((s) => s.dim || 0));
+    if (Math.abs(dim - wallDim) > 0.002) { wallDim = dim; wallMat.color.set(WALL).multiplyScalar(1 - ROOM_DIM * dim); }
     if (built?.shade && shades.length) {                                 // the panel is hidden between these two heights (the glass the cloth covers)
       solarClip.constant = Math.min(...shades.map((s) => built.shade.top - s.span.bottom));
       solarClipTop.constant = -Math.min(...shades.map((s) => built.shade.top - s.span.top));

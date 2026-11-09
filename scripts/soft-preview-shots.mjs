@@ -5,6 +5,7 @@ import sharp from 'sharp';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const OUT = process.argv[2], WANT = (process.argv[3] || '').split(',').filter(Boolean), BASE = process.env.BASE_URL || 'http://localhost:4173';
 const VIEWS = { desktop: { width: 1280, height: 900, dpr: 1, mobile: false, cell: 520 }, phone: { width: 390, height: 844, dpr: 2, mobile: true, cell: 342 } };
+const CELL = { chain: { desktop: 400, phone: 300 } };            // narrower cells on the five-across chain sheet
 const ROMAN = ['Flat', 'Light-filtering lining'];
 // a cell: [label, line, { pre: cards clicked before the color, codes, cards: cards clicked after it, amount (bottom), upper (top or middle rail), clicks: buttons under the picture }]
 const pos = (line, o, name) => [['raised', 0], ['half', 50], ['lowered', 100]].map(([t, a]) => [`${name}, ${t}`, line, { ...o, amount: a }]);
@@ -29,6 +30,28 @@ const SHEETS = {
     ['Roman, Flat, light-filtering lining', 'roman', { codes: ['SP26029003'], cards: ROMAN, amount: 100 }],
     ['Roman, Flat, blackout lining', 'roman', { codes: ['SP26029003'], cards: ['Flat', 'Blackout lining'], amount: 100 }],
   ] },
+  // the review of pull request 19: nothing on the wall beside a motorized shade, the rail color option, Stop on both remote rows, the linings, the day & night
+  // handles side by side, and the chain coming straight out of the end of the cassette on every line that has one (with a zoomed crop of that end)
+  review: { cols: 3, cells: [
+    ['1. Shangri-La, motorized, half raised: nothing on the wall', 'shangri-la', { codes: ['YSLS903'], cards: ['Motorized'], amount: 50 }],
+    ['2. Cellular, rail color Night Black', 'cellular', { codes: ['YHC38L003'], dots: [['Rail color', 'Night Black']], amount: 60 }],
+    ['2. Roman, headrail color Iron Gray', 'roman', { codes: ['SP26057001'], cards: ROMAN, dots: [['Headrail color', 'Iron Gray']], amount: 60 }],
+    ['2. Shangri-La, cassette color Sand Beige', 'shangri-la', { codes: ['YSLP1004'], dots: [['Cassette color', 'Sand Beige']], amount: 60 }],
+    ['3. Top-down/bottom-up, motorized: Stop on both rows', 'cellular', { pre: ['Top-down/bottom-up'], codes: ['YHC38L005'], cards: ['Motorized'], amount: 75, upper: 25 }],
+    ['3. Day & Night, motorized: Stop on both rows', 'cellular', { pre: ['Day & night'], codes: ['YHC38SL01', 'YHC38LB630'], cards: ['Motorized'] }],
+    ['4. Roman, light-filtering lining', 'roman', { codes: ['SP26029003'], cards: ROMAN, amount: 100 }],
+    ['4. Roman, blackout lining', 'roman', { codes: ['SP26029003'], cards: ['Flat', 'Blackout lining'], amount: 100 }],
+    ['6. Day & Night on the day fabric: handles side by side', 'cellular', { pre: ['Day & night'], codes: ['YHC38SL01', 'YHC38LB630'], clicks: ['Day fabric'] }],
+    ['4. Roman, outside mount, light-filtering lining', 'roman', { codes: ['SP26057001'], cards: ['Flat', 'Light-filtering lining', 'Outside mount'], amount: 75 }],
+    ['4. Roman, outside mount, blackout lining', 'roman', { codes: ['SP26057001'], cards: ['Flat', 'Blackout lining', 'Outside mount'], amount: 75 }],
+    ['4. Cellular blackout also dims the room a little', 'cellular', { pre: ['Blackout'], codes: ['YHC38LB005'], amount: 100 }],
+  ] },
+  chain: { cols: 5, cells: [
+    ...[['Roller', 'roller', { codes: ['YS180004'] }], ['Zebra', 'zebra', { codes: ['YZB208'] }], ['Cellular', 'cellular', { codes: ['YHC38L012'] }], ['Roman', 'roman', { codes: ['SP26005002'], cards: ROMAN }], ['Shangri-La', 'shangri-la', { codes: ['YSLH204'] }]]
+      .flatMap(([n, l, o]) => [[`7. ${n}, chain`, l, { ...o, cards: [...(o.cards || []), 'Chain'], amount: 60 }]]),
+    ...[['Roller', 'roller', { codes: ['YS180004'] }], ['Zebra', 'zebra', { codes: ['YZB208'] }], ['Cellular', 'cellular', { codes: ['YHC38L012'] }], ['Roman', 'roman', { codes: ['SP26005002'], cards: ROMAN }], ['Shangri-La', 'shangri-la', { codes: ['YSLH204'] }]]
+      .flatMap(([n, l, o]) => [[`7. ${n}, the cassette end, zoomed`, l, { ...o, cards: [...(o.cards || []), 'Chain'], amount: 60, zoom: true }]]),
+  ] },
   colors: { cols: 3, cells: [
     ['Cellular, white', 'cellular', { codes: ['YHC38SL01'], amount: 70 }], ['Cellular, dark (blackout)', 'cellular', { pre: ['Blackout'], codes: ['YHC38LB20'], amount: 70 }], ['Cellular, textured', 'cellular', { codes: ['YHCK003'], amount: 70 }],
     ['Roman, white', 'roman', { codes: ['SP26057001'], cards: ROMAN, amount: 70 }], ['Roman, dark', 'roman', { codes: ['SP26036003'], cards: ROMAN, amount: 70 }], ['Roman, patterned', 'roman', { codes: ['SP26056005'], cards: ROMAN, amount: 70 }],
@@ -40,7 +63,7 @@ const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const label = async (buf, text, width) => { const svg = Buffer.from(`<svg width="${width}" height="28"><rect width="${width}" height="28" fill="#1d1a14"/><text x="8" y="19" font-size="14" font-family="sans-serif" fill="#fff">${esc(text)}</text></svg>`); return sharp(buf).extend({ top: 28, background: '#1d1a14' }).composite([{ input: svg, left: 0, top: 0 }]).png().toBuffer(); };
 
 async function cell(v, [text, line, o]) {
-  const ctx = await browser.newContext({ viewport: { width: v.width, height: v.height }, deviceScaleFactor: v.dpr, hasTouch: v.mobile, isMobile: v.mobile });
+  const ctx = await browser.newContext({ viewport: { width: v.width, height: v.height }, deviceScaleFactor: o.zoom ? 4 : v.dpr, hasTouch: v.mobile, isMobile: v.mobile });
   const page = await ctx.newPage(); page.setDefaultTimeout(30000);
   try {
     await page.goto(`${BASE}/products/${line}`, { waitUntil: 'networkidle' });
@@ -58,6 +81,11 @@ async function cell(v, [text, line, o]) {
     for (const c of o.clicks || []) { await top(); await page.getByRole('button', { name: c, exact: true }).first().click(); await page.waitForTimeout(2200); }
     await page.addStyleTag({ content: '.s2-bar, .s2-pricebar { display: none !important; }' });       // the sticky price bar would cover the bottom of the preview in the picture
     await top(); await page.waitForTimeout(1200);
+    if (o.zoom) {                                                      // the top corner of the shade on the chain's side, four times larger
+      const d = await page.locator('.pv-drag').boundingBox(), side = Math.min(120, d.width * 0.6);
+      const crop = await page.screenshot({ clip: { x: d.x + d.width - side * 0.82, y: d.y - side * 0.12, width: side, height: side } });
+      return label(await sharp(crop).resize({ width: v.cell }).png().toBuffer(), text, v.cell);
+    }
     const buf = await page.locator('.pv').screenshot();
     return label(await sharp(buf).resize({ width: v.cell }).png().toBuffer(), text, v.cell);
   } finally { await ctx.close(); }
@@ -65,7 +93,8 @@ async function cell(v, [text, line, o]) {
 
 for (const [name, sheet] of Object.entries(SHEETS)) {
   if (WANT.length && !WANT.includes(name)) continue;
-  for (const [vname, v] of Object.entries(VIEWS)) {
+  for (const [vname, v0] of Object.entries(VIEWS)) {
+    const v = { ...v0, cell: CELL[name]?.[vname] || v0.cell };
     const cells = new Array(sheet.cells.length); let next = 0;
     await Promise.all([0, 1, 2].map(async () => { while (next < sheet.cells.length) { const i = next++; cells[i] = await cell(v, sheet.cells[i]); } }));
     const ms = await Promise.all(cells.map((c) => sharp(c).metadata())), rows = Math.ceil(cells.length / sheet.cols), rowH = [];

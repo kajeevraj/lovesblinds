@@ -19,12 +19,14 @@ export function lightTypeFor(kind, { family = null, lining = null } = {}) {
   return null;
 }
 // glow: daylight through the cloth; grad: that glow at the top and at the bottom of the shade; pleat: [light and shade of the two faces of a pleat, depth of the
-// crease line]; stack: how much darker a roman's stacked folds are (several layers of cloth); sheer*: how much of the view each sheer hides
+// crease line]; stack: how much darker a roman's stacked folds are (several layers of cloth); window: how much of the glow is lost where no glass is behind the
+// cloth (a light-filtering roman shows the window's daylight through it); block 1: a blackout, the room behind it gets a little dimmer as it comes down;
+// sheer*: how much of the view each sheer hides
 export const SOFT_OPTICS = {
   cellular: { glow: 0.7, grad: [1.16, 0.68], pleat: [0.03, 0.085], block: 0.5 },
   'cellular-blackout': { glow: 0.7, grad: [0.9, 0.9], pleat: [0.05, 0.14], block: 1 },
-  roman: { glow: 0.7, grad: [1.16, 0.68], stack: 0.93, block: 0.6 },
-  'roman-blackout': { glow: 0.7, grad: [0.9, 0.9], stack: 1, block: 1 },
+  roman: { glow: 1.0, grad: [1.4, 0.6], window: 0.32, stack: 0.86, block: 0.6 },
+  'roman-blackout': { glow: 0.45, grad: [1, 1], stack: 1, block: 1 },
   'shangri-la': { glow: 0.7, grad: [1.08, 0.8], sheerFront: 0.1, sheerBack: 0.2, block: 0.45 },
 };
 export const opticsFor = (lightType) => SOFT_OPTICS[lightType] || SOFT_OPTICS.cellular;

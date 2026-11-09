@@ -34,17 +34,21 @@ const SHADE_GLSL = `
   }
   outgoingLight *= lbShade;
 `;
-function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1 }, env) {
+// `window` (a light-filtering roman): daylight comes through the cloth only where the glass is behind it, so the glow falls off softly over the sash, the trim and
+// the wall (uGlass: half width, top and bottom of the glass in the shade's own coordinates, and how much glow is left away from it).
+function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1, window = 0 }, env) {
   const m = fabricMaterial({ map, glow, bump, side }, env), base = m.onBeforeCompile;
   m.userData.grad = grad ? { top: { value: new THREE.Vector3(grad[0], grad[0], grad[0]) }, bottom: { value: new THREE.Vector3(grad[1], grad[1], grad[1]) } } : null;
   m.userData.pleat = { value: new THREE.Vector2(pleat ? pleat[0] : 0, pleat ? pleat[1] : 0) };
+  m.userData.glass = { value: new THREE.Vector4(1e3, 1e3, -1e3, window ? 1 - window : 1) };
   m.onBeforeCompile = (sh) => {
     base(sh);
     if (m.userData.grad) { sh.uniforms.uGlowTop = m.userData.grad.top; sh.uniforms.uGlowBottom = m.userData.grad.bottom; }
-    sh.uniforms.uPleat = m.userData.pleat;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aShade;\nattribute float aPleat;\nvarying float vShade;\nvarying float vPleat;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = aShade; vPleat = aPleat;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vShade;\nvarying float vPleat;\nuniform vec2 uPleat;')
+    sh.uniforms.uPleat = m.userData.pleat; sh.uniforms.uGlass = m.userData.glass;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aShade;\nattribute float aPleat;\nvarying float vShade;\nvarying float vPleat;\nvarying float vLx;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = aShade; vPleat = aPleat; vLx = position.x;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vShade;\nvarying float vPleat;\nvarying float vLx;\nuniform vec2 uPleat;\nuniform vec4 uGlass;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(uGlass.w, 1.0, smoothstep(0.0, 0.07, uGlass.x - abs(vLx)) * smoothstep(0.0, 0.07, uGlass.y - vLy) * smoothstep(0.0, 0.07, vLy - uGlass.z));')
       .replace('#include <opaque_fragment>', `${SHADE_GLSL}\n#include <opaque_fragment>`);
   };
   m.customProgramCacheKey = () => 'lb-fabric-soft';
@@ -101,7 +105,14 @@ class SoftShade {
   setAmount(a, k = 0) { this.amounts[k] = clamp(a); this._layout(); }
   setAmounts(arr) { for (let k = 0; k < this.movers; k++) this.amounts[k] = clamp(arr[k] ?? this.amounts[k] ?? 0); this._layout(); }
   setFabric(fabric, optics) { this.setFabrics([{ fabric, optics }]); }
-  setCover() {} setRailColor() {}
+  setCover() {}
+  // where the glass is behind the shade (its own coordinates: half width, top, bottom): a light-filtering cloth glows there
+  setWindow(halfW, top, bottom) { this.glass = [halfW, top, bottom]; this.mats.forEach((m) => { if (m.userData.glass) { m.userData.glass.value.x = halfW; m.userData.glass.value.y = top; m.userData.glass.value.z = bottom; } }); }
+  // how much of the window a blackout cloth covers right now (0..1): the room behind the shade gets that much dimmer
+  get dim() { return 0; }
+  // the headrail, rails or cassette: the color that was chosen (the supplier's rail colors); with none they follow the cloth
+  setRailColor(hex) { this.headHex = hex || null; if (hex) this.railMat.color.set(hex); this.env.invalidate(); }
+  _tint(hex) { if (!this.headHex && hex) this.railMat.color.set(hex); }
   travelOf() { return Math.max(0.4, this.height - 0.1); }
   get coverage() { return this.span.bottom / this.height; }
   applyEnv() { this.mats.forEach((m) => applyGlow(m, this.env)); }
@@ -112,6 +123,7 @@ class SoftShade {
     const env = this.env, tex = weaveTexture(layer.fabric, env, { mirrorV: false });
     const m = clothMaterial({ map: tex, ...opts }, env);
     m.color.set(layer.fabric.color); m.userData.uHeight.value = this.height;
+    if (this.glass) { m.userData.glass.value.x = this.glass[0]; m.userData.glass.value.y = this.glass[1]; m.userData.glass.value.z = this.glass[2]; }
     whenFabric(layer.fabric, (img, look) => { if (!this.mats.includes(m)) return; m.color.set(0xffffff); m.needsUpdate = true; onLook?.(look); env.invalidate(); });
     this.texs.push(tex); this.mats.push(m);
     return m;
@@ -158,6 +170,7 @@ export class CellularShade extends SoftShade {
   get headHeight() { return CELL.HEAD_H; } get headDepth() { return CELL.HEAD_D; }
   get layout() { return cellularLayout(this.style, this.height, this.amounts); }
   get span() { return this.layout.cover; }
+  get dim() { let d = 0; for (const s of this.layout.sections) if ((this.layers[s.layer]?.optics?.block ?? 0) >= 1) d += (s.ext + s.bundle) / this.height; return Math.min(1, d); }
   handleAt(k = 0) { return cellularHandle(this.style, this.height, this.amounts, k); }
   amountAt(k, f) { return cellularAmountAt(this.style, this.height, k, f); }
   travelOf() { return this.layout.free; }
@@ -176,8 +189,8 @@ export class CellularShade extends SoftShade {
     for (let i = 0; i < count; i++) {
       const layer = layers[i] || layers[0]; if (!layer) break;
       const o = layer.optics || {}, strips = new Strips(4);
-      const m = this._cloth(layer, { glow: o.glow ?? 0.7, grad: o.grad, pleat: o.pleat || [0.03, 0.085], bump: 0.6 }, i === 0 ? (look) => { if (look?.hex) this.railMat.color.set(look.hex); } : null);
-      if (i === 0) this.railMat.color.set(layer.fabric.color);
+      const m = this._cloth(layer, { glow: o.glow ?? 0.7, grad: o.grad, pleat: o.pleat || [0.03, 0.085], bump: 0.6 }, i === 0 ? (look) => this._tint(look?.hex) : null);
+      if (i === 0) this._tint(layer.fabric.color);
       this._mesh(strips.geo, m); this.strips.push(strips);
     }
     this.applyEnv(); this._layout(); this.env.invalidate();
@@ -205,7 +218,7 @@ export class CellularShade extends SoftShade {
 }
 
 // ---- Roman ------------------------------------------------------------------------------------------------------------------------------------------------------
-// A flat cloth that folds into soft, evenly stacked horizontal folds as it rises (a fold about every 8 in), under a headrail covered in the same cloth.
+// A flat cloth that folds into soft, evenly stacked horizontal folds as it rises (a fold about every 8 in), under a plain headrail in the chosen color.
 const SEGS = 24;                                                    // columns of a relaxed shade (its folds sag in a curve)
 const sagAt = (x, w) => { const t = (2 * x) / w; return Math.max(0, 1 - t * t); };
 const HOBBLE = [[0, 0.8], [0.2, 0.98], [0.55, 1.05], [0.86, 1.0], [1, 0.87]];          // one hobbled panel, top to bottom: tucked under the loop above, round and lit, turning under
@@ -220,6 +233,7 @@ export class RomanShade extends SoftShade {
   get headHeight() { return ROMAN.HEAD_H; } get headDepth() { return ROMAN.HEAD_D; }
   get layout() { return romanLayout(this.style, this.height, this.width, this.amounts[0]); }
   get span() { const l = this.layout; return { top: 0, bottom: (l.edge + l.low) / 2 }; }
+  get dim() { return (this.optics?.block ?? 0) >= 1 ? Math.min(1, this.layout.edge / this.height) : 0; }
   handleAt() { return romanHandle(this.style, this.height, this.width, this.amounts[0]); }
   amountAt(_k, f) { return romanAmountAt(this.style, this.height, this.width, f); }
   travelOf() { const l = this.layout; return Math.max(0.3, l.dMax - l.dMin); }
@@ -228,12 +242,8 @@ export class RomanShade extends SoftShade {
     this._clearFabrics(); this.layers = layers;
     const layer = layers[0]; if (!layer) return;
     const o = this.optics = layer.optics || {};
-    const face = this._cloth(layer, { glow: o.glow ?? 0.7, grad: o.grad, bump: 1.1 });
-    // the headrail is wrapped in the same cloth (lit by the room, with only a little daylight through it)
-    const wrap = fabricMaterial({ map: this.texs[0], glow: (o.glow ?? 0.7) * 0.3, bump: 1.2 }, this.env);
-    wrap.color.set(layer.fabric.color); wrap.userData.uHeight.value = this.height;
-    whenFabric(layer.fabric, () => { if (!this.mats.includes(wrap)) return; wrap.color.set(0xffffff); wrap.needsUpdate = true; });
-    this.mats.push(wrap); this.head.material = wrap;
+    const face = this._cloth(layer, { glow: o.glow ?? 0.7, grad: o.grad, bump: 1.1, window: o.window || 0 }, (look) => this._tint(look?.hex));
+    this._tint(layer.fabric.color);
     this._mesh(this.strips.geo, face);
     this.applyEnv(); this._layout(); this.env.invalidate();
   }
@@ -313,7 +323,7 @@ export class ShangriLaShade extends SoftShade {
     const layer = layers[0]; if (!layer) return;
     const o = layer.optics || {};
     this.front.material.opacity = o.sheerFront ?? 0.1; this.back.material.opacity = o.sheerBack ?? 0.2;
-    const tint = (hex) => { this.railMat.color.set(hex); const s = sheerHexOf(hex); this.front.material.color.set(s); this.back.material.color.set(s); };
+    const tint = (hex) => { this._tint(hex); const s = sheerHexOf(hex); this.front.material.color.set(s); this.back.material.color.set(s); };
     tint(layer.fabric.color);
     const m = this._cloth(layer, { glow: o.glow ?? 0.7, grad: o.grad, side: THREE.DoubleSide, bump: 0.8 }, (look) => { if (look?.hex) tint(look.hex); });
     this._mesh(this.strips.geo, m, 5);

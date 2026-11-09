@@ -7,7 +7,7 @@ import SitePhoto from './components/SitePhoto.jsx';
 import { MOUNTS, getMechanism } from './data/lines.js';
 import { CONTROL_COPY, CONTROL_IMG, MOUNT_INFO, POWER_COPY, SOLAR_COPY, MOTOR_CONTROL_COPY, SIDE_NOTE_BATTERY, SIDE_NOTE_WIRED, SIDE_NOTE_TWO_IN_ONE } from './data/optionInfo.js';
 import { usesDrive, mechName, parseMech, formatMech, pricingOptions, movementsFor, defaultMovement, motorControlsFor, powersFor, cellularMotorName, MOVEMENT_NAME, POWER_NAME, MOTOR_CONTROL_NAME, SIDE_NAME } from './lib/drive.js';
-import { extrasFor, extrasText, CHAIN_COLORS, CORD_TYPES, CORD_LOOP_COLORS, BAR_COLORS, ROLL_DIRECTIONS } from './lib/choices.js';
+import { extrasFor, extrasText, CHAIN_COLORS, CORD_TYPES, CORD_LOOP_COLORS, BAR_COLORS, ROLL_DIRECTIONS, HEAD_COLORS, HEAD_COLOR_LABEL } from './lib/choices.js';
 import { useLineOptions } from './lib/lineOptions.js';
 import { useHubPrice } from './lib/hubPrice.js';
 import { zigbeeNote } from './lib/hub.js';
@@ -368,7 +368,7 @@ export default function LineShell({
               ))}
 
               {Object.keys(chosen).some((key) => key !== 'bottomWrap') && (
-                <MoreOptions summary={extrasText({ ...chosen, bottomWrap: undefined }).join(' · ')}>
+                <MoreOptions summary={extrasText({ ...chosen, bottomWrap: undefined }, line.id).join(' · ')}>
                   {chosen.chainColor && opts.isOn('chain-color', chosen.chainColor) && (
                     <div className="s2-more-group"><h3>Chain color</h3>
                       <ColorDots label="Chain color" value={chosen.chainColor} onChange={(id) => setExtras((e) => ({ ...e, chainColor: id }))} options={CHAIN_COLORS.filter((x) => opts.isOn('chain-color', x.id))} /></div>
@@ -380,6 +380,10 @@ export default function LineShell({
                   {chosen.barColor && (
                     <div className="s2-more-group"><h3>Bottom bar color</h3>
                       <ColorDots label="Bottom bar color" value={chosen.barColor} onChange={(id) => setExtras((e) => ({ ...e, barColor: id }))} options={BAR_COLORS.filter((x) => opts.isOn('bar-color', x.id))} /></div>
+                  )}
+                  {chosen.headColor && (
+                    <div className="s2-more-group"><h3>{HEAD_COLOR_LABEL[line.id]}</h3>
+                      <ColorDots label={HEAD_COLOR_LABEL[line.id]} value={chosen.headColor} onChange={(id) => setExtras((e) => ({ ...e, headColor: id }))} options={HEAD_COLORS.filter((x) => opts.isOn('head-color', x.id))} /></div>
                   )}
                   {chosen.rollDir && (
                     <div className="s2-more-group"><h3>Roll direction</h3>
