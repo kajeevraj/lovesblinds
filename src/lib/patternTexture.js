@@ -6,11 +6,15 @@
 // average IS the swatch's color and its contrast is capped (no moire when it is small on screen).
 import { TEX } from '../room/textureCore.js';
 
-export const WEAVES = ['basket', 'smooth', 'mesh', 'linen', 'pleat', 'zebra'];
+export const WEAVES = ['basket', 'smooth', 'mesh', 'linen', 'pleat', 'zebra', 'voile'];
+// weaves a color can be set to by hand (Products > Colors > Texture > Weave); 'voile' is the sheer open weave (light threads, see-through gaps)
+export const WEAVE_CHOICES = ['basket', 'smooth', 'mesh', 'linen', 'pleat', 'voile'];
+export const WEAVE_LABEL = { basket: 'Fine basketweave', smooth: 'Smooth', mesh: 'Open mesh', linen: 'Slubby linen', pleat: 'Pleat lines', voile: 'Sheer open weave (see-through)' };
 
 // Fabric type -> weave. Solar: fine basketweave. Blackout: smooth with a faint texture. Screen view: open mesh. Linen-look (everything else: roman,
 // drapery, curtains, Shangri-La): slubby threads. Cellular: pleat lines. Zebra: its own (solid band weave + sheer band, see zebraPattern).
-export function weaveKindOf({ line, family, composition } = {}) {
+export function weaveKindOf({ line, family, composition, weave } = {}) {
+  if (line !== 'zebra' && WEAVE_CHOICES.includes(weave)) return weave;                 // set by hand on the color
   if (line === 'zebra') return 'zebra';
   if (line === 'cellular') return 'pleat';
   if (line === 'roller') {
@@ -75,6 +79,14 @@ function field(kind, size, rand) {
       const t = (y % pitch) / pitch, face = Math.cos(2 * Math.PI * (t - 0.45)), crease = Math.exp(-(((t - 0.96) % 1) ** 2) / 0.0016) + Math.exp(-((t + 0.04) ** 2) / 0.0016);
       for (let x = 0; x < size; x++) at(x, y, 0.55 * face - 1.1 * crease + 0.14 * g[x] * gy[y] + 0.08 * gy[y]);
     }
+  } else if (kind === 'voile') {
+    // a sheer open weave: a plain weave of fine threads 8 px apart with open squares between them (you see through to the window, not to a dark backing)
+    const u = 8 * S, rows = noise1(size, rand, 10, 30), cols = noise1(size, rand, 10, 30);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const dx = Math.abs(((x % u) + u) % u - u / 2) / (u / 2), dy = Math.abs(((y % u) + u) % u - u / 2) / (u / 2);
+      const thread = Math.max(1 - Math.min(1, dx * 2.2), 1 - Math.min(1, dy * 2.2)), hole = Math.min(1, dx * 2.2) * Math.min(1, dy * 2.2);
+      at(x, y, thread * 0.8 - hole * 0.5 + 0.05 * rows[y] + 0.05 * cols[x]);
+    }
   } else {                                                         // 'zebra' solid band weave: smooth cloth with fine horizontal streaks
     const ry = noise1(size, rand, 50, 120), rx = noise1(size, rand, 6, 20), r2 = noise1(size, rand, 30, 100);
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) at(x, y, 0.55 * ry[y] + 0.2 * rx[x] * 0.4 + 0.18 * r2[wrap(x * 3 + y, size)]);
@@ -83,8 +95,8 @@ function field(kind, size, rand) {
 }
 
 // How strong each weave is: the standard deviation of luminance, in levels (0..255), after re-centring on the target color.
-const SD = { basket: 9, smooth: 2.6, mesh: 11, linen: 8.5, pleat: 9, zebra: 4.5 };
-const SEED = { basket: 11, smooth: 23, mesh: 37, linen: 41, pleat: 53, zebra: 67 };
+const SD = { basket: 9, smooth: 2.6, mesh: 11, linen: 8.5, pleat: 9, zebra: 4.5, voile: 10 };
+const SEED = { basket: 11, smooth: 23, mesh: 37, linen: 41, pleat: 53, zebra: 67, voile: 71 };
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
@@ -132,4 +144,14 @@ export function zebraPattern(hex, split = 0.6, size = TEX) {
     for (let y = rows; y < size; y++) for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) { const k = (y * size + x) * 3 + c; out[k] = out[k] + (255 - out[k]) * need; }
   }
   return { rgb: out, rows };
+}
+
+// How see-through a weave is, one byte per pixel (255 = cloth, low = open): only the sheer open weave has gaps; every other weave is opaque (returns null).
+// The gaps follow the very same grid as the picture, so the open squares in the alpha are the squares in the cloth.
+export function patternAlpha(kind, size = TEX) {
+  if (kind !== 'voile') return null;
+  const f = field('voile', size, rng(SEED.voile + size)), a = new Uint8ClampedArray(size * size);
+  let lo = Infinity, hi = -Infinity; for (const v of f) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  for (let i = 0; i < a.length; i++) { const t = (f[i] - lo) / (hi - lo || 1); a[i] = 60 + 195 * Math.min(1, Math.max(0, (t - 0.25) / 0.45)); }       // open squares about 25 % opaque, threads fully
+  return a;
 }

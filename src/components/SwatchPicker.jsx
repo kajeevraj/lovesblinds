@@ -37,7 +37,7 @@ export function SwatchTile({ swatch, size = 96 }) {
     const draw = () => {
       resolveLook(lookOfSwatch(swatch), { small: true }).then((r) => {
         if (dead) return;
-        const ctx = c.getContext('2d');
+        const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);          // a sheer weave is see-through: the tile's color shows through its gaps
         if (swatch.line === 'zebra') {                 // two stripe periods, solid band on top of each: the tile reads as a zebra
           const rows = r.rows || Math.round(TEX * r.bands.split), half = c.height / 2;
           for (let k = 0; k < 2; k++) ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, k * half, c.width, half);
@@ -49,7 +49,7 @@ export function SwatchTile({ swatch, size = 96 }) {
     if (typeof IntersectionObserver === 'undefined') draw();
     else { io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); draw(); } }, { rootMargin: '300px' }); io.observe(c); }
     return () => { dead = true; io?.disconnect(); };
-  }, [swatch.id, swatch.tile, swatch.thumb, swatch.textureMode, swatch.zebraSolidIn, swatch.zebraSheerIn, family, override]);
+  }, [swatch.id, swatch.tile, swatch.thumb, swatch.textureMode, swatch.weave, swatch.zebraSolidIn, swatch.zebraSheerIn, family, override]);
   if (failed) return <SwatchImg src={tileSrc(swatch)} fallback={tileFallbacks(swatch)} alt="" code={swatch.code} size={size} />;
   return <canvas ref={canvas} className="s2-sw-canvas" width={160} height={160} aria-hidden="true" data-color={override || familyHex(family)} style={{ background: override || familyHex(family) }} />;
 }

@@ -7,6 +7,8 @@
 --                 cellular pleats); used when the photo has folds, is a whole shade, is too small or has strong shading
 --       null      not decided yet: the site looks at the photo itself (src/lib/textureAnalysis.js). scripts/backfill-textures.mjs --apply fills it in.
 --     A Zebra color is always drawn as the pattern, whatever this says. Set per color in Products > Colors > Texture.
+--     swatches.weave: optionally the weave a Pattern color is drawn in (basket, smooth, mesh, linen, pleat, or voile = a sheer open weave, see-through between its
+--     threads); empty = chosen by fabric type. Set per color in Products > Colors > Texture > Weave.
 --  2. Zebra band widths, in inches: product_lines.band_solid_in / band_sheer_in are the DEFAULT for every color of that line (empty = 3 in and 2 in),
 --     swatches.zebra_solid_in / zebra_sheer_in are an optional per-color OVERRIDE (empty = use the line's default). Set in Products > Zebra and Colors.
 --  3. public_catalog() also returns these fields (customer-safe, same as preview_color).
@@ -15,6 +17,11 @@ alter table public.swatches add column if not exists texture_mode text;
 alter table public.swatches drop constraint if exists swatches_texture_mode_check;
 alter table public.swatches add constraint swatches_texture_mode_check check (texture_mode is null or texture_mode in ('photo','pattern'));
 comment on column public.swatches.texture_mode is 'photo = flat crop of the supplier photo; pattern = generated weave in the preview color; null = decided by looking at the photo. Zebra is always pattern.';
+
+alter table public.swatches add column if not exists weave text;
+alter table public.swatches drop constraint if exists swatches_weave_check;
+alter table public.swatches add constraint swatches_weave_check check (weave is null or weave in ('basket','smooth','mesh','linen','pleat','voile'));
+comment on column public.swatches.weave is 'Pattern colors only: the weave it is drawn in (basket, smooth, mesh, linen, pleat, voile = sheer open weave). Empty = by fabric type.';
 
 alter table public.swatches add column if not exists zebra_solid_in numeric;
 alter table public.swatches add column if not exists zebra_sheer_in numeric;
@@ -49,7 +56,7 @@ language sql stable security definer set search_path = public as $$
                      'id', s.id, 'fabric_id', f.public_key, 'product_line', f.product_line, 'shown_in', f.shown_in, 'family', x.family,
                      'display_name', s.display_name, 'supplier_code', s.supplier_code, 'color_family', s.color_family,
                      'image_path', s.image_path, 'thumb_path', s.thumb_path, 'image_kind', s.image_kind, 'preview_color', s.preview_color,
-                     'texture_mode', s.texture_mode, 'zebra_solid_in', s.zebra_solid_in, 'zebra_sheer_in', s.zebra_sheer_in,
+                     'texture_mode', s.texture_mode, 'weave', s.weave, 'zebra_solid_in', s.zebra_solid_in, 'zebra_sheer_in', s.zebra_sheer_in,
                      'width', s.width, 'composition', s.composition, 'roman_styles', s.roman_styles, 'styles', s.styles,
                      'sort_order', x.sort_order) order by x.sort_order, s.id)
               from (select sw.id, sw.family, sw.sort_order from public.swatches sw where sw.fabric_id = f.id

@@ -28,10 +28,10 @@ export function whenImage(url, cb, cross = false, fail = null) {
 const lookCache = new Map();
 export function whenFabric(spec, cb) {
   if (spec.preset) { whenImage(spec.url, cb); return; }
-  const key = `${spec.key}|${spec.look.textureMode || ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
+  const key = `${spec.key}|${spec.look.textureMode || ''}|${spec.look.weave || ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
   let p = lookCache.get(key);
   if (!p) { p = resolveLook(spec.look, { lit: true }); lookCache.set(key, p); p.catch(() => lookCache.delete(key)); }
-  p.then((r) => { try { (window.__lbLooks = window.__lbLooks || {})[spec.swatchId] = { mode: r.mode, hex: r.hex, weave: r.weave }; } catch { /* no window */ } cb(r.canvas, r); }, () => { /* no picture and no color: the model keeps its flat color */ });       // window.__lbLooks: what the 3D shows, for the tests
+  p.then((r) => { try { (window.__lbLooks = window.__lbLooks || {})[spec.swatchId] = { mode: r.mode, hex: r.hex, weave: r.weave, sheer: !!r.sheer }; } catch { /* no window */ } cb(r.canvas, r); }, () => { /* no picture and no color: the model keeps its flat color */ });       // window.__lbLooks: what the 3D shows, for the tests
 }
 
 // A fabric texture whose UVs are metres: repeat = 1 / (metres one picture covers). Presets are hand-cut, so they are mirrored in u to hide their seams;

@@ -5,7 +5,7 @@
 //    linen slubs, cellular pleats, zebra bands).
 import { analyzePhoto, LIMITS } from '../../src/lib/textureAnalysis.js';
 import { photoCropTexture, seamRatio, makeSeamless, TEX } from '../../src/room/textureCore.js';
-import { patternRGB, zebraPattern, weaveKindOf, sheerHexOf, WEAVES } from '../../src/lib/patternTexture.js';
+import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, sheerHexOf, WEAVES } from '../../src/lib/patternTexture.js';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const rng = (seed) => { let a = seed; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -64,7 +64,7 @@ const meanOf = (rgb) => { const n = rgb.length / 3, m = [0, 0, 0]; for (let i = 
 const sdOf = (rgb) => { const m = meanOf(rgb), n = rgb.length / 3; let v = 0; for (let i = 0; i < rgb.length; i += 3) { const l = 0.3 * rgb[i] + 0.59 * rgb[i + 1] + 0.11 * rgb[i + 2] - (0.3 * m[0] + 0.59 * m[1] + 0.11 * m[2]); v += l * l / n; } return Math.sqrt(v); };
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const COLORS = ['#ece8e0', '#3b3a3c', '#9a8f7c', '#a9b4c4', '#f2efe9'];
-for (const kind of ['basket', 'smooth', 'mesh', 'linen', 'pleat']) {
+for (const kind of ['basket', 'smooth', 'mesh', 'linen', 'pleat', 'voile']) {
   const bad = [], seams = [], sds = [];
   for (const hex of COLORS) { const t = patternRGB(kind, hex), m = meanOf(t), want = hexRgb(hex); if (m.some((v, i) => Math.abs(v - want[i]) > 1.5)) bad.push(`${hex} -> ${m.map(Math.round)}`); seams.push(seamRatio(t)); sds.push(sdOf(t)); }
   check(`${kind}: the pattern's average is the color it was made for (within 1.5 levels, 5 colors)`, bad.length === 0, bad.join(' | '));
@@ -85,7 +85,12 @@ check('weave by fabric type: solar basketweave, blackout smooth, screen view mes
   weaveKindOf({ line: 'roller', family: 'solar' }) === 'basket' && weaveKindOf({ line: 'roller', family: 'blackout' }) === 'smooth' && weaveKindOf({ line: 'roller', family: 'screen-view' }) === 'mesh'
   && weaveKindOf({ line: 'cellular', family: 'blackout' }) === 'pleat' && weaveKindOf({ line: 'zebra' }) === 'zebra' && ['drapery', 'dream-curtains', 'shangri-la', 'roman'].every((l) => weaveKindOf({ line: l }) === 'linen'));
 check('patterns are deterministic (the same pixels every time, so every surface draws the same cloth)', dist(patternRGB('linen', '#9a8f7c'), C) === 0 && dist(patternRGB('mesh', '#9a8f7c'), B) === 0);
-check('every weave name is known', WEAVES.length === 6 && WEAVES.every((w) => patternRGB(w, '#808080', 64).length === 64 * 64 * 3));
+const va = patternAlpha('voile', TEX), vt = patternRGB('voile', '#efede9', TEX);
+const openShare = va.filter((v) => v < 120).length / va.length, threadAlpha = va.filter((v) => v > 230).length / va.length;
+check('sheer open weave (Salt White): light, see-through between its threads: the average is the soft white, 30 to 50 % of it is open (alpha under 120), the threads are opaque', [239, 237, 233].every((w, i) => Math.abs(meanOf(vt)[i] - w) <= 1.5) && openShare > 0.3 && openShare < 0.5 && threadAlpha > 0.2, `open ${openShare.toFixed(2)} thread ${threadAlpha.toFixed(2)} mean ${meanOf(vt).map(Math.round)}`);
+check('only the sheer open weave has gaps: every other weave is opaque (no alpha map)', ['basket', 'smooth', 'mesh', 'linen', 'pleat', 'zebra'].every((k) => patternAlpha(k) === null));
+check('a weave set by hand on the color overrides the fabric type (voile on a drapery color), but never on a Zebra', weaveKindOf({ line: 'drapery', weave: 'voile' }) === 'voile' && weaveKindOf({ line: 'roller', family: 'solar', weave: 'mesh' }) === 'mesh' && weaveKindOf({ line: 'zebra', weave: 'voile' }) === 'zebra' && weaveKindOf({ line: 'drapery', weave: 'nonsense' }) === 'linen');
+check('every weave name is known', WEAVES.length === 7 && WEAVES.every((w) => patternRGB(w, '#808080', 64).length === 64 * 64 * 3));
 // very dark and very light colors must not clip their weave off
 const black = patternRGB('basket', '#0c0c0d'), white = patternRGB('basket', '#fbfbfa');
 check('a near-black and a near-white fabric still have a visible weave and keep their color', sdOf(black) > 1.2 && sdOf(white) > 1.2 && meanOf(black)[0] < 16 && meanOf(white)[0] > 245, `${sdOf(black).toFixed(1)} / ${sdOf(white).toFixed(1)}`);

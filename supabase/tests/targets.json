@@ -15,7 +15,8 @@
   "texture_pipeline_tests",
   "zebra_band_tests",
   "cream_white_color_tests",
-  "backfill_tests"
+  "backfill_tests",
+  "color_fixes_tests"
  ],
  "readOnly": [
   "api_catalog_tests",

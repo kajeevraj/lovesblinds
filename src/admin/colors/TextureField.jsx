@@ -8,15 +8,16 @@ import { analyzePhoto } from '../../lib/textureAnalysis.js';
 import { pixelsAt, loadImage } from '../../room/textureBrowser.js';
 import { ZEBRA_DEFAULTS, ZEBRA_LIMITS, cleanBand } from '../../room/zebraBands.js';
 import { isHex } from '../../lib/swatchColor.js';
+import { WEAVE_CHOICES, WEAVE_LABEL, weaveKindOf } from '../../lib/patternTexture.js';
 
 // The look of the color as it would be saved: `src` = { id, thumb, tile, image, tex } urls (the new photo's blob url, or the stored files).
-function lookFor({ src, line, family, composition, colorFamily, previewColor, mode, solid, sheer }) {
-  return { id: src.id, line, family, composition, colorFamily, previewColor: isHex(previewColor) ? previewColor : null, textureMode: mode, solidIn: solid, sheerIn: sheer, tile: src.tile, thumb: src.thumb, image: src.image, tex: src.tex };
+function lookFor({ src, line, family, composition, colorFamily, previewColor, mode, solid, sheer, weave }) {
+  return { id: src.id, line, family, composition, weave: weave || undefined, colorFamily, previewColor: isHex(previewColor) ? previewColor : null, textureMode: mode, solidIn: solid, sheerIn: sheer, tile: src.tile, thumb: src.thumb, image: src.image, tex: src.tex };
 }
 
 export const TEXTURE_LABEL = { photo: 'Photo crop', pattern: 'Pattern' };
 
-export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, lineBands, mode, onMode, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
+export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, lineBands, mode, onMode, weave, onWeave, canWeave, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
   const canvas = useRef(null);
   const [err, setErr] = useState('');
   // the auto-picked setting: from a new photo (already analysed when it was chosen), or for a color that has none stored, from its stored photo
@@ -35,7 +36,7 @@ export default function TextureField({ src, line, family, composition, colorFami
   useEffect(() => {
     const c = canvas.current; if (!c || !src) return undefined;
     let dead = false; setErr('');
-    resolveLook(lookFor({ src, line, family, composition, colorFamily, previewColor, mode: effective, solid: solidN, sheer: sheerN }), { small: true }).then((r) => {
+    resolveLook(lookFor({ src, line, family, composition, colorFamily, previewColor, mode: effective, solid: solidN, sheer: sheerN, weave }), { small: true }).then((r) => {
       if (dead) return;
       const ctx = c.getContext('2d');
       if (zebra) { const half = c.height / 2; for (let k = 0; k < 2; k++) ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, k * half, c.width, half); }
@@ -43,7 +44,7 @@ export default function TextureField({ src, line, family, composition, colorFami
       c.dataset.color = r.hex; c.dataset.mode = r.mode; c.dataset.ready = '1';
     }).catch(() => { if (!dead) setErr('The preview could not be drawn.'); });
     return () => { dead = true; };
-  }, [src, line, family, composition, colorFamily, previewColor, effective, solidN, sheerN, zebra]);
+  }, [src, line, family, composition, colorFamily, previewColor, effective, solidN, sheerN, zebra, weave]);
 
   const bandProblem = zebra && ((solid !== '' && cleanBand(solid, null) === null) || (sheer !== '' && cleanBand(sheer, null) === null))
     ? `Each band must be between ${ZEBRA_LIMITS.min} and ${ZEBRA_LIMITS.max} inches (or empty for the default).` : '';
@@ -64,6 +65,14 @@ export default function TextureField({ src, line, family, composition, colorFami
           )}
           {!zebra && <em className="adm-field-ok">{mode ? (auto && auto.mode !== mode ? `Set by hand. Auto-pick would be ${TEXTURE_LABEL[auto.mode]} (${auto.reason}).` : 'Set by hand.') : auto ? `Auto-picked: ${TEXTURE_LABEL[auto.mode]} (${auto.reason}).` : 'Auto-picking from the photo…'}
             {mode && auto && auto.mode !== mode && <> <button type="button" className="adm-link" onClick={() => onMode('')}>Use auto-pick</button></>}</em>}
+          {!zebra && canWeave && effective === 'pattern' && (
+            <label className="adm-field" style={{ marginTop: 6 }}><span>Weave <small>(the pattern's look)</small></span>
+              <select aria-label="Weave" value={weave} onChange={(e) => onWeave(e.target.value)}>
+                <option value="">Automatic: {WEAVE_LABEL[weaveKindOf({ line, family, composition })] || 'by fabric type'}</option>
+                {WEAVE_CHOICES.map((w) => <option key={w} value={w}>{WEAVE_LABEL[w]}</option>)}
+              </select>
+            </label>
+          )}
           {err && <em className="adm-field-error" role="alert">{err}</em>}
         </div>
       </div>
