@@ -36,6 +36,16 @@ try {
       check(T(`${name} (${role}): the preview shade is within color distance 7 of its picker tile ${tile}`), dE <= 7, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
       check(T(`${name}: no moire or wavy pattern on the cloth (luminance spread over the shade <= 6)`), s.sd <= 6, `sd ${s.sd.toFixed(1)}`);
     }
+    // dark Screen view colors: the see-through shade must still read as dark as its tile (Bark Brown and Cocoa Chocolate)
+    await card(page, 'Screen view').click(); await page.waitForTimeout(500);
+    for (const [name, q] of [['Bark Brown', 'YSS-T12-305'], ['Cocoa Chocolate', 'XSS000539']]) {
+      await pick(q); await setAmount(50);
+      const tile = await page.locator('.s2-swgrid .s2-sw.on canvas').getAttribute('data-color');
+      const buf = await snap(); const s = statsOf(await raw(buf, await shadeBox(buf))), dE = colorDistance(hexOf(s.mean), tile);
+      check(T(`${name} (dark screen view): the preview shade is within color distance 7 of its picker tile ${tile}`), dE <= 7, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
+      check(T(`${name}: no moire or wavy pattern on the cloth (luminance spread over the shade <= 6)`), s.sd <= 6, `sd ${s.sd.toFixed(1)}`);
+    }
+    await card(page, 'Solar').click(); await page.waitForTimeout(500);
     // true to life, and each color its own
     const L = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; };
     const R_B = (h) => parseInt(h.slice(1, 3), 16) - parseInt(h.slice(5, 7), 16);

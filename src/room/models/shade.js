@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { weaveTexture, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
 import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
+import { screenOpacity } from '../optics.js';
 
 const GAP = 0.003;          // clearance each side, like a real inside mount
 const CASS_H = 0.064, CASS_D = 0.054;
@@ -142,7 +143,7 @@ class Shade {
     } else {
       const m = fabricMaterial({ map: tex, glow: optics.glow ?? 0, opacity: optics.alpha ?? 1, bump: 1.2 }, env);
       m.color.copy(flat);
-      whenFabric(fabric, () => { m.color.set(0xffffff); m.needsUpdate = true; solid.needsUpdate = true; });
+      whenFabric(fabric, (img, look) => { m.color.set(0xffffff); if (look?.hex) m.opacity = screenOpacity(optics.alpha ?? 1, look.hex); m.needsUpdate = true; solid.needsUpdate = true; });       // a dark screen stays dark: see src/room/optics.js
       this.mats.push(m); base.push(m);
     }
     solid.color.copy(flat);                                    // zebra: the cassette and rail are plain cloth colour (the texture is a stripe)
