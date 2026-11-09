@@ -1,0 +1,101 @@
+{
+ "kind": "apply-color-fixes",
+ "base": "https://njhlhjdbcesidgixycxj.supabase.co",
+ "at": "2026-11-09T01:12:24.365Z",
+ "rows": [
+  {
+   "id": "roller:screen-view:WSS660105",
+   "name": "Ash Gray",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:screen-view:WSS360105",
+   "name": "Granite Gray",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:screen-view:YSS-A12-103",
+   "name": "Shadow Gray",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "roller:screen-view:WSS481277",
+   "name": "White Slate",
+   "before": {
+    "color_family": "White"
+   },
+   "after": {
+    "color_family": "Gray"
+   }
+  },
+  {
+   "id": "drapery:SP26027008",
+   "name": "Salt White",
+   "before": {
+    "preview_color": null,
+    "texture_mode": "photo",
+    "weave": null
+   },
+   "after": {
+    "preview_color": "#efede9",
+    "texture_mode": "pattern",
+    "weave": "voile"
+   }
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-305",
+   "name": "Bark Brown",
+   "before": {
+    "preview_color": null
+   },
+   "after": {
+    "preview_color": "#4a3829"
+   }
+  },
+  {
+   "id": "roller:screen-view:XSS000539",
+   "name": "Cocoa Chocolate",
+   "before": {
+    "preview_color": null
+   },
+   "after": {
+    "preview_color": "#4a3223"
+   }
+  },
+  {
+   "id": "zebra:YZB2008",
+   "name": "Dark Chocolate",
+   "before": {
+    "preview_color": null
+   },
+   "after": {
+    "preview_color": "#4b3626"
+   }
+  },
+  {
+   "id": "zebra:YZB3007",
+   "name": "Bittersweet Chocolate",
+   "before": {
+    "preview_color": null
+   },
+   "after": {
+    "preview_color": "#523927"
+   }
+  }
+ ]
+}
