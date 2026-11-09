@@ -101,13 +101,17 @@ const SEED = { basket: 11, smooth: 23, mesh: 37, linen: 41, pleat: 53, zebra: 67
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
 // size x size x 3 RGB of the weave in `hex`. The average is `hex` (within a level or two: rounding and clipping at the ends of the range only).
-export function patternRGB(kind, hex, size = TEX) {
+// the repeat of each weave in texture pixels at 256 (null: no regular repeat); used to size the weave on screen (src/lib/weaveStrength.js)
+export const PATTERN_PERIOD = { basket: 8, mesh: 8, voile: 8, linen: 16, pleat: null, smooth: null, zebra: null };
+
+// `strength` is the admin's multiple of the weave's contrast (1 = auto)
+export function patternRGB(kind, hex, size = TEX, { strength = 1 } = {}) {
   const k = WEAVES.includes(kind) ? kind : 'linen', target = hexToRgb(hex);
   const f = field(k, size, rng(SEED[k] + size)), n = f.length;
   let m = 0; for (let i = 0; i < n; i++) m += f[i]; m /= n;
   let v = 0; for (let i = 0; i < n; i++) v += (f[i] - m) ** 2; const sd = Math.sqrt(v / n) || 1;
   // keep the weave from clipping against black or white: its swing is reduced where the color is very dark or very light
-  const lum = 0.3 * target[0] + 0.59 * target[1] + 0.11 * target[2], room = Math.max(3, Math.min(lum, 255 - lum) * 0.5), amp = Math.min(SD[k], room) / sd;
+  const lum = 0.3 * target[0] + 0.59 * target[1] + 0.11 * target[2], room = Math.max(3, Math.min(lum, 255 - lum) * 0.5), amp = Math.min(SD[k] * Math.max(0, strength), Math.max(room, SD[k]) * 1.3) / sd;
   const out = new Uint8ClampedArray(n * 3), tmp = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) for (let c = 0; c < 3; c++) tmp[i * 3 + c] = target[c] + (f[i] - m) * amp;
   // clipping can pull the mean off target: nudge each channel back (two passes is plenty)
@@ -129,8 +133,8 @@ export function sheerHexOf(hex) {
 // The Zebra texture: one stripe period, size x size: a solid band on top (`split` of the height) and a sheer band under it. The solid band is the zebra
 // weave in the fabric's color; the sheer band is a fine see-through mesh in the fabric's sheer color (sheerHexOf) that the 3D model makes see-through.
 // `split` = solid / (solid + sheer) of the band widths in inches (src/room/zebraBands.js).
-export function zebraPattern(hex, split = 0.6, size = TEX) {
-  const rows = Math.round(size * split), solid = patternRGB('zebra', hex, size), sheerHex = sheerHexOf(hex), base = hexToRgb(sheerHex);
+export function zebraPattern(hex, split = 0.6, size = TEX, { strength = 1 } = {}) {
+  const rows = Math.round(size * split), solid = patternRGB('zebra', hex, size, { strength }), sheerHex = sheerHexOf(hex), base = hexToRgb(sheerHex);
   const voile = patternRGB('mesh', sheerHex, size), out = new Uint8ClampedArray(size * size * 3);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const i = (y * size + x) * 3;

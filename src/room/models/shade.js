@@ -9,7 +9,7 @@
 // The shade has a fabric-wrapped cassette at the top and a bottom rail. A Zebra has two layers of banded cloth that slide past each other
 // as it moves, because it is a loop of cloth (the stripes line up at some stopping points and close to solid at others). Soft shadows: under the cassette, down the jambs, and under the rail.
 import * as THREE from 'three';
-import { weaveTexture, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { weaveTexture, applyWeaveScale, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
 import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
 import { screenOpacity } from '../optics.js';
 
@@ -118,6 +118,7 @@ class Shade {
     const env = this.env;
     const zebra = this.kind === 'zebra';
     const tex = weaveTexture(fabric, env, { mirrorV: !zebra });
+    this.mainTex = tex;
     this.disposables.push(tex);
     const flat = new THREE.Color(fabric.color);
     const solid = fabricMaterial({ map: zebra ? null : tex, emissiveMap: zebra ? null : tex, glow: (optics.glow ?? optics.glowSolid ?? 0.1) * 0.3, bump: 1.2 }, env);
@@ -179,6 +180,8 @@ class Shade {
   }
 
   applyEnv() { this.mats.forEach((m) => applyGlow(m, this.env)); }
+  // the picture was resized: show the weave at the size that reads at the new pixels-per-metre
+  applyScale() { if (this.mainTex) applyWeaveScale(this.mainTex, this.env); }
 
   _disposeMaterials() {
     this.mats.forEach((m) => m.dispose());

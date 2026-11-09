@@ -10,11 +10,13 @@
 // `look` is { id, line, family, composition, colorFamily, previewColor, textureMode, solidIn, sheerIn, tile, thumb, image, tex }.
 // `lit: true` is for the 3D room: the room's light lifts and warms every cloth a little, so the texture is set a touch darker and cooler and the shade on
 // screen lands on the swatch's own color (measured: rendered = 1.04 x texture + 8). The picker tiles are not lit, they are the color itself.
-import { TEX, retarget, photoCropTexture } from './textureCore.js';
+import { TEX, retargetWeave, photoCropTexture } from './textureCore.js';
+import { weaveStats, desiredSd } from '../lib/weaveStrength.js';
 import { analyzePhoto } from '../lib/textureAnalysis.js';
-import { patternRGB, patternAlpha, zebraPattern, weaveKindOf } from '../lib/patternTexture.js';
+import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, PATTERN_PERIOD } from '../lib/patternTexture.js';
 import { deriveHex, previewHex, isHex, familyHex, bandPixels } from '../lib/swatchColor.js';
 import { zebraBands } from './zebraBands.js';
+import { litTarget, typeOfLook } from './lightCalibration.js';
 
 const sizeOf = (s) => ({ W: s.naturalWidth || s.width, H: s.naturalHeight || s.height });
 const rgbOf = (ctx, w, h) => { const d = ctx.getImageData(0, 0, w, h).data, out = new Uint8ClampedArray(w * h * 3); for (let i = 0, j = 0; i < d.length; i += 4, j += 3) { out[j] = d[i]; out[j + 1] = d[i + 1]; out[j + 2] = d[i + 2]; } return out; };
@@ -84,32 +86,33 @@ export const textureBlob = (canvas) => new Promise((resolve) => canvas.toBlob((b
 
 // the ready-made texture (tex256/ in the bucket) if there is one, else made here from the full photo
 const crops = new Map();
-function cropTexture(look, small) {
-  const key = `${look.id}|${small ? 's' : 'f'}`;
+// `fresh` (the 3D shade): always cut from the full photo with the current recipe, so the shade repeats with no seam whatever recipe the stored file was made with.
+function cropTexture(look, small, fresh = false) {
+  const key = `${look.id}|${small ? 's' : 'f'}${fresh ? 'n' : ''}`;
   let p = crops.get(key);
   if (!p) {
     const make = () => loadImage((small ? look.thumb : look.image) || look.image || look.thumb).then((img) => makeTextureCanvas(img).canvas);
-    p = (look.tex ? loadImage(look.tex).catch(make) : make());
+    p = fresh ? make().catch(() => (look.tex ? loadImage(look.tex) : Promise.reject(new Error('no photo')))) : (look.tex ? loadImage(look.tex).catch(make) : make());
     crops.set(key, p);
   }
   return p;
 }
 
 // ---- tuning to a color ---------------------------------------------------------------------------------------------------------------------------
-const LIGHT_GAIN = 1.04, LIGHT_LIFT = 8, ZEBRA_GAIN = 0.92;     // a zebra's solid band is lit less (rendered = 0.92 x texture)
-const WARMTH = [1, 1.02, 1.055];
-export function targetFor(hex, { lit = false, zebra = false } = {}) {
-  return [1, 3, 5].map((i, k) => { const v = parseInt(hex.slice(i, i + 2), 16); return lit ? Math.min(255, Math.max(0, (zebra ? v / ZEBRA_GAIN : (v - LIGHT_LIFT) / LIGHT_GAIN) * WARMTH[k])) : v; });
+// `lit: true` is for the 3D preview: the texture is aimed at the inverse of that type's calibrated light (src/room/lightCalibration.js), so the lit face of the
+// shade shows `hex` as it is. The picker tiles are not lit, they are the color itself.
+export function targetFor(hex, { lit = false, type = 'solar' } = {}) {
+  return lit ? litTarget(hex, type) : [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 }
-export const litHex = (hex, zebra = false) => `#${targetFor(hex, { lit: true, zebra }).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+export const litHex = (hex, type = 'solar') => `#${litTarget(hex, type).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
 
 export function weaveOf(look) { return weaveKindOf({ line: look.line, family: look.family, composition: look.composition, weave: look.weave }); }
 
 // The pattern canvas for a weave in a color (zebra: one stripe period, solid on top). Also returns the solid band's rows.
-export function patternCanvas(weave, hex, bands) {
-  if (weave === 'zebra') { const z = zebraPattern(hex, bands.split, TEX); return { canvas: toCanvas(z.rgb, TEX, TEX), rows: z.rows }; }
+export function patternCanvas(weave, hex, bands, strength = 1) {
+  if (weave === 'zebra') { const z = zebraPattern(hex, bands.split, TEX, { strength }); return { canvas: toCanvas(z.rgb, TEX, TEX), rows: z.rows }; }
   const alpha = patternAlpha(weave, TEX);                          // a sheer open weave is see-through between its threads
-  return { canvas: toCanvas(patternRGB(weave, hex, TEX), TEX, TEX, alpha), rows: 0, sheer: !!alpha };
+  return { canvas: toCanvas(patternRGB(weave, hex, TEX, { strength }), TEX, TEX, alpha), rows: 0, sheer: !!alpha };
 }
 
 // Everything above in one call. `look.textureMode` may be forced for a preview ({ ...look, textureMode: 'pattern' }).
@@ -121,20 +124,22 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   if (!mode) {                                                       // not decided yet: look at the photo (the tile picture is enough to tell)
     try { mode = decideMode(look, pixelsAt(await loadImage((small ? look.thumb : look.image) || look.image || look.thumb), 1000)); } catch { mode = 'photo'; }
   }
-  const target = lit ? litHex(hex, zebra) : hex;
+  const type = typeOfLook(look), target = lit ? litHex(hex, type) : hex;
   if (mode === 'pattern') {
-    const { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands);
-    return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer };
+    const strength = Number.isFinite(look.weaveStrength) ? look.weaveStrength : 1, { canvas, rows, sheer } = patternCanvas(weaveOf(look), target, bands, strength);
+    return { mode, hex, canvas, weave: weaveOf(look), bands, rows, sheer: !!sheer, period: PATTERN_PERIOD[weaveOf(look)] || null };
   }
-  const crop = await cropTexture(look, small), c = document.createElement('canvas'); c.width = c.height = TEX;
+  const crop = await cropTexture(look, small, lit), c = document.createElement('canvas'); c.width = c.height = TEX;
   const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(crop, 0, 0, TEX, TEX);
-  const out = retarget(rgbOf(ctx, TEX, TEX), targetFor(hex, { lit }));
-  return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0 };
+  // the photo's own weave contrast (held back only where it would clip), times the color's Weave strength; the average stays exactly the color
+  const raw = rgbOf(ctx, TEX, TEX), stats = weaveStats(raw), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines);
+  const out = retargetWeave(raw, targetFor(hex, { lit, type }), sd);
+  return { mode, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, photoSd: stats.sd, sd };
 }
 
 // The same, as a "look" description built from a catalog swatch (what the customer pages and the room use)
 export const lookOfSwatch = (s) => ({
   id: s.id, line: s.line, family: s.family, composition: s.specs?.composition, colorFamily: s.colorFamily, previewColor: s.previewColor,
-  textureMode: s.textureMode, weave: s.weave, solidIn: s.zebraSolidIn, sheerIn: s.zebraSheerIn, tile: s.tile, thumb: s.thumb, image: s.image, tex: s.tex,
+  textureMode: s.textureMode, weave: s.weave, weaveStrength: s.weaveStrength, solidIn: s.zebraSolidIn, sheerIn: s.zebraSheerIn, tile: s.tile, thumb: s.thumb, image: s.image, tex: s.tex,
 });
 

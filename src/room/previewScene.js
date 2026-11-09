@@ -25,21 +25,23 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
   const env = {
     invalidate: () => wake(), maxAniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()),
     backlight: new THREE.Color(0.62, 0.62, 0.62),         // less daylight through the cloth than in the room: here the color has to be accurate
-    glowTop: { value: new THREE.Vector3(1.0, 1.0, 1.04) }, glowBottom: { value: new THREE.Vector3(0.78, 0.84, 0.7) },
+    glowTop: { value: new THREE.Vector3(1, 1, 1) }, glowBottom: { value: new THREE.Vector3(0.78, 0.78, 0.78) },       // daylight through the cloth: brighter at the top, never tinted
   };
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 60);
-  scene.add(new THREE.HemisphereLight(0xfffaf2, 0xe7dfd0, 1.9));
-  const sun = new THREE.DirectionalLight(0xfff3e4, 0.9); sun.position.set(-2.6, 2.4, 4.4); scene.add(sun);
+  // The lights are neutral white, so the cloth is lit without a tint (a white shade is white, not cream). The room keeps its warm color: the wall is unlit (below)
+  // and the trim and jambs carry the warmth in their own colors.
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xffffff, 1.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(-2.6, 2.4, 4.4); scene.add(sun);
   const plaster = plasterTexture(env.maxAniso), sky = skyTexture(), wash = washTexture();
-  const trimMat = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.5 });
-  const jambMat = new THREE.MeshStandardMaterial({ color: 0xe9e3d6, roughness: 0.7 });
-  const jambTopMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c0, roughness: 0.8 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xfffbed, roughness: 0.5 });       // (these colors are what the old warm light made of the old base colors)
+  const jambMat = new THREE.MeshStandardMaterial({ color: 0xe9e0cd, roughness: 0.7 });
+  const jambTopMat = new THREE.MeshStandardMaterial({ color: 0xd8cdb8, roughness: 0.8 });
   const wallMat = new THREE.MeshBasicMaterial({ color: 0xf3ede2, toneMapped: false });          // plain, evenly lit
   const glassMat = new THREE.MeshBasicMaterial({ map: sky, toneMapped: false });
-  const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6d1c6, metalness: 0.35, roughness: 0.4 });
-  const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 0.5 });
-  const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b655c, roughness: 0.7 });
+  const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6cebd, metalness: 0.35, roughness: 0.4 });
+  const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.5 });
+  const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b6458, roughness: 0.7 });
   // the solar panel is stuck on the glass, behind the cloth: it shows only below the lowest shade's bottom edge (a clip plane that follows the shade),
   // so no fabric (transparent or not) ever has it drawn over or through it
   renderer.localClippingEnabled = true;
@@ -115,6 +117,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const t = Math.tan((FOV * Math.PI) / 360), aspect = size.w / size.h;
     const d = Math.max(built.fit.h / (2 * t), built.fit.w / (2 * t * aspect), 0.9);
     camera.aspect = aspect; camera.position.set(0, built.fit.cy, d); camera.lookAt(0, built.fit.cy, 0); camera.updateProjectionMatrix();
+    env.pxPerMeter = size.h / (2 * d * t);                       // css pixels per metre at the shade (the weave is sized to read at this scale)
+    shades.forEach((sh) => sh.applyScale?.());
   }
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------

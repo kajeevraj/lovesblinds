@@ -13,6 +13,16 @@ const card = (p, n) => p.locator('.s2-card').filter({ has: p.locator('.s2-card-n
 const raw = async (buf, box) => { const { data, info } = await sharp(buf).extract(box).removeAlpha().raw().toBuffer({ resolveWithObject: true }); return { data, ...info }; };
 const lum = (d, i) => 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
 const statsOf = ({ data, width, height }) => { const n = width * height, m = [0, 0, 0]; for (let i = 0; i < data.length; i += 3) for (let c = 0; c < 3; c++) m[c] += data[i + c] / n; const ml = 0.3 * m[0] + 0.59 * m[1] + 0.11 * m[2]; let v = 0; for (let i = 0; i < data.length; i += 3) v += (lum(data, i) - ml) ** 2 / n; return { mean: m, sd: Math.sqrt(v) }; };
+// moire or waviness is SLOW structure; a visible weave is fine structure. The patch is averaged in blocks (a weave melts away, waves stay), the plain top-to-bottom
+// lighting slope is taken out, and what is left is measured.
+const waveOf = ({ data, width, height }) => {
+  const B = Math.max(4, Math.round(Math.min(width, height) / 14)), cols = Math.floor(width / B), rows = Math.floor(height / B), v = [];
+  for (let by = 0; by < rows; by++) for (let bx = 0; bx < cols; bx++) { let t = 0; for (let y = 0; y < B; y++) for (let x = 0; x < B; x++) t += lum(data, ((by * B + y) * width + bx * B + x) * 3); v.push({ x: bx, y: by, v: t / (B * B) }); }
+  const n = v.length, mx = v.reduce((a, p) => a + p.x, 0) / n, my = v.reduce((a, p) => a + p.y, 0) / n, mv = v.reduce((a, p) => a + p.v, 0) / n;
+  let sxx = 0, syy = 0, sxy = 0, sxv = 0, syv = 0; for (const p of v) { sxx += (p.x - mx) ** 2; syy += (p.y - my) ** 2; sxy += (p.x - mx) * (p.y - my); sxv += (p.x - mx) * (p.v - mv); syv += (p.y - my) * (p.v - mv); }
+  const det = sxx * syy - sxy * sxy || 1, bx = (sxv * syy - syv * sxy) / det, by = (syv * sxx - sxv * sxy) / det;
+  return Math.sqrt(v.reduce((a, p) => a + (p.v - (mv + bx * (p.x - mx) + by * (p.y - my))) ** 2, 0) / n);
+};
 const LOOKS = [['Jet Black', 'YS180006', 'darkest'], ['Clean White', 'YS180002', 'lightest'], ['Flint Gray', 'Flint', 'light grey'], ['Concrete Gray', 'Concrete', 'mid grey'], ['Cashew Beige', 'YS180003', 'beige']];
 const { colorDistance, hexOf } = await import('../../src/lib/swatchColor.js');
 try {
@@ -31,19 +41,19 @@ try {
     for (const [name, q, role] of LOOKS) {
       await pick(q); await setAmount(50);
       const tile = await page.locator('.s2-swgrid .s2-sw.on canvas').getAttribute('data-color'); seen[name] = tile;
-      const buf = await snap(); const s = statsOf(await raw(buf, await shadeBox(buf)));
+      const buf = await snap(); const rw = await raw(buf, await shadeBox(buf)), s = statsOf(rw), wave = waveOf(rw);
       const dE = colorDistance(hexOf(s.mean), tile);
-      check(T(`${name} (${role}): the preview shade is within color distance 7 of its picker tile ${tile}`), dE <= 7, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
-      check(T(`${name}: no moire or wavy pattern on the cloth (luminance spread over the shade <= 6)`), s.sd <= 6, `sd ${s.sd.toFixed(1)}`);
+      check(T(`${name} (${role}): the preview shade is within color distance 4 of its picker tile ${tile}`), dE <= 4, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
+      check(T(`${name}: no moire or wavy pattern on the cloth (the slow structure left after taking out the lighting slope <= 6; a visible weave is fine)`), wave <= 6, `wave ${wave.toFixed(1)} (whole spread ${s.sd.toFixed(1)})`);
     }
     // dark Screen view colors: the see-through shade must still read as dark as its tile (Bark Brown and Cocoa Chocolate)
     await card(page, 'Screen view').click(); await page.waitForTimeout(500);
     for (const [name, q] of [['Bark Brown', 'YSS-T12-305'], ['Cocoa Chocolate', 'XSS000539']]) {
       await pick(q); await setAmount(50);
       const tile = await page.locator('.s2-swgrid .s2-sw.on canvas').getAttribute('data-color');
-      const buf = await snap(); const s = statsOf(await raw(buf, await shadeBox(buf))), dE = colorDistance(hexOf(s.mean), tile);
-      check(T(`${name} (dark screen view): the preview shade is within color distance 7 of its picker tile ${tile}`), dE <= 7, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
-      check(T(`${name}: no moire or wavy pattern on the cloth (luminance spread over the shade <= 6)`), s.sd <= 6, `sd ${s.sd.toFixed(1)}`);
+      const buf = await snap(); const rw = await raw(buf, await shadeBox(buf)), s = statsOf(rw), wave = waveOf(rw), dE = colorDistance(hexOf(s.mean), tile);
+      check(T(`${name} (dark screen view): the preview shade is within color distance 4 of its picker tile ${tile}`), dE <= 4, `shade ${hexOf(s.mean)} vs tile ${tile}, distance ${dE.toFixed(1)}`);
+      check(T(`${name}: no moire or wavy pattern on the cloth (the slow structure left after taking out the lighting slope <= 8: a screen view shows the window behind; a visible weave is fine)`), wave <= 8, `wave ${wave.toFixed(1)} (whole spread ${s.sd.toFixed(1)})`);
     }
     await card(page, 'Solar').click(); await page.waitForTimeout(500);
     // true to life, and each color its own

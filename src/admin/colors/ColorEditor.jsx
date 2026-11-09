@@ -43,6 +43,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const [colorFamily, setColorFamily] = useState(existing?.color_family || '');
   const [previewColor, setPreviewColor] = useState(existing?.preview_color || '');         // '' = worked out from the photo inside the color family
   const [texMode, setTexMode] = useState(existing?.texture_mode || '');                  // '' = not chosen: the auto-picked setting (from the photo) applies
+  const [strength, setStrength] = useState(existing?.weave_strength == null ? '' : String(existing.weave_strength));      // '' = auto
   const [weave, setWeave] = useState(existing?.weave || '');                           // '' = by fabric type (Pattern only)
   const [texAuto, setTexAuto] = useState(null);                                           // { mode, reason } from the photo
   const [zSolid, setZSolid] = useState(existing?.zebra_solid_in == null ? '' : String(existing.zebra_solid_in));   // '' = use the line's default
@@ -109,6 +110,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
   const isZebra = mainLine === 'zebra';
   const texProblem = isZebra ? textureBandProblem(zSolid, zSheer) : '';
   const hasWeaveCol = data.swatches.some((x) => 'weave' in x);
+  const hasStrengthCol = data.swatches.some((x) => 'weave_strength' in x);                  // false until migration 25 is applied: then the slider is not shown
   const hasTexCols = data.swatches.some((x) => 'texture_mode' in x);                       // false until migration 24 is applied: then these fields are never sent
   const problems = [pcProblem, texProblem, nameProblem, codeProblem, bProblem, romanProblem, extraProblem, collNameClash && 'That price group name is already used in this line.'].filter(Boolean);
   const canSave = !busy && missing.length === 0 && problems.length === 0;
@@ -179,6 +181,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
         // the Texture setting (migration 24): a Zebra is always the pattern; otherwise what was chosen, else the auto-pick for a new photo; never guessed for an
         // existing color the person did not touch
         ...(hasWeaveCol && !isZebra ? { weave: weave || null } : {}),
+        ...(hasStrengthCol ? { weave_strength: strength === '' ? null : Number(strength) } : {}),
         ...(hasTexCols ? {
           ...(isZebra ? { texture_mode: 'pattern' } : texMode ? { texture_mode: texMode } : photo && texAuto ? { texture_mode: texAuto.mode } : isNew && texAuto ? { texture_mode: texAuto.mode } : {}),
           ...(isZebra ? { zebra_solid_in: zSolid.trim() === '' ? null : Number(zSolid), zebra_sheer_in: zSheer.trim() === '' ? null : Number(zSheer) } : {}),
@@ -337,7 +340,7 @@ export default function ColorEditor({ swatchId: editId, data, reload, onDone, on
           </div>
           {(photo || existing) && (
             <TextureField src={textureSrc} line={mainLine} family={famOf(mainLine)} composition={composition || mainFabric?.composition || ''} colorFamily={colorFamily} previewColor={previewColor.trim()}
-              zebra={isZebra} lineBands={(data.productLines || []).find((l) => l.id === 'zebra') || null} mode={texMode} onMode={setTexMode} weave={weave} onWeave={setWeave} canWeave={hasWeaveCol} auto={texAuto} setAuto={setTexAuto} solid={zSolid} sheer={zSheer} onSolid={setZSolid} onSheer={setZSheer} analysis={photo?.analysis || null} />
+              zebra={isZebra} lineBands={(data.productLines || []).find((l) => l.id === 'zebra') || null} mode={texMode} onMode={setTexMode} weave={weave} onWeave={setWeave} canWeave={hasWeaveCol} strength={strength} onStrength={setStrength} canStrength={hasStrengthCol} auto={texAuto} setAuto={setTexAuto} solid={zSolid} sheer={zSheer} onSolid={setZSolid} onSheer={setZSheer} analysis={photo?.analysis || null} />
           )}
           {showRoman && (
             <label className="adm-field"><span>Grade <small>(internal)</small></span>
