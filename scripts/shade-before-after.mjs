@@ -28,7 +28,7 @@ for (const [vname, v] of Object.entries(VIEWS)) {
     const ms = await Promise.all(cells.map((c) => sharp(c).metadata())), W = ms.reduce((s, m) => s + m.width + 8, 0);
     let x = 0; const comps = cells.map((c, i) => { const o = { input: c, left: x, top: 0 }; x += ms[i].width + 8; return o; });
     rows.push(await label(await sharp({ create: { width: W, height: ms[0].height, channels: 3, background: '#e8e4dc' } }).composite(comps).png().toBuffer(), text));
-    console.log(vname, text, 'before', r.before.faceHex, `d${r.before.dE.toFixed(1)}`, 'after', r.after.faceHex, `d${r.after.dE.toFixed(1)}`, 'tile', r.after.tile, `sd ${r.before.sd.toFixed(1)} -> ${r.after.sd.toFixed(1)} (low-freq ${r.after.sdLow.toFixed(1)})`);
+    console.log(vname, text, 'before', r.before.faceHex, `d${r.before.dE.toFixed(1)}`, 'after', r.after.faceHex, `d${r.after.dE.toFixed(1)}`, 'tile', r.after.tile, `sd ${r.before.sd.toFixed(1)} -> ${r.after.sd.toFixed(1)} (fine ${r.after.sdHigh.toFixed(1)}, wave ${r.after.sdWave.toFixed(1)})`);
   }
   for (const s of Object.values(sess)) await s.close();
   // sheets of 4 colors each (the images are large)

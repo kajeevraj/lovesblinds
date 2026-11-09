@@ -38,7 +38,8 @@
   "e2e_remotes",
   "e2e_review",
   "catalog_textures_tests",
-  "e2e_textures"
+  "e2e_textures",
+  "e2e_shade_colors"
  ],
  "writes": [
   "live_admin_tests",

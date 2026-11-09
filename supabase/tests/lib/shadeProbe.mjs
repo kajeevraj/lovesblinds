@@ -75,12 +75,19 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
         rows.sort((a, b) => a.l - b.l); const keep = rows.slice(Math.floor(rows.length * 0.08), Math.floor(rows.length * 0.5)); rowsUsed = keep.length;
         face = [0, 1, 2].map((q) => keep.reduce((s, r) => s + r.r[q], 0) / keep.length);
       }
-      // the spread of the patch (a visible weave raises it) and of its low-frequency part (waviness / moire raises that)
+      // the spread of the patch: `sd` all of it; `sdHigh` the fine structure (what a visible weave raises: the patch minus its own blurred copy); `sdWave` the slow
+      // structure left after taking out the plain top-to-bottom lighting slope (what moire or waviness raises)
       const lum = []; for (let i = 0; i < data.length; i += 3) lum.push(0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2]);
       const sd = (arr) => { const m = arr.reduce((a, b) => a + b, 0) / arr.length; return Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length); };
       const W = info.width, H = info.height, R = Math.max(2, Math.round(Math.min(W, H) / 14)), soft = new Float32Array(W * H);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let s = 0, cnt = 0; for (let yy = Math.max(0, y - R); yy <= Math.min(H - 1, y + R); yy += 2) for (let xx = Math.max(0, x - R); xx <= Math.min(W - 1, x + R); xx += 2) { s += lum[yy * W + xx]; cnt++; } soft[y * W + x] = s / cnt; }
-      const out = { code, type, tile: tileHex, mode, face: face.map((v) => +v.toFixed(1)), faceHex: rgbHex(face), lab: toLab(face), tileLab: toLab(hexRgb(tileHex)), sd: sd(lum), sdLow: sd(Array.from(soft)), rowsUsed, look: Object.values(await page.evaluate(() => window.__lbLooks || {}))[0] || null };
+      const high = lum.map((v, i) => v - soft[i]);
+      // best-fit plane of the blurred patch removed
+      let sx = 0, sy = 0, sv = 0, sxx = 0, syy = 0, sxy = 0, sxv = 0, syv = 0; const N = W * H;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = soft[y * W + x]; sx += x; sy += y; sv += v; sxx += x * x; syy += y * y; sxy += x * y; sxv += x * v; syv += y * v; }
+      const mx = sx / N, my = sy / N, mv = sv / N, cxx = sxx / N - mx * mx, cyy = syy / N - my * my, cxy = sxy / N - mx * my, cxv = sxv / N - mx * mv, cyv = syv / N - my * mv, det = cxx * cyy - cxy * cxy || 1;
+      const bx = (cxv * cyy - cyv * cxy) / det, by = (cyv * cxx - cxv * cxy) / det, wave = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) wave.push(soft[y * W + x] - (mv + bx * (x - mx) + by * (y - my)));
+      const out = { code, type, tile: tileHex, mode, face: face.map((v) => +v.toFixed(1)), faceHex: rgbHex(face), lab: toLab(face), tileLab: toLab(hexRgb(tileHex)), sd: sd(lum), sdHigh: sd(high), sdWave: sd(wave), rowsUsed, look: Object.values(await page.evaluate(() => window.__lbLooks || {}))[0] || null, id: Object.keys(await page.evaluate(() => window.__lbLooks || {}))[0] || null };
       out.dE = dE(face, hexRgb(tileHex)); out.db = Math.abs(out.lab[2] - out.tileLab[2]);
       if (opts.shot) out.shot = buf;
       if (opts.zoom) out.zoom = await sharp(buf).extract({ left: Math.max(0, Math.round(gx - 0.2 * meta.width)), top: Math.max(0, Math.round(gy - 0.36 * meta.height)), width: Math.round(0.4 * meta.width), height: Math.round(0.3 * meta.height) }).png().toBuffer();

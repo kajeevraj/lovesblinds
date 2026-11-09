@@ -51,7 +51,7 @@ try {
       const r = await pickAndRead(page, q);
       check(T(`${name}: the picker tile is drawn in its color ${r.tileHex} (the tile's own average is within 2 of it)`), colorDistance(r.tileMean, r.tileHex) <= 2, `average ${r.tileMean}`);
       check(T(`${name}: the bottom bar "This blind" chip is drawn in the same color as the tile (${r.chipHex}), not the supplier photo`), r.chipHex === r.tileHex && colorDistance(r.chipMean, r.tileHex) <= 2, `chip ${r.chipHex} avg ${r.chipMean}`);
-      check(T(`${name}: the picker thumbnail ${r.tileHex} and the preview fabric ${r.shadeHex} are within color distance 7`), colorDistance(r.shadeHex, r.tileHex) <= 7, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
+      check(T(`${name}: the picker thumbnail ${r.tileHex} and the preview fabric ${r.shadeHex} are within color distance 4`), colorDistance(r.shadeHex, r.tileHex) <= 4, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
     }
     check(T('the supplier photo stays as the large preview under the grid, labelled "Close-up of the weave"'), (await page.locator('.s2-swprev-cap').innerText()).trim() === 'Close-up of the weave' && (await page.locator('.s2-swprev-img img').count()) === 1);
     check(T('no page errors'), errors.length === 0, errors.join(' | '));
@@ -62,9 +62,9 @@ try {
   const jet = await pickAndRead(page, 'YS180006');
   check('override: Jet Black with preview_color #2a5d9f shows exactly that in the picker', jet.tileHex === '#2a5d9f' && colorDistance(jet.tileMean, '#2a5d9f') <= 2, `${jet.tileHex} avg ${jet.tileMean}`);
   check('override: the bottom bar chip shows it too', jet.chipHex === '#2a5d9f');
-  check('override: and the 3D shade is within color distance 7 of it (blue, not black)', colorDistance(jet.shadeHex, '#2a5d9f') <= 7, `shade ${jet.shadeHex}`);
+  check('override: and the 3D shade is within color distance 4 of it (blue, not black)', colorDistance(jet.shadeHex, '#2a5d9f') <= 4, `shade ${jet.shadeHex}`);
   const white = await pickAndRead(page, 'YS180002');
-  check('a bad override (not a hex color) is ignored: the white keeps its own derived color', /^#[0-9a-f]{6}$/.test(white.tileHex) && white.tileHex !== 'not-a-color' && colorDistance(white.shadeHex, white.tileHex) <= 7, `${white.tileHex} / ${white.shadeHex}`);
+  check('a bad override (not a hex color) is ignored: the white keeps its own derived color', /^#[0-9a-f]{6}$/.test(white.tileHex) && white.tileHex !== 'not-a-color' && colorDistance(white.shadeHex, white.tileHex) <= 4, `${white.tileHex} / ${white.shadeHex}`);
   const beige = await pickAndRead(page, 'YS180003');
   check('a color with no override is untouched by the others (Cashew Beige is still beige)', parseInt(beige.tileHex.slice(1, 3), 16) - parseInt(beige.tileHex.slice(5, 7), 16) >= 12, beige.tileHex);
   await ctx.close();
@@ -75,7 +75,7 @@ try {
       await pg.locator('.s2-card').filter({ has: pg.locator('.s2-card-name', { hasText: /^Screen view$/ }) }).first().click(); await pg.waitForTimeout(500);
       const r = await pickAndRead(pg, q);
       const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; };
-      check(`screen view ${name}, ${label}: the 3D shade ${r.shadeHex} is within color distance 7 of its picker tile ${r.tileHex}`, colorDistance(r.shadeHex, r.tileHex) <= 7, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
+      check(`screen view ${name}, ${label}: the 3D shade ${r.shadeHex} is within color distance 4 of its picker tile ${r.tileHex}`, colorDistance(r.shadeHex, r.tileHex) <= 4, `distance ${colorDistance(r.shadeHex, r.tileHex).toFixed(1)}`);
       check(`screen view ${name}, ${label}: the tile and the "This blind" chip agree, and the shade reads dark (lightness under 90), not light taupe`, r.chipHex === r.tileHex && lum(r.shadeHex) < 90, `shade lightness ${lum(r.shadeHex).toFixed(0)}`);
     }
     await cx.close();

@@ -27,7 +27,7 @@ try {
   await page.route('**/rest/v1/swatches*', async (route) => {
     const req = route.request();
     if (req.method() === 'PATCH') { patches.push(JSON.parse(req.postData() || '{}')); return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ id: 'mock' }]) }); }
-    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ texture_mode: null, weave: null, zebra_solid_in: null, zebra_sheer_in: null, preview_color: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
+    if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ texture_mode: null, weave: null, weave_strength: null, zebra_solid_in: null, zebra_sheer_in: null, preview_color: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
     return route.continue();
   });
   const linePatches = [];
@@ -91,6 +91,27 @@ try {
   check('it says the choice was made by hand and offers "Use auto-pick"', /Set by hand/.test(await page.getByTestId('texture-field').innerText()) && (await page.getByRole('button', { name: 'Use auto-pick' }).count()) === 1);
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
   check('Save sends only texture_mode pattern', patches.length === 1 && Object.keys(patches[0]).join() === 'texture_mode' && patches[0].texture_mode === 'pattern', JSON.stringify(patches));
+
+  // ---- Weave strength: a slider per color, Auto by default ----
+  patches.length = 0;
+  await edit('YS180006', /Jet Black/); await ready();
+  const spread = () => prev().evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, L = []; for (let i = 0; i < d.length; i += 4) L.push(0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]); const m = L.reduce((a, b) => a + b, 0) / L.length; return Math.sqrt(L.reduce((a, b) => a + (b - m) ** 2, 0) / L.length); });
+  const slider = page.getByLabel('Weave strength', { exact: true }), auto = page.getByLabel('Weave strength auto');
+  check('Weave strength: shown with Auto ticked and the slider off (the default is auto)', (await slider.count()) === 1 && await auto.isChecked() && await slider.isDisabled() && /Auto/.test(await page.getByTestId('weave-strength').innerText()));
+  const sdAuto = await spread();
+  await auto.uncheck(); await page.waitForTimeout(300);
+  check('unticking Auto starts the slider at 100 % of auto (the picture does not change)', await slider.isEnabled() && /100 % of auto/.test(await page.getByTestId('weave-strength').innerText()) && Math.abs((await spread()) - sdAuto) < 1.5, `${sdAuto.toFixed(1)} -> ${(await spread()).toFixed(1)}`);
+  await slider.fill('2'); await page.waitForTimeout(800); await ready();
+  const sdStrong = await spread();
+  check('200 % of auto redraws the preview with a stronger weave (more contrast), in the same average color', sdStrong > sdAuto * 1.15 && (await hexOf()) === photoHex, `${sdAuto.toFixed(1)} -> ${sdStrong.toFixed(1)}`);
+  await slider.fill('0'); await page.waitForTimeout(800); await ready();
+  const sdFlat = await spread();
+  check('0 % flattens the weave (almost no contrast left)', sdFlat < sdAuto * 0.25, `${sdAuto.toFixed(1)} -> ${sdFlat.toFixed(1)}`);
+  await slider.fill('2');
+  await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
+  check('Save sends weave_strength 2 and nothing else', patches.length === 1 && patches[0].weave_strength === 2 && Object.keys(patches[0]).join() === 'weave_strength', JSON.stringify(patches));
+  await auto.check(); patches.length = 0; await page.waitForTimeout(300);
+  check('ticking Auto again goes back to the photo\'s own weave', await slider.isDisabled() && Math.abs((await spread()) - sdAuto) < 1.5);
 
   // ---- a cellular color whose photo is pleated: auto-picked Pattern ----
   patches.length = 0;
