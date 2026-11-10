@@ -138,7 +138,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   check(`${tag} no remote tile on a Zero gravity shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
   check(`${tag} no drag pill when the shade has a handle`, (await page.locator('.pv-handle').count()) === 0 && (await page.locator('.pv-grip').count()) === 1);
   await card('Chain').click(); await page.waitForTimeout(500);
-  await page.waitForSelector('.pv-chain', { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('.pv-chain', { timeout: 8000 }).catch(() => {}); await toTop(page);
   const chainInfo = await page.evaluate(() => ({ grip: document.querySelectorAll('.pv-grip').length, bar: document.querySelectorAll('.pv-bar').length, handle: document.querySelectorAll('.pv-handle').length, chain: document.querySelectorAll('.pv-chain').length, hits: [...document.querySelectorAll('.pv-chain-hit')].map((x) => [Math.round(x.getBoundingClientRect().width), getComputedStyle(x).cursor]) }));
   check(`${tag} a Chain shade has no handle and no center pill: the chain itself is the control (a focusable slider with two touch areas of at least 44 px, a grab cursor)`, chainInfo.grip === 0 && chainInfo.bar === 0 && chainInfo.handle === 0 && chainInfo.chain === 1 && chainInfo.hits.length === 2 && chainInfo.hits.every(([w, c]) => w >= 44 && c === 'grab'), JSON.stringify(chainInfo));
   await card('Motorized').click(); await page.waitForTimeout(900);

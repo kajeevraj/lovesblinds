@@ -222,7 +222,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   return { mode: 'photo', source: 'photo', ttype, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, periods: 1, photoSd: stats.sd, sd };
 }
 // a drawn cloth is built from the photo's measured grain, which the small phone picture melts a little more than a photo crop's coarser period: a touch more contrast keeps a dark thread weave clearly woven
-const GENERATED_GAIN = 1.12;
+const GENERATED_GAIN = 1;
 const GENERATED_OK = ['slub', 'mesh', 'twill', 'linen', 'stripe', 'smooth'];
 const zebraDrawType = (t) => (GENERATED_OK.includes(t) ? t : t === 'motif' ? 'mesh' : 'linen');
 // is the photo flat enough to cut a texture out of it? (a photo-source color that is not falls back to a generated cloth, unless the admin chose Photo by hand)

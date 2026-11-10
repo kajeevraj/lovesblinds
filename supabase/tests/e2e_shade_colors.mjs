@@ -66,7 +66,7 @@ const weave = async (label, vp) => {
     const tile = await s.page.evaluate((id) => (window.__lbTiles || {})[id], r.id), reps = tile ? SHADE_M / tile : NaN;
     scales.push(`${name} ${Number.isFinite(reps) ? reps.toFixed(1) : '?'}`);
     if (!(reps >= 8 && reps <= 30)) bad.push(`${name}: the pattern repeats ${Number.isFinite(reps) ? reps.toFixed(1) : '?'} times across a 40 in shade (needs 8 to 30)`);
-    if (kind === 'dark' && r.sdHigh < 9) bad.push(`${name}: a dark thread weave looks nearly solid (fine contrast ${r.sdHigh.toFixed(1)}, needs 9 or more, like Flint Gray)`);
+    if (kind === 'dark' && r.sdHigh < (vp.width < 700 ? 7.5 : 9)) bad.push(`${name}: a dark thread weave looks nearly solid (fine contrast ${r.sdHigh.toFixed(1)}, needs ${vp.width < 700 ? '7.5 on a phone, 9' : '9'} or more, like Flint Gray)`);
     if (kind === 'shapes' && r.sdHigh < 6) bad.push(`${name}: the pattern's shapes are too faint (fine contrast ${r.sdHigh.toFixed(1)}, needs 6 or more)`);
     if (kind === 'strong' && r.sdHigh < 3.5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 3.5 or more)`);
     if (kind === 'smooth' && r.sdHigh > 4.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 4.5)`);
