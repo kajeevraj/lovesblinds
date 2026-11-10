@@ -25,12 +25,13 @@ function repeatScore(rgb, w, h, minLag) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let s = 0, c = 0; for (let yy = Math.max(0, y - R); yy <= Math.min(h - 1, y + R); yy++) for (let xx = Math.max(0, x - R); xx <= Math.min(w - 1, x + R); xx++) { s += L[yy * w + xx]; c++; } hp[y * w + x] = L[y * w + x] - s / c; }
   let best = 0;
   for (let dy = 0; dy <= Math.floor(h / 2); dy += 2) for (let dx = -Math.floor(w / 2); dx <= Math.floor(w / 2); dx += 2) {
-    if (Math.hypot(dx, dy) < minLag) continue;
+    if (Math.hypot(dx, dy) < minLag || Math.abs(dx) < 6 || dy < 6) continue;       // a shift along a thread or a streak is always similar: only shifts across both directions can show a tile
     let ab = 0, aa = 0, bb = 0; for (let y = 0; y + dy < h; y += 2) for (let x = Math.max(0, -dx); x < Math.min(w, w - dx); x += 2) { const a = hp[y * w + x], b = hp[(y + dy) * w + x + dx]; ab += a * b; aa += a * a; bb += b * b; }
     const r = ab / Math.sqrt(aa * bb || 1); if (r > best) best = r;
   }
   return best;
 }
+const lookOf = async (s, code) => { const all = await s.page.evaluate(() => window.__lbLooks || {}), k = Object.keys(all).find((id) => id.replace(/[^A-Za-z0-9]/g, '').includes(code.replace(/[^A-Za-z0-9]/g, ''))); return k ? all[k] : null; };
 const byCode = (list, code) => list.find((s) => s.supplier_code === code);
 
 for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', { width: 390, height: 844, mobile: true, dpr: 2 }]]) {
@@ -39,11 +40,11 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
   const bad = [], rep = [];
   let s = await probeSession(browser, vp); await s.select('solar');
   const wanted = [];
-  for (const t of ['slub', 'linen', 'smooth', 'mesh', 'twill', 'tweed']) { const c = roller.find((x) => x.family === 'solar' && typeOf(x) === t && !x.preview_color); if (c) wanted.push([t, c]); }
-  for (const [type, code] of [['solar', 'YS180006']]) { const r = await s.read(code, { zoom: true }); const look = r.look; if (!look || look.source !== 'generated') bad.push(`Jet Black ${look?.source}`); }
+  for (const t of ['slub', 'linen', 'smooth', 'mesh', 'twill', 'tweed']) { const c = roller.find((x) => x.family === 'solar' && x.supplier_code !== 'YS180006' && typeOf(x) === t && !x.preview_color); if (c) wanted.push([t, c]); }
+  for (const [type, code] of [['solar', 'YS180006']]) { const r = await s.read(code, { zoom: true }); const look = await lookOf(s, code); if (!look || look.source !== 'generated') bad.push(`Jet Black ${look?.source}`); }
   for (const [t, c] of wanted) {
     try {
-      const r = await s.read(c.supplier_code, { zoom: true }), look = r.look, exp = defaultSource(t);
+      const r = await s.read(c.supplier_code, { zoom: true }), look = await lookOf(s, c.supplier_code), exp = defaultSource(t);
       if (!look) { bad.push(`${t} ${c.display_name}: nothing drawn`); continue; }
       if (look.source !== exp) bad.push(`${t} ${c.display_name} (${c.supplier_code}): drawn ${look.source}, expected ${exp}`);
       if (['slub', 'linen', 'smooth'].includes(t) && r.zoom) {
@@ -56,7 +57,7 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
   await s.close();
   s = await probeSession(browser, vp); await s.select('screen-view');
   const bark = await s.read('YSS-T12-305');
-  check(`${label}: Bark Brown (a pattern) is drawn from its photo`, bark.look?.source === 'photo' || ['motif', 'print', 'tweed'].includes(bark.look?.type), JSON.stringify(bark.look));
+  check(`${label}: Bark Brown (a pattern) is drawn from its photo`, (await lookOf(s, 'YSS-T12-305'))?.source === 'photo' || ['motif', 'print', 'tweed'].includes(bark.look?.type), JSON.stringify(await lookOf(s, 'YSS-T12-305')));
   await s.close();
 
   // ---- zebra: solid band color from the photo's solid band, texture by type ----
@@ -71,7 +72,7 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
       const z = zebraColors(data, info.width, info.height, c.color_family), d = dE(hexRgb(r.tile), hexRgb(z.hex)), db = Math.abs(toLab(hexRgb(r.tile))[2] - toLab(hexRgb(z.hex))[2]);
       zrows.push(`${name} tile ${r.tile} photo ${z.hex} d${d.toFixed(1)}`);
       if (d > 4 || db > 2) zbad.push(`${name}: tile ${r.tile} vs the photo's solid band ${z.hex} (distance ${d.toFixed(1)}, b* ${db.toFixed(1)})`);
-      if (r.look?.weave !== 'zebra') zbad.push(`${name}: not drawn as a zebra`);
+      if ((await lookOf(s, c.supplier_code))?.weave !== 'zebra') zbad.push(`${name}: not drawn as a zebra`);
       if (r.sdHigh === undefined) zbad.push(`${name}: no reading`);
     } catch (e) { zbad.push(`${name}: ${e.message.split('\n')[0]}`); }
   }
