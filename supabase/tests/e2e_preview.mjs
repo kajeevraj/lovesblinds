@@ -22,7 +22,7 @@ async function open(vw, vh, path) {
 }
 const fill = async (page, id, v) => { await page.locator(`#s2-${id}`).fill(v); await page.locator(`#s2-${id}`).blur(); };
 // the shade's position is read from the handle (or the bottom bar) and set with the keyboard: there is no slider bar any more
-const mover = (page) => page.locator('.pv-grip, .pv-bar').first();
+const mover = (page) => page.locator('.pv-grip, .pv-bar, .pv-chain').first();
 // on a phone the preview folds to a compact strip (no handle) once the page is scrolled down: tests look at it from the top
 const toTop = async (page) => { await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500); };
 const readAmount = async (page) => Number(await mover(page).getAttribute('aria-valuenow'));
@@ -138,7 +138,7 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   check(`${tag} no remote tile on a Zero gravity shade, and one quiet size label under the window`, (await page.locator('.rm').count()) === 0 && (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 × 60 in');
   check(`${tag} no drag pill when the shade has a handle`, (await page.locator('.pv-handle').count()) === 0 && (await page.locator('.pv-grip').count()) === 1);
   await card('Chain').click(); await page.waitForTimeout(500);
-  check(`${tag} a Chain shade has no handle: the bottom bar moves it, and a small first-use hint shows`, (await page.locator('.pv-grip').count()) === 0 && (await page.locator('.pv-bar').count()) === 1 && (await page.locator('.pv-handle:not(.gone)').count()) === 1 && await page.locator('.pv-handle i').evaluate((e) => e.getBoundingClientRect().width <= 26));
+  check(`${tag} a Chain shade has no handle and no center pill: the chain itself is the control (a focusable slider with two touch areas of at least 44 px, a grab cursor)`, (await page.locator('.pv-grip').count()) === 0 && (await page.locator('.pv-bar').count()) === 0 && (await page.locator('.pv-handle').count()) === 0 && (await page.locator('.pv-chain').count()) === 1 && await page.locator('.pv-chain-hit').evaluateAll((h) => h.length === 2 && h.every((x) => x.getBoundingClientRect().width >= 44 && getComputedStyle(x).cursor === 'grab')));
   await card('Motorized').click(); await page.waitForTimeout(900);
   check(`${tag} the remote tile is not on the picture: it sits below the preview, and the window has only the size label on it`, (await page.locator('.pv-stage .pv-incl').count()) === 0 && await page.evaluate(() => { const t = document.querySelector('.pv-incl').getBoundingClientRect(), st = document.querySelector('.pv-stage').getBoundingClientRect(); return t.top >= st.bottom - 1; }));
   check(`${tag} Motorized puts no label or pointer line on the picture (only the size label and the remote tile)`, (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0 && (await page.locator('.pv-stage .pv-size').count()) === 1);
@@ -179,17 +179,17 @@ for (const [vw, vh] of [[390, 844], [1280, 900]]) {
   await ctx.close();
 }
 
-// the first-use hint (only on shades with no handle): gone after the first move, and it stays gone for the rest of the visit
+// the first-use hint (only on a motorized shade, which has no handle): gone after the first move, and it stays gone for the rest of the visit
 {
   const { ctx, page } = await open(1280, 900, '/products/roller');
   await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
-  await page.getByText('Chain', { exact: true }).first().click(); await page.waitForTimeout(500);
+  await page.getByText('Motorized', { exact: true }).first().click(); await page.waitForTimeout(900);
   check('[1280px] the hint is shown before anything is touched', (await page.locator('.pv-handle:not(.gone)').count()) === 1);
   await setAmount(page, 30); await page.waitForTimeout(900);
   check('[1280px] the hint fades out after the first move', (await page.locator('.pv-handle.gone').count()) === 1 && (await page.locator('.pv-handle').evaluate((e) => getComputedStyle(e).visibility)) === 'hidden');
   await page.reload({ waitUntil: 'networkidle' }); await page.locator('.s2-sw').nth(3).click(); await fill(page, 'w', '40'); await fill(page, 'h', '60');
-  await page.getByText('Chain', { exact: true }).first().click();
+  await page.getByText('Motorized', { exact: true }).first().click();
   await page.waitForSelector('.pv-stage.ready', { timeout: 30000 });
   check('[1280px] and it stays gone for the rest of the visit (after a reload)', (await page.locator('.pv-handle.gone').count()) === 1);
   await ctx.close();

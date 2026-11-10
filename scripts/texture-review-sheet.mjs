@@ -49,7 +49,7 @@ async function worker(lineKey, list, results) {
         await page.waitForFunction(() => Object.keys(window.__lbLooks || {}).length > 0).catch(() => {});
         await page.waitForTimeout(1800);
         await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300);
-        const g = page.locator('.pv-grip, .pv-bar').first(); await g.focus(); await page.keyboard.press('End'); await page.evaluate(() => document.activeElement?.blur()); await page.waitForTimeout(900);
+        const g = page.locator('.pv-grip, .pv-bar, .pv-chain').first(); await g.focus(); await page.keyboard.press('End'); await page.evaluate(() => document.activeElement?.blur()); await page.waitForTimeout(900);
         const cv = await page.locator('.pv-canvas').boundingBox(), d = await page.locator('.pv-drag').boundingBox();
         const size = Math.round(Math.min(d.width * 0.62, d.height * 0.42, 190));
         const shot = await page.screenshot({ clip: { x: Math.round(d.x + d.width * 0.5 - size / 2), y: Math.round(d.y + d.height * 0.30), width: size, height: size } });

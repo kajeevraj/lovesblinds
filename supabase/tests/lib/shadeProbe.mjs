@@ -45,7 +45,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
   const card = (name) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${name}$`) }) }).first();
   const setAmount = async (amt) => {
     await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300);
-    const g = page.locator('.pv-grip, .pv-bar').first(); await g.focus();
+    const g = page.locator('.pv-grip, .pv-bar, .pv-chain').first(); await g.focus();
     for (let i = 0; i < 120; i++) { const v = Number(await g.getAttribute('aria-valuenow')); if (Math.abs(v - amt) <= 1) break; await page.keyboard.press(v < amt ? 'ArrowDown' : 'ArrowUp'); }
     await page.evaluate(() => document.activeElement?.blur());
   };
@@ -75,7 +75,7 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       await setAmount(AMOUNT_OF[type] || 50); await page.waitForTimeout(1000);
       await page.locator('.pv-canvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       const buf = await page.locator('.pv-canvas').screenshot(), meta = await sharp(buf).metadata();
-      const g = await page.locator('.pv-grip, .pv-bar').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;
+      const g = await page.locator('.pv-grip, .pv-bar, .pv-chain').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;
       const gx = (g.x + g.width / 2 - c.x) * k, gy = (g.y + g.height / 2 - c.y) * k;
       const box = { left: Math.max(0, Math.round(gx - 0.1 * meta.width)), top: Math.max(0, Math.round(gy - 0.3 * meta.height)), width: Math.round(0.2 * meta.width), height: Math.round(0.2 * meta.height) };
       const { data, info } = await sharp(buf).extract(box).removeAlpha().raw().toBuffer({ resolveWithObject: true });

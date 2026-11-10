@@ -43,6 +43,7 @@
   "e2e_textures",
   "e2e_shade_colors",
   "e2e_texture_types",
+  "e2e_chain_drag",
   "e2e_soft_preview"
  ],
  "writes": [

@@ -1674,3 +1674,9 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
   .pv-expand { position: absolute; inset: 0; z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 }
 }
+
+/* The chain (and cord loop): both strands are a wide invisible touch area, the left half raises and the right half lowers; the beads follow the finger */
+.pv-chain { position: absolute; z-index: 3; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+.pv-chain-hit { position: absolute; top: 0; bottom: 0; min-width: 44px; cursor: grab; touch-action: none; }
+.pv-chain.grabbing .pv-chain-hit { cursor: grabbing; }
+.pv-chain:focus-visible { box-shadow: 0 0 0 2px var(--s2-brass, #b08d4f); border-radius: 10px; }
