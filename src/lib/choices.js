@@ -1,7 +1,7 @@
 // The small choices that cost nothing extra and are saved on the order line (selection.extras): chain color, cord loop, bottom bar color,
 // roll direction, bottom rail wrap. Pure code with no imports: the page, the 3D preview, the order text and api/quote.js all read it.
 //
-//   selection.extras = { chainColor?, cordType?, cordColor?, barColor?, rollDir?, bottomWrap? }
+//   selection.extras = { chainColor?, cordType?, cordColor?, barColor?, headColor?, rollDir?, bottomWrap? }
 // Only the choices that apply to the line and the movement are saved, so the same blind always produces the same selection.
 
 // Chain color: when the lift is Chain. `hex` is the thin true-color chain drawn in the preview.
@@ -32,6 +32,12 @@ export const BAR_COLORS = [
   { id: 'iron-gray', label: 'Iron Gray', hex: '#6b6d70' },
   { id: 'night-black', label: 'Night Black', hex: '#26262a' },
 ];
+// Headrail, rail and cassette color (Cellular, Roman, Shangri-La): the supplier's four colors, the same names as the bottom bar.
+// Cellular: the headrail and every rail; Roman: the headrail; Shangri-La: the cassette and the bottom rail.
+export const HEAD_COLORS = BAR_COLORS;
+export const HEAD_COLOR_LINES = ['cellular', 'roman', 'shangri-la'];
+export const HEAD_COLOR_LABEL = { cellular: 'Rail color', roman: 'Headrail color', 'shangri-la': 'Cassette color' };
+export const headColorOf = (id) => HEAD_COLORS.find((c) => c.id === id) || HEAD_COLORS[0];
 export const ROLL_DIRECTIONS = [
   { id: 'standard', label: 'Standard', desc: 'The fabric hangs behind the roller, close to the glass.' },
   { id: 'reverse', label: 'Reverse', desc: 'The fabric hangs in front of the roller, closer to the room.' },
@@ -41,7 +47,7 @@ export const BOTTOM_WRAPS = [
   { id: 'none', label: 'Plain bottom rail', desc: 'The bottom rail stays plain, in the bottom bar color.' },
 ];
 
-export const DEFAULT_EXTRAS = { chainColor: 'white', cordType: 'chain', cordColor: 'white', barColor: 'pearl-white', rollDir: 'standard', bottomWrap: 'wrapped' };
+export const DEFAULT_EXTRAS = { chainColor: 'white', cordType: 'chain', cordColor: 'white', barColor: 'pearl-white', headColor: 'pearl-white', rollDir: 'standard', bottomWrap: 'wrapped' };
 
 export const ROLL_DIRECTION_LINES = ['roller', 'roman', 'shangri-la'];
 export const BAR_COLOR_LINES = ['roller', 'zebra'];
@@ -61,6 +67,7 @@ export function extrasFor(lineId, movement, saved = {}, { double = false } = {})
     } else out.chainColor = known(CHAIN_COLORS, s.chainColor) || DEFAULT_EXTRAS.chainColor;
   }
   if (BAR_COLOR_LINES.includes(lineId)) out.barColor = known(BAR_COLORS, s.barColor) || DEFAULT_EXTRAS.barColor;
+  if (HEAD_COLOR_LINES.includes(lineId)) out.headColor = known(HEAD_COLORS, s.headColor) || DEFAULT_EXTRAS.headColor;
   if (ROLL_DIRECTION_LINES.includes(lineId)) out.rollDir = known(ROLL_DIRECTIONS, s.rollDir) || DEFAULT_EXTRAS.rollDir;
   if (lineId === 'roller' && double) out.bottomWrap = known(BOTTOM_WRAPS, s.bottomWrap) || DEFAULT_EXTRAS.bottomWrap;
   return out;
@@ -72,13 +79,15 @@ export const chainColorOf = (id) => CHAIN_COLORS.find((c) => c.id === id) || CHA
 export const barColorOf = (id) => BAR_COLORS.find((c) => c.id === id) || BAR_COLORS[0];
 
 // "Chain color: White", "Cord loop: Beige", "Bottom bar: Pearl White", "Roll direction: Reverse" ... in the order the page shows them
-export function extrasText(extras) {
+// `lineId` names the part the head color belongs to ("Rail color", "Headrail color", "Cassette color")
+export function extrasText(extras, lineId = null) {
   const e = extras || {};
   const out = [];
   if (e.cordType === 'cord-loop') out.push(`Cord loop, ${label(CORD_LOOP_COLORS, e.cordColor || DEFAULT_EXTRAS.cordColor).toLowerCase()}`);
   else if (e.cordType === 'chain' && e.chainColor) out.push(`Chain color: ${label(CHAIN_COLORS, e.chainColor)}`);
   else if (e.chainColor) out.push(`Chain color: ${label(CHAIN_COLORS, e.chainColor)}`);
   if (e.barColor) out.push(`Bottom bar: ${label(BAR_COLORS, e.barColor)}`);
+  if (e.headColor) out.push(`${HEAD_COLOR_LABEL[lineId] || 'Headrail color'}: ${label(HEAD_COLORS, e.headColor)}`);
   if (e.bottomWrap) out.push(e.bottomWrap === 'none' ? 'Plain bottom rail' : 'Bottom rail wrapped in fabric');
   if (e.rollDir) out.push(`Roll direction: ${label(ROLL_DIRECTIONS, e.rollDir)}`);
   return out;

@@ -12,12 +12,19 @@ import * as THREE from 'three';
 import { weaveTexture, applyWeaveScale, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
 import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
 import { screenOpacity } from '../optics.js';
+import { CellularShade, RomanShade, ShangriLaShade } from './soft.js';
 
 const GAP = 0.003;          // clearance each side, like a real inside mount
 const CASS_H = 0.064, CASS_D = 0.054;
 const RAIL_H = 0.03, RAIL_D = 0.02;
 
-export function createShade(kind, env) { return new Shade(kind, env); }
+// Roller and Zebra are below; Cellular, Roman and Shangri-La are in soft.js. `opts.style`: the cellular type or the roman style.
+export function createShade(kind, env, opts = {}) {
+  if (kind === 'cellular') return new CellularShade(env, opts.style);
+  if (kind === 'roman') return new RomanShade(env, opts.style);
+  if (kind === 'shangri-la') return new ShangriLaShade(env);
+  return new Shade(kind, env);
+}
 // where the bottom rail's grab handle sits (as a fraction of the opening's height) for a shade `a` lowered, and the other way round
 export const handleFraction = (a, h) => (CASS_H + a * (h - CASS_H - RAIL_H) + RAIL_H / 2) / h;
 export const amountFromHandle = (f, h) => clamp((f * h - CASS_H - RAIL_H / 2) / (h - CASS_H - RAIL_H));
@@ -60,6 +67,13 @@ class Shade {
   }
 
   setAmount(a) { this.amount = clamp(a); this._layout(); }
+  // what every kind of shade answers for the preview scene (see soft.js): one moving part, its handle, its travel, and what it covers
+  get movers() { return 1; }
+  get headHeight() { return CASS_H; } get headDepth() { return CASS_D; }
+  handleAt() { return handleFraction(this.amount, this.height); }
+  amountAt(_k, f) { return amountFromHandle(f, this.height); }
+  travelOf() { return Math.max(0.4, this.height - CASS_H - RAIL_H); }
+  get span() { return { top: -1e3, bottom: this.coverage * this.height }; }
 
   // the zebra's stripe: from the color's band widths (admin), or a hand-cut preset's own split
   _bands() {

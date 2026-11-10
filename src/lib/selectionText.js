@@ -72,7 +72,7 @@ export function summarize(item) {
   if (sel.panels) parts.push(label(PANELS, sel.panels));
   if (sel.dreamOpts) parts.push(...dreamText(sel.dreamOpts));
   if (sel.cover) parts.push(sel.cover === "none" ? "No fabric wrap on the cassette" : "Fabric-wrapped cassette");
-  if (sel.extras) parts.push(...extrasText(sel.extras));
+  if (sel.extras) parts.push(...extrasText(sel.extras, sel.lineId));
   if (sel.hardware) { const hw = hardwareText(sel.hardware); parts.push(`Track or rod: ${hw[0]}`, ...hw.slice(1)); }
   const multi = sel.picks.length > 1;
   const pickLines = sel.picks.map(p => {

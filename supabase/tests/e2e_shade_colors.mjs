@@ -1,5 +1,6 @@
-// The 3D shade matches its picker tile, for EVERY White, Cream/Ivory and Gray color on all three roller types (solar, screen view, blackout) and on zebra (its solid
-// band), plus the darkest and the most colorful colors of each type so nothing else moves. Live catalog, read-only; needs a preview server (BASE_URL, default
+// The 3D shade matches its picker tile, for EVERY White, Cream/Ivory and Gray color on all three roller types (solar, screen view, blackout), on zebra (its solid
+// band), on Cellular (light filtering and blackout), Roman (flat style, light-filtering lining; every 3rd color again with the blackout lining) and Shangri-La (vanes
+// closed), plus the darkest and the most colorful colors of each type so nothing else moves. ONLY_TYPES=cellular,roman runs just those types. Live catalog, read-only; needs a preview server (BASE_URL, default
 // http://localhost:4173). Each color is rendered through the real product page and the lit face of the shade is read from a screenshot:
 //   - the face is within color distance 4 of the tile, and its warm/cool tint (Lab b*) within 2 of the tile's;
 //   - nothing wavy or beating (moire): the slow structure left after taking out the plain lighting slope is under 6 levels;
@@ -15,14 +16,22 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 
 // ---- which colors: from the live catalog ----
 const catalog = async (scope) => (await (await fetch(`${URL_}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent(`{${scope}}`)}`, { headers: { apikey: ANON } })).json());
-const byType = { solar: [], 'screen-view': [], blackout: [], zebra: [] };
+const byType = { solar: [], 'screen-view': [], blackout: [], zebra: [], cellular: [], 'cellular-blackout': [], roman: [], 'roman-blackout': [], 'shangri-la': [] };
 for (const g of await catalog('roller')) for (const s of g.swatches || []) (byType[g.family || s.family] || []).push(s);
 for (const g of await catalog('zebra')) for (const s of g.swatches || []) byType.zebra.push(s);
+for (const g of await catalog('cellular')) for (const s of g.swatches || []) byType[(s.family || g.family) === 'blackout' ? 'cellular-blackout' : 'cellular'].push(s);
+for (const g of await catalog('roman')) for (const s of g.swatches || []) if (s.roman_styles?.flat?.available) byType.roman.push(s);
+for (const g of await catalog('shangri-la')) for (const s of g.swatches || []) byType['shangri-la'].push(s);
+const SOFT = ['cellular', 'cellular-blackout', 'roman', 'roman-blackout', 'shangri-la'];
 const NEUTRAL = ['White', 'Cream/Ivory', 'Gray'], EXTRA = { 'Charcoal/Black': 8, Brown: 6, Blue: 3, Green: 3, 'Pink/Red': 3, Purple: 3 };
 const pickColors = (list) => { const out = list.filter((s) => NEUTRAL.includes(s.color_family)); for (const [fam, n] of Object.entries(EXTRA)) out.push(...list.filter((s) => s.color_family === fam).slice(0, n)); return out; };
 const plan = Object.fromEntries(Object.entries(byType).map(([t, l]) => [t, pickColors(l)]));
+for (const t of SOFT) plan[t].push(...byType[t].filter((s) => ['Beige/Tan', 'Pattern/Multi'].includes(s.color_family)).slice(0, 4));      // these lines are mostly neutrals: a few beiges and patterns too
+plan['roman-blackout'] = plan.roman.filter((s, i) => i % 3 === 0 && s.roman_styles?.flat?.linings?.includes('blackout'));               // the blackout lining: the same face, lit evenly
+const ONLY = (process.env.ONLY_TYPES || '').split(',').filter(Boolean);
+if (ONLY.length) for (const t of Object.keys(plan)) if (!ONLY.includes(t)) delete plan[t];
 const total = Object.values(plan).reduce((s, l) => s + l.length, 0), neutral = Object.values(plan).reduce((s, l) => s + l.filter((x) => NEUTRAL.includes(x.color_family)).length, 0);
-check(`the live catalog has the colors to test: ${neutral} White / Cream / Gray colors and ${total - neutral} dark and colorful ones, over 4 shade types`, neutral > 90 && Object.values(plan).every((l) => l.length > 15));
+check(`the live catalog has the colors to test: ${neutral} White / Cream / Gray colors and ${total - neutral} dark and colorful ones, over ${Object.keys(plan).length} shade types`, ONLY.length ? total > 0 : neutral > 180 && Object.entries(plan).every(([t, l]) => l.length > (SOFT.includes(t) ? 9 : 15)));
 
 const run = async (label, vp, filter) => {
   const bad = [], worst = {}; let n = 0;
@@ -30,7 +39,7 @@ const run = async (label, vp, filter) => {
     const s = await probeSession(browser, vp); await s.select(type);
     for (const c of list.filter(filter)) {
       try {
-        const r = await s.read(c.supplier_code); n++;
+        const r = await s.read(c.supplier_code); if (r.skipped) continue; n++;
         const wrongColor = !r.id || !r.id.replace(/[^A-Za-z0-9]/g, '').includes(c.supplier_code.replace(/[^A-Za-z0-9]/g, ''));
         const dead = r.dE > MAX_DE || r.db > MAX_DB || r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : MAX_WAVE) || wrongColor;
         if (dead) bad.push(`${type} ${c.display_name} (${c.supplier_code}, ${c.color_family}): tile ${r.tile} face ${r.faceHex}, distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)}, wave ${r.sdWave.toFixed(1)}${wrongColor ? ` WRONG COLOR PICKED ${r.id}` : ''}`);
@@ -69,6 +78,7 @@ const weave = async (label, vp) => {
   check(`${label}: strong weaves show clearly (fine contrast ${strong.map((v) => v.toFixed(0)).join(', ')}), smooth blackouts stay smooth (${smooth.map((v) => v.toFixed(1)).join(', ')}), nothing wavy, the average color still matches the tile`, bad.length === 0, bad.join(' | '));
   check(`${label}: every patterned fabric repeats at least 8 times across a 40 in shade (a real fabric sample is about 10 cm)`, !bad.some((b) => /times across/.test(b)), `repeats: ${scales.join(', ')}`);
 };
+if (ONLY.length) { for (let i = WEAVES.length - 1; i >= 0; i--) if (!ONLY.includes(WEAVES[i][0])) WEAVES.splice(i, 1); }
 try {
   await run('desktop 1280 px', { width: 1280, height: 900, dpr: 2 }, () => true);
   await run('phone 390 px (every 4th color)', { width: 390, height: 844, dpr: 2, mobile: true }, (_c, i) => i % 4 === 0);

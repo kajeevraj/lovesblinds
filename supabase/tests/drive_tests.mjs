@@ -44,8 +44,8 @@ check('the cellular motor follows the style, is saved on the order line and show
 }).join(' ; ') === 'Normal Cellular Motor|Motorized, Normal Cellular Motor, battery, left side ; TDBU Cellular Motor|Motorized, TDBU Cellular Motor, battery, left side ; Day&Night Cellular Motor|Motorized, Day&Night Cellular Motor, battery, left side'.replace(/left/g, 'right'));
 check('cellular remote names: Single Motor-Single Channel, Single Motor-Multi Channel, Dual Motor-Single Channel, Dual Motor-Multi Channel', REMOTE_NAME['single-single'] === 'Single Motor-Single Channel' && REMOTE_NAME['single-multi'] === 'Single Motor-Multi Channel' && REMOTE_NAME['dual-single'] === 'Dual Motor-Single Channel' && REMOTE_NAME['dual-multi'] === 'Dual Motor-Multi Channel');
 check('the new $0 choices have defaults and apply only where they belong', j(extrasFor('roller', 'chain')) === j({ chainColor: 'white', barColor: 'pearl-white', rollDir: 'standard' }) && j(extrasFor('roller', 'zero-gravity')) === j({ barColor: 'pearl-white', rollDir: 'standard' })
-  && j(extrasFor('zebra', 'chain')) === j({ chainColor: 'white', barColor: 'pearl-white' }) && j(extrasFor('cellular', 'chain')) === j({ cordType: 'chain', chainColor: 'white' }) && j(extrasFor('cellular', 'zero-gravity')) === '{}'
-  && j(extrasFor('roman', 'chain', { cordType: 'cord-loop', cordColor: 'beige' })) === j({ cordType: 'cord-loop', cordColor: 'beige', rollDir: 'standard' }) && j(extrasFor('shangri-la', 'chain')) === j({ chainColor: 'white', rollDir: 'standard' })
+  && j(extrasFor('zebra', 'chain')) === j({ chainColor: 'white', barColor: 'pearl-white' }) && j(extrasFor('cellular', 'chain')) === j({ cordType: 'chain', chainColor: 'white', headColor: 'pearl-white' }) && j(extrasFor('cellular', 'zero-gravity')) === j({ headColor: 'pearl-white' })
+  && j(extrasFor('roman', 'chain', { cordType: 'cord-loop', cordColor: 'beige' })) === j({ cordType: 'cord-loop', cordColor: 'beige', headColor: 'pearl-white', rollDir: 'standard' }) && j(extrasFor('shangri-la', 'chain')) === j({ chainColor: 'white', headColor: 'pearl-white', rollDir: 'standard' })
   && extrasFor('roller', 'chain', { chainColor: 'nonsense' }).chainColor === 'white' && extrasFor('roller', 'zero-gravity', {}, { double: true }).bottomWrap === 'wrapped');
 check('the new choices are saved on the order line and read in the order text', (() => {
   const { selection } = buildSelection({ id: 'roller' }, { mode: 'single', front: { swatchId: 'a', code: 'X', displayName: 'N' }, mech: 'chain', extras: { chainColor: 'stainless-steel', barColor: 'night-black', rollDir: 'reverse' } });
@@ -53,6 +53,12 @@ check('the new choices are saved on the order line and read in the order text', 
   return selection.extras.chainColor === 'stainless-steel' && /Chain color: Stainless steel/.test(text) && /Bottom bar: Night Black/.test(text) && /Roll direction: Reverse/.test(text);
 })());
 check('colors the supplier names exactly: Pearl White, Sand Beige, Iron Gray, Night Black', extrasText({ barColor: 'pearl-white' })[0] === 'Bottom bar: Pearl White' && extrasText({ barColor: 'sand-beige' })[0] === 'Bottom bar: Sand Beige' && extrasText({ barColor: 'iron-gray' })[0] === 'Bottom bar: Iron Gray' && extrasText({ barColor: 'night-black' })[0] === 'Bottom bar: Night Black');
+check('headrail, rail and cassette color: a $0 choice on Cellular, Roman and Shangri-La only, default Pearl White, the supplier\'s four names, saved on the order line and named for its line', (() => {
+  const { selection } = buildSelection({ id: 'cellular' }, { type: 'standard', pick: { swatchId: 'a', code: 'X', displayName: 'N' }, mech: 'zero-gravity', extras: { headColor: 'iron-gray' } });
+  const text = summarize({ product: { name: 'Cellular Shades' }, selection }).parts.join(' | ');
+  return selection.extras.headColor === 'iron-gray' && /Rail color: Iron Gray/.test(text) && extrasText({ headColor: 'night-black' }, 'shangri-la')[0] === 'Cassette color: Night Black' && extrasText({ headColor: 'sand-beige' }, 'roman')[0] === 'Headrail color: Sand Beige'
+    && extrasFor('roman', 'zero-gravity', { headColor: 'nonsense' }).headColor === 'pearl-white' && !('headColor' in extrasFor('roller', 'chain')) && !('headColor' in extrasFor('zebra', 'chain'));
+})());
 check('double-stack prices both shades with the bottom rail choice (supplier deduction), motors and zero gravity per shade', (() => {
   const pk = { swatchId: 'x' };
   const w = priceRequestFromItem({ id: 'roller' }, { selection: { mode: 'double-stack', picks: [pk, { swatchId: 'y' }], extras: { bottomWrap: 'none' } }, mech: 'zero-gravity', width: 40, length: 60 });

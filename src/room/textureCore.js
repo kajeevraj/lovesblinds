@@ -44,6 +44,19 @@ export function flatten(rgb, size = TEX, wrap = false) {
   return out;
 }
 
+// Takes horizontal bands out of a size x size RGB picture: every row is moved to the picture's average (per channel), so what is left is the cloth's own grain.
+// A photo of a cellular shade is all pleat bands (a light face, a dark crease); the 3D shade draws its pleats itself, so its texture must not carry them.
+export function flattenRows(rgb, size = TEX) {
+  const mean = [0, 0, 0], out = new Uint8ClampedArray(rgb.length), n = size * size;
+  for (let i = 0; i < rgb.length; i += 3) for (let c = 0; c < 3; c++) mean[c] += rgb[i + c] / n;
+  for (let y = 0; y < size; y++) {
+    const row = [0, 0, 0];
+    for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) row[c] += rgb[(y * size + x) * 3 + c] / size;
+    for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) { const i = (y * size + x) * 3 + c; out[i] = rgb[i] - row[c] + mean[c]; }
+  }
+  return out;
+}
+
 // Rows of a stripe photo: the average brightness of each row over its middle (`lum` has one number per row).
 // Returns { solid: [from, to], sheer: [from, to] | null } for one dark band and a light band beside it (rows of the picture), or null when there are no clear stripes.
 export function findBands(lum) {

@@ -16,7 +16,8 @@
   "zebra_band_tests",
   "cream_white_color_tests",
   "backfill_tests",
-  "color_fixes_tests"
+  "color_fixes_tests",
+  "soft_layout_tests"
  ],
  "readOnly": [
   "api_catalog_tests",
@@ -39,7 +40,8 @@
   "e2e_review",
   "catalog_textures_tests",
   "e2e_textures",
-  "e2e_shade_colors"
+  "e2e_shade_colors",
+  "e2e_soft_preview"
  ],
  "writes": [
   "live_admin_tests",
