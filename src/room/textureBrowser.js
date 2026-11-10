@@ -24,7 +24,7 @@ import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, PATTERN_PERIOD, WE
 import { deriveHex, previewHex, isHex, familyHex, bandPixels, hexOf } from '../lib/swatchColor.js';
 import { zebraBands } from './zebraBands.js';
 import { litTarget, typeOfLook } from './lightCalibration.js';
-import { patchOfPhoto, defaultSource, isTextureType, zebraColors } from '../lib/textureType.js';
+import { patchOfPhoto, defaultSource, PHOTO_TYPES, isTextureType, zebraColors } from '../lib/textureType.js';
 import { measureFabric, drawFabric, periodOf, seedOf } from '../lib/textureGen.js';
 import STATIC_TYPES from '../data/textureTypes.json';
 
@@ -201,7 +201,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   }
   // ---- a generated cloth: drawn from the photo's measurements
   const wantPhoto = source === 'photo';
-  if (!wantPhoto || (look.textureSource == null && !(await photoUsable(look, small)))) {
+  if (!wantPhoto || (look.textureSource == null && !PHOTO_TYPES.includes(ttype) && !(await photoUsable(look, small)))) {
     let fab = null; try { fab = await fabricOf(look, n); } catch { fab = null; }
     if (fab) {
       const m = fab.m, drawType = zebraDrawType(ttype);          // a tweed, motif or print drawn anyway (a photo that is not flat enough to cut): a motif as a lattice, the others as soft irregular cloth
