@@ -5,7 +5,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/
 const BASE = process.env.BASE_URL || 'http://localhost:4173', OUT = process.argv[2] || 'chain-shots'; mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 async function session(line, vw, vh, code, hgt, card) {
-  const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 2 }), page = await ctx.newPage(); page.setDefaultTimeout(30000);
+  const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 1 }), page = await ctx.newPage(); page.setDefaultTimeout(30000);
   await page.goto(`${BASE}/products/${line}`, { waitUntil: 'networkidle' });
   await page.locator('.s2-color input[type=search]').fill(code); await page.waitForTimeout(500); await page.locator('.s2-swgrid .s2-sw').first().click();
   await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill(String(hgt)); await page.locator('#s2-h').blur();
@@ -20,12 +20,12 @@ const dragStrand = async (page, name, strand, dy, steps, tag) => {
   for (let i = 1; i <= steps; i++) { await page.mouse.move(x, y + (dy * i) / steps, { steps: 4 }); await shot(page, `${name}-${tag}-${i + 1}-pull`); }
   await page.mouse.up(); await page.waitForTimeout(900); await shot(page, `${name}-${tag}-${steps + 2}-let-go`);
 };
-{ const { ctx, page } = await session('roller', 1100, 900, 'YS180006', 64, 'Chain'); await shot(page, 'roller-0-start');
+{ const { ctx, page } = await session('roller', 1280, 900, 'YS180006', 64, 'Chain'); await shot(page, 'roller-0-start');
   await dragStrand(page, 'roller', 'lower', 110, 3, 'lower'); await dragStrand(page, 'roller', 'raise', 90, 2, 'raise'); await ctx.close(); }
-{ const { ctx, page } = await session('shangri-la', 1100, 900, 'YSLH204', 64, 'Chain'); await shot(page, 'shangri-chain-0-start');
+{ const { ctx, page } = await session('shangri-la', 1280, 900, 'YSLH204', 64, 'Chain'); await shot(page, 'shangri-chain-0-start');
   await dragStrand(page, 'shangri-chain', 'lower', 400, 4, 'down'); await page.waitForTimeout(1500); await shot(page, 'shangri-chain-vanes-open');
   await dragStrand(page, 'shangri-chain', 'raise', 80, 2, 'up'); await page.waitForTimeout(1500); await shot(page, 'shangri-chain-raised'); await ctx.close(); }
-{ const { ctx, page } = await session('shangri-la', 1100, 900, 'YSLH204', 64, 'Motorized'); await shot(page, 'shangri-motor-0-start');
+{ const { ctx, page } = await session('shangri-la', 1280, 900, 'YSLH204', 64, 'Motorized'); await shot(page, 'shangri-motor-0-start');
   await page.getByRole('button', { name: 'Lower the shade' }).click();
   for (let i = 1; i <= 5; i++) { await page.waitForTimeout(700); await shot(page, `shangri-motor-down-${i}`); }
   await page.waitForFunction(() => document.querySelector('.pv-ctl')?.dataset.vanes === 'open', null, { timeout: 20000 }).catch(() => {}); await page.waitForTimeout(1500); await shot(page, 'shangri-motor-down-6-open');
