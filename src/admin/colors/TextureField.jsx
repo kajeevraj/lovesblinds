@@ -78,9 +78,9 @@ export default function TextureField({ src, line, family, composition, colorFami
           {canStrength && (
             <div className="adm-field" style={{ marginTop: 6 }} data-testid="weave-strength">
               <span>Weave strength <small>(how clearly the weave shows on the shade and the tile)</small></span>
-              <div className="adm-inline" style={{ gap: 10 }}>
+              <div className="adm-inline adm-strength" style={{ gap: 10 }}>
                 <label className="adm-check"><input type="checkbox" aria-label="Weave strength auto" checked={strengthN === undefined} onChange={(e) => onStrength(e.target.checked ? '' : '1')} /> Auto</label>
-                <input type="range" aria-label="Weave strength" min={STRENGTH.min} max={STRENGTH.max} step="0.05" disabled={strengthN === undefined} value={strengthN === undefined ? 1 : strengthN} onChange={(e) => onStrength(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
+                <input type="range" aria-label="Weave strength" min={STRENGTH.min} max={STRENGTH.max} step="0.05" disabled={strengthN === undefined} value={strengthN === undefined ? 1 : strengthN} onChange={(e) => onStrength(e.target.value)} style={{ flex: '1 1 120px', minWidth: 0 }} />
                 <output aria-live="polite">{strengthN === undefined ? 'Auto' : `${Math.round(strengthN * 100)} % of auto`}</output>
               </div>
               <em className="adm-field-ok">Auto uses the photo's own weave: a strong weave (a black solar with white thread) shows clearly, a smooth blackout stays smooth. 0 % is flat; 300 % is three times auto.</em>

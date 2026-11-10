@@ -194,4 +194,8 @@ tr.is-selected td { background: var(--pale-sage); }
 .adm-previewcolor-hex { width: 110px; font-family: ui-monospace, monospace; }
 .adm-texture-row { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
 .adm-texture-prev { width: 96px; height: 96px; border-radius: 8px; border: 1px solid var(--adm-line, #d9d2c6); }
-.adm-texture-pick { display: flex; flex-direction: column; gap: 6px; min-width: 200px; flex: 1; }
+.adm-texture-pick { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 200px; }
+/* the Weave strength row: Auto, the slider and its value wrap on a phone instead of pushing the page wider than the screen (the checkbox keeps its own size) */
+.adm-strength { flex-wrap: wrap; }
+.adm-strength .adm-check input { width: auto; }
+.adm-strength output { white-space: nowrap; }
