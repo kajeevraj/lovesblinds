@@ -21,7 +21,7 @@ const TRIM = 0.075, DEPTH = 0.09, FOV = 26;
 const MIN_IN = 12, MAX_IN = 300;
 export const clampInches = (v) => Math.min(MAX_IN, Math.max(MIN_IN, v));
 
-export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {}) {
+export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVanes } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping;
   const env = {
@@ -127,10 +127,12 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
 
   // ---- the shades (one, or two for double-stack) and the control ------------------------------------------------------------------------------------
   let accessory = null, xrayMats = [], driveDirs = [], hasSolar = false;
-  const xray = { target: 0, v: 0 }, vane = { target: 0, v: 0 };
+  const xray = { target: 0, v: 0 }, vane = { target: 0, v: 0, p: 0, armed: true, pending: null, driveWait: 0 };
+  let chainRig = null;
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
     if (accessory) { scene.remove(accessory); accessory.traverse((o) => o.geometry?.dispose()); accessory = null; }
+    chainRig = null;
     if (!built || !cfg.layers.length) return;
     const sp = built.shade;
     if (cfg.kind === 'roller' || cfg.kind === 'zebra') cfg.layers.forEach((layer, i) => {                                   // layers[0] is the front shade, the last one the back
@@ -164,14 +166,13 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
       // The chain comes straight out of the end of the cassette (or headrail): no bracket and no cover over it. It leaves the underside at the very end and
       // hangs a little in front of the cloth.
       const endX = sx * (sp.w / 2 - 0.014), cz = z + Math.min(0.018, hd / 2 - 0.008), y0 = sp.top - hh + 0.002;
-      const beads = 64, len = Math.min(sp.h * 0.55, 1.0), step = len / beads;
+      const beads = 64, len = Math.min(sp.h * 0.55, 1.0), step = len / beads, dx = 0.009;
+      chainRig = { endX, y0, cz, len, beads, step, dx, travel: sp.h * 0.8, mesh: null };
       if (cfg.extras?.cordLoop) {                                        // a soft cord loop (Cellular and Roman): two smooth cords in the chosen color, no beads
-        for (const k of [0, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, len, 8), chainMat); c.position.set(endX + (k ? 0.006 : -0.006), y0 - len / 2, cz + 0.004 + (k ? 0.004 : 0)); g.add(c); }
+        for (const k of [0, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, len, 8), chainMat); c.position.set(endX + (k ? dx : -dx), y0 - len / 2, cz + 0.004 + (k ? 0.004 : 0)); g.add(c); }
       } else {
         const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.0021, 8, 6), chainMat, beads * 2);
-        const m = new THREE.Matrix4();
-        for (let i = 0; i < beads; i++) for (const k of [0, 1]) { m.makeTranslation(endX + (k ? 0.006 : -0.006), y0 - i * step, cz + 0.004 + (k ? 0.004 : 0)); mesh.setMatrixAt(i * 2 + k, m); }
-        g.add(mesh);
+        mesh.frustumCulled = false; chainRig.mesh = mesh; g.add(mesh);
       }
       g.add(box(0.02, 0.018, 0.014, plasticMat, endX, y0 - len - 0.01, cz + 0.006));            // the weight that keeps the loop tight
     } else if (d.movement === 'zero-gravity') {
@@ -193,11 +194,34 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
         const panel = box(0.07, 0.1, 0.003, solarMat, sx * (sp.w / 2 - 0.09), sp.top - 0.2, gz); panel.renderOrder = -1; g.add(panel);
       }
     }
-    scene.add(g); accessory = g;
+    scene.add(g); accessory = g; updateChain();
     applyXray();
     const base = built.fit0, need = reach ? 2 * (reach + 0.04) * 1.04 : 0;
     built.fit = { ...base, w: Math.max(base.w, need) };
     fitCamera();
+  }
+
+  // ---- Shangri-La vanes: they open by themselves when the shade reaches the bottom, and close (the same movement run backwards, same speed) before it rises ----
+  const VANE_T = 0.8, VANE_K = 5, vaneEase = (p) => (1 - Math.exp(-VANE_K * p)) / (1 - Math.exp(-VANE_K));
+  const isSL = () => cfg.kind === 'shangri-la';
+  const vaneNote = () => onVanes?.(vane.target === 1);
+  const closeVanesFirst = () => { vane.target = 0; vaneNote(); };
+  const vaneAuto = () => {
+    if (!isSL()) return;
+    const a = current[0] ?? 0;
+    if (a < 0.95) vane.armed = true;
+    else if (a >= 0.995 && vane.armed && vane.target === 0 && vane.pending == null) { vane.target = 1; vane.armed = false; vaneNote(); }
+  };
+  const holdsForVanes = (i, a) => isSL() && i === 0 && vane.p > 0 && a < (current[0] ?? 0) - 1e-6;
+  // the chain: its beads run round the loop as the shade moves (a strand pulled down goes round, the other comes up)
+  function updateChain() {
+    const c = chainRig; if (!c || !c.mesh) return;
+    const off = (current[0] ?? 0) * c.travel, m = new THREE.Matrix4();
+    for (let i = 0; i < c.beads; i++) for (const k of [0, 1]) {
+      const y = ((i * c.step + (k ? off : -off)) % c.len + c.len) % c.len;
+      m.makeTranslation(c.endX + (k ? c.dx : -c.dx), c.y0 - y, c.cz + 0.004 + (k ? 0.004 : 0)); c.mesh.setMatrixAt(i * 2 + k, m);
+    }
+    c.mesh.instanceMatrix.needsUpdate = true;
   }
 
   function applyXray() { for (const [m, max] of xrayMats) m.opacity = xray.v * max; }
@@ -223,7 +247,13 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     }
     // the back shade's bar is hidden when it is not lower than the front shade's
     const hidden = movers.map((_, i) => n > 1 && i > 0 && (current[i] ?? 0) <= (current[0] ?? 0) + 0.004);
-    onLayout?.({ labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, near, canvasW: size.w, canvasH: size.h });
+    let chain = null;
+    if (chainRig) {
+      const c = chainRig, a = new THREE.Vector3(c.endX, c.y0, c.cz + 0.006).project(camera), b = new THREE.Vector3(c.endX, c.y0 - c.len - 0.02, c.cz + 0.006).project(camera);
+      const px = ((a.x + 1) / 2) * size.w, ya = ((1 - a.y) / 2) * size.h, yb = ((1 - b.y) / 2) * size.h;
+      chain = { x: px, top: ya, bottom: yb, pxPerM: (yb - ya) / (c.len + 0.02), travelM: c.travel };
+    }
+    onLayout?.({ chain, labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, near, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -241,6 +271,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     if (driveChanged) { xray.target = ['motorized', 'two-in-one'].includes(cfg.drive.movement) ? 1 : 0; driveDirs = []; }
     if (n.amounts) { cfg.amounts = n.amounts.slice(); if (geometryChanged || shadesChanged || !shades.length) current = n.amounts.slice(); }
     if (n.vanes != null) vane.target = n.vanes ? 1 : 0;
+    if (cfg.kind !== 'shangri-la' && (vane.p || vane.target)) { vane.target = 0; vane.p = vane.v = 0; vane.pending = null; vane.driveWait = 0; vaneNote(); }
     if (geometryChanged || !built) buildWindow();
     if (shadesChanged || geometryChanged || !shades.length) buildShades();
     wake();
@@ -249,6 +280,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     let i = 0;
     for (const s of shades) { if (s.movers > 1) s.setAmounts(a.slice(i, i + s.movers)); else s.setAmount(a[i] ?? a[0] ?? 0); i += s.movers; }
     // a blackout cloth (cellular blackout, a roman's blackout lining) makes the room a little dimmer as it comes down: the wall, never the cloth's own face
+    updateChain();
     const dim = Math.max(0, ...shades.map((s) => s.dim || 0));
     if (Math.abs(dim - wallDim) > 0.002) { wallDim = dim; wallMat.color.set(WALL).multiplyScalar(1 - ROOM_DIM * dim); }
     if (built?.shade && shades.length) {                                 // the panel is hidden between these two heights (the glass the cloth covers)
@@ -262,20 +294,24 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
     const base = i - m.k, vals = m.s.constrain(arr.slice(base, base + m.s.movers), m.k);
     for (let k = 0; k < vals.length; k++) arr[base + k] = vals[k];
   }
-  function snapAmount(a, i = 0) { if (i >= movers.length) return current.slice(); driveDirs[i] = 0; cfg.amounts[i] = current[i] = a; constrain(current, i); constrain(cfg.amounts, i); setShadeAmounts(current); emit(); wake(); return current.slice(); }
+  function snapAmount(a, i = 0) { if (i >= movers.length) return current.slice(); if (holdsForVanes(i, a)) { vane.pending = a; closeVanesFirst(); wake(); return current.slice(); } driveDirs[i] = 0; if (i === 0) vane.pending = null; cfg.amounts[i] = current[i] = a; constrain(current, i); constrain(cfg.amounts, i); setShadeAmounts(current); vaneAuto(); emit(); wake(); return current.slice(); }
   // glide to a position (the Day and Night buttons, Open vanes, Raise and Lower)
-  function moveTo(a, i = 0) { if (i >= movers.length) return; driveDirs[i] = 0; cfg.amounts[i] = Math.min(1, Math.max(0, a)); constrain(cfg.amounts, i); wake(); }
+  function moveTo(a, i = 0) { if (i >= movers.length) return; if (holdsForVanes(i, a)) { vane.pending = Math.min(1, Math.max(0, a)); closeVanesFirst(); wake(); return; } driveDirs[i] = 0; if (i === 0) vane.pending = null; cfg.amounts[i] = Math.min(1, Math.max(0, a)); constrain(cfg.amounts, i); wake(); }
 
   // ---- loop -----------------------------------------------------------------------------------------------------------------------------------------------
   const wake = () => { dirty = true; if (active && !raf) raf = requestAnimationFrame(frame); };
   function frame(t) {
     raf = 0; if (!active) return;
-    const dt = Math.min(0.05, last ? (t - last) / 1000 : 0.016); last = t;
+    const raw = last ? (t - last) / 1000 : 0.016, dt = Math.min(0.05, raw); last = t;          // (the vanes keep real time, so a slow frame does not slow them)
     let moving = false;
     if (Math.abs(xray.target - xray.v) > 0.003) { xray.v += (xray.target - xray.v) * (reduced ? 1 : 1 - Math.exp(-dt * 5)); applyXray(); dirty = true; moving = true; }
     else if (xray.v !== xray.target) { xray.v = xray.target; applyXray(); dirty = true; }
-    if (Math.abs(vane.target - vane.v) > 0.003) { vane.v += (vane.target - vane.v) * (reduced ? 1 : 1 - Math.exp(-dt * 6)); dirty = true; moving = true; shades.forEach((s) => s.setVanes?.(vane.v)); }
-    else if (vane.v !== vane.target) { vane.v = vane.target; dirty = true; shades.forEach((s) => s.setVanes?.(vane.v)); }
+    const pT = vane.target ? 1 : 0;
+    if (vane.p !== pT) { vane.p = reduced ? pT : (pT > vane.p ? Math.min(pT, vane.p + Math.min(0.25, raw) / VANE_T) : Math.max(pT, vane.p - Math.min(0.25, raw) / VANE_T)); vane.v = vaneEase(vane.p); dirty = true; moving = true; shades.forEach((s) => s.setVanes?.(vane.v)); }
+    if (isSL()) {                                                          // the shade waits until the vanes have closed, then goes where it was asked to
+      if (vane.p <= 0 && vane.pending != null) { cfg.amounts[0] = vane.pending; vane.pending = null; }
+      if (vane.p <= 0 && vane.driveWait) { driveDirs[0] = vane.driveWait; vane.driveWait = 0; }
+    }
     let shifted = false;
     movers.forEach((mv, i) => {
       if (driveDirs[i]) {                                                  // the remote: steady motor speed, about 10 in a second, until it reaches the end or Stop
@@ -288,7 +324,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
         current[i] += (cfg.amounts[i] - current[i]) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); moving = true; dirty = true; shifted = true;
       } else if (current[i] !== cfg.amounts[i]) { current[i] = cfg.amounts[i]; dirty = true; shifted = true; }
     });
-    if (shifted) { setShadeAmounts(current); emit(); onAmount?.(current.slice()); }
+    if (shifted) { setShadeAmounts(current); vaneAuto(); emit(); onAmount?.(current.slice()); }
     if (dirty) {
       dirty = false;
       const t0 = performance.now();
@@ -314,9 +350,10 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive } = {})
 
   return {
     configure, snapAmount, moveTo, resize,
-    setVanes(on) { vane.target = on ? 1 : 0; wake(); }, get vanes() { return vane.v; },
+    pendingAmount: () => vane.pending,
+    setVanes(on) { if (on && (current[0] ?? 0) < 0.995) return; vane.target = on ? 1 : 0; vane.armed = false; vaneNote(); wake(); }, get vanes() { return vane.v; },
     handleFraction: (i = 0) => (movers[i] ? movers[i].s.handleAt(movers[i].k) : 0), amountAt: (i, f) => (movers[i] ? movers[i].s.amountAt(movers[i].k, f) : 0), driving: (i = 0) => driveDirs[i] || 0,
-    drive(dir, i = 0) { if (i >= movers.length) return; driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
+    drive(dir, i = 0) { if (i >= movers.length) return; if (i === 0) { vane.pending = null; vane.driveWait = 0; if (dir < 0 && isSL() && vane.p > 0) { vane.driveWait = -1; closeVanesFirst(); wake(); return; } } driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
     setXray(on) { xray.target = on ? 1 : 0; emit(); wake(); }, setActive, setReducedMotion: (v) => { reduced = !!v; },
     get amounts() { return current.slice(); }, get shadeHeight() { return built?.shade.h || cfg.h; },
     dispose() {

@@ -1,76 +1,85 @@
-// Products > Colors > a color: "Texture: Photo crop / Pattern", a small live preview, and (Zebra) the band widths.
-// The preview is drawn by the very same function as the picker tile, the "This blind" chip and the 3D shade (src/room/textureBrowser.js resolveLook), so
-// what it shows is what customers see. The setting is auto-picked from the photo (src/lib/textureAnalysis.js); the person can override it.
+// Products > Colors > a color: "Texture", a small live preview, the TEXTURE TYPE (measured from the photo, changeable) and whether the cloth is Generated or taken from the Photo,
+// the Weave strength, and (Zebra) the band widths.
+// The preview is drawn by the very same function as the picker tile, the "This blind" chip and the 3D shade (src/room/textureBrowser.js resolveLook), so what it shows is what
+// customers see. The type is measured from the photo (src/lib/textureType.js); the person can override it, and can switch the color between Generated and Photo.
 import { useEffect, useRef, useState } from 'react';
-import { resolveLook } from '../../room/textureBrowser.js';
+import { resolveLook, typeOfSwatch, sourceOfSwatch } from '../../room/textureBrowser.js';
 import { TEX } from '../../room/textureCore.js';
-import { analyzePhoto } from '../../lib/textureAnalysis.js';
 import { pixelsAt, loadImage } from '../../room/textureBrowser.js';
+import { classifyPhoto, TEXTURE_TYPES, TEXTURE_TYPE_LABEL } from '../../lib/textureType.js';
 import { ZEBRA_DEFAULTS, ZEBRA_LIMITS, cleanBand } from '../../room/zebraBands.js';
 import { isHex } from '../../lib/swatchColor.js';
-import { WEAVE_CHOICES, WEAVE_LABEL, weaveKindOf } from '../../lib/patternTexture.js';
+import { WEAVE_CHOICES, WEAVE_LABEL } from '../../lib/patternTexture.js';
 import { STRENGTH } from '../../lib/weaveStrength.js';
 
 // The look of the color as it would be saved: `src` = { id, thumb, tile, image, tex } urls (the new photo's blob url, or the stored files).
-function lookFor({ src, line, family, composition, colorFamily, previewColor, mode, solid, sheer, weave, strength }) {
-  return { id: src.id, line, family, composition, weave: weave || undefined, weaveStrength: Number.isFinite(strength) ? strength : undefined, colorFamily, previewColor: isHex(previewColor) ? previewColor : null, textureMode: mode, solidIn: solid, sheerIn: sheer, tile: src.tile, thumb: src.thumb, image: src.image, tex: src.tex };
+function lookFor({ src, line, family, composition, colorFamily, previewColor, type, source, solid, sheer, weave, strength }) {
+  return { id: src.id, line, family, composition, weave: weave || undefined, weaveStrength: Number.isFinite(strength) ? strength : undefined, colorFamily, previewColor: isHex(previewColor) ? previewColor : null, textureType: type, textureSource: source || undefined, solidIn: solid, sheerIn: sheer, tile: src.tile, thumb: src.thumb, image: src.image, tex: src.tex };
 }
 
-export const TEXTURE_LABEL = { photo: 'Photo crop', pattern: 'Pattern' };
+export const TEXTURE_LABEL = { generated: 'Generated', photo: 'Photo' };
 
-export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, lineBands, mode, onMode, weave, onWeave, canWeave, strength, onStrength, canStrength, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
+export default function TextureField({ src, line, family, composition, colorFamily, previewColor, zebra, lineBands, texType, onTexType, texSource, onTexSource, hasTypeCols = true, weave, onWeave, canWeave, strength, onStrength, canStrength, auto, setAuto, solid, sheer, onSolid, onSheer, analysis }) {
   const canvas = useRef(null);
   const [err, setErr] = useState('');
-  // the auto-picked setting: from a new photo (already analysed when it was chosen), or for a color that has none stored, from its stored photo
+  // the measured type: from a new photo (already measured when it was chosen), or for a stored photo, measured here from its 320 px thumbnail
   useEffect(() => {
-    if (analysis) { setAuto({ mode: analysis.mode, reason: analysis.reason }); return undefined; }
-    if (mode || !src?.image) return undefined;
+    if (analysis?.type) { setAuto(analysis.type); return undefined; }
+    if (!src?.thumb && !src?.image) return undefined;
     let dead = false;
-    loadImage(src.image).then((img) => { const px = pixelsAt(img, 1000), a = analyzePhoto(px.rgb, px.w, px.h); if (!dead) setAuto({ mode: a.mode, reason: a.reason }); }, () => { if (!dead) setAuto(null); });
+    loadImage(src.thumb || src.image).then((img) => { const px = pixelsAt(img, 0), r = classifyPhoto(px.rgb, px.w, px.h, { line }); if (!dead) setAuto({ type: r.type, confidence: r.confidence, reason: r.reason }); }, () => { if (!dead) setAuto(null); });
     return () => { dead = true; };
-  }, [analysis, src?.id, src?.image]);                                  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [analysis, src?.id, src?.thumb, src?.image, line]);                // eslint-disable-line react-hooks/exhaustive-deps
 
   const strengthN = strength === '' || strength == null ? undefined : Number(strength);          // '' = auto
-  const effective = zebra ? 'pattern' : (mode || auto?.mode || 'photo');
+  const type = texType || auto?.type || typeOfSwatch({ id: src?.id }), effective = sourceOfSwatch({ textureType: type, textureSource: texSource || undefined });
   // the line's default widths (Products > Zebra), else 3 in / 2 in; this color's own boxes override them
   const defSolid = cleanBand(lineBands?.band_solid_in, ZEBRA_DEFAULTS.solidIn), defSheer = cleanBand(lineBands?.band_sheer_in, ZEBRA_DEFAULTS.sheerIn);
   const solidN = cleanBand(solid, defSolid), sheerN = cleanBand(sheer, defSheer);
   useEffect(() => {
     const c = canvas.current; if (!c || !src) return undefined;
     let dead = false; setErr('');
-    resolveLook(lookFor({ src, line, family, composition, colorFamily, previewColor, mode: effective, solid: solidN, sheer: sheerN, weave, strength: strengthN }), { small: true }).then((r) => {
+    resolveLook(lookFor({ src, line, family, composition, colorFamily, previewColor, type, source: texSource, solid: solidN, sheer: sheerN, weave, strength: strengthN }), { small: true }).then((r) => {
       if (dead) return;
       const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);          // a sheer weave is see-through: do not keep the previous drawing in its gaps
       if (zebra) { const half = c.height / 2; for (let k = 0; k < 2; k++) ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, k * half, c.width, half); }
       else ctx.drawImage(r.canvas, 0, 0, TEX, TEX, 0, 0, c.width, c.height);
-      c.dataset.color = r.hex; c.dataset.mode = r.mode; c.dataset.ready = '1';
+      c.dataset.color = r.hex; c.dataset.mode = r.mode; c.dataset.type = r.ttype || type; c.dataset.source = r.source || ''; c.dataset.ready = '1';
     }).catch(() => { if (!dead) setErr('The preview could not be drawn.'); });
     return () => { dead = true; };
-  }, [src, line, family, composition, colorFamily, previewColor, effective, solidN, sheerN, zebra, weave, strengthN]);
+  }, [src, line, family, composition, colorFamily, previewColor, type, texSource, solidN, sheerN, zebra, weave, strengthN]);
 
   const bandProblem = zebra && ((solid !== '' && cleanBand(solid, null) === null) || (sheer !== '' && cleanBand(sheer, null) === null))
     ? `Each band must be between ${ZEBRA_LIMITS.min} and ${ZEBRA_LIMITS.max} inches (or empty for the default).` : '';
+  const sureness = auto ? (auto.confidence >= 0.6 ? 'sure' : auto.confidence >= 0.4 ? 'fairly sure' : 'not sure') : '';
   return (
     <div className="adm-field adm-texture" data-testid="texture-field">
       <span>Texture <small>(picker tile, “This blind” chip and 3D preview)</small></span>
       <div className="adm-texture-row">
         <canvas ref={canvas} className="adm-texture-prev" width={160} height={160} aria-label="Texture preview" style={{ background: '#eee' }} />
         <div className="adm-texture-pick">
-          {zebra ? (
-            <p className="adm-muted adm-small" style={{ margin: 0 }}>Zebra always uses the pattern: solid and sheer bands, the sheer bands see-through.</p>
-          ) : (
-            <div role="radiogroup" aria-label="Texture" className="adm-linepick">
-              {['photo', 'pattern'].map((m) => (
-                <label key={m} className="adm-check"><input type="radio" name="texture-mode" value={m} checked={effective === m} onChange={() => onMode(m)} /> {TEXTURE_LABEL[m]}</label>
-              ))}
-            </div>
-          )}
-          {!zebra && <em className="adm-field-ok">{mode ? (auto && auto.mode !== mode ? `Set by hand. Auto-pick would be ${TEXTURE_LABEL[auto.mode]} (${auto.reason}).` : 'Set by hand.') : auto ? `Auto-picked: ${TEXTURE_LABEL[auto.mode]} (${auto.reason}).` : 'Auto-picking from the photo…'}
-            {mode && auto && auto.mode !== mode && <> <button type="button" className="adm-link" onClick={() => onMode('')}>Use auto-pick</button></>}</em>}
-          {!zebra && canWeave && effective === 'pattern' && (
-            <label className="adm-field" style={{ marginTop: 6 }}><span>Weave <small>(the pattern's look)</small></span>
+          {hasTypeCols ? (
+            <>
+              <label className="adm-field" style={{ margin: 0 }}><span>Texture type <small>(measured from the photo)</small></span>
+                <select aria-label="Texture type" value={texType} onChange={(e) => onTexType(e.target.value)}>
+                  <option value="">Automatic: {TEXTURE_TYPE_LABEL[auto?.type || typeOfSwatch({ id: src?.id })]}</option>
+                  {TEXTURE_TYPES.map((t) => <option key={t} value={t}>{TEXTURE_TYPE_LABEL[t]}</option>)}
+                </select>
+              </label>
+              <em className="adm-field-ok">{texType ? (auto && auto.type !== texType ? `Set by hand. The photo reads as ${TEXTURE_TYPE_LABEL[auto.type].toLowerCase()} (${auto.reason}).` : 'Set by hand.') : auto ? `Measured: ${TEXTURE_TYPE_LABEL[auto.type].toLowerCase()} (${auto.reason}; ${sureness}).` : 'Measured from the photo once it has loaded.'}</em>
+              <div role="radiogroup" aria-label="Texture source" className="adm-linepick">
+                {['generated', 'photo'].map((m) => (
+                  <label key={m} className="adm-check"><input type="radio" name="texture-source" value={m} checked={effective === m} onChange={() => onTexSource(m)} /> {TEXTURE_LABEL[m]}</label>
+                ))}
+              </div>
+              <em className="adm-field-ok">{texSource ? 'Set by hand.' : `By type: ${TEXTURE_TYPE_LABEL[type].toLowerCase()} is ${effective === 'photo' ? 'taken from the photo' : 'drawn from the photo’s measurements'}.`}
+                {texSource && <> <button type="button" className="adm-link" onClick={() => onTexSource('')}>Use the type's default</button></>}</em>
+            </>
+          ) : <p className="adm-muted adm-small" style={{ margin: 0 }}>The texture type and Generated / Photo choice appear once migration 27 is applied.</p>}
+          {!zebra && canWeave && effective === 'generated' && (
+            <label className="adm-field" style={{ marginTop: 6 }}><span>Weave <small>(only to draw a fixed weave instead of the photo's own)</small></span>
               <select aria-label="Weave" value={weave} onChange={(e) => onWeave(e.target.value)}>
-                <option value="">Automatic: {WEAVE_LABEL[weaveKindOf({ line, family, composition })] || 'by fabric type'}</option>
+                <option value="">Automatic: drawn from the photo</option>
                 {WEAVE_CHOICES.map((w) => <option key={w} value={w}>{WEAVE_LABEL[w]}</option>)}
               </select>
             </label>

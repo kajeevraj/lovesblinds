@@ -76,7 +76,7 @@ async function cell(v, [text, line, o]) {
     for (const [group, name] of o.dots || []) { if (!(await page.locator('.s2-more').evaluate((d) => d.open))) await page.locator('.s2-more summary').click(); await page.locator(`.s2-cdots[aria-label="${group}"] .s2-cdot`).filter({ hasText: new RegExp(`^${name}$`) }).first().click(); await page.waitForTimeout(300); }
     await page.waitForSelector('.pv-stage.ready'); await page.waitForTimeout(1500);
     const setA = async (sel, amt) => { await top(); const g = page.locator(sel).first(); await g.focus(); for (let i = 0; i < 140; i++) { const a = Number(await g.getAttribute('aria-valuenow')); if (Math.abs(a - amt) <= 1) break; await page.keyboard.press(amt === 0 ? 'Home' : amt === 100 ? 'End' : a < amt ? 'ArrowDown' : 'ArrowUp'); } await page.evaluate(() => document.activeElement?.blur()); };
-    if (o.amount != null) await setA('.pv-grip, .pv-bar', o.amount);
+    if (o.amount != null) await setA('.pv-grip, .pv-bar, .pv-chain', o.amount);
     if (o.upper != null) await setA('[data-rail=top], [data-rail=middle]', o.upper);
     for (const c of o.clicks || []) { await top(); await page.getByRole('button', { name: c, exact: true }).first().click(); await page.waitForTimeout(2200); }
     await page.addStyleTag({ content: '.s2-bar, .s2-pricebar { display: none !important; }' });       // the sticky price bar would cover the bottom of the preview in the picture

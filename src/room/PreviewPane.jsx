@@ -65,9 +65,10 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   // the hint (a small pill on the bottom bar) is only for shades with no handle, and fades after the first drag, remote press or key press for the rest of the visit
   const [touched, setTouched] = useState(() => { try { return sessionStorage.getItem('lb_pv_touched') === '1'; } catch { return false; } });
   const touch = () => { setTouched(true); try { sessionStorage.setItem('lb_pv_touched', '1'); } catch { /* private mode */ } };
+  const [grab, setGrab] = useState(0);                                           // the chain strand being pulled (1 raises, 2 lowers)
   const [lit, setLit] = useState(null);                                           // the remote button that was just pressed
   const litTimer = useRef(0);
-  const canvasRef = useRef(null), ctrlRef = useRef(null), stageRef = useRef(null), dragRef = useRef(null), shadeRef = useRef(null), partsRef = useRef(null);
+  const canvasRef = useRef(null), ctrlRef = useRef(null), stageRef = useRef(null), dragRef = useRef(null), shadeRef = useRef(null), chainRef = useRef(null), partsRef = useRef(null);
 
   const w = Number(width) > 0 ? Number(width) : null, h = Number(height) > 0 ? Number(height) : null;
   const drv = parseMech(kind, mech, { double });
@@ -99,8 +100,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     const t = setTimeout(async () => {
       let mod; try { mod = await import('./previewScene.js'); } catch { if (!dead) setStatus('nowebgl'); return; }
       if (dead) return;
-      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onAmount: (a) => setAmounts((prev) => (prev.length === a.length && prev.every((x, i) => x === a[i]) ? prev : a)), onDrive: () => {} }); } catch { if (!dead) setStatus('nowebgl'); return; }
-      ctrlRef.current = ctrl;
+      try { ctrl = mod.createPreviewScene(canvasRef.current, { onLayout: setLayout, onVanes: setVanes, onAmount: (a) => setAmounts((prev) => (prev.length === a.length && prev.every((x, i) => x === a[i]) ? prev : a)), onDrive: () => {} }); } catch { if (!dead) setStatus('nowebgl'); return; }
+      ctrlRef.current = ctrl; try { window.__lbPreview = ctrl; } catch { /* no window */ }          // window.__lbPreview: the scene, for the tests
       const stage = stageRef.current;
       ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return; ctrl.resize(Math.max(2, Math.round(r.width)), Math.max(2, Math.round(r.height)), window.devicePixelRatio || 1); });
       ro.observe(stage);
@@ -119,11 +120,9 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     const start = startAmounts(kind, { double, style }), fresh = partsRef.current !== moverKey || amounts.length !== start.length; partsRef.current = moverKey;
     ctrl.configure({ tight: !!phone || !(w && h), kind, style: soft ? (style || 'none') : 'none', width: w || 36, height: h || 60, mount, drive: drv, cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amounts: fresh ? start : amounts.slice(), extras: sceneExtras });
   }, [status, kind, w, h, mount, mech, cover, key, phone, double, sceneExtras, style, moverKey]);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (status === 'ready') ctrlRef.current?.setVanes(vanes); }, [status, vanes]);
 
   // `many`: a double-stack (two shades, front and back); `rails`: one shade with two rails that move
   const many = !soft && layers.length > 1, rails = soft && moverList.length > 1;
-  const closeVanes = () => { if (kind === 'shangri-la') setVanes(false); };
   const press = (k) => {
     touch();
     const ctrl = ctrlRef.current;
@@ -132,7 +131,6 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     else {
       const [who, what] = String(k).includes(':') ? String(k).split(':') : ['front', k];
       const i = who === 'back' ? 1 : 0;
-      if (what === 'up') closeVanes();
       if (what === 'up' || what === 'down' || what === 'stop') ctrl?.drive(what === 'up' ? -1 : what === 'down' ? 1 : 0, i);
     }
     setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
@@ -141,14 +139,23 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   // each handle (or bar) moves only its own shade or rail (a rail that meets the other one pushes it: the scene answers with every position)
   const setAmountAt = (i, a) => {
     touch();
-    if (a < 0.985) closeVanes();
     const all = ctrlRef.current?.snapAmount(a, i);
     setAmounts((prev) => (all && all.length === prev.length ? all : prev.map((x, k) => (k === i ? a : x))));
   };
   // glide there (the buttons under the picture)
   const glide = (targets) => { touch(); const ctrl = ctrlRef.current; if (!ctrl) return; [...targets.keys()].reverse().forEach((i) => ctrl.moveTo(targets[i], i)); };
-  const toggleVanes = () => { if (!vanes) glide([1]); setVanes(!vanes); };
-  const nudge = (dir) => { if (dir < 0) closeVanes(); glide([Math.min(1, Math.max(0, (amounts[0] ?? 0) + dir * 0.2))]); };
+  const toggleVanes = () => { ctrlRef.current?.setVanes(!vanes); };
+  // the chain: one strand pulled down raises the shade, the other lowers it; the beads follow the finger (the scene moves them with the shade)
+  const chainDown = (k) => (e) => {
+    const c = layout?.chain; if (!c) return;
+    chainRef.current = { k, y0: e.clientY, a0: amounts[0] ?? 0, per: Math.max(40, c.pxPerM * c.travelM) };
+    setGrab(k + 1); e.currentTarget.setPointerCapture?.(e.pointerId); e.preventDefault();
+  };
+  const chainMove = (e) => {
+    const d = chainRef.current; if (!d) return;
+    const dy = e.clientY - d.y0; setAmountAt(0, Math.min(1, Math.max(0, d.a0 + (d.k ? 1 : -1) * dy / d.per)));
+  };
+  const chainUp = (e) => { chainRef.current = null; setGrab(0); e.currentTarget.releasePointerCapture?.(e.pointerId); };
   const down = (i) => (e) => {
     const r = shadeRef.current?.getBoundingClientRect(); if (!r) return;
     dragRef.current = { i, rect: r, y0: e.clientY, moved: false, grab: 0 };
@@ -161,7 +168,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   };
   const up = (e) => { dragRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
   const key_ = (i) => (e) => {
-    const cur = amounts[i] ?? 0;
+    const cur = (i === 0 ? ctrlRef.current?.pendingAmount?.() : null) ?? amounts[i] ?? 0;          // (the shade waiting for the vanes to close: keep counting from where it is going)
     const step = e.shiftKey ? KEY_STEP * 3 : KEY_STEP;
     let a = null;
     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') a = cur - step;
@@ -176,6 +183,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   };
 
   if (status === 'nowebgl') return <div className="pv pv-photo">{fallback}</div>;
+  const chained = drv.movement === 'chain';
   const hasHandle = drv.movement === 'zero-gravity' || drv.movement === 'two-in-one';
   const withRemote = drv.movement === 'motorized' || drv.movement === 'two-in-one';
   const tile = status === 'ready' && withRemote && (
@@ -212,7 +220,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
           <canvas className="pv-canvas" ref={canvasRef} aria-label={`3D preview of your ${kind} shade`} role="img" />
           {status === 'ready' && layout && (
             <>
-              {!many && <div className="pv-drag" ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }} onPointerDown={down(0)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />}
+              {!many && <div className="pv-drag" ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0, pointerEvents: chained && layout.chain ? 'none' : undefined }} onPointerDown={down(0)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />}
               {many && <div ref={shadeRef} style={{ position: 'absolute', left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0, pointerEvents: 'none' }} aria-hidden="true" />}
               {hasHandle ? (layout.handles || [layout.handle]).slice(0, moverList.length).map((h, i) => (
                 <button key={i} type="button" className={`pv-grip${many ? ' two' : ''}${layout.hidden?.[i] ? ' behind' : ''}`} {...ariaFor(i)} data-shade={many ? part(i) : undefined} data-rail={rails ? part(i) : undefined}
@@ -220,30 +228,31 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
                   onPointerDown={down(i)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_(i)}><i aria-hidden="true" /></button>
               )) : (
                 <>
-                  {(layout.handles || [layout.handle]).slice(0, moverList.length).map((h, i) => (
+                  {(layout.handles || [layout.handle]).slice(0, moverList.length).map((h, i) => (chained && !many && !rails && layout.chain) ? null : (
                     <button key={i} type="button" className="pv-bar" {...ariaFor(i)} data-shade={many ? part(i) : undefined} data-rail={rails ? part(i) : undefined}
                       aria-label={who(i) || 'Bottom bar. Drag it, or use the arrow keys, to move the shade'}
                       style={many || (rails && layout.near > 0.5) ? { left: layout.x0 + ((many ? i === 0 : i === 1) ? 0 : 0.5) * (layout.x1 - layout.x0), width: 0.5 * (layout.x1 - layout.x0), top: h.y } : { left: layout.x0, width: layout.x1 - layout.x0, top: h.y }}
                       onPointerDown={down(i)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} onKeyDown={key_(i)} />
                   ))}
-                  {!many && <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
+                  {!many && !chained && <span className={`rl-handle v pv-handle${touched ? ' gone' : ''}`} style={{ left: layout.handle.x, top: layout.handle.y }} aria-hidden="true"><i /></span>}
                 </>
               )}
+              {chained && layout.chain && (() => { const c = layout.chain, wd = 46, hgt = Math.max(60, c.bottom - c.top + 24); return (
+                <div className={`pv-chain${grab ? ' grabbing' : ''}`} role="slider" tabIndex={0} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((amounts[0] ?? 0) * 100)} aria-valuetext={`${Math.round((amounts[0] ?? 0) * 100)}% lowered`}
+                  aria-label={extras.cordType === 'cord-loop' ? 'Cord loop. Drag a cord, or use the arrow keys, to raise or lower the shade' : 'Chain. Drag a strand, or use the arrow keys, to raise or lower the shade'}
+                  style={{ left: c.x - wd, top: c.top - 6, width: wd * 2, height: hgt }} onKeyDown={key_(0)}>
+                  <div className="pv-chain-hit" data-strand="raise" style={{ left: 0, width: wd }} onPointerDown={chainDown(0)} onPointerMove={chainMove} onPointerUp={chainUp} onPointerCancel={chainUp} />
+                  <div className="pv-chain-hit" data-strand="lower" style={{ left: wd, width: wd }} onPointerDown={chainDown(1)} onPointerMove={chainMove} onPointerUp={chainUp} onPointerCancel={chainUp} />
+                </div>); })()}
               {w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
             </>
           )}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
         </div>
       )}
-      {!room && status === 'ready' && kind === 'shangri-la' && (
-        <div className="pv-ctl" role="group" aria-label="Vanes, raise and lower" data-vanes={vanes ? 'open' : 'closed'}>
+      {!room && status === 'ready' && kind === 'shangri-la' && (amounts[0] ?? 0) >= 0.985 && (
+        <div className="pv-ctl" role="group" aria-label="Vanes" data-vanes={vanes ? 'open' : 'closed'}>
           <button type="button" className={`pv-ctl-btn${vanes ? ' on' : ''}`} aria-pressed={vanes} onClick={toggleVanes}>{vanes ? 'Close vanes' : 'Open vanes'}</button>
-          {!withRemote && (
-            <>
-              <button type="button" className="pv-ctl-btn pv-ctl-icon" aria-label="Raise the shade" onClick={() => nudge(-1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg></button>
-              <button type="button" className="pv-ctl-btn pv-ctl-icon" aria-label="Lower the shade" onClick={() => nudge(1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
-            </>
-          )}
           <span className="pv-ctl-note">{vanes ? 'Open: soft light between the vanes.' : 'Closed: privacy.'}</span>
         </div>
       )}
@@ -256,7 +265,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       )}
       {!room && tile}
       <p className="pv-note">
-        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(drv, extras, many, rails, HEAD_WORD[kind])}.{kind === 'shangri-la' ? ' The vanes open once the shade is all the way down.' : ''}{clamped ? ' Shown at the nearest size we can draw.' : ''}
+        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(drv, extras, many, rails, HEAD_WORD[kind])}.{chained ? (extras.cordType === 'cord-loop' ? ' Pull the cord to raise or lower.' : ' Pull the chain to raise or lower.') : ''}{kind === 'shangri-la' ? ' The vanes open by themselves when the shade reaches the bottom, and close before it rises.' : ''}{clamped ? ' Shown at the nearest size we can draw.' : ''}
       </p>
     </div>
   );
