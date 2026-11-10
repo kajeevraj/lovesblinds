@@ -96,7 +96,7 @@ try {
   await page.getByRole('radio', { name: 'Generated' }).check(); await page.getByLabel('Texture type').selectOption('twill'); await page.waitForTimeout(700); await ready();
   check('choosing the type Twill redraws the preview in the same color and says so', (await hexOf()) === photoHex && (await prev().getAttribute('data-type')) === 'twill' && /Set by hand/.test(await page.getByTestId('texture-field').innerText()));
   await page.getByRole('button', { name: 'Save changes' }).click(); await page.getByText(/Saved “Jet Black”/).waitFor();
-  check('Save sends texture_type twill (and texture_source generated)', patches.length === 1 && patches[0].texture_type === 'twill' && patches[0].texture_source === 'generated', JSON.stringify(patches));
+  check('Save sends only texture_type twill', patches.length === 1 && patches[0].texture_type === 'twill' && Object.keys(patches[0]).length === 1, JSON.stringify(patches));
 
   // ---- Weave strength: a slider per color, Auto by default ----
   patches.length = 0;
