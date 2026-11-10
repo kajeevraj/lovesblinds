@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { weaveTexture, applyWeaveScale, fabricMaterial, applyGlow, barGeometry, shadowMesh, rampTexture, whenFabric } from './common.js';
 import { CELL, ROMAN, SHANGRI, clamp, cellStyle, cellularLayout, cellularHandle, cellularAmountAt, romanStyle, romanLayout, romanHandle, romanAmountAt, shangriLayout, shangriHandle, shangriAmountAt } from '../softLayout.js';
 import { sheerHexOf } from '../../lib/patternTexture.js';
+import { isStochastic } from '../textureBrowser.js';
 
 const GAP = 0.003;          // clearance each side, like a real inside mount
 
@@ -36,8 +37,8 @@ const SHADE_GLSL = `
 `;
 // `window` (a light-filtering roman): daylight comes through the cloth only where the glass is behind it, so the glow falls off softly over the sash, the trim and
 // the wall (uGlass: half width, top and bottom of the glass in the shade's own coordinates, and how much glow is left away from it).
-function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1, window = 0 }, env) {
-  const m = fabricMaterial({ map, glow, bump, side }, env), base = m.onBeforeCompile;
+function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1, window = 0, stochastic = false }, env) {
+  const m = fabricMaterial({ map, glow, bump, side, stochastic }, env), base = m.onBeforeCompile;
   m.userData.grad = grad ? { top: { value: new THREE.Vector3(grad[0], grad[0], grad[0]) }, bottom: { value: new THREE.Vector3(grad[1], grad[1], grad[1]) } } : null;
   m.userData.pleat = { value: new THREE.Vector2(pleat ? pleat[0] : 0, pleat ? pleat[1] : 0) };
   m.userData.glass = { value: new THREE.Vector4(1e3, 1e3, -1e3, window ? 1 - window : 1) };
@@ -51,7 +52,7 @@ function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THRE
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(uGlass.w, 1.0, smoothstep(0.0, 0.07, uGlass.x - abs(vLx)) * smoothstep(0.0, 0.07, uGlass.y - vLy) * smoothstep(0.0, 0.07, vLy - uGlass.z));')
       .replace('#include <opaque_fragment>', `${SHADE_GLSL}\n#include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => 'lb-fabric-soft';
+  m.customProgramCacheKey = () => (stochastic ? 'lb-fabric-soft-stoch' : 'lb-fabric-soft');
   return m;
 }
 
@@ -121,7 +122,7 @@ class SoftShade {
   // a cloth material for one fabric: flat color until its texture is ready; `onLook` gets what the texture pipeline decided (its color)
   _cloth(layer, opts, onLook) {
     const env = this.env, tex = weaveTexture(layer.fabric, env, { mirrorV: false });
-    const m = clothMaterial({ map: tex, ...opts }, env);
+    const m = clothMaterial({ map: tex, ...opts, stochastic: isStochastic(layer.fabric.look || {}) }, env);
     m.color.set(layer.fabric.color); m.userData.uHeight.value = this.height;
     if (this.glass) { m.userData.glass.value.x = this.glass[0]; m.userData.glass.value.y = this.glass[1]; m.userData.glass.value.z = this.glass[2]; }
     whenFabric(layer.fabric, (img, look) => { if (!this.mats.includes(m)) return; m.color.set(0xffffff); m.needsUpdate = true; onLook?.(look); env.invalidate(); });

@@ -1,7 +1,7 @@
 // Shared pieces of the window-treatment models (shade.js, curtains.js): image loading, fabric materials, soft shadows.
 // Units are metres. Every model is a THREE.Group whose origin is the top centre of its opening, x to the right, y up and z towards the room.
 import * as THREE from 'three';
-import { resolveLook } from '../textureBrowser.js';
+import { resolveLook, isStochastic } from '../textureBrowser.js';
 import { weaveTileMetres } from '../../lib/weaveStrength.js';
 
 // ---- images ------------------------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ export function whenImage(url, cb, cross = false, fail = null) {
 const lookCache = new Map();
 export function whenFabric(spec, cb) {
   if (spec.preset) { whenImage(spec.url, cb); return; }
-  const key = `${spec.key}|${spec.look.lightType || ''}|${spec.look.textureMode || ''}|${spec.look.weave || ''}|${spec.look.weaveStrength ?? ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
+  const key = `${spec.key}|${spec.look.lightType || ''}|${spec.look.textureType || ''}|${spec.look.textureSource || ''}|${spec.look.weave || ''}|${spec.look.weaveStrength ?? ''}|${spec.look.previewColor || ''}|${spec.bands?.solidIn}|${spec.bands?.sheerIn}`;
   let p = lookCache.get(key);
   if (!p) { p = resolveLook(spec.look, { lit: true }); lookCache.set(key, p); p.catch(() => lookCache.delete(key)); }
   p.then((r) => { try { (window.__lbLooks = window.__lbLooks || {})[spec.swatchId] = { mode: r.mode, hex: r.hex, weave: r.weave, sheer: !!r.sheer }; } catch { /* no window */ } cb(r.canvas, r); }, () => { /* no picture and no color: the model keeps its flat color */ });       // window.__lbLooks: what the 3D shows, for the tests
@@ -41,7 +41,7 @@ export function whenFabric(spec, cb) {
 // resized. Only where the scene says how many pixels a metre is (the product-page preview); a Zebra's texture is one stripe period (its geometry), never rescaled.
 export function applyWeaveScale(t, env) {
   const spec = t.userData?.spec; if (!spec || spec.preset || spec.kind === 'zebra' || !env.pxPerMeter) return;
-  const tile = weaveTileMetres(t.userData.period, env.pxPerMeter, { photo: t.userData.mode === 'photo' });
+  const tile = weaveTileMetres(t.userData.period, env.pxPerMeter, { photo: t.userData.mode === 'photo' || t.userData.generated });
   t.repeat.set(1 / tile, 1 / tile); env.invalidate();
   try { (window.__lbTiles = window.__lbTiles || {})[spec.swatchId] = tile; } catch { /* no window */ }          // metres of cloth one texture covers: read by the scale tests
 }
@@ -54,7 +54,15 @@ export function weaveTexture(spec, env, { mirrorV = true } = {}) {
   t.anisotropy = env.maxAniso || 1;
   t.repeat.set(1 / spec.tile[0], 1 / spec.tile[1]);
   t.userData.spec = spec;
-  whenFabric(spec, (img, r) => { t.image = img; if (r) { t.userData.period = r.period || null; t.userData.mode = r.mode; } applyWeaveScale(t, env); t.needsUpdate = true; env.invalidate(); });
+  whenFabric(spec, (img, r) => {
+    t.image = img;
+    if (r) { t.userData.period = r.period || null; t.userData.mode = r.mode; t.userData.generated = r.source === 'generated'; }
+    // a zebra's solid-band picture is several stripe periods tall (each its own cloth): it repeats every `periods` periods down the shade, not every one
+    if (r?.periods > 1) t.repeat.set(1 / spec.tile[0], 1 / (spec.tile[1] * r.periods));
+    // its average color (linear light), for the shader that lays the cloth out patch by patch
+    if (spec.look && isStochastic(spec.look)) t.userData.meanLinear = meanLinear(img);
+    applyWeaveScale(t, env); t.needsUpdate = true; env.invalidate();
+  });
   return t;
 }
 
@@ -62,29 +70,60 @@ export function weaveTexture(spec, env, { mirrorV = true } = {}) {
 // MeshStandardMaterial with the swatch as colour, as a small bump (the weave catches the light) and as the colour of the daylight that
 // comes through (emissive). The emissive is the room's backlight tinted by the cloth, brighter at the top (sky) than at the bottom (trees).
 // `uHeight` is the height of the cloth, so the gradient follows the model when it is resized.
-export function fabricMaterial({ map, glow = 0, opacity = 1, bump = 1.1, emissiveMap = map, alphaMap = null, vertexColors = false, side = THREE.FrontSide }, env) {
+export function fabricMaterial({ map, glow = 0, opacity = 1, bump = 1.1, emissiveMap = map, alphaMap = null, vertexColors = false, side = THREE.FrontSide, stochastic = false }, env) {
+  // stochastic: the cloth is laid out patch by patch, each patch a random window of the one texture (see STOCH_GLSL), so a 10 cm texture never shows as a grid of copies.
+  // (There is no bump map then: it would carry the repeat.)
   const m = new THREE.MeshStandardMaterial({
-    map, bumpMap: map, bumpScale: bump, roughness: 0.92, metalness: 0, emissiveMap, emissive: new THREE.Color(0, 0, 0),
+    map, bumpMap: stochastic ? null : map, bumpScale: bump, roughness: 0.92, metalness: 0, emissiveMap, emissive: new THREE.Color(0, 0, 0),
     transparent: opacity < 1 || !!alphaMap, opacity, alphaMap, vertexColors, side, depthWrite: !(opacity < 1 || alphaMap),
   });
   m.userData.glow = glow;
   m.userData.uHeight = { value: 1 };
+  m.userData.stoch = stochastic; m.userData.stochMean = { value: new THREE.Vector3(0.5, 0.5, 0.5) };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uHeight = m.userData.uHeight;
     sh.uniforms.uGlowTop = env.glowTop;
     sh.uniforms.uGlowBottom = env.glowBottom;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vLy;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLy = position.y;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vLy;\nuniform float uHeight;\nuniform vec3 uGlowTop;\nuniform vec3 uGlowBottom;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(uGlowTop, uGlowBottom, clamp(-vLy / uHeight, 0.0, 1.0));');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying float vLy;\nuniform float uHeight;\nuniform vec3 uGlowTop;\nuniform vec3 uGlowBottom;${m.userData.stoch ? STOCH_GLSL : ''}`)
+      .replace('#include <emissivemap_fragment>', `${m.userData.stoch ? '#ifdef USE_EMISSIVEMAP\n  totalEmissiveRadiance *= lbStoch(emissiveMap, vEmissiveMapUv);\n#endif' : '#include <emissivemap_fragment>'}\n  totalEmissiveRadiance *= mix(uGlowTop, uGlowBottom, clamp(-vLy / uHeight, 0.0, 1.0));`);
+    if (m.userData.stoch) { sh.uniforms.uStochMean = m.userData.stochMean; sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= vec4(lbStoch(map, vMapUv), 1.0);'); }
   };
-  m.customProgramCacheKey = () => 'lb-fabric-glow';
+  m.customProgramCacheKey = () => (stochastic ? 'lb-fabric-glow-stoch' : 'lb-fabric-glow');
   return m;
 }
 // the daylight colour and strength currently in the room (env.backlight is set by the scene)
 export function applyGlow(mat, env) {
   mat.emissive.copy(env.backlight).multiplyScalar(mat.userData.glow);
+  const mean = mat.map?.userData?.meanLinear; if (mat.userData.stoch && mean) mat.userData.stochMean.value.set(mean[0], mean[1], mean[2]);
 }
+// the average color of a picture in linear light (what the cloth's patches are blended around)
+const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+export function meanLinear(img) {
+  const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, 32, 32);
+  const d = x.getImageData(0, 0, 32, 32).data, m = [0, 0, 0]; for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) m[k] += lin(d[i + k]);
+  return m.map((v) => v / (d.length / 4));
+}
+// Stochastic tiling (Heitz and Neyret, as in Mikkelsen's "Practical Real-Time Hex-Tiling"): the plane is cut into a grid of triangles about half a tile wide, each corner picks a
+// random window of the texture, and the three are blended with weights that keep the cloth's contrast (the blend is taken around the texture's average color). The texture is
+// seamless, so any window will do; the result never repeats on a grid. Mipmaps follow the plain texture coordinates (textureGrad).
+const STOCH_GLSL = `
+vec2 lbHash2(vec2 p) { return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
+uniform vec3 uStochMean;
+vec3 lbStoch(sampler2D tex, vec2 uv) {
+  vec2 dx = dFdx(uv), dy = dFdy(uv);
+  vec2 sk = mat2(1.0, 0.0, -0.57735027, 1.15470054) * (uv * 3.4641016 * 0.6);
+  vec2 id = floor(sk); vec3 b = vec3(fract(sk), 0.0); b.z = 1.0 - b.x - b.y;
+  vec3 w; vec2 v1; vec2 v2; vec2 v3;
+  if (b.z > 0.0) { w = vec3(b.z, b.y, b.x); v1 = id; v2 = id + vec2(0.0, 1.0); v3 = id + vec2(1.0, 0.0); }
+  else { w = vec3(-b.z, 1.0 - b.y, 1.0 - b.x); v1 = id + vec2(1.0, 1.0); v2 = id + vec2(1.0, 0.0); v3 = id + vec2(0.0, 1.0); }
+  vec3 c1 = textureGrad(tex, uv + lbHash2(v1), dx, dy).rgb;
+  vec3 c2 = textureGrad(tex, uv + lbHash2(v2), dx, dy).rgb;
+  vec3 c3 = textureGrad(tex, uv + lbHash2(v3), dx, dy).rgb;
+  vec3 c = w.x * c1 + w.y * c2 + w.z * c3;
+  return uStochMean + (c - uStochMean) / sqrt(dot(w, w));
+}`;
 
 // ---- soft shadows ----------------------------------------------------------------------------------------------------------------------
 const gradCache = new Map();

@@ -9,10 +9,10 @@
 const lumaOf = (rgb, i) => 0.3 * rgb[i] + 0.59 * rgb[i + 1] + 0.11 * rgb[i + 2];
 
 export function bandsOf(rgb, w, h) {
-  const x0 = Math.floor(w * 0.12), x1 = Math.ceil(w * 0.88), prof = new Float32Array(h), within = new Float32Array(h);
+  const x0 = Math.floor(w * 0.12), x1 = Math.ceil(w * 0.88), prof = new Float32Array(h), colMean = new Float64Array(w);
   // the signal that tells solid from sheer is the light AND the color: a cream band and a white band have almost the same luminance, but the cream is yellower (less blue)
-  const sig = (i) => lumaOf(rgb, i) - 0.6 * Math.max(0, (rgb[i] + rgb[i + 1]) / 2 - rgb[i + 2]);
-  for (let y = 0; y < h; y++) { let t = 0, t2 = 0; for (let x = x0; x < x1; x++) { const v = sig((y * w + x) * 3); t += v; t2 += v * v; } prof[y] = t / (x1 - x0); within[y] = Math.max(0, t2 / (x1 - x0) - prof[y] * prof[y]); }
+  const sig = (i) => lumaOf(rgb, i) - 1.4 * Math.max(0, (rgb[i] + rgb[i + 1]) / 2 - rgb[i + 2]);
+  for (let y = 0; y < h; y++) { let t = 0; for (let x = x0; x < x1; x++) { const v = sig((y * w + x) * 3); t += v; colMean[x] += v / h; } prof[y] = t / (x1 - x0); }
   const sm = new Float32Array(h); for (let y = 0; y < h; y++) { let t = 0, c = 0; for (let k = -2; k <= 2; k++) { const yy = y + k; if (yy >= 0 && yy < h) { t += prof[yy]; c++; } } sm[y] = t / c; }
   // two clusters of rows (Otsu): the threshold that best separates the dark rows from the light ones
   const sorted = Array.from(sm).sort((a, b) => a - b); let best = { score: -1, thr: 0 };
@@ -31,9 +31,11 @@ export function bandsOf(rgb, w, h) {
   for (let y = 1; y <= h; y++) if (y === h || (sm[y] <= best.thr) !== (sm[y - 1] <= best.thr)) { runs.push({ dark: sm[start] <= best.thr, a: start, b: y }); start = y; }
   const long = runs.filter((r) => r.b - r.a >= h * 0.07);
   const solid = long.filter((r) => r.dark), sheer = long.filter((r) => !r.dark);
-  // a banded photo is the same all along a row (cloth) and different from row to row; a folded sheet varies along the rows as much as down them
-  let wsum = 0; for (const v of within) wsum += v; wsum /= h;
-  const banded = gap >= 4 && wv / tv < 0.25 && tv / (wsum || 1) >= 4 && solid.length >= 1 && sheer.length >= 1 && best.n0 / h > 0.15 && best.n1 / h > 0.12;
+  // a banded photo is the same all along a row and different from row to row; a folded sheet has creases down the picture, so its columns differ from one another about as
+  // much as its rows do (the variance of the column averages against that of the row averages: under 0.15 for every banded photo, over 0.4 for every folded one)
+  let cm = 0; for (let x = x0; x < x1; x++) cm += colMean[x]; cm /= x1 - x0;
+  let cv = 0; for (let x = x0; x < x1; x++) cv += (colMean[x] - cm) ** 2; cv /= x1 - x0;
+  const banded = gap >= 4 && wv / tv < 0.3 && cv / tv <= 0.2 && solid.length >= 1 && sheer.length >= 1 && best.n0 / h > 0.15 && best.n1 / h > 0.12;
   if (!banded) return { ...none, gap };
   const inset = (r) => { const pad = Math.max(3, Math.round((r.b - r.a) * 0.14)); return [r.a + pad, r.b - pad]; };
   return { banded: true, solidRows: solid.map(inset), sheerRows: sheer.map(inset), gap, split: best.n0 / h };

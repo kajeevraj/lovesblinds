@@ -220,20 +220,20 @@ export function classifyTexture(f, w = null, { line = null, banded = true } = {}
 import { analyzePhoto } from './textureAnalysis.js';
 import { bandsOf, bandPatch } from './zebraPhoto.js';
 import { flattenRows } from '../room/textureCore.js';
-export function patchOfPhoto(rgb, w, h, { line = null } = {}) {
+export function patchOfPhoto(rgb, w, h, { line = null, n = N } = {}) {
   let bands = null, rect;
   if (line === 'zebra') bands = bandsOf(rgb, w, h);
   if (bands?.banded) {
     // a square inside the tallest solid band (a band is wide and short: stretching it to a square would bend every direction and spacing)
     const [y0, y1] = bands.solidRows.slice().sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0], bw = Math.ceil(w * 0.88) - Math.floor(w * 0.12), side = Math.max(8, Math.min(y1 - y0, bw));
     rect = { x: Math.floor(w * 0.12) + (bw - side) / 2, y: y0 + (y1 - y0 - side) / 2, side };
-    return { patch: resamplePatch(rgb, w, h, rect), wide: null, bands, rect, how: 'band' };
+    return { patch: resamplePatch(rgb, w, h, rect, n), wide: null, bands, rect, how: 'band' };
   }
   const a = analyzePhoto(rgb, w, h); rect = a.rect;
-  let patch = resamplePatch(rgb, w, h, rect);
+  let patch = resamplePatch(rgb, w, h, rect, n);
   const sd = Math.min(w, h) * 0.84;
-  let wide = resamplePatch(rgb, w, h, { x: (w - sd) / 2, y: (h - sd) / 2, side: sd });
-  if (line === 'cellular') { patch = flattenRows(patch); wide = flattenRows(wide); }
+  let wide = n === N ? resamplePatch(rgb, w, h, { x: (w - sd) / 2, y: (h - sd) / 2, side: sd }) : null;
+  if (line === 'cellular') { patch = flattenRows(patch, n); if (wide) wide = flattenRows(wide); }
   return { patch, wide, bands, rect, how: a.usable ? 'flat' : 'best' };
 }
 export function classifyPhoto(rgb, w, h, { line = null } = {}) {
@@ -248,4 +248,20 @@ export function classifyPhoto(rgb, w, h, { line = null } = {}) {
   // a cellular photo is pleat bands; what is left after they are removed is faint (their soft edges leave horizontal traces), so only a visible grain counts
   if (line === 'cellular') r = features.sdFine < 6.5 || ['slub', 'stripe', 'twill'].includes(r.type) && features.sdFine < 9 ? { ...r, type: 'smooth', reason: 'plain cloth (the pleat bands of the photo are not texture)' } : ['motif', 'print', 'tweed', 'mesh', 'slub', 'stripe', 'twill'].includes(r.type) ? { ...r, type: 'linen', confidence: Math.min(r.confidence, 0.4), reason: 'a visible grain under the pleats' } : r;
   return { ...r, features, rect, bands, how };
+}
+
+// ---- the color of a Zebra, from its photo ------------------------------------------------------------------------------------------------------------------
+// The color a zebra shows is its SOLID band's own, as the photo shows it: the average of the solid band's pixels, so the white sheer bands cannot lift it and a dark cloth stays
+// as dark as its photo. Only a White or Cream zebra goes through the family rules (src/lib/swatchColor.js deriveHex: a soft white, never yellow). A photo that is not banded
+// (a folded sheet) is read in its flattest part. The sheer band's color is the photo's own sheer band when it has one (else null).
+// -> { hex, sheerHex, banded, solidRgb }
+import { deriveHex, hexOf } from './swatchColor.js';
+import { patchColor } from './zebraPhoto.js';
+export function zebraColors(rgb, w, h, colorFamily) {
+  const bands = bandsOf(rgb, w, h);
+  let solidRgb, sheerRgb = null;
+  if (bands.banded) { solidRgb = bandPatch(rgb, w, h, bands.solidRows).rgb; sheerRgb = bandPatch(rgb, w, h, bands.sheerRows).rgb; }
+  else solidRgb = Uint8ClampedArray.from(patchOfPhoto(rgb, w, h, { line: 'zebra', n: 64 }).patch);
+  const white = colorFamily === 'White' || colorFamily === 'Cream/Ivory';
+  return { hex: white ? deriveHex(solidRgb, colorFamily) : hexOf(patchColor(solidRgb)), sheerHex: sheerRgb ? hexOf(patchColor(sheerRgb)) : null, banded: bands.banded, solidRgb };
 }
