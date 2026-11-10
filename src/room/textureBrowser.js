@@ -205,7 +205,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
     let fab = null; try { fab = await fabricOf(look, n); } catch { fab = null; }
     if (fab) {
       const m = fab.m, drawType = zebraDrawType(ttype);          // a tweed, motif or print drawn anyway (a photo that is not flat enough to cut): a motif as a lattice, the others as soft irregular cloth
-      const raw = drawFabric(drawType, m, { n: m.n, seed: seedOf(look.id) }), stats = weaveStats(raw, m.n), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines);
+      const raw = drawFabric(drawType, m, { n: m.n, seed: seedOf(look.id) }), stats = weaveStats(raw, m.n), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines) * (drawType === 'smooth' ? 1 : GENERATED_GAIN);
       const out = retargetWeave(raw, targetFor(hex, { lit, type: ltype }), sd), period = periodOf(drawType, m);
       return { mode: 'pattern', source: 'generated', ttype: drawType, hex, canvas: upscale(toCanvas(out, m.n, m.n), m.n), weave: drawType, bands, rows: 0, period: period ? period * (TEX / m.n) : null, periods: 1, photoSd: stats.sd, sd };
     }
@@ -221,6 +221,8 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
   const out = retargetWeave(raw, targetFor(hex, { lit, type: ltype }), sd);
   return { mode: 'photo', source: 'photo', ttype, hex, canvas: toCanvas(out, TEX, TEX), weave: weaveOf(look), bands, rows: 0, period: stats.period, periods: 1, photoSd: stats.sd, sd };
 }
+// a drawn cloth is built from the photo's measured grain, which the small phone picture melts a little more than a photo crop's coarser period: a touch more contrast keeps a dark thread weave clearly woven
+const GENERATED_GAIN = 1.25;
 const GENERATED_OK = ['slub', 'mesh', 'twill', 'linen', 'stripe', 'smooth'];
 const zebraDrawType = (t) => (GENERATED_OK.includes(t) ? t : t === 'motif' ? 'mesh' : 'linen');
 // is the photo flat enough to cut a texture out of it? (a photo-source color that is not falls back to a generated cloth, unless the admin chose Photo by hand)
