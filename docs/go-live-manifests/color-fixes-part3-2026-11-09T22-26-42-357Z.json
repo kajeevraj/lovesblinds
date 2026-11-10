@@ -1,0 +1,47 @@
+{
+ "kind": "apply-color-fixes",
+ "base": "https://njhlhjdbcesidgixycxj.supabase.co",
+ "at": "2026-11-09T22:26:42.357Z",
+ "rows": [
+  {
+   "id": "shangri-la:YSLH201",
+   "name": "Snow White",
+   "before": {
+    "texture_mode": "photo"
+   },
+   "after": {
+    "texture_mode": "pattern"
+   }
+  },
+  {
+   "id": "shangri-la:YSLP601",
+   "name": "Lily White",
+   "before": {
+    "texture_mode": "photo"
+   },
+   "after": {
+    "texture_mode": "pattern"
+   }
+  },
+  {
+   "id": "shangri-la:YSLP102",
+   "name": "Cream",
+   "before": {
+    "texture_mode": "photo"
+   },
+   "after": {
+    "texture_mode": "pattern"
+   }
+  },
+  {
+   "id": "shangri-la:YSLP1002",
+   "name": "Canary Yellow",
+   "before": {
+    "texture_mode": "photo"
+   },
+   "after": {
+    "texture_mode": "pattern"
+   }
+  }
+ ]
+}

@@ -103,10 +103,10 @@ try {
       && (await page.locator('.pv-xlabel, .pv-solar-label, .pv-solar-line, .pv-dim').count()) === 0);
     await P.setAmount(100);
     const white = await P.shot(), wTile = await tileColor(page);
-    const face = mean(white, 0.3, 0.3, 0.4, 0.3);
-    check(T(`a white is white: the face ${face.map((v) => Math.round(v)).join(',')} is within 8 of its tile ${wTile}, and neutral`), dist(face, hexRgb(wTile)) <= 8 && Math.abs(face[0] - face[2]) <= 6 + Math.abs(hexRgb(wTile)[0] - hexRgb(wTile)[2]));
+    const fy = line === 'roman' ? 0.5 : 0.3, face = mean(white, 0.3, fy, 0.4, 0.25);          // the part of the cloth where the color is calibrated (a light-filtering cloth is a touch brighter above it and dimmer below: daylight)
+    check(T(`a white is white: the face ${face.map((v) => Math.round(v)).join(',')} is within 10 of its tile ${wTile} (plain RGB; e2e_shade_colors holds every color to distance 4 in Lab), and neutral`), dist(face, hexRgb(wTile)) <= 10 && Math.abs(face[0] - face[2]) <= 6 + Math.abs(hexRgb(wTile)[0] - hexRgb(wTile)[2]));
     // ---- color ----
-    await P.pick(def.dark); const dark = await P.shot(), dTile = await tileColor(page), dFace = mean(dark, 0.3, 0.3, 0.4, 0.3);
+    await P.pick(def.dark); const dark = await P.shot(), dTile = await tileColor(page), dFace = mean(dark, 0.3, fy, 0.4, 0.25);
     check(T(`a new color redraws the shade in that color (dark face ${dFace.map((v) => Math.round(v)).join(',')}, tile ${dTile})`), dist(dFace, hexRgb(dTile)) <= 9 && lum(face) - lum(dFace) > 60);
     // ---- headrail / rail / cassette color: a real choice, Pearl White unless another is picked ----
     const headLabel = { cellular: 'Rail color', roman: 'Headrail color', 'shangri-la': 'Cassette color' }[line], head = (s) => mean(s, 0.2, 0.006, 0.6, 0.012);
