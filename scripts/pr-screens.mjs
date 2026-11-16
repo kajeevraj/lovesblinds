@@ -14,7 +14,7 @@ for (const g of await cat('zebra')) for (const s of g.swatches || []) by.zebra.p
 for (const g of await cat('cellular')) for (const s of g.swatches || []) if ((s.family || g.family) !== 'blackout') by.cellular.push(s);
 for (const g of await cat('roman')) for (const s of g.swatches || []) if (s.roman_styles?.flat?.available) by.roman.push(s);
 for (const g of await cat('shangri-la')) for (const s of g.swatches || []) by['shangri-la'].push(s);
-const pickOf = (list, fam) => list.find((s) => s.color_family === fam && s.thumb_path);
+const pickOf = (list, fam) => (fam === 'dark' ? ['Charcoal/Black', 'Brown', 'Blue', 'Green', 'Gray'].map((f) => list.find((s) => s.color_family === f && s.thumb_path)).find(Boolean) : list.find((s) => s.color_family === fam && s.thumb_path));
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const NO_OVERRIDE = { YZB2008: { preview_color: null }, YZB3007: { preview_color: null } };
 const shot = async (s, name) => { await s.page.evaluate(() => window.scrollTo(0, 0)); await s.page.waitForTimeout(500); await s.page.locator('.pv').screenshot({ path: `${OUT}/${name}.png` }); console.log(name); };
@@ -23,7 +23,7 @@ for (const [tag, vp] of [['desktop', { width: 1440, height: 1000 }], ['phone', {
   // ---- fabrics on every line
   for (const line of ['solar', 'zebra', 'cellular', 'roman', 'shangri-la']) {
     const s = await probeSession(browser, { ...vp, overrides: NO_OVERRIDE }); await s.select(line);
-    for (const [kind, fam] of [['light', 'Beige/Tan'], ['dark', 'Charcoal/Black'], ['white', 'White']]) {
+    for (const [kind, fam] of [['light', 'Beige/Tan'], ['dark', 'dark'], ['white', 'White']]) {
       const sw = pickOf(by[line], fam); if (!sw) { console.log('none', line, kind); continue; }
       const r = await s.read(sw.supplier_code); if (r.skipped) continue; await shot(s, `${tag}-${line === 'solar' ? 'roller' : line}-${kind}-${sw.supplier_code}`);
     }
@@ -37,8 +37,8 @@ for (const [tag, vp] of [['desktop', { width: 1440, height: 1000 }], ['phone', {
   for (const [line, probeType, code] of [['roller', 'solar', 'YS180006'], ['zebra', 'zebra', 'YZB202'], ['cellular', 'cellular', null], ['roman', 'roman', null], ['shangri-la', 'shangri-la', 'YSLH204']]) {
     const s = await probeSession(browser, vp); await s.select(probeType);
     const c = code || by[probeType][0].supplier_code;
-    if (line === 'roller' || line === 'zebra') { const card = s.page.locator('.s2-card').filter({ has: s.page.locator('.s2-card-name', { hasText: /^Chain$/ }) }).first(); if (await card.count()) { await card.click(); await s.page.waitForTimeout(400); } }
-    await s.read(c); await s.page.evaluate(() => window.scrollTo(0, 0)); await s.page.waitForTimeout(500);
+    await s.read(c);
+    for (const nm of ['Chain', 'Cord loop']) { if (await s.page.locator('.pv-chain').count()) break; const card = s.page.locator('.s2-card').filter({ has: s.page.locator('.s2-card-name', { hasText: new RegExp(`^${nm}$`) }) }).first(); if (await card.count()) { await card.click(); await s.page.waitForTimeout(900); } } await s.page.evaluate(() => window.scrollTo(0, 0)); await s.page.waitForTimeout(500);
     await s.page.waitForSelector('.pv-chain', { timeout: 15000 }).catch(() => {});
     const b = await s.page.locator('.pv-chain-hit[data-strand="lower"]').boundingBox(); if (!b) { console.log('no chain on', line); await s.close(); continue; }
     const x = b.x + b.width / 2, y = b.y + 24, dy = phone ? 40 : 110;
