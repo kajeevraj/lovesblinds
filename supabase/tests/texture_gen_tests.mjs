@@ -5,6 +5,7 @@
 const T = await import('../../src/lib/textureType.js');
 const G = await import('../../src/lib/textureGen.js');
 const Z = await import('../../src/lib/zebraPhoto.js');
+const { lightnessOf } = await import('../../src/lib/swatchColor.js');
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
 const N = 256;
@@ -92,6 +93,23 @@ const banded = (solidRgb, sheerRgb, w = 200, h = 300, texture = 0) => {
 {
   const rgb = banded([244, 241, 232], [253, 253, 255]), c = T.zebraColors(rgb, 200, 300, 'White');
   check('a White zebra still goes through the family rules (a soft white, never cream or grey)', /^#[ef][0-9a-f]{5}$/.test(c.hex) && T.zebraColors(rgb, 200, 300, 'White').banded, c.hex);
+}
+{ // a black-family zebra photographed heathered or washed out: it must read as near-black, the heather stays as texture
+  const rgb = banded([126, 126, 137], [250, 250, 252], 200, 300, 14), c = T.zebraColors(rgb, 200, 300, 'Charcoal/Black'), L = lightnessOf(c.hex);
+  check('a black-family zebra with a mid-grey heathered photo is clamped to near-black (Lab L* under 25) and says so', L <= 24.5 && c.adjusted === 'black cap', `${c.hex} L* ${L.toFixed(1)}`);
+  const dark = T.zebraColors(banded([30, 30, 32], [250, 250, 252]), 200, 300, 'Charcoal/Black');
+  check('a black that is already dark is not touched', dark.adjusted === null && Math.abs(parseInt(dark.hex.slice(1, 3), 16) - 30) <= 2, dark.hex);
+  const brown = T.zebraColors(rgb, 200, 300, 'Gray');
+  check('other families keep the photo\'s own lightness', lightnessOf(brown.hex) > 45, brown.hex);
+}
+{ // a beige photographed on a cool grey backdrop (a see-through sheer that shows it, or a washed-out photo): the warm band is the solid cloth, never the grey
+  const warm = (hex) => { const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return (r + g) / 2 - b; };
+  const rgb = banded([235, 230, 214], [196, 196, 206]), c = T.zebraColors(rgb, 200, 300, 'Beige/Tan'), b = Z.bandsOf(rgb, 200, 300, { family: 'Beige/Tan' }), plain = Z.bandsOf(rgb, 200, 300);
+  check('a beige zebra: the cool grey backdrop band is skipped, the warm band is the solid (the same photo without the family reads the grey as solid)', b.swapped && !plain.swapped && warm(c.hex) >= 12, `${c.hex} warmth ${warm(c.hex).toFixed(0)}`);
+  const neutral = T.zebraColors(banded([200, 200, 204], [250, 250, 252]), 200, 300, 'Beige/Tan');
+  check('a beige whose photographed solid band is neutral grey gets the family\'s warm tint at the photo\'s lightness', warm(neutral.hex) >= 6 && neutral.adjusted === 'family tint', neutral.hex);
+  const ok = T.zebraColors(banded([200, 190, 160], [250, 250, 252]), 200, 300, 'Beige/Tan');
+  check('a beige whose solid band is already warm is left as photographed', ok.adjusted === null && !Z.bandsOf(banded([200, 190, 160], [250, 250, 252]), 200, 300, { family: 'Beige/Tan' }).swapped, ok.hex);
 }
 { // a folded sheet: creases down the picture, no bands
   const w = 200, h = 300, rgb = new Uint8ClampedArray(w * h * 3);

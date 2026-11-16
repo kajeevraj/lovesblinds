@@ -8,6 +8,7 @@ import { probeSession, dE, toLab, hexRgb } from './lib/shadeProbe.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const sharp = (await import('sharp')).default;
 const { zebraColors, defaultSource } = await import('../../src/lib/textureType.js');
+const { lightnessOf } = await import('../../src/lib/swatchColor.js');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
 const TYPES = JSON.parse((await import('node:fs')).readFileSync(new URL('../../src/data/textureTypes.json', import.meta.url), 'utf8'));
 const results = [];
@@ -63,7 +64,7 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
   // ---- zebra: solid band color from the photo's solid band, texture by type ----
   s = await probeSession(browser, vp); await s.select('zebra');
   const zbad = [], zrows = [];
-  for (const name of ['Tuxedo Black', 'Soot Gray', 'Cream', 'Truffle Chocolate', 'Mocha Chocolate', 'Angel White']) {
+  for (const name of ['Tuxedo Black', 'Soot Gray', 'Cream', 'Truffle Chocolate', 'Mocha Chocolate', 'Angel White', 'Jet Black', 'Safari Khaki', 'Vanilla Latte', 'Sand Beige', 'Straw Khaki']) {
     const c = zebra.find((x) => x.display_name === name); if (!c) { zbad.push(`${name}: not in the catalog`); continue; }
     if (c.preview_color) { zrows.push(`${name} skipped (preview_color ${c.preview_color})`); continue; }
     try {
@@ -72,11 +73,13 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
       const z = zebraColors(data, info.width, info.height, c.color_family), d = dE(hexRgb(r.tile), hexRgb(z.hex)), db = Math.abs(toLab(hexRgb(r.tile))[2] - toLab(hexRgb(z.hex))[2]);
       zrows.push(`${name} tile ${r.tile} photo ${z.hex} d${d.toFixed(1)}`);
       if (d > 4 || db > 2) zbad.push(`${name}: tile ${r.tile} vs the photo's solid band ${z.hex} (distance ${d.toFixed(1)}, b* ${db.toFixed(1)})`);
+      if (c.color_family === 'Charcoal/Black' && lightnessOf(r.tile) > 25) zbad.push(`${name}: a black-family zebra shows L* ${lightnessOf(r.tile).toFixed(1)} (must be under 25)`);
+      if (c.color_family === 'Beige/Tan') { const [rr, gg, bb] = hexRgb(r.tile); if ((rr + gg) / 2 - bb < 6) zbad.push(`${name}: a beige zebra shows a grey ${r.tile} (the backdrop, not the cloth)`); }
       if ((await lookOf(s, c.supplier_code))?.weave !== 'zebra') zbad.push(`${name}: not drawn as a zebra`);
       if (r.sdHigh === undefined) zbad.push(`${name}: no reading`);
     } catch (e) { zbad.push(`${name}: ${e.message.split('\n')[0]}`); }
   }
-  check(`${label}: Zebra solid bands match the photo's solid band (distance 4, b* 2)`, zbad.length === 0, zbad.join(' | ') || zrows.join('; '));
+  check(`${label}: Zebra solid bands match the photo's solid band (distance 4, b* 2); blacks are near-black and beiges are warm`, zbad.length === 0, zbad.join(' | ') || zrows.join('; '));
   check(`${label}: no page errors`, s.errors.length === 0, s.errors.join(' | '));
   await s.close();
 }

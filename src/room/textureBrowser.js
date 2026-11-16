@@ -157,7 +157,7 @@ async function fabricOf(look, n) {
   const key = `${look.id}|${n}|${look.line}`;
   let p = measures.get(key);
   if (!p) {
-    p = loadImage(look.thumb || look.tile || look.image).then((img) => { const px = pixelsAt(img, 0), { patch } = patchOfPhoto(px.rgb, px.w, px.h, { line: look.line, n }); return { m: measureFabric(patch, n), patch }; });
+    p = loadImage(look.thumb || look.tile || look.image).then((img) => { const px = pixelsAt(img, 0), { patch } = patchOfPhoto(px.rgb, px.w, px.h, { line: look.line, n, family: look.colorFamily }); return { m: measureFabric(patch, n), patch }; });
     measures.set(key, p); p.catch(() => measures.delete(key));
   }
   return p;

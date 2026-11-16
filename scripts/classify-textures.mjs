@@ -52,7 +52,7 @@ await Promise.all(Array.from({ length: 6 }, async () => {
     const res = await fetch(`${BASE}/storage/v1/object/public/swatches/${s.thumb}`);
     if (!res.ok) { out.push({ ...s, type: 'linen', confidence: 0, reason: 'photo could not be read', failed: true }); continue; }
     const { data, info } = await sharp(Buffer.from(await res.arrayBuffer())).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    const r = classifyPhoto(data, info.width, info.height, { line: s.line });
+    const r = classifyPhoto(data, info.width, info.height, { line: s.line, family: s.colorFamily });
     const f = r.features, rev = REVIEWED[s.id];
     out.push({ ...s, measured: r.type, type: rev ? rev.type : r.type, reviewed: rev ? rev.why : null, confidence: +r.confidence.toFixed(2), runnerUp: r.runnerUp, reason: r.reason, how: r.how, banded: !!r.bands?.banded,
       features: { sdFine: +f.sdFine.toFixed(1), horiz: +f.horiz.toFixed(2), coherence: +f.coherence.toFixed(2), peakShare: +f.peakShare.toFixed(2), lineOblique: +(f.lineOblique ?? 0).toFixed(2) } });

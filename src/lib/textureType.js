@@ -220,9 +220,9 @@ export function classifyTexture(f, w = null, { line = null, banded = true } = {}
 import { analyzePhoto } from './textureAnalysis.js';
 import { bandsOf, bandPatch } from './zebraPhoto.js';
 import { flattenRows } from '../room/textureCore.js';
-export function patchOfPhoto(rgb, w, h, { line = null, n = N } = {}) {
+export function patchOfPhoto(rgb, w, h, { line = null, n = N, family = null } = {}) {
   let bands = null, rect;
-  if (line === 'zebra') bands = bandsOf(rgb, w, h);
+  if (line === 'zebra') bands = bandsOf(rgb, w, h, { family });
   if (bands?.banded) {
     // a square inside the tallest solid band (a band is wide and short: stretching it to a square would bend every direction and spacing)
     const [y0, y1] = bands.solidRows.slice().sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0], bw = Math.ceil(w * 0.88) - Math.floor(w * 0.12), side = Math.max(8, Math.min(y1 - y0, bw));
@@ -236,8 +236,8 @@ export function patchOfPhoto(rgb, w, h, { line = null, n = N } = {}) {
   if (line === 'cellular') { patch = flattenRows(patch, n); if (wide) wide = flattenRows(wide); }
   return { patch, wide, bands, rect, how: a.usable ? 'flat' : 'best' };
 }
-export function classifyPhoto(rgb, w, h, { line = null } = {}) {
-  const { patch, wide, bands, rect, how } = patchOfPhoto(rgb, w, h, { line });
+export function classifyPhoto(rgb, w, h, { line = null, family = null } = {}) {
+  const { patch, wide, bands, rect, how } = patchOfPhoto(rgb, w, h, { line, family });
   const features = textureFeatures(patch), wideF = wide ? textureFeatures(wide) : null;
   let r = classifyTexture(features, wideF, { line, banded: !!bands?.banded });
   if (line === 'shangri-la') {
@@ -255,13 +255,20 @@ export function classifyPhoto(rgb, w, h, { line = null } = {}) {
 // as dark as its photo. Only a White or Cream zebra goes through the family rules (src/lib/swatchColor.js deriveHex: a soft white, never yellow). A photo that is not banded
 // (a folded sheet) is read in its flattest part. The sheer band's color is the photo's own sheer band when it has one (else null).
 // -> { hex, sheerHex, banded, solidRgb }
-import { deriveHex, hexOf } from './swatchColor.js';
+import { deriveHex, hexOf, capLightness } from './swatchColor.js';
 import { patchColor } from './zebraPhoto.js';
 export function zebraColors(rgb, w, h, colorFamily) {
-  const bands = bandsOf(rgb, w, h);
+  const bands = bandsOf(rgb, w, h, { family: colorFamily });
   let solidRgb, sheerRgb = null;
   if (bands.banded) { solidRgb = bandPatch(rgb, w, h, bands.solidRows).rgb; sheerRgb = bandPatch(rgb, w, h, bands.sheerRows).rgb; }
-  else solidRgb = Uint8ClampedArray.from(patchOfPhoto(rgb, w, h, { line: 'zebra', n: 64 }).patch);
-  const white = colorFamily === 'White' || colorFamily === 'Cream/Ivory';
-  return { hex: white ? deriveHex(solidRgb, colorFamily) : hexOf(patchColor(solidRgb)), sheerHex: sheerRgb ? hexOf(patchColor(sheerRgb)) : null, banded: bands.banded, solidRgb };
+  else solidRgb = Uint8ClampedArray.from(patchOfPhoto(rgb, w, h, { line: 'zebra', n: 64, family: colorFamily }).patch);
+  const white = colorFamily === 'White' || colorFamily === 'Cream/Ivory', warmFam = colorFamily === 'Beige/Tan';
+  const avg = patchColor(solidRgb);
+  let hex = white ? deriveHex(solidRgb, colorFamily) : hexOf(avg), adjusted = null;
+  // a beige whose photographed solid band is neutral grey (the backdrop shows through, or the photo is washed out): the family's own warm tint, kept at the photo's lightness
+  if (warmFam && (avg[0] + avg[1]) / 2 - avg[2] < 6) { hex = deriveHex(solidRgb, colorFamily); adjusted = 'family tint'; }
+  // a black-family color must read as near-black: a heathered or washed-out photo stays as texture, never as the base color (Lab L* at most 24)
+  if (colorFamily === 'Charcoal/Black') { const capped = capLightness(hex, BLACK_MAX_L); if (capped !== hex) { hex = capped; adjusted = 'black cap'; } }
+  return { hex, sheerHex: sheerRgb ? hexOf(patchColor(sheerRgb)) : null, banded: bands.banded, swapped: !!bands.swapped, adjusted, solidRgb };
 }
+export const BLACK_MAX_L = 24;

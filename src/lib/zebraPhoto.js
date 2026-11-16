@@ -8,7 +8,7 @@
 //   bandPatch(rgb, w, h, rows)  ->  the pixels inside those rows (and the middle of the width), as r,g,b bytes, w, h, for the color and the texture
 const lumaOf = (rgb, i) => 0.3 * rgb[i] + 0.59 * rgb[i + 1] + 0.11 * rgb[i + 2];
 
-export function bandsOf(rgb, w, h) {
+export function bandsOf(rgb, w, h, { family = null } = {}) {
   const x0 = Math.floor(w * 0.12), x1 = Math.ceil(w * 0.88), prof = new Float32Array(h), colMean = new Float64Array(w);
   // the signal that tells solid from sheer is the light AND the color: a cream band and a white band have almost the same luminance, but the cream is yellower (less blue)
   const sig = (i) => lumaOf(rgb, i) - 1.4 * Math.max(0, (rgb[i] + rgb[i + 1]) / 2 - rgb[i + 2]);
@@ -30,15 +30,26 @@ export function bandsOf(rgb, w, h) {
   const runs = []; let start = 0;
   for (let y = 1; y <= h; y++) if (y === h || (sm[y] <= best.thr) !== (sm[y - 1] <= best.thr)) { runs.push({ dark: sm[start] <= best.thr, a: start, b: y }); start = y; }
   const long = runs.filter((r) => r.b - r.a >= h * 0.07);
-  const solid = long.filter((r) => r.dark), sheer = long.filter((r) => !r.dark);
+  let solid = long.filter((r) => r.dark), sheer = long.filter((r) => !r.dark), swapped = false;
   // a banded photo is the same all along a row and different from row to row; a folded sheet has creases down the picture, so its columns differ from one another about as
   // much as its rows do (the variance of the column averages against that of the row averages: under 0.15 for every banded photo, over 0.4 for every folded one)
   let cm = 0; for (let x = x0; x < x1; x++) cm += colMean[x]; cm /= x1 - x0;
   let cv = 0; for (let x = x0; x < x1; x++) cv += (colMean[x] - cm) ** 2; cv /= x1 - x0;
   const banded = gap >= 4 && wv / tv < 0.3 && cv / tv <= 0.2 && solid.length >= 1 && sheer.length >= 1 && best.n0 / h > 0.15 && best.n1 / h > 0.12;
   if (!banded) return { ...none, gap };
+  // A warm cloth (Beige/Tan, Cream/Ivory) photographed on a cool grey or white backdrop, or with a see-through sheer that shows the backdrop: the SOLID band is the one that is
+  // warm like its family, whichever is darker. Bands whose hue is far from the family's (the backdrop, the sheer) are never the solid cloth.
+  if (family === 'Beige/Tan' || family === 'Cream/Ivory') {
+    const warmOf = (r) => { let t = 0, n = 0; for (let y = r.a; y < r.b; y++) for (let x = x0; x < x1; x++) { const i = (y * w + x) * 3; t += (rgb[i] + rgb[i + 1]) / 2 - rgb[i + 2]; n++; } return t / n; };
+    for (const r of [...solid, ...sheer]) r.warm = warmOf(r);
+    const avg = (l) => l.reduce((s, r) => s + r.warm * (r.b - r.a), 0) / (l.reduce((s, r) => s + (r.b - r.a), 0) || 1);
+    if (avg(sheer) - avg(solid) >= 3) { [solid, sheer] = [sheer, solid]; swapped = true; }
+    const top = Math.max(...solid.map((r) => r.warm)), keep = solid.filter((r) => r.warm >= top - 6);
+    if (keep.length && keep.length < solid.length) { sheer = sheer.concat(solid.filter((r) => !keep.includes(r))); solid = keep; swapped = true; }
+  }
   const inset = (r) => { const pad = Math.max(3, Math.round((r.b - r.a) * 0.14)); return [r.a + pad, r.b - pad]; };
-  return { banded: true, solidRows: solid.map(inset), sheerRows: sheer.map(inset), gap, split: best.n0 / h };
+  const hs = (l) => l.reduce((s, r) => s + (r.b - r.a), 0);
+  return { banded: true, solidRows: solid.map(inset), sheerRows: sheer.map(inset), gap, split: hs(solid) / ((hs(solid) + hs(sheer)) || 1), swapped };
 }
 
 // The pixels inside some rows of the photo (middle 76% of the width), stacked into one picture. -> { rgb, w, h }

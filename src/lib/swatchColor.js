@@ -94,6 +94,13 @@ export function deriveHex(rgb, family) {
   return hexOf(ch.map((c) => Lc + c * s));
 }
 
+// A hex color with its lightness (Lab L*) held at or under `maxL`, hue and chroma kept (a black-family color that a washed-out or heathered photo shows too light)
+export function capLightness(hex, maxL) {
+  const [L, a, b] = labOf(...rgbOf(hex)); if (L <= maxL) return hex;
+  const C = Math.hypot(a, b) * Math.max(0.4, maxL / L), h = Math.atan2(b, a);
+  return hexOf(lchToRgb(maxL, C, h));
+}
+
 // Lab chroma of a hex color (used by the tests and the review list)
 export const chromaOf = (hex) => { const [, a, b] = labOf(...rgbOf(hex)); return Math.hypot(a, b); };
 export const lightnessOf = (hex) => labOf(...rgbOf(hex))[0];

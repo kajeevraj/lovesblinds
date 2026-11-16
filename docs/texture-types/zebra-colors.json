@@ -1,29 +1,8 @@
 [
  {
-  "code": "DZB3105",
-  "name": "Jet Black",
-  "family": "Charcoal/Black",
-  "override": null,
-  "today": "#38383c",
-  "now": "#7e7e89",
-  "banded": true,
-  "fromFull": "#7e7d8a",
-  "move": 29.70412481632059,
-  "thumbVsFull": 1.262855288204114
- },
- {
-  "code": "YZBK501",
-  "name": "Black White",
-  "family": "Charcoal/Black",
-  "override": null,
-  "today": "#383839",
-  "now": "#787879",
-  "banded": false,
-  "fromFull": "#797879",
-  "move": 26.906390111763375,
-  "thumbVsFull": 0.40918595327015334
- },
- {
+  "v1": "#d1d5d5",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3001",
   "name": "Taupe Gray",
   "family": "Gray",
@@ -36,6 +15,9 @@
   "thumbVsFull": 0.6502934716285679
  },
  {
+  "v1": "#494949",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3007",
   "name": "Bittersweet Chocolate",
   "family": "Brown",
@@ -48,6 +30,9 @@
   "thumbVsFull": 1.0512968531327511
  },
  {
+  "v1": "#4d463b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZBK206",
   "name": "Terrain Khaki",
   "family": "Beige/Tan",
@@ -60,6 +45,9 @@
   "thumbVsFull": 0.8235117772016223
  },
  {
+  "v1": "#807d7f",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3006",
   "name": "Roasted Coffee",
   "family": "Brown",
@@ -72,30 +60,9 @@
   "thumbVsFull": 0.7591028926002801
  },
  {
-  "code": "YZBK503",
-  "name": "Black Grey",
-  "family": "Charcoal/Black",
-  "override": null,
-  "today": "#383838",
-  "now": "#5c5c5c",
-  "banded": true,
-  "fromFull": "#5e5e5e",
-  "move": 15.553633746495047,
-  "thumbVsFull": 0.829561009402116
- },
- {
-  "code": "YZB3003",
-  "name": "Safari Khaki",
-  "family": "Beige/Tan",
-  "override": null,
-  "today": "#dad0ba",
-  "now": "#c5c5c9",
-  "banded": true,
-  "fromFull": "#c4c4c9",
-  "move": 14.777974355385442,
-  "thumbVsFull": 0.631577110436731
- },
- {
+  "v1": "#494442",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB2008",
   "name": "Dark Chocolate",
   "family": "Brown",
@@ -108,54 +75,9 @@
   "thumbVsFull": 0.8363105231216051
  },
  {
-  "code": "YZB3004",
-  "name": "Vanilla Latte",
-  "family": "Beige/Tan",
-  "override": null,
-  "today": "#d4cab5",
-  "now": "#c7c7c9",
-  "banded": true,
-  "fromFull": "#c7c7c9",
-  "move": 12.804060102577653,
-  "thumbVsFull": 0
- },
- {
-  "code": "DZB3103",
-  "name": "Sand Beige",
-  "family": "Beige/Tan",
-  "override": null,
-  "today": "#eae0ca",
-  "now": "#eaeaea",
-  "banded": true,
-  "fromFull": "#ebeaec",
-  "move": 12.434637248014447,
-  "thumbVsFull": 1.1018957579116222
- },
- {
-  "code": "YZB502",
-  "name": "Straw Khaki",
-  "family": "Beige/Tan",
-  "override": null,
-  "today": "#eae0ca",
-  "now": "#dedcd9",
-  "banded": true,
-  "fromFull": "#dddad7",
-  "move": 10.412738299606792,
-  "thumbVsFull": 0.7306242513144983
- },
- {
-  "code": "YZB1003",
-  "name": "Clay Khaki",
-  "family": "Beige/Tan",
-  "override": null,
-  "today": "#b4aa95",
-  "now": "#b2afaa",
-  "banded": true,
-  "fromFull": "#b0aca8",
-  "move": 9.34116608873942,
-  "thumbVsFull": 1.2028970465600397
- },
- {
+  "v1": "#dddbcd",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3501",
   "name": "Nougat Beige",
   "family": "Beige/Tan",
@@ -168,6 +90,9 @@
   "thumbVsFull": 0.35531213492099256
  },
  {
+  "v1": "#c6c9c8",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB801",
   "name": "Silver Gray",
   "family": "Gray",
@@ -180,6 +105,9 @@
   "thumbVsFull": 2.1683306873003607
  },
  {
+  "v1": "#757b93",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB804",
   "name": "Sterling Gray",
   "family": "Gray",
@@ -192,6 +120,9 @@
   "thumbVsFull": 0.47900204918667205
  },
  {
+  "v1": "#737a92",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB208",
   "name": "Twilight Gray",
   "family": "Gray",
@@ -204,6 +135,9 @@
   "thumbVsFull": 0.7158467199652683
  },
  {
+  "v1": "#81889f",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB904",
   "name": "Mineral Gray",
   "family": "Gray",
@@ -216,6 +150,9 @@
   "thumbVsFull": 0.5738311609416364
  },
  {
+  "v1": "#f1eadf",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5203",
   "name": "Oatmeal Beige",
   "family": "Beige/Tan",
@@ -228,6 +165,9 @@
   "thumbVsFull": 0.37363588144238785
  },
  {
+  "v1": "#b0a49a",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5205",
   "name": "Walnut Brown",
   "family": "Brown",
@@ -240,6 +180,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#dad2b3",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3302",
   "name": "Biscuit Khaki",
   "family": "Beige/Tan",
@@ -252,6 +195,9 @@
   "thumbVsFull": 1.9683173296320218
  },
  {
+  "v1": "#312323",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1011",
   "name": "Crimson",
   "family": "Charcoal/Black",
@@ -264,6 +210,9 @@
   "thumbVsFull": 0.8152277980450041
  },
  {
+  "v1": "#c2c5c8",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1001",
   "name": "Dove White",
   "family": "Gray",
@@ -276,6 +225,9 @@
   "thumbVsFull": 0.5342178638477699
  },
  {
+  "v1": "#837166",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB4303",
   "name": "Mocha Brown",
   "family": "Brown",
@@ -288,6 +240,9 @@
   "thumbVsFull": 1.1274939275923064
  },
  {
+  "v1": "#544c4a",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB4304",
   "name": "Cocoa Chocolate",
   "family": "Brown",
@@ -300,6 +255,9 @@
   "thumbVsFull": 1.0558647000863544
  },
  {
+  "v1": "#a5a9b9",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5207",
   "name": "Pewter Gray",
   "family": "Gray",
@@ -312,6 +270,9 @@
   "thumbVsFull": 0.7260655377253211
  },
  {
+  "v1": "#f1e5ca",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-103",
   "name": "Sandstone Khaki",
   "family": "Beige/Tan",
@@ -324,6 +285,9 @@
   "thumbVsFull": 0.5132086927259099
  },
  {
+  "v1": "#c1c6c9",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB901",
   "name": "Tundra White",
   "family": "Gray",
@@ -336,6 +300,9 @@
   "thumbVsFull": 1.8335945708481276
  },
  {
+  "v1": "#a0a2b1",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1021",
   "name": "Steel Gray",
   "family": "Gray",
@@ -348,6 +315,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#8f7a54",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1007",
   "name": "Cinnamon Brown",
   "family": "Brown",
@@ -360,6 +330,24 @@
   "thumbVsFull": 0.727614610342535
  },
  {
+  "v1": "#c5c5c9",
+  "adjusted": "family tint",
+  "swapped": true,
+  "code": "YZB3003",
+  "name": "Safari Khaki",
+  "family": "Beige/Tan",
+  "override": null,
+  "today": "#dad0ba",
+  "now": "#e2d7c2",
+  "banded": true,
+  "fromFull": "#e2d8c2",
+  "move": 2.686674409430739,
+  "thumbVsFull": 0.6790372087831813
+ },
+ {
+  "v1": "#d4d0ae",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3-101",
   "name": "Parchment Beige",
   "family": "Beige/Tan",
@@ -372,6 +360,9 @@
   "thumbVsFull": 1.044639139026998
  },
  {
+  "v1": "#cbc6b1",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB2001",
   "name": "Cashew Beige",
   "family": "Beige/Tan",
@@ -384,6 +375,9 @@
   "thumbVsFull": 1.05922356353304
  },
  {
+  "v1": "#5f5550",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3-104",
   "name": "Umber Brown",
   "family": "Brown",
@@ -396,6 +390,9 @@
   "thumbVsFull": 1.6837990205933808
  },
  {
+  "v1": "#616371",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB2005",
   "name": "Soot Gray",
   "family": "Gray",
@@ -408,6 +405,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#483632",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3504",
   "name": "Tobacco Brown",
   "family": "Brown",
@@ -420,18 +420,9 @@
   "thumbVsFull": 1.639585038275721
  },
  {
-  "code": "YZBK504",
-  "name": "Black Brown",
-  "family": "Charcoal/Black",
-  "override": null,
-  "today": "#3b3734",
-  "now": "#3f3934",
-  "banded": true,
-  "fromFull": "#403935",
-  "move": 1.9403229147197547,
-  "thumbVsFull": 0.806816985454902
- },
- {
+  "v1": "#6b6160",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5-104",
   "name": "Sable Brown",
   "family": "Brown",
@@ -444,6 +435,9 @@
   "thumbVsFull": 1.4001885678797388
  },
  {
+  "v1": "#6e6252",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5005",
   "name": "Cinnamon Latte",
   "family": "Brown",
@@ -456,6 +450,39 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#dedcd9",
+  "adjusted": "family tint",
+  "swapped": false,
+  "code": "YZB502",
+  "name": "Straw Khaki",
+  "family": "Beige/Tan",
+  "override": null,
+  "today": "#eae0ca",
+  "now": "#e6dbc6",
+  "banded": true,
+  "fromFull": "#e4d9c4",
+  "move": 1.7748576368684006,
+  "thumbVsFull": 0.709810435768212
+ },
+ {
+  "v1": "#3f3934",
+  "adjusted": "black cap",
+  "swapped": false,
+  "code": "YZBK504",
+  "name": "Black Brown",
+  "family": "Charcoal/Black",
+  "override": null,
+  "today": "#3b3734",
+  "now": "#3e3833",
+  "banded": true,
+  "fromFull": "#3f3834",
+  "move": 1.7519807669666518,
+  "thumbVsFull": 0.8089003784957272
+ },
+ {
+  "v1": "#e8e3d7",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5-102",
   "name": "Dune Khaki",
   "family": "Beige/Tan",
@@ -468,6 +495,9 @@
   "thumbVsFull": 0.375452847970977
  },
  {
+  "v1": "#51525b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1005",
   "name": "Wolf Gray",
   "family": "Gray",
@@ -480,6 +510,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#695b49",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB2007",
   "name": "Teak Brown",
   "family": "Brown",
@@ -492,6 +525,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#baae9b",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3502",
   "name": "Sahara Khaki",
   "family": "Beige/Tan",
@@ -504,6 +540,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#8b866b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5105",
   "name": "Almond Latte",
   "family": "Brown",
@@ -516,6 +555,9 @@
   "thumbVsFull": 0.7002358281020957
  },
  {
+  "v1": "#ebe4d9",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-102",
   "name": "Fawn Beige",
   "family": "Beige/Tan",
@@ -528,6 +570,9 @@
   "thumbVsFull": 0.3757405036001811
  },
  {
+  "v1": "#82808b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3-103",
   "name": "Anchor Gray",
   "family": "Gray",
@@ -540,6 +585,9 @@
   "thumbVsFull": 0.7075525480657028
  },
  {
+  "v1": "#343339",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5006",
   "name": "Tuxedo Black",
   "family": "Charcoal/Black",
@@ -552,6 +600,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#807f89",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5-103",
   "name": "Dusk Gray",
   "family": "Gray",
@@ -564,18 +615,24 @@
   "thumbVsFull": 0.577861863849077
  },
  {
-  "code": "YZBK207",
-  "name": "Raven Black",
-  "family": "Charcoal/Black",
+  "v1": "#b2afaa",
+  "adjusted": "family tint",
+  "swapped": false,
+  "code": "YZB1003",
+  "name": "Clay Khaki",
+  "family": "Beige/Tan",
   "override": null,
-  "today": "#37383c",
-  "now": "#3a3b40",
+  "today": "#b4aa95",
+  "now": "#b8ae99",
   "banded": true,
-  "fromFull": "#3a3c41",
-  "move": 1.523178572136877,
-  "thumbVsFull": 0.5602110757034833
+  "fromFull": "#b6ac97",
+  "move": 1.4836315430369125,
+  "thumbVsFull": 0.7410250616774846
  },
  {
+  "v1": "#c6c5cb",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3104",
   "name": "Dove Gray",
   "family": "Gray",
@@ -588,6 +645,24 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#c7c7c9",
+  "adjusted": "family tint",
+  "swapped": false,
+  "code": "YZB3004",
+  "name": "Vanilla Latte",
+  "family": "Beige/Tan",
+  "override": null,
+  "today": "#d4cab5",
+  "now": "#d0c6b1",
+  "banded": true,
+  "fromFull": "#d0c6b1",
+  "move": 1.4429171443035202,
+  "thumbVsFull": 0
+ },
+ {
+  "v1": "#bab9c4",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB6-104",
   "name": "Frost Gray",
   "family": "Gray",
@@ -600,6 +675,9 @@
   "thumbVsFull": 0.3710819818947189
  },
  {
+  "v1": "#e5e6de",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB4301",
   "name": "Buff Beige",
   "family": "Beige/Tan",
@@ -612,6 +690,9 @@
   "thumbVsFull": 0.6419549377604233
  },
  {
+  "v1": "#dfd9cc",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1002",
   "name": "Almond Beige",
   "family": "Beige/Tan",
@@ -624,6 +705,9 @@
   "thumbVsFull": 0.6444341953299341
  },
  {
+  "v1": "#d7dae2",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-104",
   "name": "Cloud Gray",
   "family": "Gray",
@@ -636,6 +720,9 @@
   "thumbVsFull": 0.6898583098466033
  },
  {
+  "v1": "#413539",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3306",
   "name": "Truffle Chocolate",
   "family": "Brown",
@@ -648,6 +735,9 @@
   "thumbVsFull": 0.5952184933189837
  },
  {
+  "v1": "#828284",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZBK203",
   "name": "Grey",
   "family": "Gray",
@@ -660,6 +750,9 @@
   "thumbVsFull": 0.7566738775852494
  },
  {
+  "v1": "#5f5e68",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3503",
   "name": "Tin Gray",
   "family": "Gray",
@@ -672,6 +765,9 @@
   "thumbVsFull": 0.7276937445518484
  },
  {
+  "v1": "#c1bcb0",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3303",
   "name": "Oat Latte",
   "family": "Beige/Tan",
@@ -684,6 +780,9 @@
   "thumbVsFull": 0.39029694101805995
  },
  {
+  "v1": "#dde0d7",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB501",
   "name": "Off-white",
   "family": "Cream/Ivory",
@@ -696,6 +795,9 @@
   "thumbVsFull": 1.1118762255691486
  },
  {
+  "v1": "#b9bcc5",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5004",
   "name": "Platinum Gray",
   "family": "Gray",
@@ -708,6 +810,9 @@
   "thumbVsFull": 0.8919802086432345
  },
  {
+  "v1": "#eae2d7",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB6-102",
   "name": "Biscotti Beige",
   "family": "Beige/Tan",
@@ -720,6 +825,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#9a8d7b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB6-106",
   "name": "Caramel Brown",
   "family": "Brown",
@@ -732,6 +840,9 @@
   "thumbVsFull": 0.6549572836008033
  },
  {
+  "v1": "#cfbda1",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB902",
   "name": "Taupe Khaki",
   "family": "Beige/Tan",
@@ -744,6 +855,9 @@
   "thumbVsFull": 0.36366573129402363
  },
  {
+  "v1": "#2f3135",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-106",
   "name": "Coal Black",
   "family": "Charcoal/Black",
@@ -756,6 +870,39 @@
   "thumbVsFull": 0.8385980414949317
  },
  {
+  "v1": "#3a3b40",
+  "adjusted": "black cap",
+  "swapped": false,
+  "code": "YZBK207",
+  "name": "Raven Black",
+  "family": "Charcoal/Black",
+  "override": null,
+  "today": "#37383c",
+  "now": "#38393e",
+  "banded": true,
+  "fromFull": "#37393e",
+  "move": 0.8164058825311395,
+  "thumbVsFull": 0.4464003929937826
+ },
+ {
+  "v1": "#787879",
+  "adjusted": "black cap",
+  "swapped": false,
+  "code": "YZBK501",
+  "name": "Black White",
+  "family": "Charcoal/Black",
+  "override": null,
+  "today": "#383839",
+  "now": "#393939",
+  "banded": false,
+  "fromFull": "#393939",
+  "move": 0.7846595898504781,
+  "thumbVsFull": 0
+ },
+ {
+  "v1": "#8d867b",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3305",
   "name": "Iced Coffee",
   "family": "Brown",
@@ -768,6 +915,9 @@
   "thumbVsFull": 0.7094439388340801
  },
  {
+  "v1": "#a2a3ae",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5104",
   "name": "Graphite Gray",
   "family": "Gray",
@@ -780,6 +930,9 @@
   "thumbVsFull": 1.819417210449622
  },
  {
+  "v1": "#94979f",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3304",
   "name": "Granite Gray",
   "family": "Gray",
@@ -792,6 +945,9 @@
   "thumbVsFull": 0.6668084281240891
  },
  {
+  "v1": "#dccec1",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5103",
   "name": "Desert Khaki",
   "family": "Beige/Tan",
@@ -804,6 +960,9 @@
   "thumbVsFull": 0.358401029222014
  },
  {
+  "v1": "#0e1011",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB1012",
   "name": "Onyx Black",
   "family": "Charcoal/Black",
@@ -816,6 +975,9 @@
   "thumbVsFull": 0.6980950774912472
  },
  {
+  "v1": "#c1c1c1",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB3-102",
   "name": "Ash Gray",
   "family": "Gray",
@@ -828,6 +990,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#f6efe2",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB202",
   "name": "Cream",
   "family": "Cream/Ivory",
@@ -840,6 +1005,9 @@
   "thumbVsFull": 0.3730648068573304
  },
  {
+  "v1": "#d8d4c4",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB2003",
   "name": "Wheat Khaki",
   "family": "Beige/Tan",
@@ -852,6 +1020,9 @@
   "thumbVsFull": 0.38224148026063615
  },
  {
+  "v1": "#ecece8",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5-101",
   "name": "Porcelain White",
   "family": "White",
@@ -864,6 +1035,9 @@
   "thumbVsFull": 0.6756821675127898
  },
  {
+  "v1": "#141414",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5109",
   "name": "Soot Black",
   "family": "Charcoal/Black",
@@ -876,6 +1050,9 @@
   "thumbVsFull": 0.583043647475317
  },
  {
+  "v1": "#a19faa",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-105",
   "name": "Slate Gray",
   "family": "Gray",
@@ -888,6 +1065,9 @@
   "thumbVsFull": 0.3760206230866652
  },
  {
+  "v1": "#1f2021",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB6-108",
   "name": "Eclipse Black",
   "family": "Charcoal/Black",
@@ -900,6 +1080,9 @@
   "thumbVsFull": 0.8932600262371281
  },
  {
+  "v1": "#c8c1b0",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5003",
   "name": "Camel Khaki",
   "family": "Beige/Tan",
@@ -912,6 +1095,9 @@
   "thumbVsFull": 0.6238910928832893
  },
  {
+  "v1": "#cec8bc",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB802",
   "name": "Driftwood Khaki",
   "family": "Beige/Tan",
@@ -924,6 +1110,9 @@
   "thumbVsFull": 0.36106588485120134
  },
  {
+  "v1": "#544737",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB807",
   "name": "Mocha Chocolate",
   "family": "Brown",
@@ -936,6 +1125,39 @@
   "thumbVsFull": 0.4319794372959426
  },
  {
+  "v1": "#5c5c5c",
+  "adjusted": "black cap",
+  "swapped": false,
+  "code": "YZBK503",
+  "name": "Black Grey",
+  "family": "Charcoal/Black",
+  "override": null,
+  "today": "#383838",
+  "now": "#393939",
+  "banded": true,
+  "fromFull": "#393939",
+  "move": 0.4508645822639498,
+  "thumbVsFull": 0
+ },
+ {
+  "v1": "#7e7e89",
+  "adjusted": "black cap",
+  "swapped": false,
+  "code": "DZB3105",
+  "name": "Jet Black",
+  "family": "Charcoal/Black",
+  "override": null,
+  "today": "#38383c",
+  "now": "#39393d",
+  "banded": true,
+  "fromFull": "#39393e",
+  "move": 0.4504767114201166,
+  "thumbVsFull": 0.6633653015583274
+ },
+ {
+  "v1": "#aaa9b3",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5206",
   "name": "Silver",
   "family": "Gray",
@@ -948,6 +1170,9 @@
   "thumbVsFull": 1.1933929105500645
  },
  {
+  "v1": "#ebecec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5001",
   "name": "Birch White",
   "family": "White",
@@ -960,6 +1185,9 @@
   "thumbVsFull": 0.3606953287532187
  },
  {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB201",
   "name": "Angel White",
   "family": "White",
@@ -972,6 +1200,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#675758",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB210",
   "name": "Truffle Brown",
   "family": "Brown",
@@ -984,6 +1215,9 @@
   "thumbVsFull": 0.41604683229142125
  },
  {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5101",
   "name": "Blizzard White",
   "family": "White",
@@ -996,6 +1230,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB5201",
   "name": "Flurry White",
   "family": "White",
@@ -1008,6 +1245,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB6-101",
   "name": "Sugar White",
   "family": "White",
@@ -1020,6 +1260,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZB50-101",
   "name": "Gossamer White",
   "family": "White",
@@ -1032,6 +1275,24 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#eaeaea",
+  "adjusted": "family tint",
+  "swapped": false,
+  "code": "DZB3103",
+  "name": "Sand Beige",
+  "family": "Beige/Tan",
+  "override": null,
+  "today": "#eae0ca",
+  "now": "#eae0ca",
+  "banded": true,
+  "fromFull": "#eae0ca",
+  "move": 0,
+  "thumbVsFull": 0
+ },
+ {
+  "v1": "#ececec",
+  "adjusted": null,
+  "swapped": false,
   "code": "DZB3101",
   "name": "Gesso White",
   "family": "White",
@@ -1044,6 +1305,9 @@
   "thumbVsFull": 0
  },
  {
+  "v1": "#ececf0",
+  "adjusted": null,
+  "swapped": false,
   "code": "YZBK201",
   "name": "Clean White",
   "family": "White",
