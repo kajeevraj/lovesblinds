@@ -24,7 +24,7 @@ import { patternRGB, patternAlpha, zebraPattern, weaveKindOf, PATTERN_PERIOD, WE
 import { deriveHex, previewHex, isHex, familyHex, bandPixels, hexOf } from '../lib/swatchColor.js';
 import { zebraBands } from './zebraBands.js';
 import { litTarget, typeOfLook } from './lightCalibration.js';
-import { patchOfPhoto, defaultSource, PHOTO_TYPES, isTextureType, zebraColors } from '../lib/textureType.js';
+import { patchOfPhoto, defaultSource, PHOTO_TYPES, isTextureType, zebraColors, vaneHex } from '../lib/textureType.js';
 import { measureFabric, drawFabric, periodOf, seedOf } from '../lib/textureGen.js';
 import STATIC_TYPES from '../data/textureTypes.json';
 
@@ -71,7 +71,10 @@ export function swatchHex(look) {
   let p = hexes.get(look.id);
   if (!p) {
     if (look.line === 'zebra') p = zebraInfo(look).then((z) => (z ? z.hex : familyHex(look.colorFamily)));
-    else p = loadImage(look.tile || look.thumb || look.image).then((img) => previewHex(null, deriveHex(bandPixels(pixelsOf(img, 64), look.line), look.colorFamily), look.colorFamily), () => familyHex(look.colorFamily));
+    else p = loadImage(look.tile || look.thumb || look.image).then((img) => {
+      const px = bandPixels(pixelsOf(img, 64), look.line), older = () => deriveHex(px, look.colorFamily);
+      return previewHex(null, look.line === 'shangri-la' ? vaneHex(px, look.colorFamily, older) : older(), look.colorFamily);          // a Shangri-La photo is vanes on a pale table: the vane fabric's own color
+    }, () => familyHex(look.colorFamily));
     hexes.set(look.id, p);
   }
   return p;
@@ -205,7 +208,7 @@ export async function resolveLook(look, { lit = false, small = false } = {}) {
     let fab = null; try { fab = await fabricOf(look, n); } catch { fab = null; }
     if (fab) {
       const m = fab.m, drawType = zebraDrawType(ttype);          // a tweed, motif or print drawn anyway (a photo that is not flat enough to cut): a motif as a lattice, the others as soft irregular cloth
-      const raw = drawFabric(drawType, m, { n: m.n, seed: seedOf(look.id) }), stats = weaveStats(raw, m.n), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines) * (drawType === 'smooth' ? 1 : GENERATED_GAIN);
+      const raw = drawFabric(drawType, m, { n: m.n, seed: seedOf(look.id) }), stats = weaveStats(raw, m.n), sd = desiredSd(stats.sd, hex, look.weaveStrength, stats.lines) * (drawType === 'smooth' ? 1 : GENERATED_GAIN) * (look.line === 'shangri-la' ? 0.6 : 1);          // a Shangri-La's soft vane bands are what the eye should read: its cloth grain stays quieter
       const out = retargetWeave(raw, targetFor(hex, { lit, type: ltype }), sd), period = periodOf(drawType, m);
       return { mode: 'pattern', source: 'generated', ttype: drawType, hex, canvas: upscale(toCanvas(out, m.n, m.n), m.n), weave: drawType, bands, rows: 0, period: period ? period * (TEX / m.n) : null, periods: 1, photoSd: stats.sd, sd };
     }

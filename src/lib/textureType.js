@@ -220,6 +220,27 @@ export function classifyTexture(f, w = null, { line = null, banded = true } = {}
 import { analyzePhoto } from './textureAnalysis.js';
 import { bandsOf, bandPatch } from './zebraPhoto.js';
 import { flattenRows } from '../room/textureCore.js';
+// A photo of vanes is taken in perspective: the cloth's threads and slubs run along the vane, which is a slanted line in the picture but horizontal on the blind. The patch is
+// cut turned so that its strongest line direction is horizontal (when it has one), from a window that stays inside the photo.
+export function alignedPatch(rgb, w, h, rect, n = N) {
+  const p0 = resamplePatch(rgb, w, h, rect, n), L = new Float32Array(n * n);
+  for (let i = 0; i < n * n; i++) L[i] = 0.3 * p0[i * 3] + 0.59 * p0[i * 3 + 1] + 0.11 * p0[i * 3 + 2];
+  let jxx = 0, jyy = 0, jxy = 0;
+  for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++) { const gx = L[y * n + x + 1] - L[y * n + x - 1], gy = L[(y + 1) * n + x] - L[(y - 1) * n + x]; jxx += gx * gx; jyy += gy * gy; jxy += gx * gy; }
+  const tr = jxx + jyy; if (!tr) return p0;
+  const coh = Math.hypot(jxx - jyy, 2 * jxy) / tr; if (coh < 0.12) return p0;
+  const grad = 0.5 * Math.atan2(2 * jxy, jxx - jyy), line = grad + Math.PI / 2;           // the lines run perpendicular to the gradient
+  let phi = Math.atan2(Math.sin(line), Math.cos(line)); if (phi > Math.PI / 2) phi -= Math.PI; else if (phi < -Math.PI / 2) phi += Math.PI;
+  if (Math.abs(phi) < 0.03) return p0;
+  const side = (rect.w ?? rect.side) , cx = rect.x + side / 2, cy = rect.y + (rect.h ?? rect.side) / 2, step = (Math.min(side, rect.h ?? rect.side) * 0.72) / n, c = Math.cos(phi), s = Math.sin(phi), out = new Float32Array(n * n * 3);
+  const at = (x, y, k) => { const xi = Math.max(0, Math.min(w - 2, Math.floor(x))), yi = Math.max(0, Math.min(h - 2, Math.floor(y))), fx = Math.max(0, Math.min(1, x - xi)), fy = Math.max(0, Math.min(1, y - yi)), i = (yi * w + xi) * 3 + k;
+    return rgb[i] * (1 - fx) * (1 - fy) + rgb[i + 3] * fx * (1 - fy) + rgb[i + w * 3] * (1 - fx) * fy + rgb[i + w * 3 + 3] * fx * fy; };
+  for (let v = 0; v < n; v++) for (let u = 0; u < n; u++) {
+    const du = (u - n / 2) * step, dv = (v - n / 2) * step, x = cx + du * c - dv * s, y = cy + du * s + dv * c;
+    for (let k = 0; k < 3; k++) out[(v * n + u) * 3 + k] = at(x, y, k);
+  }
+  return out;
+}
 export function patchOfPhoto(rgb, w, h, { line = null, n = N, family = null } = {}) {
   let bands = null, rect;
   if (line === 'zebra') bands = bandsOf(rgb, w, h, { family });
@@ -230,7 +251,7 @@ export function patchOfPhoto(rgb, w, h, { line = null, n = N, family = null } = 
     return { patch: resamplePatch(rgb, w, h, rect, n), wide: null, bands, rect, how: 'band' };
   }
   const a = analyzePhoto(rgb, w, h); rect = a.rect;
-  let patch = resamplePatch(rgb, w, h, rect, n);
+  let patch = line === 'shangri-la' ? alignedPatch(rgb, w, h, rect, n) : resamplePatch(rgb, w, h, rect, n);
   const sd = Math.min(w, h) * 0.84;
   let wide = n === N ? resamplePatch(rgb, w, h, { x: (w - sd) / 2, y: (h - sd) / 2, side: sd }) : null;
   if (line === 'cellular') { patch = flattenRows(patch, n); if (wide) wide = flattenRows(wide); }
@@ -255,7 +276,7 @@ export function classifyPhoto(rgb, w, h, { line = null, family = null } = {}) {
 // as dark as its photo. Only a White or Cream zebra goes through the family rules (src/lib/swatchColor.js deriveHex: a soft white, never yellow). A photo that is not banded
 // (a folded sheet) is read in its flattest part. The sheer band's color is the photo's own sheer band when it has one (else null).
 // -> { hex, sheerHex, banded, solidRgb }
-import { deriveHex, hexOf, capLightness } from './swatchColor.js';
+import { deriveHex, hexOf, capLightness, pullHueDown } from './swatchColor.js';
 import { patchColor } from './zebraPhoto.js';
 export function zebraColors(rgb, w, h, colorFamily) {
   const bands = bandsOf(rgb, w, h, { family: colorFamily });
@@ -272,3 +293,26 @@ export function zebraColors(rgb, w, h, colorFamily) {
   return { hex, sheerHex: sheerRgb ? hexOf(patchColor(sheerRgb)) : null, banded: bands.banded, swapped: !!bands.swapped, adjusted, solidRgb };
 }
 export const BLACK_MAX_L = 24;
+
+// ---- the color of a Shangri-La, from its photo -----------------------------------------------------------------------------------------------------------
+// A Shangri-La photo shows folded vanes in perspective on a pale grey table: the table (and the white highlights) lift and grey every average, so a Chocolate reads olive-grey and a
+// Linen reads pale. For a family with a color of its own the vane FABRIC is the pixels that carry that color (their chroma is a good part of the photo's strongest chroma): their
+// middle tones (not the dark undersides, not the highlights) are the cloth, which then goes through the family rules like every other color. White and grey families have no
+// color to tell cloth from table, so they keep the older reading. `rgb`: r,g,b bytes of the photo. -> hex
+const VANE_CHROMATIC = ['Beige/Tan', 'Brown', 'Cream/Ivory', 'Blue', 'Green', 'Pink/Red', 'Purple'];
+export function vaneHex(rgb, family, older) {
+  if (!VANE_CHROMATIC.includes(family)) return older();
+  const n = rgb.length / 3, ch = new Float32Array(n), lu = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const r = rgb[i * 3], g = rgb[i * 3 + 1], b = rgb[i * 3 + 2]; ch[i] = Math.max(r, g, b) - Math.min(r, g, b); lu[i] = 0.3 * r + 0.59 * g + 0.11 * b; }
+  const sorted = Array.from(ch).sort((a, b) => a - b), p90 = sorted[Math.floor(n * 0.9)];
+  const floor = family === 'Cream/Ivory' ? 5 : 9;
+  if (p90 < floor) return older();                                                   // nothing in this photo tells the cloth from the table
+  const cut = Math.max(floor * 0.6, p90 * 0.5), sel = [];
+  for (let i = 0; i < n; i++) if (ch[i] >= cut) sel.push(i);
+  sel.sort((a, b) => lu[a] - lu[b]);
+  const body = sel.slice(Math.floor(sel.length * 0.12), Math.ceil(sel.length * 0.95)), out = new Uint8ClampedArray(body.length * 3);
+  body.forEach((i, k) => { out[k * 3] = rgb[i * 3]; out[k * 3 + 1] = rgb[i * 3 + 1]; out[k * 3 + 2] = rgb[i * 3 + 2]; });
+  if (body.length < 40) return older();
+  const hex = deriveHex(out, family);
+  return family === 'Brown' ? pullHueDown(hex, 66, 18) : hex;                         // a brown whose photo reads olive is pulled a little toward red-brown
+}

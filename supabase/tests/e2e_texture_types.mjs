@@ -83,6 +83,27 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
   check(`${label}: no page errors`, s.errors.length === 0, s.errors.join(' | '));
   await s.close();
 }
+// ---- Shangri-La: every color is read as horizontal sheer vanes in the color of the photo's vane fabric
+{
+  const s = await probeSession(browser, { width: 1280, height: 900 }); await s.select('shangri-la');
+  const { vaneHex } = await import('../../src/lib/textureType.js'), { deriveHex, bandPixels, previewHex } = await import('../../src/lib/swatchColor.js');
+  const sl = []; for (const g of await catalog('shangri-la')) for (const x of g.swatches || []) sl.push(x);
+  const bad = [], rows = [];
+  for (const c of sl) {
+    if (c.preview_color) continue;
+    try {
+      const r = await s.read(c.supplier_code), res = await fetch(`${URL_}/storage/v1/object/public/swatches/${c.thumb_path}`);
+      const { data } = await sharp(Buffer.from(await res.arrayBuffer())).removeAlpha().resize(64, 64, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+      const px = bandPixels(Uint8ClampedArray.from(data), 'shangri-la'), want = previewHex(null, vaneHex(px, c.color_family, () => deriveHex(px, c.color_family)), c.color_family), d = dE(hexRgb(r.tile), hexRgb(want));
+      const look = await lookOf(s, c.supplier_code); rows.push(`${c.display_name} ${r.tile}`);
+      if (d > 4) bad.push(`${c.display_name}: tile ${r.tile} vs the vane fabric ${want} (distance ${d.toFixed(1)})`);
+      if (!look || !['slub', 'linen', 'smooth'].includes(look.type)) bad.push(`${c.display_name}: drawn as ${look?.type}, not plain sheer cloth`);
+      if (c.color_family === 'Brown') { const [rr, gg, bb] = hexRgb(r.tile); if (!(rr > gg && gg > bb && rr - bb >= 24)) bad.push(`${c.display_name}: a brown shown as ${r.tile} (olive or grey)`); }
+    } catch (e) { bad.push(`${c.display_name}: ${e.message.split('\n')[0]}`); }
+  }
+  check(`${sl.length} Shangri-La colors: the tile is the vane fabric's color (distance 4), brown stays brown, the cloth is plain sheer with horizontal grain`, bad.length === 0 && rows.length > 15, bad.join(' | ') || rows.join('; '));
+  await s.close();
+}
 await browser.close();
 const badn = results.filter((x) => !x.ok);
 console.log(`\n${results.length - badn.length}/${results.length} passed${badn.length ? ` | FAILED: ${badn.map((b) => b.name).join('; ')}` : ''}`);

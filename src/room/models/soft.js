@@ -300,7 +300,7 @@ export class RomanShade extends SoftShade {
 // ---- Shangri-La -------------------------------------------------------------------------------------------------------------------------------------------------
 // Two sheers with soft horizontal cloth vanes between them; it rolls into a cassette. Closed vanes overlap (privacy); open vanes lie level and you look
 // through the sheers between them.
-const VANE_SHADE = [[0, 0.99], [0.3, 1.035], [0.65, 1.0], [1, 0.9]];          // along a vane, from its lower front edge to its upper back edge (tucked behind the vane above)
+const VANE_SHADE = [[0, 0.76], [0.2, 1.1], [0.55, 1.15], [1, 0.72]];          // along a vane, from its lower front edge to its upper back edge (tucked behind the vane above)
 export class ShangriLaShade extends SoftShade {
   constructor(env) {
     super('shangri-la', env);

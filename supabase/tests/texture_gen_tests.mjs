@@ -111,6 +111,19 @@ const banded = (solidRgb, sheerRgb, w = 200, h = 300, texture = 0) => {
   const ok = T.zebraColors(banded([200, 190, 160], [250, 250, 252]), 200, 300, 'Beige/Tan');
   check('a beige whose solid band is already warm is left as photographed', ok.adjusted === null && !Z.bandsOf(banded([200, 190, 160], [250, 250, 252]), 200, 300, { family: 'Beige/Tan' }).swapped, ok.hex);
 }
+{ // a Shangri-La photo: vanes in perspective on a pale table
+  const w = 240, h = 240, rgb = new Uint8ClampedArray(w * h * 3);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const fabric = y < 170, t = (x * 0.5 + y) , thread = 14 * Math.sin(t * 0.9 + Math.sin(t * 0.13) * 2), i = (y * w + x) * 3;      // threads run on a slant (about 27 degrees)
+    const c = fabric ? [96 + thread, 74 + thread * 0.8, 46 + thread * 0.6] : [206, 207, 211];
+    rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2];
+  }
+  const hex = T.vaneHex(rgb, 'Brown', () => '#808080'), [r, g, b] = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
+  check('a Shangri-La photo of brown vanes on a pale grey table reads brown, not the table-lifted olive-grey', r > g && g > b && r - b >= 28 && lightnessOf(hex) < 50, hex);
+  check('white and grey vane families keep the older reading (nothing tells the cloth from the table)', T.vaneHex(rgb, 'White', () => '#eeeeee') === '#eeeeee' && T.vaneHex(rgb, 'Gray', () => '#aaaaaa') === '#aaaaaa');
+  const rect = { x: 20, y: 10, side: 150 }, slanted = T.textureFeatures(T.resamplePatch(rgb, w, h, rect, 128)), aligned = T.textureFeatures(T.alignedPatch(rgb, w, h, rect, 128));
+  check('the vane cloth\'s slanted threads are turned to run horizontally (the 3D shade lays the vanes out horizontally)', aligned.horiz >= 0.45 && aligned.horiz > slanted.horiz + 0.25, `horizontal share ${slanted.horiz.toFixed(2)} -> ${aligned.horiz.toFixed(2)}`);
+}
 { // a folded sheet: creases down the picture, no bands
   const w = 200, h = 300, rgb = new Uint8ClampedArray(w * h * 3);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = 200 + 30 * Math.sin((x / w) * Math.PI * 6) ; for (let c = 0; c < 3; c++) rgb[(y * w + x) * 3 + c] = v; }

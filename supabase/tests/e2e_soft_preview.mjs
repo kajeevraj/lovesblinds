@@ -306,7 +306,8 @@ try {
     check(T('open: soft horizontal vanes 2 in apart with the view through the two sheers between them'), spread(Lo) > 25 && Math.abs(peaks(Lo) - want) <= 2, `spread ${spread(Lo).toFixed(0)}, ${peaks(Lo)} vanes in 40% of the height (about ${want})`);
     await vBtn().click(); await page.waitForTimeout(1500); const closed = await P.shot();
     check(T('"Close vanes" at the bottom closes them and they stay closed (privacy with the shade down)'), (await ctl.getAttribute('data-vanes')) === 'closed' && (await vBtn().innerText()) === 'Open vanes' && (await P.amount()) >= 99);
-    check(T('closed: the vanes overlap into one soft face in the fabric\'s color'), dist(mean(closed, 0.3, 0.3, 0.4, 0.4), tile) < 9 && spread(rowsOf(closed)) < 30 && lum(mean(open_, 0.3, 0.1, 0.4, 0.25)) > lum(mean(closed, 0.3, 0.1, 0.4, 0.25)) + 8, `face ${mean(closed, 0.3, 0.3, 0.4, 0.4).map(Math.round)} tile ${tile}, spread ${spread(rowsOf(closed)).toFixed(0)}`);
+    const Lc = rowsOf(closed);
+    check(T('closed: the vanes read as soft horizontal bands (about one per 2 in, clearly visible but soft) in the fabric\'s color'), dist(mean(closed, 0.3, 0.3, 0.4, 0.4), tile) < 9 && spread(Lc) >= 8 && spread(Lc) < 75 && Math.abs(peaks(Lc) - want) <= 3 && lum(mean(open_, 0.3, 0.1, 0.4, 0.25)) > lum(mean(closed, 0.3, 0.1, 0.4, 0.25)) + 8, `face ${mean(closed, 0.3, 0.3, 0.4, 0.4).map(Math.round)} tile ${tile}, spread ${spread(Lc).toFixed(0)}, ${peaks(Lc)} bands in 40% of the height (about ${want})`);
     const ss = slowStructure(closed, 0.1, 0.12, 0.8, 0.8);
     check(T('no seam or repeat grid on a 40 x 64 shade (only the soft, even vane lines)'), ss.line < 6 && ss.sd < 5, `slow structure ${ss.sd.toFixed(2)}, strongest line ${ss.line.toFixed(2)}`);
     // the two animations: the same length, one the other run backwards (timed inside the page)

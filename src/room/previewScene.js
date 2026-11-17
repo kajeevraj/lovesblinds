@@ -43,6 +43,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
   const wallMat = new THREE.MeshBasicMaterial({ color: WALL, toneMapped: false });          // plain, evenly lit
   const glassMat = new THREE.MeshBasicMaterial({ map: sky, toneMapped: false });
   const chainMat = new THREE.MeshStandardMaterial({ color: 0xd6cebd, metalness: 0.35, roughness: 0.4 });
+  const haloMat = new THREE.MeshBasicMaterial({ color: 0x2b2824, transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false });          // the chain's soft outline (opposite lightness)
   const plasticMat = new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.5 });
   const motorMat = new THREE.MeshStandardMaterial({ color: 0x6b6458, roughness: 0.7 });
   // the solar panel is stuck on the glass, behind the cloth: it shows only below the lowest shade's bottom edge (a clip plane that follows the shade),
@@ -165,16 +166,25 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
       const z = zOf(0);
       // The chain comes straight out of the end of the cassette (or headrail): no bracket and no cover over it. It leaves the underside at the very end and
       // hangs a little in front of the cloth.
-      const endX = sx * (sp.w / 2 - 0.014), cz = z + Math.min(0.018, hd / 2 - 0.008), y0 = sp.top - hh + 0.002;
-      const beads = 64, len = Math.min(sp.h * 0.55, 1.0), step = len / beads, dx = 0.009;
-      chainRig = { endX, y0, cz, len, beads, step, dx, travel: sp.h * 0.8, mesh: null };
+      // It hangs from the cassette (or headrail) on the motor side, OUTSIDE the fabric edge, in front of the trim. A real bead chain is thin; here the beads are drawn a little larger
+      // (about 14 mm) so they read as beads at normal size, with a soft outline of the opposite lightness so a white chain shows on a light fabric and a dark chain on a dark one.
+      const endX = sx * (sp.w / 2 + 0.034), cz = Math.max(z + 0.022, 0.05), y0 = sp.top - hh + 0.002;          // (in front of the trim, so it is never hidden by it)
+      const pitch = 0.0165, rad = 0.0072, len0 = Math.min(sp.h * 0.55, 1.0), beads = Math.max(8, Math.round(len0 / pitch)), len = beads * pitch, step = pitch, dx = 0.013;
+      chainRig = { endX, y0, cz, len, beads, step, dx, travel: sp.h * 0.8, mesh: null, halo: null };
+      const lumOf = (hex) => { const c = new THREE.Color(hex); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; };
+      const lightChain = lumOf(cfg.extras?.chainHex || '#f4f1ea') > 0.35;
+      haloMat.color.set(lightChain ? 0x2b2824 : 0xf6f3ea); haloMat.opacity = lightChain ? 0.5 : 0.62;
       if (cfg.extras?.cordLoop) {                                        // a soft cord loop (Cellular and Roman): two smooth cords in the chosen color, no beads
-        for (const k of [0, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, len, 8), chainMat); c.position.set(endX + (k ? dx : -dx), y0 - len / 2, cz + 0.004 + (k ? 0.004 : 0)); g.add(c); }
+        for (const k of [0, 1]) {
+          const x = endX + (k ? dx : -dx), zz = cz + 0.004 + (k ? 0.004 : 0);
+          const h = new THREE.Mesh(new THREE.CylinderGeometry(0.0066, 0.0066, len, 8), haloMat); h.position.set(x, y0 - len / 2, zz - 0.002); g.add(h);
+          const c = new THREE.Mesh(new THREE.CylinderGeometry(0.0042, 0.0042, len, 8), chainMat); c.position.set(x, y0 - len / 2, zz); g.add(c);
+        }
       } else {
-        const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.0021, 8, 6), chainMat, beads * 2);
-        mesh.frustumCulled = false; chainRig.mesh = mesh; g.add(mesh);
+        const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(rad, 12, 8), chainMat, beads * 2), halo = new THREE.InstancedMesh(new THREE.SphereGeometry(rad * 1.38, 10, 7), haloMat, beads * 2);
+        mesh.frustumCulled = false; halo.frustumCulled = false; halo.renderOrder = 1; chainRig.mesh = mesh; chainRig.halo = halo; g.add(halo, mesh);
       }
-      g.add(box(0.02, 0.018, 0.014, plasticMat, endX, y0 - len - 0.01, cz + 0.006));            // the weight that keeps the loop tight
+      g.add(box(0.026, 0.03, 0.016, plasticMat, endX, y0 - len - 0.014, cz + 0.006));            // the weight that keeps the loop tight
     } else if (d.movement === 'zero-gravity') {
       // nothing hangs down: the center handle is drawn on the page (a button on the bottom rail), so it is always visible and can be dragged
     } else if (d.movement === 'motorized' || d.movement === 'two-in-one') {
@@ -219,9 +229,11 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     const off = (current[0] ?? 0) * c.travel, m = new THREE.Matrix4();
     for (let i = 0; i < c.beads; i++) for (const k of [0, 1]) {
       const y = ((i * c.step + (k ? off : -off)) % c.len + c.len) % c.len;
-      m.makeTranslation(c.endX + (k ? c.dx : -c.dx), c.y0 - y, c.cz + 0.004 + (k ? 0.004 : 0)); c.mesh.setMatrixAt(i * 2 + k, m);
+      const x = c.endX + (k ? c.dx : -c.dx), zz = c.cz + 0.004 + (k ? 0.004 : 0);
+      m.makeTranslation(x, c.y0 - y, zz); c.mesh.setMatrixAt(i * 2 + k, m);
+      if (c.halo) { m.makeTranslation(x, c.y0 - y, zz - 0.0035); c.halo.setMatrixAt(i * 2 + k, m); }
     }
-    c.mesh.instanceMatrix.needsUpdate = true;
+    c.mesh.instanceMatrix.needsUpdate = true; if (c.halo) c.halo.instanceMatrix.needsUpdate = true;
   }
 
   function applyXray() { for (const [m, max] of xrayMats) m.opacity = xray.v * max; }

@@ -6,6 +6,7 @@
 //   - desktop with the mouse, a phone with touch
 import { guard } from './lib/liveGuard.mjs';       // every write is checked: a test may only change what it created (see lib/liveGuard.mjs)
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
+const sharp = (await import('sharp')).default;
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
@@ -32,6 +33,15 @@ try {
       const hits = await page.locator('.pv-chain-hit').evaluateAll((h) => h.map((x) => { const r = x.getBoundingClientRect(); return { w: r.width, h: r.height, cursor: getComputedStyle(x).cursor, ta: getComputedStyle(x).touchAction }; }));
       check(T('both strands have a touch area of at least 44 px, a grab cursor and no page scrolling under the finger'), hits.length === 2 && hits.every((x) => x.w >= 44 && x.h >= 44 && x.cursor === 'grab' && x.ta === 'none'), JSON.stringify(hits));
       check(T('the hint says "Pull the chain to raise or lower." (a cord loop says cord)'), /Pull the (chain|cord) to raise or lower\./.test(await page.locator('.pv-note').innerText()));
+      // the chain reads as a real bead chain at normal size: it stands out from what is behind it (a white chain has a dark outline, a dark chain a light one) and hangs outside the fabric edge
+      {
+        const cb = await page.locator('.pv-chain').boundingBox(), cx = cb.x + cb.width / 2, shade = await page.locator('.pv-drag').boundingBox(), y0 = Math.round(cb.y + 24), hh = 70;
+        const buf = await page.screenshot({ clip: { x: Math.max(0, Math.round(cx - 40)), y: y0, width: 80, height: hh } }), { data, info } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true });
+        const col = Array.from({ length: info.width }, (_, x) => { let t = 0; for (let y = 0; y < info.height; y++) t += data[y * info.width + x]; return t / info.height; });
+        const mid = Math.round(info.width / 2), core = col.slice(mid - 12, mid + 12), range = Math.max(...core) - Math.min(...core), flat = Math.max(...col.slice(0, 8)) - Math.min(...col.slice(0, 8));
+        const sx = shade.x + shade.width;
+        check(T('the chain reads as a bead chain at normal size: it stands out from what is behind it and hangs outside the fabric edge'), range >= 28 && range > flat * 3 && (cx > sx - 2 || cx < shade.x + 2), `contrast ${range.toFixed(0)} (background ${flat.toFixed(0)}), chain x ${cx.toFixed(0)}, fabric ${shade.x.toFixed(0)} to ${sx.toFixed(0)}`);
+      }
       // keyboard
       await page.locator('.pv-chain').focus(); const k0 = await amount();
       for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
