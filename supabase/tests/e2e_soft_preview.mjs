@@ -208,10 +208,12 @@ try {
     const rows = await page.locator('.pv-incl .rm-row-label').allInnerTexts();
     check(T('motorized TDBU uses the Top rail and Bottom rail button rows, each with up, stop and down'), rows.join('|') === 'Top rail|Bottom rail' && (await page.locator('.pv-incl .rm-key').count()) === 6 && (await page.locator('.pv-incl .rm-row').first().locator('.rm-key').evaluateAll((b) => b.map((x) => x.dataset.btn).join())) === 'topUp,topStop,topDown' && (await page.locator('.pv-bar').count()) === 2, rows.join('|'));
     const tb = await P.amount(TOP), bb = await P.amount(BOT);
-    await page.getByRole('button', { name: 'Lower the top rail' }).click(); await page.waitForTimeout(1300); await page.getByRole('button', { name: 'Stop the top rail' }).click();
+    // (the motors run at a steady speed in the scene's own time: on a busy machine frames are slow, so wait for the movement itself, not for a fixed time)
+    const until = async (fn) => { for (let i = 0; i < 60 && !(await fn()); i++) await page.waitForTimeout(150); };
+    await page.getByRole('button', { name: 'Lower the top rail' }).click(); await until(async () => (await P.amount(TOP)) > tb + 5); await page.getByRole('button', { name: 'Stop the top rail' }).click();
     await page.waitForTimeout(600); const ta = await P.amount(TOP); await page.waitForTimeout(500);          // (read once the Stop has been taken: a busy machine applies it a frame or two late)
     check(T('"Lower the top rail" moves only the top rail; its Stop button holds it'), ta > tb + 3 && (await P.amount(BOT)) === bb && (await P.amount(TOP)) === ta, `top ${tb} -> ${ta}, bottom ${bb} -> ${await P.amount(BOT)}`);
-    await page.getByRole('button', { name: 'Raise the bottom rail' }).click(); await page.waitForTimeout(1000); await page.getByRole('button', { name: 'Stop the bottom rail' }).click(); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Raise the bottom rail' }).click(); await until(async () => (await P.amount(BOT)) < bb - 6); await page.getByRole('button', { name: 'Stop the bottom rail' }).click(); await page.waitForTimeout(600);
     check(T('"Raise the bottom rail" moves only the bottom rail'), (await P.amount(BOT)) < bb - 3 && (await P.amount(TOP)) === ta);
 
     // day & night
