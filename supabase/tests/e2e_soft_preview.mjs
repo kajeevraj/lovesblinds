@@ -144,7 +144,7 @@ try {
     check(T('no bracket or cover over the cassette where the chain is'), dist(endOf(chainR), midOf(chainR)) < 26, `end ${endOf(chainR).map(Math.round)}, middle ${midOf(chainR).map(Math.round)}`);
     check(T('Chain: no handle and no bar: the chain itself moves the shade, and the note says which side'), (await page.locator('.pv-grip').count()) === 0 && (await page.locator('.pv-chain').count()) === 1 && (await page.locator('.pv-handle').count()) === 0 && (phone || /chain, on the right/i.test(await page.locator('.pv-note').innerText())));
     await P.card('Left').click(); await page.waitForTimeout(600); const chainL = await P.shot();
-    const right = (s) => lum(mean(s, 0.725, 0.12, 0.05, 0.3)), left = (s) => lum(mean(s, 0.225, 0.12, 0.05, 0.3));          // the strip just outside each fabric edge, where the chain hangs
+    const right = (s) => lum(mean(s, (s.shade.x + s.shade.w) / s.w + 0.003, 0.12, 0.03, 0.3)), left = (s) => lum(mean(s, s.shade.x / s.w - 0.033, 0.12, 0.03, 0.3));          // the strip just outside each fabric edge, where the chain hangs
     check(T('the chain moves to the side that is chosen'), diffPx(chainR, chainL) > 30 && Math.abs(right(chainR) - right(chainL)) > 0.012 && Math.abs(left(chainR) - left(chainL)) > 0.012, `${diffPx(chainR, chainL)} px changed; right ${right(chainR).toFixed(3)} -> ${right(chainL).toFixed(3)}, left ${left(chainR).toFixed(3)} -> ${left(chainL).toFixed(3)}`);
     if (!(await page.locator('.s2-more').evaluate((d) => d.open))) await page.locator('.s2-more summary').click(); await page.waitForTimeout(300);
     const dotBtn = page.locator('.s2-cdots[aria-label="Chain color"] .s2-cdot').filter({ hasText: /^Black$/ }).first();
