@@ -21,7 +21,8 @@ const shot = async (s, name) => { await s.page.evaluate(() => window.scrollTo(0,
 for (const [tag, vp] of [['desktop', { width: 1440, height: 1000 }], ['phone', { width: 390, height: 844, mobile: true, dpr: 1 }]]) {
   const phone = tag === 'phone';
   // ---- fabrics on every line
-  for (const line of ['solar', 'zebra', 'cellular', 'roman', 'shangri-la']) {
+  const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);          // ONLY=shangri-la,chain retakes just those
+  for (const line of ['solar', 'zebra', 'cellular', 'roman', 'shangri-la'].filter((l) => !ONLY.length || ONLY.includes(l))) {
     const s = await probeSession(browser, { ...vp, overrides: NO_OVERRIDE }); await s.select(line);
     for (const [kind, fam] of [['light', 'Beige/Tan'], ['dark', 'dark'], ['white', 'White']]) {
       const sw = pickOf(by[line], fam); if (!sw) { console.log('none', line, kind); continue; }
@@ -30,11 +31,11 @@ for (const [tag, vp] of [['desktop', { width: 1440, height: 1000 }], ['phone', {
     await s.close();
   }
   // ---- zebra colors
-  { const s = await probeSession(browser, { ...vp, overrides: NO_OVERRIDE }); await s.select('zebra');
+  if (!ONLY.length || ONLY.includes('zebra')) { const s = await probeSession(browser, { ...vp, overrides: NO_OVERRIDE }); await s.select('zebra');
     for (const [name, code] of [['jet-black', 'DZB3105'], ['dark-chocolate', 'YZB2008'], ['bittersweet', 'YZB3007'], ['safari-khaki', 'YZB3003'], ['vanilla-latte', 'YZB3004']]) { await s.read(code); await shot(s, `${tag}-zebra-${name}-${code}`); }
     await s.close(); }
   // ---- the chain mid-drag, on each line
-  for (const [line, probeType, code] of [['roller', 'solar', 'YS180006'], ['zebra', 'zebra', 'YZB202'], ['cellular', 'cellular', null], ['roman', 'roman', null], ['shangri-la', 'shangri-la', 'YSLH204']]) {
+  for (const [line, probeType, code] of [['roller', 'solar', 'YS180006'], ['zebra', 'zebra', 'YZB202'], ['cellular', 'cellular', null], ['roman', 'roman', null], ['shangri-la', 'shangri-la', 'YSLH204']].filter(([l]) => !ONLY.length || ONLY.includes('chain') || ONLY.includes(l))) {
     const s = await probeSession(browser, vp); await s.select(probeType);
     const c = code || by[probeType][0].supplier_code;
     await s.read(c);
