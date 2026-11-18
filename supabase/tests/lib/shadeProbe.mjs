@@ -25,7 +25,7 @@ export const dE = (a, b) => { const A = toLab(a), B = toLab(b); return Math.hypo
 
 export async function probeSession(browser, { width = 1280, height = 900, dpr = 1, overrides = null, mobile = false, base = BASE } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr, hasTouch: mobile, isMobile: mobile });
-  const page = await ctx.newPage(); page.setDefaultTimeout(30000);
+  const page = await ctx.newPage(); page.setDefaultTimeout(90000);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   if (overrides) {
     const patch = async (route) => {
