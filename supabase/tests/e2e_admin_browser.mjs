@@ -271,6 +271,7 @@ try {
   await page.getByLabel('Search name or code').fill('');
   await page.screenshot({ path: `${OUT}/10-list-desktop.png` });
   // another tab of the same browser, opened after the last activity was 31 minutes ago (robots.txt is static, so no app code touches the timestamp)
+  await page.goto(`${BASE}/robots.txt`);          // (the first tab leaves the admin: its own 30 s idle check must not sign the shared session out before the second tab shows its message)
   const idle = await ctx.newPage(); idle.setDefaultTimeout(45000);
   await idle.goto(`${BASE}/robots.txt`);
   await idle.evaluate(() => localStorage.setItem('lb_admin_last_active', String(Date.now() - 31 * 60 * 1000)));
