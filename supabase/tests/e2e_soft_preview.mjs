@@ -326,7 +326,8 @@ try {
     await vBtn().click(); await page.waitForTimeout(1500);
     await page.locator('.pv-grip, .pv-bar, .pv-chain').first().focus(); for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowUp'); await page.waitForTimeout(150);
     const held = await P.amount();
-    await page.waitForTimeout(2200);
+    for (let i = 0; i < 70 && (await P.amount()) > 82; i++) await page.waitForTimeout(150);          // (wait for the movement itself: a busy machine draws slowly)
+    await page.waitForTimeout(1500);
     const raised = await P.amount();
     check(T('moving the shade up with the vanes open closes the vanes first (the shade waits at the bottom), then it rises'), held >= 99 && raised < 85 && raised > 70 && (await vanesNow()) < 0.02 && (await ctl.count()) === 0, `held ${held}, then ${raised}`);
     await P.setAmount(100); await page.waitForTimeout(1800);
