@@ -33,7 +33,12 @@ const STAGING = env.STAGING_SUPABASE_URL && env.STAGING_SUPABASE_ANON_KEY && env
 const ref = (u) => { try { return new URL(u).hostname.split('.')[0]; } catch { return ''; } };
 if (STAGING && ref(env.STAGING_SUPABASE_URL) === ref(env.SUPABASE_URL)) { console.error('STOP: STAGING_SUPABASE_URL is the live project.'); process.exit(1); }
 
-const LIVE_PORT = 4173, ST_PORT = 4175;
+const LIVE_PORT = 4173, ST_PORT = 4175, IMG_PORT = Number(env.LB_IMAGE_PORT) || 4177;
+// The LIVE project's storage egress is limited: the sites built for the tests read the swatch photos from a local image server (scripts/image-server.mjs, a copy in
+// .image-cache made by `node scripts/image-cache.mjs fill`), never from the live project, and the test guard (supabase/tests/lib/liveGuard.mjs) fails any test
+// that asks the live project for a picture (a read-only live check may fetch one). --live-images turns this off (the old behaviour; do not use it routinely).
+const LOCAL_IMAGES = !has('--live-images');
+const imgEnv = LOCAL_IMAGES ? { VITE_IMAGE_BASE_URL: `http://localhost:${IMG_PORT}` } : {};
 const servers = [];
 const up = async (port) => { try { return (await fetch(`http://localhost:${port}/`)).ok; } catch { return false; } };
 async function serve(name, port, buildEnv) {
@@ -45,8 +50,8 @@ async function serve(name, port, buildEnv) {
   servers.push(spawn('npx', ['vite', 'preview', '--outDir', out, '--port', String(port), '--strictPort'], { cwd: ROOT, env: { ...env, ...buildEnv }, stdio: 'ignore' }));
   for (let i = 0; i < 40 && !(await up(port)); i++) await new Promise((r) => setTimeout(r, 500));
 }
-const liveEnv = {};
-const stagingEnv = STAGING ? { SUPABASE_URL: env.STAGING_SUPABASE_URL, VITE_SUPABASE_URL: env.STAGING_SUPABASE_URL, VITE_SUPABASE_ANON_KEY: env.STAGING_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.STAGING_SUPABASE_SERVICE_ROLE_KEY, LB_TARGET: 'staging', LB_LIVE_URL: env.SUPABASE_URL, BASE_URL: `http://localhost:${ST_PORT}` } : null;
+const liveEnv = { ...imgEnv };
+const stagingEnv = STAGING ? { SUPABASE_URL: env.STAGING_SUPABASE_URL, VITE_SUPABASE_URL: env.STAGING_SUPABASE_URL, VITE_SUPABASE_ANON_KEY: env.STAGING_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.STAGING_SUPABASE_SERVICE_ROLE_KEY, ...imgEnv, LB_TARGET: 'staging', LB_LIVE_URL: env.SUPABASE_URL, BASE_URL: `http://localhost:${ST_PORT}` } : null;
 
 const results = [];
 const EXPECTED = T.expectedFailures || {};
@@ -81,16 +86,21 @@ const offline = pick(T.offline), readOnly = pick(T.readOnly), writes = pick(T.wr
 if ((readOnly.length || writes.length) && !has('--skip-build')) {
   for (const [label, cmd, a] of [['site photos and explainers (npm run prebuild)', 'npm', ['run', 'prebuild']], ['plain build into dist/ (vite build)', 'npx', ['vite', 'build']]]) {
     console.log(`preparing: ${label} ...`);
-    const r = spawnSync(cmd, a, { cwd: ROOT, env, encoding: 'utf8', maxBuffer: 1 << 28 });
+    const r = spawnSync(cmd, a, { cwd: ROOT, env: { ...env, ...imgEnv }, encoding: 'utf8', maxBuffer: 1 << 28 });
     if (r.status !== 0) { console.error(r.stdout, r.stderr); console.error(`STOP: ${label} failed.`); process.exit(1); }
   }
 }
 
+if (LOCAL_IMAGES && (readOnly.length || writes.length)) {
+  if (!existsSync(join(ROOT, '.image-cache'))) console.log('NOTE: there is no local image copy yet (.image-cache): the pictures will be missing. Make it once with:  node scripts/image-cache.mjs fill --seed <folder> (see its header)');
+  servers.push(spawn('node', [join(ROOT, 'scripts/image-server.mjs'), String(IMG_PORT)], { cwd: ROOT, env, stdio: 'ignore' }));
+  for (let i = 0; i < 40; i++) { try { await fetch(`http://localhost:${IMG_PORT}/`); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
+}
 try {
   for (const n of offline) run(n, 'offline');
   if (readOnly.length) {
     await serve('live', LIVE_PORT, liveEnv);
-    if (readOnly.includes('e2e_google') && !(await up(4174))) await serve('gis', 4174, { VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com' });
+    if (readOnly.includes('e2e_google') && !(await up(4174))) await serve('gis', 4174, { ...imgEnv, VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com' });
     for (const n of readOnly) run(n, 'live (reads)');
   }
   if (writes.length) {
@@ -110,6 +120,12 @@ try {
   }
 } finally { for (const s of servers) { try { s.kill(); } catch { /* ignore */ } } }
 
+// how many pictures did the suites ask of the LIVE project? (the guards write it into .test-logs/<test>.guard.json)
+{
+  let asked = 0, passed = 0, local = 0, n = 0;
+  for (const r of results) { try { const g = JSON.parse(readFileSync(join(ROOT, '.test-logs', `${r.name}.guard.json`), 'utf8')); if (g.images) { n++; asked += g.images.requests || 0; passed += g.images.passedToLive || 0; local += g.images.answeredLocally || 0; } } catch { /* an offline test has no guard file */ } }
+  console.log(`\nlive picture requests: ${asked} asked of the live project's storage by ${n} suites, ${passed} of them sent to live (a read-only check may send one each), ${local} answered from the local copy${LOCAL_IMAGES ? '' : ' (--live-images: the old behaviour)'}`);
+}
 const bad = results.filter((r) => !r.ok);
 console.log(`\n${results.length - bad.length}/${results.length} suites passed${bad.length ? ` | NOT OK: ${bad.map((b) => b.name).join(', ')}` : ''}`);
 process.exit(bad.length ? 1 : 0);

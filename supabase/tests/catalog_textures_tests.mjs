@@ -12,7 +12,8 @@ const sharp = (await import('sharp')).default;
 const BASE = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const buf = async (p) => { const r = await fetch(storageUrl(BASE, p)); if (!r.ok) throw new Error(`${p} ${r.status}`); return Buffer.from(await r.arrayBuffer()); };
+const { swatchBytes } = await import('./lib/imageCache.mjs');
+const buf = (p) => swatchBytes(p);          // the local copy (node scripts/image-cache.mjs fill): this test used to download every photo of the live catalog on every run
 try {
   const all = new Map();
   for (const line of Object.keys(LINE_SCOPE)) {

@@ -13,12 +13,20 @@
 //  * A test that has to edit a SHARED row (a price, an option, a markup, a real color) wraps that part in guard.sharedRows('why', async () => {...}):
 //    against the live project the part is skipped (with a SKIP line); against the staging project it runs.
 //
+// The LIVE project's storage egress is limited, so the guard also keeps tests away from its pictures (the swatch photos):
+//  * a test must read pictures from the local copy (imageCache.mjs: .image-cache, filled by scripts/image-cache.mjs) or from staging, never from the live project;
+//  * any request for a live storage URL (GET / HEAD of /storage/v1/object/public/..., from Node or from a browser page) fails the test with "LIVE GUARD: ...";
+//  * the one exception: a read-only check of the LIVE project may fetch ONE image (LB_MAX_LIVE_IMAGES, default 1) to prove the pictures are publicly readable;
+//  * the page requests are answered from the local copy, so a stale site build costs the test a failure, never the live project any egress;
+//  * LB_IMAGE_MODE=measure only COUNTS such requests (and answers them locally): used to measure what a suite would have asked of the live project.
+//
 // Which project a test talks to: LB_TARGET=live (the default; the SUPABASE_* variables) or LB_TARGET=staging (see scripts/run-tests.mjs, which maps
 // STAGING_SUPABASE_* onto SUPABASE_* for the child process and sets LB_TARGET). Against the live project the rules above are never relaxed.
 
 import { writeFileSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { routeLiveImages, parseStorageUrl, liveHost, readCached, stagingFile, mimeOf } from './imageCache.mjs';
 
 const TEST = basename(process.argv[1] || '', '.mjs');
 let targets = { writes: [] };
@@ -48,6 +56,18 @@ let HOST = ''; try { HOST = new URL(URL_).host; } catch { /* no Supabase configu
 if (TARGET === 'staging') {
   let liveHost = ''; try { liveHost = new URL(process.env.LB_LIVE_URL || '').host; } catch { /* unknown */ }
   if (!HOST || (liveHost && HOST === liveHost)) { console.error('\nSTOP: this run is meant for the staging project but SUPABASE_URL is the live project.\n'); process.exit(3); }
+}
+
+// ---- the live project's pictures ------------------------------------------------------------------------------------------------------------------
+const LIVE_HOST = liveHost();
+const IMAGE_MODE = (process.env.LB_IMAGE_MODE || 'strict').toLowerCase();                       // strict | measure
+const MAX_LIVE_IMAGES = IS_WRITER || TARGET === 'staging' ? 0 : Number(process.env.LB_MAX_LIVE_IMAGES ?? 1);
+const imageStats = { requests: 0, passedToLive: 0, answeredLocally: 0, mode: IMAGE_MODE, urls: [] };
+const liveImageOf = (method, urlStr) => { if (!LIVE_HOST || !/^(GET|HEAD)$/i.test(String(method || 'GET'))) return null; const p = parseStorageUrl(urlStr); return p && p.host === LIVE_HOST ? p : null; };
+async function localImage(p, method) {
+  const buf = readCached(p.bucket, p.path) || await stagingFile(p.bucket, p.path);
+  imageStats.answeredLocally++;
+  return buf ? new Response(String(method).toUpperCase() === 'HEAD' ? null : buf, { status: 200, headers: { 'content-type': mimeOf(p.path) } }) : new Response('not in the local image copy', { status: 404 });
 }
 
 // RPCs that only read (prices, catalog, checks)
@@ -156,6 +176,14 @@ function installFetch() {
     const method = init.method || (typeof input === 'object' && input.method) || 'GET';
     const headers = Object.fromEntries(Object.entries(init.headers || {}).map(([k, v]) => [k, String(v)]));
     const body = typeof init.body === 'string' ? init.body : '';
+    const pic = liveImageOf(method, url);
+    if (pic) {
+      imageStats.requests++; if (imageStats.urls.length < 5) imageStats.urls.push(`${pic.bucket}/${pic.path}`);
+      if (IMAGE_MODE === 'measure') return localImage(pic, method);
+      if (imageStats.passedToLive < MAX_LIVE_IMAGES) { imageStats.passedToLive++; return real(input, init); }          // the one picture a live read-only check may fetch
+      const e = report(`${method} ${pic.bucket}/${pic.path} stopped: a test must not load pictures from the LIVE project (use the local copy: supabase/tests/lib/imageCache.mjs, node scripts/image-cache.mjs fill)`);
+      throw e;
+    }
     const why = judge(method, url, body, headers);
     if (why) throw report(`${method} ${new URL(url).pathname} stopped: ${why}`);
     note(method, url);
@@ -181,6 +209,13 @@ async function browser(target) {
     note(r.method(), r.url());
     await route.fallback();
   });
+  // pictures from the live project are answered from the local copy; a page that asks for one fails the test (a site built without VITE_IMAGE_BASE_URL)
+  await routeLiveImages(target, async (info) => {
+    imageStats.requests++; if (imageStats.urls.length < 5) imageStats.urls.push(`${info.bucket}/${info.path}`);
+    imageStats.answeredLocally++;
+    if (IMAGE_MODE !== 'measure') report(`the page requested ${info.bucket}/${info.path} from the LIVE project (the test site must read pictures from the local image server: build it with VITE_IMAGE_BASE_URL, scripts/run-tests.mjs does)`);
+    return 'serve';
+  });
   const ctx = typeof target.context === 'function' ? target.context() : target;
   ctx.on('response', async (res) => {
     try {
@@ -195,6 +230,7 @@ async function browser(target) {
 // Puts the check on every context / page a Playwright browser opens afterwards:   guard.wrapBrowser(browser)
 function wrapBrowser(b) {
   const nc = b.newContext.bind(b), np = b.newPage.bind(b);
+  b.__lbGuarded = true;
   b.newContext = async (...a) => { const c = await nc(...a); await browser(c); return c; };
   b.newPage = async (...a) => { const p = await np(...a); await browser(p.context()); return p; };
   return b;
@@ -209,7 +245,7 @@ async function sharedRows(why, fn) {
 }
 export const guard = {
   target: TARGET, isLive: TARGET === 'live', host: HOST, test: TEST, isWriter: IS_WRITER,
-  own, sharedRows, browser, wrapBrowser, violations, owned: () => [...owned],
+  own, sharedRows, browser, wrapBrowser, violations, owned: () => [...owned], imageStats,
   install: installFetch,
   judge,                                                       // for the guard's own tests
 };
@@ -218,5 +254,5 @@ installFetch();
 // a violation fails the run even if a test swallowed the error
 process.on('exit', () => {
   if (violations.length && !process.exitCode) process.exitCode = 1;
-  if (process.env.LB_GUARD_OUT) { try { writeFileSync(process.env.LB_GUARD_OUT, JSON.stringify({ writes: writes.length, sample: [...new Set(writes)].slice(0, 6), violations: violations.length })); } catch { /* ignore */ } }
+  if (process.env.LB_GUARD_OUT) { try { writeFileSync(process.env.LB_GUARD_OUT, JSON.stringify({ writes: writes.length, sample: [...new Set(writes)].slice(0, 6), violations: violations.length, images: imageStats })); } catch { /* ignore */ } }
 });

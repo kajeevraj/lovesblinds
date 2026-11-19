@@ -122,4 +122,4 @@ export async function removeOptionImage(path) {
   const { error } = await supabase.storage.from('option-images').remove([path]);
   if (error) console.warn('[admin] could not remove option image', path, error.message);
 }
-export const optionImageUrl = (path) => (path ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/option-images/${path.split('/').map(encodeURIComponent).join('/')}` : '');
+export const optionImageUrl = (path) => (path ? `${import.meta.env.VITE_IMAGE_BASE_URL || import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/option-images/${path.split('/').map(encodeURIComponent).join('/')}` : '');
