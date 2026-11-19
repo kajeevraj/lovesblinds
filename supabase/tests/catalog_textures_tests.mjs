@@ -2,6 +2,8 @@
 //  - a photo with a flat area becomes a Photo-crop texture that tiles with no visible seam and no fold (checked on the 3 x 3 tiling);
 //  - a photo without one becomes the pattern, in the same color the picker tile shows (the pattern's average IS the tile color);
 //  - every Zebra color is the pattern, whatever its photo looks like.
+import { guard } from './lib/liveGuard.mjs';       // every request is checked: a test may not load pictures from the live project (see lib/liveGuard.mjs)
+void guard;
 import { decodePhoto } from '../../scripts/room-lab/texture-node.mjs';
 import { analyzePhoto, LIMITS } from '../../src/lib/textureAnalysis.js';
 import { photoCropTexture, seamRatio, TEX } from '../../src/room/textureCore.js';
