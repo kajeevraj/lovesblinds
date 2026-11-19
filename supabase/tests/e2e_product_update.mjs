@@ -48,7 +48,7 @@ try {
     check(T('picking 3/8 changes the preview label at once'), (await page.locator('.pv-size').innerText()).replace(/\s+/g, ' ') === '40 3/8 × 64 in' && (await page.locator('#s2-w-echo').innerText()).startsWith('40 3/8 in'));
     // ---- Chain: the colors, bottom bar, roll direction in More options
     await card('Chain').click(); await settle();
-    check(T('Chain: "Chain side" (not Control side), and the preview shows the chain on the bar side with a small first-use hint'), await step('Chain side').count() === 1 && (await page.locator('.pv-bar').count()) === 1 && (await page.locator('.pv-grip').count()) === 0);
+    check(T('Chain: "Chain side" (not Control side), and the preview shows the chain itself as the control'), await step('Chain side').count() === 1 && (await page.locator('.pv-chain').count()) === 1 && (await page.locator('.pv-grip').count()) === 0);
     const more = page.locator('.s2-more');
     check(T('"More options" is collapsed and shows the defaults in one line'), (await more.getAttribute('open')) === null && /Chain color: White/.test(await more.locator('summary').innerText()) && /Bottom bar: Pearl White/.test(await more.locator('summary').innerText()) && /Roll direction: Standard/.test(await more.locator('summary').innerText()));
     await more.locator('summary').click(); await settle();
