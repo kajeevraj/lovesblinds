@@ -89,8 +89,8 @@ const picture = async (scope, code, name) => {
   const sw = find(cache[scope], code);
   if (!sw) throw new Error(`${code} is not in the ${scope} catalog any more`);
   if (sw.display_name !== name) throw new Error(`${code} is now called "${sw.display_name}" (expected "${name}")`);
-  const url = `${BASE}/storage/v1/object/public/swatches/${sw.image_path.split('/').map(encodeURIComponent).join('/')}`;
-  return { buf: Buffer.from(await (await fetch(url)).arrayBuffer()), sw };
+  const { swatchBytes } = await import('../../supabase/tests/lib/imageCache.mjs');          // the local copy (node scripts/image-cache.mjs fill), never the live project's storage
+  return { buf: await swatchBytes(sw.image_path), sw };
 };
 
 mkdirSync('public/room-lab/fabrics', { recursive: true });

@@ -18,3 +18,4 @@ dist-gis
 dist-live
 dist-staging
 backfill-logs
+.image-cache

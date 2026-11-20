@@ -24,7 +24,8 @@ const BASE = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY
 if (!BASE || !ANON) { console.error('SUPABASE_URL and VITE_SUPABASE_ANON_KEY are needed.'); process.exit(1); }
 
 const getJson = async (url) => { const r = await fetch(url, { headers: { apikey: ANON } }); if (!r.ok) throw new Error(`${url} -> ${r.status}`); return r.json(); };
-const getBuf = async (path) => { const r = await fetch(storageUrl(BASE, path)); if (!r.ok) throw new Error(`${path} -> ${r.status}`); return Buffer.from(await r.arrayBuffer()); };
+const { swatchBytes } = await import('../supabase/tests/lib/imageCache.mjs');
+const getBuf = (path) => swatchBytes(path);          // from the local copy (node scripts/image-cache.mjs fill), never from the live project's storage
 
 // every distinct swatch, from every line's public catalog
 const all = new Map();

@@ -3,7 +3,8 @@
 import { mkdirSync } from 'node:fs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const BASE = process.env.BASE_URL || 'http://localhost:4173', OUT = process.argv[2] || 'chain-shots'; mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const { swatchBytes, withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
 async function session(line, vw, vh, code, hgt, card) {
   const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 1 }), page = await ctx.newPage(); page.setDefaultTimeout(30000);
   await page.goto(`${BASE}/products/${line}`, { waitUntil: 'networkidle' });

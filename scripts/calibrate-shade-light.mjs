@@ -23,7 +23,8 @@ for (const t of TYPES) if (SOFT[t]) {
   CODES[t] = rows.flatMap((g) => g.swatches || []).filter((s) => (!SOFT[t][1] || s.family === SOFT[t][1]) && (t !== 'roman-blackout' || s.roman_styles?.flat?.linings?.includes('blackout')) && (!s.roman_styles || s.roman_styles.flat?.available !== false || !t.startsWith('roman'))).map((s) => s.supplier_code).slice(0, COLORS.length);
 }
 const fit = (xs, ys) => { const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n; let sxx = 0, sxy = 0; xs.forEach((x, i) => { sxx += (x - mx) ** 2; sxy += (x - mx) * (ys[i] - my); }); const a = sxy / sxx; return { a, b: my - a * mx, r: Math.sqrt(xs.reduce((s, x, i) => s + (ys[i] - (my + a * (x - mx))) ** 2, 0) / n) }; };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const { withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
 const all = {};
 for (const t of TYPES) {
   const overrides = Object.fromEntries(CODES[t].map((c, i) => [c, { preview_color: COLORS[i] }]));

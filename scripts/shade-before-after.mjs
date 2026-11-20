@@ -13,7 +13,8 @@ const LIST = JSON.parse(process.env.COLORS || 'null') || [
 ];
 const VIEWS = { desktop: { width: 1280, height: 900, dpr: 2, mobile: false }, phone: { width: 390, height: 844, dpr: 2, mobile: true } };
 const label = async (buf, text) => { const m = await sharp(buf).metadata(); const svg = Buffer.from(`<svg width="${m.width}" height="30"><rect width="${m.width}" height="30" fill="#1d1a14"/><text x="8" y="21" font-size="15" fill="#fff" font-family="sans-serif">${text.replace(/&/g, '&amp;')}</text></svg>`); return sharp({ create: { width: m.width, height: m.height + 30, channels: 3, background: '#fff' } }).composite([{ input: svg, top: 0, left: 0 }, { input: buf, top: 30, left: 0 }]).png().toBuffer(); };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const { withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
 for (const [vname, v] of Object.entries(VIEWS)) {
   if (ONLY && ONLY !== vname) continue;
   const rows = [];

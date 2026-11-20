@@ -37,7 +37,7 @@ try {
     if (req.method() === 'GET') { const res = await route.fetch(); let rows; try { rows = await res.json(); } catch { return route.fulfill({ response: res }); } if (Array.isArray(rows)) rows = rows.map((r) => ({ band_solid_in: null, band_sheer_in: null, ...r })); return route.fulfill({ response: res, body: JSON.stringify(rows), headers: { ...res.headers(), 'content-length': undefined } }); }
     return route.continue();
   });
-  if (new URL(URL_).host !== new URL(LIVE).host) await page.route(`${URL_}/storage/v1/object/public/swatches/**`, async (route) => { const r = await fetch(route.request().url().replace(URL_, LIVE)); route.fulfill({ status: r.status, body: Buffer.from(await r.arrayBuffer()), headers: { 'content-type': r.headers.get('content-type') || 'image/jpeg', 'access-control-allow-origin': '*' } }); });
+  // the swatch photos come from the local copy (the site built for the test reads them from scripts/image-server.mjs; staging has none, and the live project is never asked)
   const edit = async (code, heading) => { await page.goto(`${BASE}/admin`); await page.getByRole('heading', { name: 'Colors', exact: true }).waitFor(); await page.getByLabel('Search name or code').fill(code); await page.waitForTimeout(400); await page.getByRole('button', { name: heading }).first().click(); await page.getByRole('heading', { name: heading.source ? heading : heading }).first().waitFor(); };
   const prev = () => page.getByLabel('Texture preview');
   const ready = async () => { await page.waitForFunction(() => document.querySelector('canvas[aria-label="Texture preview"]')?.dataset.ready === '1'); await page.waitForTimeout(300); };
