@@ -12,7 +12,8 @@ const { deriveHex, bandPixels, previewHex, colorDistance, isHex, familyHex, chro
 const BASE = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY, ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rows = await (await fetch(`${BASE}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent('{zebra}')}`, { headers: { apikey: ANON } })).json();
 const out = [], V1 = (() => { try { return Object.fromEntries(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../docs/texture-types/zebra-colors.v1.json'), 'utf8')).map((r) => [r.code, r.now])); } catch { return {}; } })();       // v1: the first reading, before the backdrop and black rules
-const bytes = async (path) => { const r = await fetch(`${BASE}/storage/v1/object/public/swatches/${path}`); return r.ok ? Buffer.from(await r.arrayBuffer()) : null; };
+const { swatchBytes } = await import('../supabase/tests/lib/imageCache.mjs');
+const bytes = (path) => swatchBytes(path).catch(() => null);          // the local copy (node scripts/image-cache.mjs fill), never the live project's storage
 for (const s of rows.flatMap((g) => g.swatches)) {
   const thumb = await bytes(s.thumb_path), full = await bytes(s.image_path); if (!thumb || !full) continue;
   const t = await sharp(thumb).removeAlpha().raw().toBuffer({ resolveWithObject: true }), f = await sharp(full).removeAlpha().raw().toBuffer({ resolveWithObject: true });

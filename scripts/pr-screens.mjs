@@ -15,7 +15,8 @@ for (const g of await cat('cellular')) for (const s of g.swatches || []) if ((s.
 for (const g of await cat('roman')) for (const s of g.swatches || []) if (s.roman_styles?.flat?.available) by.roman.push(s);
 for (const g of await cat('shangri-la')) for (const s of g.swatches || []) by['shangri-la'].push(s);
 const pickOf = (list, fam) => (fam === 'dark' ? ['Charcoal/Black', 'Brown', 'Blue', 'Green', 'Gray'].map((f) => list.find((s) => s.color_family === f && s.thumb_path)).find(Boolean) : list.find((s) => s.color_family === fam && s.thumb_path));
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const { swatchBytes, withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
 const NO_OVERRIDE = { YZB2008: { preview_color: null }, YZB3007: { preview_color: null } };
 const shot = async (s, name) => { await s.page.evaluate(() => window.scrollTo(0, 0)); await s.page.waitForTimeout(500); await s.page.locator('.pv').screenshot({ path: `${OUT}/${name}.png` }); console.log(name); };
 for (const [tag, vp] of [['desktop', { width: 1440, height: 1000 }], ['phone', { width: 390, height: 844, mobile: true, dpr: 1 }]]) {

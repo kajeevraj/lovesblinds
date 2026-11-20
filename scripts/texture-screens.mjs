@@ -10,8 +10,9 @@ const cat = async (scope) => (await (await fetch(`${SB}/rest/v1/rpc/public_catal
 const all = {}; for (const sc of ['roller', 'zebra']) for (const g of await cat(sc)) for (const s of g.swatches || []) all[s.supplier_code] = { ...s, fam: g.family || s.family };
 const ZEBRA = ['YZB2008', 'YZB3007', 'YZB3306', 'YZB807', 'YZB5006', 'YZB2005', 'YZB202', 'YZB201'];             // Dark Chocolate, Bittersweet, Truffle, Mocha, Tuxedo Black, Soot Gray, Cream, Angel White (a folded photo)
 const ROLLER = [['slub', 'YS180006'], ['mesh', 'WSS360105'], ['twill', 'YB050011'], ['linen', 'YS205908'], ['tweed', 'XS230003'], ['motif', 'YSS-T12-305'], ['print', 'YSS-T10-302'], ['stripe', 'XS140004'], ['smooth', 'YB010001']];
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const photo = async (s, h) => sharp(Buffer.from(await (await fetch(`${SB}/storage/v1/object/public/swatches/${s.thumb_path}`)).arrayBuffer())).resize({ height: h }).png().toBuffer();
+const { swatchBytes, withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
+const photo = async (s, h) => sharp(await swatchBytes(s.thumb_path)).resize({ height: h }).png().toBuffer();
 const label = (t, w) => sharp({ create: { width: w, height: 28, channels: 3, background: '#fff' } }).composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="28"><text x="6" y="19" font-family="sans-serif" font-size="14">${t.replace(/&/g, '&amp;')}</text></svg>`) }]).png().toBuffer();
 for (const [tag, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', { width: 390, height: 844, mobile: true, dpr: 2 }]]) {
   for (const [group, items] of [['zebra', ZEBRA.map((c) => ['zebra', c])], ['roller', ROLLER]]) {
