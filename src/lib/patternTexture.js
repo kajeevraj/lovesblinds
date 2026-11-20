@@ -133,8 +133,10 @@ export function sheerHexOf(hex) {
 // The Zebra texture: one stripe period, size x size: a solid band on top (`split` of the height) and a sheer band under it. The solid band is the zebra
 // weave in the fabric's color; the sheer band is a fine see-through mesh in the fabric's sheer color (sheerHexOf) that the 3D model makes see-through.
 // `split` = solid / (solid + sheer) of the band widths in inches (src/room/zebraBands.js).
-export function zebraPattern(hex, split = 0.6, size = TEX, { strength = 1 } = {}) {
-  const rows = Math.round(size * split), solid = patternRGB('zebra', hex, size, { strength }), sheerHex = sheerHexOf(hex), base = hexToRgb(sheerHex);
+// `solidRgb`: the solid band's own picture (size x size x 3, a generated cloth or a photo crop, already in its color); `sheerHexIn`: the photo's own sheer color. Without them
+// the band is the generic zebra weave and the sheer a lighter version of the solid color.
+export function zebraPattern(hex, split = 0.6, size = TEX, { strength = 1, solidRgb = null, sheerHexIn = null } = {}) {
+  const rows = Math.round(size * split), solid = solidRgb || patternRGB('zebra', hex, size, { strength }), sheerHex = sheerHexIn || sheerHexOf(hex), base = hexToRgb(sheerHex);
   const voile = patternRGB('mesh', sheerHex, size), out = new Uint8ClampedArray(size * size * 3);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const i = (y * size + x) * 3;

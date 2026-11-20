@@ -5,6 +5,7 @@
 import { supabase } from '../../lib/supabase.js';
 import { makeTextureCanvas, textureBlob, pixelsAt } from '../../room/textureBrowser.js';
 import { analyzePhoto } from '../../lib/textureAnalysis.js';
+import { classifyPhoto } from '../../lib/textureType.js';
 
 export const BUCKET = 'swatches';
 const FULL_MAX = 1000, FULL_QUALITY = 0.88, THUMB_PX = 320, THUMB_QUALITY = 0.62, TILE_PX = 200, TILE_QUALITY = 0.6;
@@ -13,7 +14,7 @@ const MAX_INPUT_BYTES = 25 * 1024 * 1024;
 const toBlob = (canvas, type, q) => new Promise((resolve, reject) =>
   canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not process this photo.'))), type, q));
 
-export async function prepareImage(file) {
+export async function prepareImage(file, { line = null } = {}) {
   if (!file) throw new Error('Choose a photo first.');
   if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Please choose a JPG, PNG or WebP photo.');
   if (file.size > MAX_INPUT_BYTES) throw new Error('That photo is larger than 25 MB. Please choose a smaller one.');
@@ -57,6 +58,9 @@ export async function prepareImage(file) {
   // (the form does not wait for it); uploadPrepared() waits for it. Best effort: without one the pages make one on the spot from the full photo.
   // `analysis` is the photo looked at once: Photo crop or Pattern (src/lib/textureAnalysis.js), offered in the form as the auto-picked Texture setting.
   const fp = pixelsAt(fc, FULL_MAX), analysis = analyzePhoto(fp.rgb, fp.w, fp.h);
+  // the texture TYPE, measured from the photo (src/lib/textureType.js; read at the 320 px size the site reads, so it matches what scripts/classify-textures.mjs stores)
+  let measuredType = null; try { const tp = pixelsAt(fc, 320); measuredType = classifyPhoto(tp.rgb, tp.w, tp.h, { line: line || null }); } catch { /* none */ }
+  analysis.type = measuredType ? { type: measuredType.type, confidence: measuredType.confidence, reason: measuredType.reason } : null;
   const texPromise = (async () => {
     await new Promise((r) => setTimeout(r, 0));
     const out = { weave: null };

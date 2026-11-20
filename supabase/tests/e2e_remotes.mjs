@@ -38,7 +38,7 @@ try {
     check(T('a blank room: every shade counts alone (1 Channel, no sharing line)'), (await remoteType()) === 'ch1' && !SHARE.test(await inclText().catch(() => '')));
     // the channel buttons light up and change nothing; the shade buttons still move it
     await room('Living room'); await qty(3);
-    const amount = async () => Number(await page.locator('.pv-grip, .pv-bar').first().getAttribute('aria-valuenow'));
+    const amount = async () => Number(await page.locator('.pv-grip, .pv-bar, .pv-chain').first().getAttribute('aria-valuenow'));
     const a0 = await amount();
     await toTop(); await page.locator('[data-btn="stop"]').click(); await page.waitForTimeout(100);
     check(T('a pressed button lights up'), (await page.locator('.rm-key.lit[data-btn="stop"]').count()) === 1 && (await amount()) === a0);

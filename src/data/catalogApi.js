@@ -3,6 +3,7 @@
 import { catalogPath, edgePath, storageUrl, thumb200Path, texFlatPath } from './catalogQuery.js';
 import { registerCatalog } from './swatchData.js';
 import { resolveBands } from '../room/zebraBands.js';
+import { isTextureType } from '../lib/textureType.js';
 
 const BASE = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -34,7 +35,7 @@ export function mapRows(rows) {
         code: s.supplier_code,
         displayName: s.display_name, colorFamily: s.color_family, previewColor: nn(s.preview_color),
         image: storageUrl(BASE, s.image_path), thumb: storageUrl(BASE, s.thumb_path), tile: storageUrl(BASE, thumb200Path(s.thumb_path)), tex: s.thumb_path ? storageUrl(BASE, texFlatPath(s.thumb_path)) : undefined,
-        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, weave: nn(s.weave), weaveStrength: Number.isFinite(Number(s.weave_strength)) && s.weave_strength !== null ? Number(s.weave_strength) : undefined, ...zebraWidths(s, r), imageKind: s.image_kind,
+        textureMode: s.texture_mode === 'photo' || s.texture_mode === 'pattern' ? s.texture_mode : undefined, textureType: isTextureType(s.texture_type) ? s.texture_type : undefined, textureSource: s.texture_source === 'generated' || s.texture_source === 'photo' ? s.texture_source : undefined, weave: nn(s.weave), weaveStrength: Number.isFinite(Number(s.weave_strength)) && s.weave_strength !== null ? Number(s.weave_strength) : undefined, ...zebraWidths(s, r), imageKind: s.image_kind,
         specs: compact({ width: nn(s.width), composition: nn(s.composition) }),
         romanStyles: s.roman_styles ?? undefined,
         styles: s.styles ? s.styles.map(st => ({ style: st.style, code: st.code, image: storageUrl(BASE, st.image_path), thumb: storageUrl(BASE, st.thumb_path) })) : undefined,

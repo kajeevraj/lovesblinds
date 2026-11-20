@@ -49,7 +49,7 @@ export function SwatchTile({ swatch, size = 96 }) {
     if (typeof IntersectionObserver === 'undefined') draw();
     else { io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); draw(); } }, { rootMargin: '300px' }); io.observe(c); }
     return () => { dead = true; io?.disconnect(); };
-  }, [swatch.id, swatch.tile, swatch.thumb, swatch.textureMode, swatch.weave, swatch.zebraSolidIn, swatch.zebraSheerIn, family, override]);
+  }, [swatch.id, swatch.tile, swatch.thumb, swatch.textureMode, swatch.textureType, swatch.textureSource, swatch.weave, swatch.zebraSolidIn, swatch.zebraSheerIn, family, override]);
   if (failed) return <SwatchImg src={tileSrc(swatch)} fallback={tileFallbacks(swatch)} alt="" code={swatch.code} size={size} />;
   return <canvas ref={canvas} className="s2-sw-canvas" width={160} height={160} aria-hidden="true" data-color={override || familyHex(family)} style={{ background: override || familyHex(family) }} />;
 }

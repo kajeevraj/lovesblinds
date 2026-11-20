@@ -10,6 +10,7 @@
 // as it moves, because it is a loop of cloth (the stripes line up at some stopping points and close to solid at others). Soft shadows: under the cassette, down the jambs, and under the rail.
 import * as THREE from 'three';
 import { weaveTexture, applyWeaveScale, fabricMaterial, applyGlow, barGeometry, setQuad, shadowMesh, rampTexture, whenFabric, clamp } from './common.js';
+import { isStochastic } from '../textureBrowser.js';
 import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
 import { screenOpacity } from '../optics.js';
 import { CellularShade, RomanShade, ShangriLaShade } from './soft.js';
@@ -151,12 +152,12 @@ class Shade {
         if (look?.hex) this.solid?.color.set(look.hex);                      // the cassette and rail: plain cloth in the color the picker tile shows
         const { alphaCanvas, emissiveCanvas } = zebraMaps(img, this._bands().split, optics.sheerAlpha ?? 0.3, optics.glowSolid ?? 0.12, optics.glowSheer ?? 0.9);
         alphaTex.image = alphaCanvas; alphaTex.needsUpdate = true;
-        emTex.image = emissiveCanvas; emTex.needsUpdate = true;
+        emTex.image = emissiveCanvas; if (look?.periods > 1) emTex.repeat.set(1 / fabric.tile[0], 1 / (fabric.tile[1] * look.periods)); emTex.needsUpdate = true;      // (a tall picture: several stripe periods, each its own cloth)
         m.color.set(0xffffff); m.needsUpdate = true; env.invalidate();
       });
       this.mats.push(m); base.push(m, m);
     } else {
-      const m = fabricMaterial({ map: tex, glow: optics.glow ?? 0, opacity: optics.alpha ?? 1, bump: 1.2 }, env);
+      const m = fabricMaterial({ map: tex, glow: optics.glow ?? 0, opacity: optics.alpha ?? 1, bump: 1.2, stochastic: !!fabric.look && isStochastic(fabric.look) }, env);
       m.color.copy(flat);
       whenFabric(fabric, (img, look) => { m.color.set(0xffffff); if (look?.hex) m.opacity = screenOpacity(optics.alpha ?? 1, look.hex); m.needsUpdate = true; solid.needsUpdate = true; });       // a dark screen stays dark: see src/room/optics.js
       this.mats.push(m); base.push(m);
@@ -216,17 +217,17 @@ class Shade {
 // Zebra texture helpers: from the one-period swatch (solid band on top, sheer band below) make the alpha map (sheer bands see-through)
 // and the emissive map (daylight comes mostly through the sheer bands).
 function zebraMaps(img, split, sheerAlpha, glowSolid, glowSheer) {
-  const N = 256, sh = Math.round(split * N);
+  const N = 256, H = Math.max(N, img.height || N), sh = Math.round(split * N);      // (H: the picture may be several stripe periods tall)
   const solidness = (r) => solidnessAt(r, sh, N);      // 1 on the solid band, 0 on the sheer band, blended over about 6 px at each edge (src/room/zebraBands.js)
   const a = document.createElement('canvas'); a.width = 4; a.height = N;
   const actx = a.getContext('2d'); const ad = actx.createImageData(4, N);
   for (let r = 0; r < N; r++) { const v = Math.round(255 * (sheerAlpha + (1 - sheerAlpha) * solidness(r))); for (let x = 0; x < 4; x++) { const i = (r * 4 + x) * 4; ad.data[i] = ad.data[i + 1] = ad.data[i + 2] = v; ad.data[i + 3] = 255; } }
   actx.putImageData(ad, 0, 0);
-  const e = document.createElement('canvas'); e.width = e.height = N;
-  const ectx = e.getContext('2d'); ectx.drawImage(img, 0, 0, N, N);
-  const ed = ectx.getImageData(0, 0, N, N);
-  for (let r = 0; r < N; r++) {
-    const f = glowSheer + (glowSolid - glowSheer) * solidness(r);
+  const e = document.createElement('canvas'); e.width = N; e.height = H;
+  const ectx = e.getContext('2d'); ectx.drawImage(img, 0, 0, N, H);
+  const ed = ectx.getImageData(0, 0, N, H);
+  for (let r = 0; r < H; r++) {
+    const f = glowSheer + (glowSolid - glowSheer) * solidness(r % N);
     for (let x = 0; x < N; x++) { const i = (r * N + x) * 4; ed.data[i] *= f; ed.data[i + 1] *= f; ed.data[i + 2] *= f; }
   }
   ectx.putImageData(ed, 0, 0);

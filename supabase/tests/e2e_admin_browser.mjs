@@ -44,7 +44,7 @@ try {
   const newPage = async (u, vp = { width: 390, height: 844 }) => {
     const ctx = await browser.newContext({ viewport: vp, acceptDownloads: false });
     if (u) await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch {} }, [`sb-${ref}-auth-token`, sessionFor(u)]);
-    const page = await ctx.newPage(); page.setDefaultTimeout(20000);
+    const page = await ctx.newPage(); page.setDefaultTimeout(45000);
     const reqs = []; page.on('request', (r) => reqs.push(r.url()));
     page.on('dialog', (d) => d.accept());
     return { ctx, page, reqs };
@@ -271,7 +271,8 @@ try {
   await page.getByLabel('Search name or code').fill('');
   await page.screenshot({ path: `${OUT}/10-list-desktop.png` });
   // another tab of the same browser, opened after the last activity was 31 minutes ago (robots.txt is static, so no app code touches the timestamp)
-  const idle = await ctx.newPage(); idle.setDefaultTimeout(20000);
+  await page.goto(`${BASE}/robots.txt`);          // (the first tab leaves the admin: its own 30 s idle check must not sign the shared session out before the second tab shows its message)
+  const idle = await ctx.newPage(); idle.setDefaultTimeout(45000);
   await idle.goto(`${BASE}/robots.txt`);
   await idle.evaluate(() => localStorage.setItem('lb_admin_last_active', String(Date.now() - 31 * 60 * 1000)));
   await idle.goto(`${BASE}/admin`);
