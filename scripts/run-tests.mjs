@@ -64,7 +64,7 @@ const results = [];
 const EXPECTED = T.expectedFailures || {};
 function run(name, where) {
   mkdirSync(join(ROOT, '.test-logs'), { recursive: true });
-  const e = { ...env, ...(where === 'staging' ? stagingEnv : { LB_TARGET: 'live', BASE_URL: env.BASE_URL || `http://localhost:${LIVE_PORT}` }), LB_RUNNER: '1', ...(LIVE_CACHE_DIR ? { LB_LIVE_CACHE_DIR } : {}), LB_GUARD_OUT: join(ROOT, '.test-logs', `${name}.guard.json`) };
+  const e = { ...env, ...(where === 'staging' ? stagingEnv : { LB_TARGET: 'live', BASE_URL: env.BASE_URL || `http://localhost:${LIVE_PORT}` }), LB_RUNNER: '1', ...(LIVE_CACHE_DIR ? { LB_LIVE_CACHE_DIR: LIVE_CACHE_DIR } : {}), LB_GUARD_OUT: join(ROOT, '.test-logs', `${name}.guard.json`) };
   if (name === 'e2e_google') e.BASE_URL = 'http://localhost:4174';
   if (where === 'live-own-rows') e.LB_ALLOW_LIVE_OWN_ROWS = '1';
   const t0 = Date.now();
