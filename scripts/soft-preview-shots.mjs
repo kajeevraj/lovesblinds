@@ -58,7 +58,8 @@ const SHEETS = {
     ['Shangri-La, white', 'shangri-la', { codes: ['YSLH201'], amount: 70 }], ['Shangri-La, dark', 'shangri-la', { codes: ['YSLP1004'], amount: 70 }], ['Shangri-La, textured', 'shangri-la', { codes: ['YSLK904'], amount: 70 }],
   ] },
 };
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const { withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const label = async (buf, text, width) => { const svg = Buffer.from(`<svg width="${width}" height="28"><rect width="${width}" height="28" fill="#1d1a14"/><text x="8" y="19" font-size="14" font-family="sans-serif" fill="#fff">${esc(text)}</text></svg>`); return sharp(buf).extend({ top: 28, background: '#1d1a14' }).composite([{ input: svg, left: 0, top: 0 }]).png().toBuffer(); };
 

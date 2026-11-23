@@ -14,6 +14,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 const sharp = createRequire(import.meta.url)('sharp');
+const { swatchBytes } = await import('../supabase/tests/lib/imageCache.mjs');
 const { classifyPhoto, TEXTURE_TYPES, TEXTURE_TYPE_LABEL, defaultSource } = await import('../src/lib/textureType.js');
 const { REVIEWED } = await import('./texture-types/reviewed.mjs');
 
@@ -49,9 +50,9 @@ let next = 0;
 await Promise.all(Array.from({ length: 6 }, async () => {
   while (next < swatches.length) {
     const s = swatches[next++];
-    const res = await fetch(`${BASE}/storage/v1/object/public/swatches/${s.thumb}`);
-    if (!res.ok) { out.push({ ...s, type: 'linen', confidence: 0, reason: 'photo could not be read', failed: true }); continue; }
-    const { data, info } = await sharp(Buffer.from(await res.arrayBuffer())).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const buf0 = await swatchBytes(s.thumb).catch(() => null);          // the local copy of the photo (node scripts/image-cache.mjs fill), never the live project's storage
+    if (!buf0) { out.push({ ...s, type: 'linen', confidence: 0, reason: 'photo could not be read', failed: true }); continue; }
+    const { data, info } = await sharp(buf0).removeAlpha().raw().toBuffer({ resolveWithObject: true });
     const r = classifyPhoto(data, info.width, info.height, { line: s.line, family: s.colorFamily });
     const f = r.features, rev = REVIEWED[s.id];
     out.push({ ...s, measured: r.type, type: rev ? rev.type : r.type, reviewed: rev ? rev.why : null, confidence: +r.confidence.toFixed(2), runnerUp: r.runnerUp, reason: r.reason, how: r.how, banded: !!r.bands?.banded,

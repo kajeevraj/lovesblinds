@@ -7,6 +7,7 @@ import { guard } from './lib/liveGuard.mjs';       // every write is checked: a 
 import { probeSession, dE, toLab, hexRgb } from './lib/shadeProbe.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs');
 const sharp = (await import('sharp')).default;
+const { swatchBytes } = await import('./lib/imageCache.mjs');          // the local copy of the photos, never the live project's storage
 const { zebraColors, defaultSource } = await import('../../src/lib/textureType.js');
 const { lightnessOf } = await import('../../src/lib/swatchColor.js');
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
@@ -68,7 +69,7 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
     const c = zebra.find((x) => x.display_name === name); if (!c) { zbad.push(`${name}: not in the catalog`); continue; }
     if (c.preview_color) { zrows.push(`${name} skipped (preview_color ${c.preview_color})`); continue; }
     try {
-      const r = await s.read(c.supplier_code), res = await fetch(`${URL_}/storage/v1/object/public/swatches/${c.thumb_path}`);
+      const r = await s.read(c.supplier_code), res = { arrayBuffer: async () => swatchBytes(c.thumb_path) };
       const { data, info } = await sharp(Buffer.from(await res.arrayBuffer())).removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const z = zebraColors(data, info.width, info.height, c.color_family), d = dE(hexRgb(r.tile), hexRgb(z.hex)), db = Math.abs(toLab(hexRgb(r.tile))[2] - toLab(hexRgb(z.hex))[2]);
       zrows.push(`${name} tile ${r.tile} photo ${z.hex} d${d.toFixed(1)}`);
@@ -92,7 +93,7 @@ for (const [label, vp] of [['desktop', { width: 1280, height: 900 }], ['phone', 
   for (const c of sl) {
     if (c.preview_color) continue;
     try {
-      const r = await s.read(c.supplier_code), res = await fetch(`${URL_}/storage/v1/object/public/swatches/${c.thumb_path}`);
+      const r = await s.read(c.supplier_code), res = { arrayBuffer: async () => swatchBytes(c.thumb_path) };
       const { data } = await sharp(Buffer.from(await res.arrayBuffer())).removeAlpha().resize(64, 64, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
       const px = bandPixels(Uint8ClampedArray.from(data), 'shangri-la'), want = previewHex(null, vaneHex(px, c.color_family, () => deriveHex(px, c.color_family)), c.color_family), d = dE(hexRgb(r.tile), hexRgb(want));
       const look = await lookOf(s, c.supplier_code); rows.push(`${c.display_name} ${r.tile}`);

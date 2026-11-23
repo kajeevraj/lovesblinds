@@ -1,5 +1,7 @@
 // The /api/catalog function for every line the site asks for (and a few it should refuse), against the real catalog.
 // Needs SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+import { guard } from './lib/liveGuard.mjs';       // every request is checked: a test may not load pictures from the live project (see lib/liveGuard.mjs)
+void guard;
 import handler from '../../api/catalog.js';
 import { LINE_SCOPE, edgePath } from '../../src/data/catalogQuery.js';
 import { LINES } from '../../src/data/lines.js';

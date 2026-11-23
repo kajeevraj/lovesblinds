@@ -22,7 +22,8 @@ import { FIXES as PART2 } from './color-fixes/part2.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
 if (!BASE || !ANON) { console.error('SUPABASE_URL and VITE_SUPABASE_ANON_KEY are needed.'); process.exit(1); }
-const getBuf = async (p) => { const r = await fetch(storageUrl(BASE, p)); if (!r.ok) throw new Error(`${p} ${r.status}`); return Buffer.from(await r.arrayBuffer()); };
+const { swatchBytes } = await import('../supabase/tests/lib/imageCache.mjs');
+const getBuf = (path) => swatchBytes(path);          // from the local copy (node scripts/image-cache.mjs fill), never from the live project's storage
 const moved = new Map(PART2.map((f) => [`${f.line}|${f.code}`, f.set.color_family]));
 const all = new Map();
 for (const line of Object.keys(LINE_SCOPE)) {

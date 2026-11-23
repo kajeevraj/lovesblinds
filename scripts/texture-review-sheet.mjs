@@ -13,8 +13,9 @@ const LABEL = { slub: 'Slub streaks', mesh: 'Fine mesh / basketweave', twill: 'T
 const PAGE = { roller: 'roller', zebra: 'zebra', 'shangri-la': 'shangri-la', cellular: 'cellular', drapery: 'roman', 'dream-curtains': 'drapery' };
 const FAMCARD = { solar: 'Solar', 'screen-view': 'Screen view', blackout: 'Blackout', 'light-filtering': 'Light filtering' };
 const todo = REPORT.filter((r) => !WANT.length || WANT.includes(r.type));
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const photo = async (r) => { const res = await fetch(`${SB}/storage/v1/object/public/swatches/${r.thumb || `thumb/${r.line}/${r.code}.webp`}`); return res.ok ? Buffer.from(await res.arrayBuffer()) : null; };
+const { swatchBytes, withLocalImages } = await import('../supabase/tests/lib/imageCache.mjs');          // pictures come from the local copy (node scripts/image-cache.mjs fill), never from the live project
+const browser = withLocalImages(await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }));
+const photo = async (r) => swatchBytes(r.thumb || `thumb/${r.line}/${r.code}.webp`).catch(() => null);
 const tp = {}; { const cat = await Promise.all(['roller', 'zebra', 'shangri-la', 'cellular', 'roman', 'dream-curtains'].map(async (sc) => (await (await fetch(`${SB}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent(`{${sc}}`)}`, { headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY } })).json()))); for (const g of cat.flat()) for (const s of g.swatches || []) tp[s.id] = s.thumb_path; }
 const CELL = 150;
 
@@ -74,7 +75,7 @@ for (const t of TYPES) {
   for (let i = 0; i < list.length; i++) {
     const r = list[i], x = (i % cols) * (W + 12), y = Math.floor(i / cols) * (H + 8) + 44;
     const ph = r.thumb ? null : null; void ph;
-    const pBuf = await (async () => { const b = await (await fetch(`${SB}/storage/v1/object/public/swatches/${tp[r.id]}`)).arrayBuffer().catch(() => null); return b ? sharp(Buffer.from(b)).resize(CELL, CELL, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer() : null; })();
+    const pBuf = await (async () => { const b = await swatchBytes(tp[r.id]).catch(() => null); return b ? sharp(Buffer.from(b)).resize(CELL, CELL, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer() : null; })();
     const cBuf = r.crop ? await sharp(r.crop).resize(CELL, CELL, { fit: 'cover' }).jpeg({ quality: 88 }).toBuffer() : null;
     const src = r.look?.source === 'photo' ? 'Photo' : r.look ? 'Generated' : '?';
     const flag = r.uncertain ? ' | CHECK: type uncertain' : r.error ? ' | CHECK: not drawn' : '';

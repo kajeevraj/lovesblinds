@@ -32,7 +32,10 @@ export const catalogLinesOf = (shownIn) => [...new Set((shownIn || []).map(v => 
 export const edgePath = (lineKey) => `/api/catalog?line=${encodeURIComponent(lineKey)}`;
 
 // Where a stored image path is served from (the public "swatches" bucket).
-export const storageUrl = (base, path) => `${base}/storage/v1/object/public/swatches/${path.split('/').map(encodeURIComponent).join('/')}`;
+// VITE_IMAGE_BASE_URL is set ONLY for the builds the tests use (scripts/run-tests.mjs): they read the pictures from a local image server (scripts/image-server.mjs: a local copy of the
+// photos, never the live project), so tests and screenshots do not spend the live project's storage egress. A production build leaves it empty.
+const IMAGE_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_IMAGE_BASE_URL) || '';
+export const storageUrl = (base, path) => `${IMAGE_BASE || base}/storage/v1/object/public/swatches/${path.split('/').map(encodeURIComponent).join('/')}`;
 
 // Small tile picture, by naming rule: thumb/<line>/<name>.webp has a 200 px sibling at thumb200/<line>/<name>.webp
 // (made when a color is uploaded in the admin, and for older colors by scripts/backfill-thumbs.mjs). No database column.

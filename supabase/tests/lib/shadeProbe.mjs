@@ -25,6 +25,7 @@ export const dE = (a, b) => { const A = toLab(a), B = toLab(b); return Math.hypo
 
 export async function probeSession(browser, { width = 1280, height = 900, dpr = 1, overrides = null, mobile = false, base = BASE } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr, hasTouch: mobile, isMobile: mobile });
+  if (!browser.__lbGuarded) await (await import('./imageCache.mjs')).routeLiveImages(ctx);          // (a browser the guard wraps already answers pictures from the local copy)
   const page = await ctx.newPage(); page.setDefaultTimeout(90000);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   if (overrides) {
