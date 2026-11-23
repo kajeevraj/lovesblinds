@@ -10,6 +10,9 @@
 //   node scripts/run-tests.mjs --live-own-rows run the writers on LIVE instead, under the write guard (own rows only; edits of shared rows are skipped).
 //                                              Use sparingly: a leftover row on live is possible if a run is cut off.
 //   node scripts/run-tests.mjs --skip-build   do not run npm run prebuild and the plain build into dist/ first (they run by default, so a fresh clone works)
+//   node scripts/run-tests.mjs --live          ALSO run the read-only checks of the LIVE project (they send requests to live: database, auth; Supabase's free plan has limits on
+//                                              egress and log ingestion). Without it the default full suite runs the offline tests and the writing tests on staging only.
+//                                              Run it ONCE per PR (before merging), not after every change; --only <names> always runs the names it is given.
 //   node scripts/run-tests.mjs --list
 //
 // Staging is configured with STAGING_SUPABASE_URL, STAGING_SUPABASE_ANON_KEY and STAGING_SUPABASE_SERVICE_ROLE_KEY (docs/staging-setup.md).
@@ -79,7 +82,9 @@ import { writeFileSync } from 'node:fs';
 function writeLog(name, out) { try { writeFileSync(join(ROOT, '.test-logs', `${name}.log`), out); } catch { /* ignore */ } }
 
 const pick = (list) => list.filter((n) => !onlySet || onlySet.has(n));
-const offline = pick(T.offline), readOnly = pick(T.readOnly), writes = pick(T.writes);
+const LIVE_CHECKS = has('--live') || !!onlySet;                 // the read-only checks of the live project run only when asked for (--live) or named (--only)
+const offline = pick(T.offline), readOnly = LIVE_CHECKS ? pick(T.readOnly) : [], writes = pick(T.writes);
+if (!LIVE_CHECKS) console.log(`Skipped on purpose: ${pick(T.readOnly).length} read-only checks of the LIVE project (add --live to run them, once per PR; see docs/test-image-egress.md).\n`);
 
 // Before any browser or build-reading suite: the generated site photos and explainer images (npm run prebuild, which `vite build` alone skips) and a plain
 // build into dist/ (e2e_pr2 and others read dist/ directly). Without this a fresh clone fails on missing images and on dist/index.html. --skip-build to reuse them.
@@ -120,6 +125,13 @@ try {
   }
 } finally { for (const s of servers) { try { s.kill(); } catch { /* ignore */ } } }
 
+// how many requests did the suites send to the LIVE project, of any kind? (the guards write it into .test-logs/<test>.guard.json)
+{
+  let total = 0; const kinds = {}, per = [];
+  for (const r of results) { try { const g = JSON.parse(readFileSync(join(ROOT, '.test-logs', `${r.name}.guard.json`), 'utf8')); if (g.live?.requests) { total += g.live.requests; per.push([g.live.requests, r.name]); for (const [k, v] of Object.entries(g.live.byKind || {})) kinds[k] = (kinds[k] || 0) + v; } } catch { /* an offline test has no guard file */ } }
+  per.sort((a, b) => b[0] - a[0]);
+  console.log(`\nrequests sent to the LIVE project (any kind): ${total} by ${per.length} suites (${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'})${per.length ? `; most: ${per.slice(0, 5).map(([n, s]) => `${s} ${n}`).join(', ')}` : ''}`);
+}
 // how many pictures did the suites ask of the LIVE project? (the guards write it into .test-logs/<test>.guard.json)
 {
   let asked = 0, passed = 0, local = 0, n = 0;

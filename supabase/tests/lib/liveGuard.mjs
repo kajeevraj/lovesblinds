@@ -62,6 +62,16 @@ if (TARGET === 'staging') {
 const LIVE_HOST = liveHost();
 const IMAGE_MODE = (process.env.LB_IMAGE_MODE || 'strict').toLowerCase();                       // strict | measure
 const MAX_LIVE_IMAGES = IS_WRITER || TARGET === 'staging' ? 0 : Number(process.env.LB_MAX_LIVE_IMAGES ?? 1);
+// Every request that is SENT to the live project (database, auth, storage, functions), counted by kind: Supabase's log ingestion has a free-plan limit too.
+const liveStats = { requests: 0, byKind: {}, byPath: {} };
+const kindOf = (pathname) => (pathname.startsWith('/rest/v1/rpc/') ? 'rpc' : pathname.startsWith('/rest/v1/') ? 'database' : pathname.startsWith('/auth/v1/') ? 'auth' : pathname.startsWith('/storage/v1/') ? 'storage' : pathname.startsWith('/functions/') ? 'functions' : 'other');
+const countLive = (urlStr) => {
+  try {
+    const u = new URL(urlStr); if (!LIVE_HOST || u.host !== LIVE_HOST) return;
+    liveStats.requests++; const k = kindOf(u.pathname); liveStats.byKind[k] = (liveStats.byKind[k] || 0) + 1;
+    const key = u.pathname.replace(/\/[0-9a-f]{8}-[0-9a-f-]{27}/g, '/<id>').slice(0, 60); liveStats.byPath[key] = (liveStats.byPath[key] || 0) + 1;
+  } catch { /* not a URL */ }
+};
 const imageStats = { requests: 0, passedToLive: 0, answeredLocally: 0, mode: IMAGE_MODE, urls: [] };
 const liveImageOf = (method, urlStr) => { if (!LIVE_HOST || !/^(GET|HEAD)$/i.test(String(method || 'GET'))) return null; const p = parseStorageUrl(urlStr); return p && p.host === LIVE_HOST ? p : null; };
 async function localImage(p, method) {
@@ -180,13 +190,14 @@ function installFetch() {
     if (pic) {
       imageStats.requests++; if (imageStats.urls.length < 5) imageStats.urls.push(`${pic.bucket}/${pic.path}`);
       if (IMAGE_MODE === 'measure') return localImage(pic, method);
-      if (imageStats.passedToLive < MAX_LIVE_IMAGES) { imageStats.passedToLive++; return real(input, init); }          // the one picture a live read-only check may fetch
+      if (imageStats.passedToLive < MAX_LIVE_IMAGES) { imageStats.passedToLive++; countLive(url); return real(input, init); }          // the one picture a live read-only check may fetch
       const e = report(`${method} ${pic.bucket}/${pic.path} stopped: a test must not load pictures from the LIVE project (use the local copy: supabase/tests/lib/imageCache.mjs, node scripts/image-cache.mjs fill)`);
       throw e;
     }
     const why = judge(method, url, body, headers);
     if (why) throw report(`${method} ${new URL(url).pathname} stopped: ${why}`);
     note(method, url);
+    countLive(url);
     const res = await real(input, init);
     try {
       const u = new URL(url);
@@ -207,6 +218,7 @@ async function browser(target) {
     const why = judge(r.method(), r.url(), r.postData() || '', r.headers());
     if (why) { report(`the page's ${r.method()} ${new URL(r.url()).pathname} was blocked: ${why}`); await route.abort('failed'); return; }
     note(r.method(), r.url());
+    countLive(r.url());
     await route.fallback();
   });
   // pictures from the live project are answered from the local copy; a page that asks for one fails the test (a site built without VITE_IMAGE_BASE_URL)
@@ -245,7 +257,7 @@ async function sharedRows(why, fn) {
 }
 export const guard = {
   target: TARGET, isLive: TARGET === 'live', host: HOST, test: TEST, isWriter: IS_WRITER,
-  own, sharedRows, browser, wrapBrowser, violations, owned: () => [...owned], imageStats,
+  own, sharedRows, browser, wrapBrowser, violations, owned: () => [...owned], imageStats, liveStats,
   install: installFetch,
   judge,                                                       // for the guard's own tests
 };
@@ -254,5 +266,5 @@ installFetch();
 // a violation fails the run even if a test swallowed the error
 process.on('exit', () => {
   if (violations.length && !process.exitCode) process.exitCode = 1;
-  if (process.env.LB_GUARD_OUT) { try { writeFileSync(process.env.LB_GUARD_OUT, JSON.stringify({ writes: writes.length, sample: [...new Set(writes)].slice(0, 6), violations: violations.length, images: imageStats })); } catch { /* ignore */ } }
+  if (process.env.LB_GUARD_OUT) { try { writeFileSync(process.env.LB_GUARD_OUT, JSON.stringify({ writes: writes.length, sample: [...new Set(writes)].slice(0, 6), violations: violations.length, images: imageStats, live: liveStats })); } catch { /* ignore */ } }
 });
