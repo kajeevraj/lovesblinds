@@ -36,6 +36,21 @@ try {
   // measure mode: counted, answered from the local copy
   r = child(`const a = await fetch(${JSON.stringify(URLPIC)}); const b = await fetch('${LIVE}/storage/v1/object/public/swatches/thumb/zebra/none.webp'); console.log(a.status + ',' + (await a.text()) + ',' + b.status + ',' + guard.imageStats.requests + ',' + guard.imageStats.passedToLive);`, { LB_IMAGE_MODE: 'measure' });
   check('measure mode counts live picture requests and answers them from the local copy (none reaches live)', r.stdout.trim() === '200,fake-webp-bytes,404,2,0' && r.status === 0, `${r.stdout.trim()} exit ${r.status}`);
+  // read-only answers of the live project are kept for one run: the second identical call is answered locally, a refusal is never kept, other calls always go to live
+  const live2 = spawnSync('node', ['--input-type=module', '-e', `
+    import { createServer } from 'node:http';
+    let hits = 0, fail = 0;
+    const srv = createServer((req, res) => { let b = ''; req.on('data', (d) => b += d); req.on('end', () => { hits++; if (req.url.includes('size_limits')) { fail++; res.writeHead(500, { 'content-type': 'application/json' }); res.end('{}'); return; } res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ n: hits, body: b })); }); });
+    await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+    const base = 'http://127.0.0.1:' + srv.address().port;
+    process.env.SUPABASE_URL = base; process.env.LB_LIVE_URL = base;
+    const { guard } = await import(${JSON.stringify(join(HERE, 'lib/liveGuard.mjs'))});
+    const post = (fn, b) => fetch(base + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: 'k', 'content-type': 'application/json' }, body: JSON.stringify(b) });
+    const a = await (await post('public_catalog', { p_scope: '{zebra}' })).json(), b = await (await post('public_catalog', { p_scope: '{zebra}' })).json(), c = await (await post('public_catalog', { p_scope: '{roller}' })).json();
+    await post('size_limits', {}); await post('size_limits', {});
+    console.log([a.n, b.n, c.n, hits, guard.liveStats.requests, guard.liveStats.cachedAnswers, fail].join(','));
+    srv.close();`], { env: { ...base, LB_LIVE_CACHE_DIR: join(cache, 'live-cache'), SUPABASE_URL: '', LB_TARGET: 'live' }, encoding: 'utf8', cwd: ROOT });
+  check('with a run cache, the same read-only call is sent to live once (a different one, and a refused one, always are)', live2.stdout.trim() === '1,1,2,4,4,1,2', `${live2.stdout.trim()} ${live2.stderr.slice(0, 200)}`);
   // the helpers
   const lib = await import(`${join(HERE, 'lib/imageCache.mjs')}?t=${Date.now()}`);
   process.env.LB_IMAGE_CACHE = cache;

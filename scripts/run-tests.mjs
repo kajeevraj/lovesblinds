@@ -18,7 +18,7 @@
 // Staging is configured with STAGING_SUPABASE_URL, STAGING_SUPABASE_ANON_KEY and STAGING_SUPABASE_SERVICE_ROLE_KEY (docs/staging-setup.md).
 // Browser tests need a site build that points at the project they test; this script builds and serves one for live (port 4173) and one for staging (4175).
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +41,10 @@ const LIVE_PORT = 4173, ST_PORT = 4175, IMG_PORT = Number(env.LB_IMAGE_PORT) || 
 // .image-cache made by `node scripts/image-cache.mjs fill`), never from the live project, and the test guard (supabase/tests/lib/liveGuard.mjs) fails any test
 // that asks the live project for a picture (a read-only live check may fetch one). --live-images turns this off (the old behaviour; do not use it routinely).
 const LOCAL_IMAGES = !has('--live-images');
+// Read-only answers of the LIVE project (catalog, options, prices) are kept for this one run, so 50 suites asking for the same catalog send one request to live
+// (supabase/tests/lib/liveGuard.mjs). A fresh, empty folder every run: nothing is ever served from an older run. --no-live-cache turns it off.
+const LIVE_CACHE_DIR = has('--no-live-cache') ? '' : join(dirname(fileURLToPath(import.meta.url)), '..', '.test-logs', 'live-cache');
+if (LIVE_CACHE_DIR) { rmSync(LIVE_CACHE_DIR, { recursive: true, force: true }); mkdirSync(LIVE_CACHE_DIR, { recursive: true }); }
 const imgEnv = LOCAL_IMAGES ? { VITE_IMAGE_BASE_URL: `http://localhost:${IMG_PORT}` } : {};
 const servers = [];
 const up = async (port) => { try { return (await fetch(`http://localhost:${port}/`)).ok; } catch { return false; } };
@@ -60,7 +64,7 @@ const results = [];
 const EXPECTED = T.expectedFailures || {};
 function run(name, where) {
   mkdirSync(join(ROOT, '.test-logs'), { recursive: true });
-  const e = { ...env, ...(where === 'staging' ? stagingEnv : { LB_TARGET: 'live', BASE_URL: env.BASE_URL || `http://localhost:${LIVE_PORT}` }), LB_RUNNER: '1', LB_GUARD_OUT: join(ROOT, '.test-logs', `${name}.guard.json`) };
+  const e = { ...env, ...(where === 'staging' ? stagingEnv : { LB_TARGET: 'live', BASE_URL: env.BASE_URL || `http://localhost:${LIVE_PORT}` }), LB_RUNNER: '1', ...(LIVE_CACHE_DIR ? { LB_LIVE_CACHE_DIR } : {}), LB_GUARD_OUT: join(ROOT, '.test-logs', `${name}.guard.json`) };
   if (name === 'e2e_google') e.BASE_URL = 'http://localhost:4174';
   if (where === 'live-own-rows') e.LB_ALLOW_LIVE_OWN_ROWS = '1';
   const t0 = Date.now();
@@ -127,10 +131,10 @@ try {
 
 // how many requests did the suites send to the LIVE project, of any kind? (the guards write it into .test-logs/<test>.guard.json)
 {
-  let total = 0; const kinds = {}, per = [];
-  for (const r of results) { try { const g = JSON.parse(readFileSync(join(ROOT, '.test-logs', `${r.name}.guard.json`), 'utf8')); if (g.live?.requests) { total += g.live.requests; per.push([g.live.requests, r.name]); for (const [k, v] of Object.entries(g.live.byKind || {})) kinds[k] = (kinds[k] || 0) + v; } } catch { /* an offline test has no guard file */ } }
+  let total = 0, kept = 0; const kinds = {}, per = [];
+  for (const r of results) { try { const g = JSON.parse(readFileSync(join(ROOT, '.test-logs', `${r.name}.guard.json`), 'utf8')); kept += g.live?.cachedAnswers || 0; if (g.live?.requests) { total += g.live.requests; per.push([g.live.requests, r.name]); for (const [k, v] of Object.entries(g.live.byKind || {})) kinds[k] = (kinds[k] || 0) + v; } } catch { /* an offline test has no guard file */ } }
   per.sort((a, b) => b[0] - a[0]);
-  console.log(`\nrequests sent to the LIVE project (any kind): ${total} by ${per.length} suites (${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'})${per.length ? `; most: ${per.slice(0, 5).map(([n, s]) => `${s} ${n}`).join(', ')}` : ''}`);
+  console.log(`\nrequests sent to the LIVE project (any kind): ${total} by ${per.length} suites, ${kept} more answered from this run's own copy of earlier answers (${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'})${per.length ? `; most: ${per.slice(0, 5).map(([n, s]) => `${s} ${n}`).join(', ')}` : ''}`);
 }
 // how many pictures did the suites ask of the LIVE project? (the guards write it into .test-logs/<test>.guard.json)
 {
