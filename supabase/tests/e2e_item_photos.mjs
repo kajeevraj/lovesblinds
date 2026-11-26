@@ -32,7 +32,7 @@ try {
     await open('cellular'); await page.locator('.s2-card', { hasText: 'Top-down/bottom-up' }).click(); await page.locator('.s2-sw').first().click(); await size(); await add();
     await open('drapery'); await page.locator('.s2-sw').first().click();
     await pickCurtains(page); await size(); await add();
-    await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-sw').first().click();
+    await page.getByRole('tab', { name: 'Dream Curtains', exact: true }).click(); await page.locator('.s2-sw').first().click();
     if (await page.locator('.s2-color-style .s2-card').count()) await page.locator('.s2-color-style .s2-card').first().click();
     for (const n of ['Ceiling install', 'Inside', 'Left stack']) await page.locator('.s2-card', { has: page.locator('.s2-card-name', { hasText: new RegExp(`^${n}$`) }) }).click();
     await size(); await add();
