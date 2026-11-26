@@ -8,7 +8,7 @@
 // The group's origin is the top centre of the curtain, on the track's plane; +z is towards the room.
 import * as THREE from 'three';
 import { SoftShade, clothMaterial, GAP } from './soft.js';
-import { layoutOf, profileOf, pushOf, travelOf, STACK_YAW, stripOf } from '../dreamLayout.js';
+import { layoutOf, profileOf, pushOf, travelOf, STACK_YAW, stripOf, OVERLAP, jointNear } from '../dreamLayout.js';
 
 const NU = 14;                                  // segments across one strip
 const TRACK_H = 0.03, TRACK_D = 0.03;
@@ -42,6 +42,8 @@ export class DreamShade extends SoftShade {
     this.opt = next; this._rebuildHardware(); if (stripsChanged) this._rebuildStrips(); this._layout(); this.env.invalidate();
   }
   setSize(w, h) { this.width = w; this.height = h; this.mats.forEach((m) => { m.userData.uHeight.value = h; }); this._rebuildHardware(); this._rebuildStrips(); this._layout(); }
+  // the nearest joint between two strips to x (metres across the curtain): a hovering cursor opens that gap
+  jointAt(x) { return jointNear(this.layout.strips.map((t) => t.x), x, this.layout.pitch); }
   setPush(p) { this.push = { cx: p.cx ?? this.push.cx, cy: p.cy ?? this.push.cy, amp: p.amp ?? 0 }; this._layout(); }
   _size() {}
 
@@ -113,10 +115,10 @@ export class DreamShade extends SoftShade {
     if (!this.geo) return;
     const L = this.layout, iw = this.iw, H = this.height, nv = this.nv, n = this.n, prof = this.prof.points, depth = this.prof.depth, zT = this.zOff() + TRACK_D / 2 + 0.004;
     const P = this.geo.attributes.position.array, N = this.geo.attributes.normal.array, hand = this.push.amp > 0.0005 ? this.push : null;
-    const sx = L.pitch / this.prof.chord;                                    // each strip is stretched a hair so the strips exactly fill the track
+    const sx = (L.pitch / this.prof.chord) * OVERLAP;                       // each strip is stretched a hair so the strips overlap and no gap shows
     const dz = Math.min(0.008, 0.1 / Math.max(1, n));
     for (let i = 0; i < n; i++) {
-      const st = L.strips[i], zc = depth / 2, zBase = zT + st.index * dz * st.gathered, xBase = st.x;
+      const st = L.strips[i], zc = depth / 2, zBase = zT + st.index * dz * st.gathered + (i % 2 ? 0.004 : 0) * (1 - st.gathered), xBase = st.x;
       for (let r = 0; r <= nv; r++) {
         const y = (r / nv) * H, hp = hand ? pushOf(hand, xBase, y) : { dx: 0, yaw: 0 }, phi = st.yaw + hp.yaw, cs = Math.cos(phi), sn = Math.sin(phi), xr = xBase + hp.dx;
         for (let c = 0; c <= NU; c++) {

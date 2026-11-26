@@ -194,7 +194,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   };
   const pushAt = (e, down) => { const r = e.currentTarget.getBoundingClientRect(); ctrlRef.current?.push((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, down); };
   const pushDown = (e) => { touch(); setPushing(true); pushRef.current = e.pointerId; e.currentTarget.setPointerCapture?.(e.pointerId); pushAt(e, true); };
-  const pushMove = (e) => { if (pushRef.current === e.pointerId) pushAt(e, true); };
+  const pushMove = (e) => { if (pushRef.current === e.pointerId) pushAt(e, true); else if (e.pointerType === 'mouse' && !pushRef.current) pushAt(e, 'hover'); };
+  const pushLeave = (e) => { if (!pushRef.current) pushAt(e, false); };
   const pushUp = (e) => { if (pushRef.current !== e.pointerId) return; pushRef.current = null; setPushing(false); e.currentTarget.releasePointerCapture?.(e.pointerId); pushAt(e, false); };
   const key_ = (i) => (e) => {
     const cur = (i === 0 ? ctrlRef.current?.pendingAmount?.() : null) ?? amounts[i] ?? 0;          // (the shade waiting for the vanes to close: keep counting from where it is going)
@@ -285,7 +286,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
             return (
               <>
                 <div className="pv-push" data-pushing={pushing ? '1' : '0'} ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }}
-                  onPointerDown={pushDown} onPointerMove={pushMove} onPointerUp={pushUp} onPointerCancel={pushUp} aria-hidden="true" />
+                  onPointerDown={pushDown} onPointerMove={pushMove} onPointerUp={pushUp} onPointerCancel={pushUp} onPointerLeave={pushLeave} aria-hidden="true" />
                 {rod && d.rod ? handle(0, { left: d.rod.x - wd / 2, top: d.rod.y0 - 4, width: wd, height: Math.max(wd, d.rod.y1 - d.rod.y0 + 8) })
                   : d.leads.map((l, i) => handle(i, { left: l.x - wd / 2, top: d.top - 6, width: wd, height: Math.max(60, d.bottom - d.top + 12) }))}
                 {w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}

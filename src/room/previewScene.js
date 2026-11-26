@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { createShade } from './models/shade.js';
 import { shadowMesh, rampTexture, blobTexture } from './models/common.js';
 import { plasterTexture, skyTexture, washTexture } from './backdrop.js';
+import { HOVER_AMP } from './dreamLayout.js';
 
 const IN = 0.0254;
 const TRIM = 0.075, DEPTH = 0.09, FOV = 26;
@@ -174,7 +175,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
   let accessory = null, xrayMats = [], driveDirs = [], hasSolar = false;
   const xray = { target: 0, v: 0 }, vane = { target: 0, v: 0, p: 0, armed: true, pending: null, driveWait: 0 };
   let chainRig = null;
-  const hand = { cx: 0, cy: 0, amp: 0, vel: 0, target: 0 };            // Dream Curtains: a hand pressed into the strips (amp 0..1, a spring: it swings back when let go)
+  const hand = { cx: 0, cy: 0, amp: 0, vel: 0, target: 0, cxTo: 0 };            // Dream Curtains: a hand pressed into the strips (amp 0..1, a spring: it swings back when let go)
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
     if (accessory) { scene.remove(accessory); accessory.traverse((o) => o.geometry?.dispose()); accessory = null; }
@@ -399,6 +400,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
         hand.vel += (220 * (hand.target - hand.amp) - 15 * hand.vel) * dt; hand.amp += hand.vel * dt; hand.amp = Math.max(-0.15, Math.min(1.05, hand.amp));
         if (!hand.target && Math.abs(hand.amp) < 0.0008 && Math.abs(hand.vel) < 0.002) { hand.amp = 0; hand.vel = 0; }
       }
+      if (Math.abs(hand.cxTo - hand.cx) > 0.0005) { hand.cx += (hand.cxTo - hand.cx) * (reduced ? 1 : 1 - Math.exp(-dt * 16)); moving = true; }
       shades[0].setPush(hand); dirty = true;
       if (Math.abs(hand.target - hand.amp) > 0.001 || Math.abs(hand.vel) > 0.002) moving = true;
     }
@@ -433,10 +435,14 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     handleFraction: (i = 0) => (movers[i] ? movers[i].s.handleAt(movers[i].k) : 0), amountAt: (i, f) => (movers[i] ? movers[i].s.amountAt(movers[i].k, f) : 0), driving: (i = 0) => driveDirs[i] || 0,
     drive(dir, i = 0) { if (i >= movers.length) return; if (i === 0) { vane.pending = null; vane.driveWait = 0; if (dir < 0 && isSL() && vane.p > 0) { vane.driveWait = -1; closeVanesFirst(); wake(); return; } } driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
     // Dream Curtains: a hand pressed at (nx, ny) (0..1 across and down the curtain; down = pressed) parts the strips there, and they swing back when it lets go
-    push(nx, ny, down = true) {
+    // mode: true = pressed (parts the strips under the hand), 'hover' = a cursor over the curtain (the nearest joint opens a little), false = let go
+    push(nx, ny, mode = true) {
       const sp = built?.shade; if (cfg.kind !== 'dream' || !sp || !shades[0]) return;
-      hand.cx = (Math.min(1, Math.max(0, nx)) - 0.5) * sp.w; hand.cy = Math.min(1, Math.max(0, ny)) * sp.h; hand.target = down ? 1 : 0;
-      if (!down && reduced) hand.amp = 0;
+      const cx = (Math.min(1, Math.max(0, nx)) - 0.5) * sp.w, hover = mode === 'hover';
+      hand.cxTo = hover ? shades[0].jointAt(cx) : cx; hand.cy = Math.min(1, Math.max(0, ny)) * sp.h;
+      if (mode && !hand.target && !hand.amp) hand.cx = hand.cxTo;
+      hand.target = mode === true ? 1 : hover ? HOVER_AMP : 0;
+      if (!mode && reduced) hand.amp = 0;
       shades[0].setPush(hand); wake();
     },
     get hand() { return { ...hand }; }, dreamStrips: (y) => (shades[0]?.stripXs ? shades[0].stripXs(y) : []),

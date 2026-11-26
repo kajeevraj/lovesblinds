@@ -15,7 +15,8 @@ export const STRIPS = {
   B: { flat: 0.33, parts: [0.10, 0.13, 0.10] },
 };
 export const HANG_RATIO = 0.72;               // hanging width / flat width
-export const STACK_RATIO = 0.3;               // stacked pitch / hanging pitch: how tightly an open curtain gathers
+export const STACK_RATIO = 0.5;               // stacked pitch / hanging pitch: how tightly an open curtain gathers (loosely: the strips do not bunch up hard)
+export const OVERLAP = 1.035;                 // each strip is a hair wider than its pitch and the next one sits a hair behind it: a closed curtain shows no gap between strips
 export const stripOf = (style) => STRIPS[style] || STRIPS.A;
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -81,6 +82,13 @@ export const travelOf = ({ span, style = 'A', stack = 'right' } = {}) => {
 // ---- the hand ---------------------------------------------------------------------------------------------------------------------------------------------
 // A press at (cx, cy) (metres across the curtain from its centre, and down from the track) with strength `amp` (0..1) parts the strips there: each strip beside the hand
 // is pushed sideways away from it and turned, most at the hand's height and reaching up to the track, where they hang. Returns what to add to one strip at height y.
+// the joint between two neighbouring strips nearest to x (metres across): where a hovering cursor opens a gap
+export function jointNear(xs, x, pitch) {
+  const s = xs.slice().sort((a, b) => a - b); let best = null;
+  for (let i = 0; i + 1 < s.length; i++) { const m = (s[i] + s[i + 1]) / 2; if (s[i + 1] - s[i] <= pitch * 1.6 && (best === null || Math.abs(m - x) < Math.abs(best - x))) best = m; }
+  return best ?? x;
+}
+export const HOVER_AMP = 0.14;                  // how far a gap opens under a hovering cursor (a press opens it fully: 1)
 export const PUSH = { reach: 0.46, shift: 0.3, yaw: 0.85, height: 0.34 };
 export function pushOf({ cx, cy, amp }, stripX, y) {
   if (!amp) return { dx: 0, yaw: 0 };
