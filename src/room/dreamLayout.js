@@ -24,7 +24,12 @@ export const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a)); return 
 
 // The strip's cross-section from above, as points (x across, z towards the room) along its flat length. The tangent angle is a smooth wave: it rises through the first
 // wing, falls through the centre and returns through the second wing, so the curvature changes sign exactly where the supplier's parts meet.
+const PROF = new Map();
 export function profileOf(style, n = 24) {
+  const key = `${style}:${n}`; if (PROF.has(key)) return PROF.get(key);
+  const r = profileRaw(style, n); PROF.set(key, r); return r;
+}
+function profileRaw(style, n) {
   const { flat, parts } = stripOf(style), s1 = parts[0], s2 = flat - parts[2];
   const pts = (theta) => {
     const out = [{ x: 0, z: 0, s: 0 }], ds = flat / 400; let x = 0, z = 0;

@@ -416,7 +416,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
         if (slow > 12 && dprCap > 1) { dprCap = Math.max(1, dprCap - 0.5); slow = 0; resize(size.w, size.h, dispDpr); }
       }
     }
-    if (moving) raf = requestAnimationFrame(frame); else last = 0;
+    if (moving) { if (!raf) raf = requestAnimationFrame(frame); } else last = 0;
   }
   function resize(w, h, dpr) {
     size = { w, h }; dispDpr = dpr;
