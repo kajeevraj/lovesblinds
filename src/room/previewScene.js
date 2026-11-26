@@ -62,7 +62,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
   })));
   vig.children[0].frustumCulled = false;
 
-  const cfg = { tight: false, kind: 'roller', style: 'none', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amounts: [0.55], extras: {} };
+  const cfg = { dream: null, tight: false, kind: 'roller', style: 'none', w: 1, h: 1.5, mount: 'inside', drive: { movement: 'chain', side: 'right' }, cover: 'wrapped', layers: [], amounts: [0.55], extras: {} };
   // every shade has its own position: amounts[i] is where it is going, current[i] where it is now (0 raised, 1 fully lowered); layers[0] is the front shade
   let built = null, shades = [], movers = [], current = [0.55], size = { w: 2, h: 2 }, active = false, raf = 0, dirty = true, last = 0, reduced = false, slow = 0, dprCap = 2;
   let dispDpr = 1;
@@ -70,8 +70,52 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
   const plane = (w, h, mat, x, y, z, rx = 0, ry = 0) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); return m; };
 
+  // ---- Dream Curtains hang on a SLIDING GLASS DOOR (that is where people put them): a tall opening to the floor, two or three glass panels with slim frames, a handle,
+  // a floor and a baseboard, and the soft view outside. The curtain's top is at the top of the typed height and it clears the floor by 2.5 cm.
+  function buildDoor() {
+    if (built) { scene.remove(built.group); built.group.traverse((o) => { o.geometry?.dispose(); if (o.material && o.userData.own) o.material.dispose(); }); }
+    const { w, h, mount } = cfg, g = new THREE.Group(), inside = mount === 'inside', CLEAR = 0.025;
+    const ow = inside ? w : Math.max(0.6, w - 0.25), top = inside ? h / 2 : h / 2 - 0.22, floorY = -h / 2, bottom = floorY, oh = top - bottom, oy = (top + bottom) / 2;
+    const R = Math.max(w, h) * 3 + 3, shape = new THREE.Shape([new THREE.Vector2(-R, floorY - 0.5), new THREE.Vector2(R, floorY - 0.5), new THREE.Vector2(R, R), new THREE.Vector2(-R, R)]);
+    shape.holes.push(new THREE.Path([new THREE.Vector2(-ow / 2, bottom), new THREE.Vector2(-ow / 2, top), new THREE.Vector2(ow / 2, top), new THREE.Vector2(ow / 2, bottom)]));
+    g.add(new THREE.Mesh(new THREE.ShapeGeometry(shape), wallMat));
+    g.add(box(ow + 2 * TRIM, TRIM, 0.02, trimMat, 0, top + TRIM / 2, 0.01));                                             // head trim
+    for (const sx of [-1, 1]) g.add(box(TRIM * 0.8, oh, 0.02, trimMat, sx * (ow / 2 + TRIM * 0.4), oy, 0.01));            // side trim (no sill and no apron: it is a door)
+    g.add(plane(ow, DEPTH, jambTopMat, 0, top, -DEPTH / 2, Math.PI / 2));
+    for (const sx of [-1, 1]) g.add(plane(DEPTH, oh, jambMat, sx * ow / 2, oy, -DEPTH / 2, 0, sx * -Math.PI / 2));
+    // the floor, and the baseboard either side of the door
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xe3d8c4, roughness: 0.85 }); floorMat.userData.own = true;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, 14), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(0, floorY, 7 - DEPTH); g.add(floor);
+    const contact = shadowMesh(rampTexture([[0, 1], [1, 0]]), 0.25); contact.rotation.x = -Math.PI / 2; contact.scale.set(ow + 0.2, 0.18, 1); contact.position.set(0, floorY + 0.002, 0.09 - DEPTH * 0.0); g.add(contact);
+    const sideW = Math.max(0.1, R - ow / 2 - TRIM * 0.8);
+    for (const sx of [-1, 1]) g.add(box(sideW, 0.09, 0.016, trimMat, sx * (ow / 2 + TRIM * 0.8 + sideW / 2), floorY + 0.045, 0.008));
+    // the glass and the view
+    const gz = -DEPTH + 0.03, frameMat = new THREE.MeshStandardMaterial({ color: 0xe6e3dc, roughness: 0.45, metalness: 0.2 }); frameMat.userData.own = true;
+    g.add(plane(ow, oh, glassMat, 0, oy, gz - 0.02));
+    g.add(box(ow, 0.05, 0.07, frameMat, 0, top - 0.025, gz)); g.add(box(ow, 0.035, 0.1, frameMat, 0, floorY + 0.0175, gz));                       // head and the track along the floor
+    const n = ow > 2.4 ? 3 : 2, ov = 0.06, pw = (ow + (n - 1) * ov) / n;
+    for (let i = 0; i < n; i++) {                                                                                                    // sliding panels: each in its own depth, overlapping a little
+      const cx = -ow / 2 + pw / 2 + i * (pw - ov), pz = gz + (i % 2 ? 0.024 : -0.016), top2 = top - 0.05, h2 = top2 - (floorY + 0.035);
+      for (const sx of [-1, 1]) g.add(box(0.05, h2, 0.04, frameMat, cx + sx * (pw / 2 - 0.025), floorY + 0.035 + h2 / 2, pz));
+      g.add(box(pw, 0.05, 0.04, frameMat, cx, top2 - 0.025, pz)); g.add(box(pw, 0.11, 0.04, frameMat, cx, floorY + 0.035 + 0.055, pz));
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(pw - 0.1, h2 - 0.16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.05, depthWrite: false, toneMapped: false })); pane.position.set(cx, floorY + 0.035 + h2 / 2 + 0.03, pz + 0.021); pane.userData.own = true; g.add(pane);
+    }
+    const hx = -ow / 2 + (n === 2 ? pw - ov : 2 * (pw - ov)) + 0.02;                                                                  // a slim handle on the meeting stile of the front panel
+    g.add(box(0.02, 0.24, 0.03, new THREE.MeshStandardMaterial({ color: 0x77746d, roughness: 0.4, metalness: 0.4 }), hx, floorY + 1.0, gz + 0.05));
+    const sh = shadowMesh(rampTexture([[0, 1], [1, 0]]), 0.3); sh.scale.set(ow - 0.1, 0.16, 1); sh.position.set(0, top - 0.13, gz + 0.03); g.add(sh);
+    scene.add(g);
+    built = { group: g, ow, oh, oy, top, bottom };
+    built.shade = { w: inside ? ow : w, h: h - CLEAR, x: 0, top: h / 2, z: inside ? -0.032 : 0.05 };
+    const topExt = h / 2 + TRIM + 0.08, botExt = floorY - 0.3, bw = inside ? ow + 2 * TRIM * 0.8 + 0.08 : w;
+    const wide = cfg.tight ? 1.5 : 1.75, tall = cfg.tight ? 1.1 : 1.18;
+    built.fit = { w: bw * wide, h: (topExt - botExt) * tall, cy: (topExt + botExt) / 2 }; built.fit0 = built.fit;
+    built.shadeBottom = floorY; built.labelY = floorY - 0.14;
+    fitCamera();
+  }
+
   // ---- the window, the trim and the wall (rebuilt when the size or the mount changes) ---------------------------------------------------------------
   function buildWindow() {
+    if (cfg.kind === 'dream') { buildDoor(); return; }
     if (built) { scene.remove(built.group); built.group.traverse((o) => { o.geometry?.dispose(); if (o.material && o.userData.own) o.material.dispose(); }); }
     const { w, h, mount } = cfg, g = new THREE.Group();
     const ow = mount === 'inside' ? w : Math.max(0.22, w - 0.25), oh = mount === 'inside' ? h : Math.max(0.3, h - 0.275), oy = mount === 'inside' ? 0 : -0.0125;
@@ -130,6 +174,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
   let accessory = null, xrayMats = [], driveDirs = [], hasSolar = false;
   const xray = { target: 0, v: 0 }, vane = { target: 0, v: 0, p: 0, armed: true, pending: null, driveWait: 0 };
   let chainRig = null;
+  const hand = { cx: 0, cy: 0, amp: 0, vel: 0, target: 0 };            // Dream Curtains: a hand pressed into the strips (amp 0..1, a spring: it swings back when let go)
   function buildShades() {
     shades.forEach((s) => s.dispose()); shades = [];
     if (accessory) { scene.remove(accessory); accessory.traverse((o) => o.geometry?.dispose()); accessory = null; }
@@ -142,7 +187,12 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
       s.group.position.set(sp.x, sp.top, sp.z + (cfg.layers.length - 1 - i) * 0.058);
       scene.add(s.group); shades.push(s);
     });
-    else {                                                               // cellular, roman, shangri-la: one shade; its layers are its cloths (day & night has two)
+    else if (cfg.kind === 'dream') {                                      // Dream Curtains: one track, many strips (models/dream.js)
+      const s = createShade('dream', env, { style: cfg.style, stack: cfg.dream?.stack, install: cfg.dream?.install, control: cfg.dream?.control, wired: cfg.dream?.wired });
+      s.setSize(sp.w, sp.h); s.setFabrics(cfg.layers);
+      s.group.position.set(sp.x, sp.top, sp.z);
+      scene.add(s.group); shades.push(s);
+    } else {                                                               // cellular, roman, shangri-la: one shade; its layers are its cloths (day & night has two)
       const s = createShade(cfg.kind, env, { style: cfg.style });
       s.setSize(sp.w, sp.h); s.setRailColor(cfg.extras?.headHex); s.setWindow(built.ow / 2 - 0.03, built.top - 0.03 - sp.top, built.bottom + 0.04 - sp.top); s.setFabrics(cfg.layers); s.setVanes?.(vane.v);
       s.group.position.set(sp.x, sp.top, sp.z);
@@ -151,7 +201,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     movers = []; shades.forEach((s) => { for (let k = 0; k < s.movers; k++) movers.push({ s, k }); });
     for (const arr of [current, cfg.amounts]) { arr.length = movers.length; for (let i = 0; i < arr.length; i++) if (!Number.isFinite(arr[i])) arr[i] = 0; }
     setShadeAmounts(current);
-    buildControl(sp);
+    if (cfg.kind !== 'dream') buildControl(sp);
     emit();
   }
 
@@ -244,7 +294,7 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     const xs = [], ys = [];
     for (const [x, y] of pts) { v.set(x, y, sp.z + 0.03).project(camera); xs.push(((v.x + 1) / 2) * size.w); ys.push(((1 - v.y) / 2) * size.h); }
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-    v.set(0, built.shadeBottom - 0.024 - TRIM * 0.8 - 0.07, 0.03).project(camera);
+    v.set(0, built.labelY ?? built.shadeBottom - 0.024 - TRIM * 0.8 - 0.07, 0.03).project(camera);
     // where each shade's handle (or bottom bar) is on screen: a single shade at the center, a double-stack's front shade at 40% of the width and the back at 60%
     // (a shade with two rails has both handles at the center, one on each rail)
     const n = shades.length, xAt = (i) => (n > 1 ? x0 + (i === 0 ? 0.4 : 0.6) * (x1 - x0) : (x0 + x1) / 2);
@@ -265,7 +315,14 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
       const px = ((a.x + 1) / 2) * size.w, ya = ((1 - a.y) / 2) * size.h, yb = ((1 - b.y) / 2) * size.h;
       chain = { x: px, top: ya, bottom: yb, pxPerM: (yb - ya) / (c.len + 0.02), travelM: c.travel };
     }
-    onLayout?.({ chain, labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, near, canvasW: size.w, canvasH: size.h });
+    let dream = null;
+    if (cfg.kind === 'dream' && shades[0]?.leads) {
+      const sh = shades[0], P = (x, y, z) => { v.set(sp.x + x, sp.top + y, sp.z + z).project(camera); return { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h }; };
+      const lead = sh.leads().map((l) => ({ x: P(l.edgeX, -0.03, l.z).x, opens: l.opens })), ya = P(0, -0.03, 0.05).y, yb = P(0, -sp.h, 0.05).y;
+      dream = { leads: lead, pxPerM: (yb - ya) / (sp.h - 0.03), travelM: sh.travelOf(), stack: cfg.dream?.stack || 'right', top: ya, bottom: yb, rod: null };
+      if (sh.rodInfo && cfg.dream?.control === 'pull-rod') { const r = sh.rodInfo, a0 = P(r.x, -r.top, r.z), a1 = P(r.x, -(r.top + r.len + 0.07), r.z); dream.rod = { x: a0.x, y0: a0.y, y1: a1.y }; }
+    }
+    onLayout?.({ chain, dream, labelY: ((1 - v.y) / 2) * size.h, x0, x1, y0, y1, handle: handles[0], handles, hidden, near, canvasW: size.w, canvasH: size.h });
   }
 
   // ---- configuration ----------------------------------------------------------------------------------------------------------------------------------
@@ -275,8 +332,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     if (n.height != null) n.h = clampInches(n.height) * IN;
     delete n.width; delete n.height;
     const extrasChanged = n.extras && JSON.stringify(n.extras) !== JSON.stringify(cfg.extras);
-    const geometryChanged = ['w', 'h', 'mount', 'tight'].some((k) => n[k] != null && n[k] !== cfg[k]);
-    const shadesChanged = geometryChanged || extrasChanged || ['kind', 'cover', 'style'].some((k) => n[k] != null && n[k] !== cfg[k]) || (n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive))
+    const geometryChanged = ['w', 'h', 'mount', 'tight'].some((k) => n[k] != null && n[k] !== cfg[k]) || (n.kind != null && (n.kind === 'dream') !== (cfg.kind === 'dream'));
+    const shadesChanged = geometryChanged || extrasChanged || ['kind', 'cover', 'style'].some((k) => n[k] != null && n[k] !== cfg[k]) || (n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive)) || (n.dream && JSON.stringify(n.dream) !== JSON.stringify(cfg.dream))
       || (n.layers && JSON.stringify(n.layers.map((l) => [l.fabric?.key, l.optics])) !== JSON.stringify(cfg.layers.map((l) => [l.fabric?.key, l.optics])));
     const driveChanged = n.drive && JSON.stringify(n.drive) !== JSON.stringify(cfg.drive);
     Object.assign(cfg, Object.fromEntries(Object.entries(n).filter(([, v]) => v != null)));
@@ -336,6 +393,15 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
         current[i] += (cfg.amounts[i] - current[i]) * (reduced ? 1 : 1 - Math.exp(-dt * 14)); moving = true; dirty = true; shifted = true;
       } else if (current[i] !== cfg.amounts[i]) { current[i] = cfg.amounts[i]; dirty = true; shifted = true; }
     });
+    if (cfg.kind === 'dream' && shades[0]?.setPush && (hand.target || Math.abs(hand.amp) > 0.0008 || Math.abs(hand.vel) > 0.002)) {
+      if (reduced) { hand.amp = hand.target; hand.vel = 0; }
+      else {
+        hand.vel += (220 * (hand.target - hand.amp) - 15 * hand.vel) * dt; hand.amp += hand.vel * dt; hand.amp = Math.max(-0.15, Math.min(1.05, hand.amp));
+        if (!hand.target && Math.abs(hand.amp) < 0.0008 && Math.abs(hand.vel) < 0.002) { hand.amp = 0; hand.vel = 0; }
+      }
+      shades[0].setPush(hand); dirty = true;
+      if (Math.abs(hand.target - hand.amp) > 0.001 || Math.abs(hand.vel) > 0.002) moving = true;
+    }
     if (shifted) { setShadeAmounts(current); vaneAuto(); emit(); onAmount?.(current.slice()); }
     if (dirty) {
       dirty = false;
@@ -366,6 +432,14 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     setVanes(on) { if (on && (current[0] ?? 0) < 0.995) return; vane.target = on ? 1 : 0; vane.armed = false; vaneNote(); wake(); }, get vanes() { return vane.v; },
     handleFraction: (i = 0) => (movers[i] ? movers[i].s.handleAt(movers[i].k) : 0), amountAt: (i, f) => (movers[i] ? movers[i].s.amountAt(movers[i].k, f) : 0), driving: (i = 0) => driveDirs[i] || 0,
     drive(dir, i = 0) { if (i >= movers.length) return; if (i === 0) { vane.pending = null; vane.driveWait = 0; if (dir < 0 && isSL() && vane.p > 0) { vane.driveWait = -1; closeVanesFirst(); wake(); return; } } driveDirs[i] = (dir > 0 && current[i] >= 1) || (dir < 0 && current[i] <= 0) ? 0 : dir; if (!dir) cfg.amounts[i] = current[i]; emit(); wake(); },
+    // Dream Curtains: a hand pressed at (nx, ny) (0..1 across and down the curtain; down = pressed) parts the strips there, and they swing back when it lets go
+    push(nx, ny, down = true) {
+      const sp = built?.shade; if (cfg.kind !== 'dream' || !sp || !shades[0]) return;
+      hand.cx = (Math.min(1, Math.max(0, nx)) - 0.5) * sp.w; hand.cy = Math.min(1, Math.max(0, ny)) * sp.h; hand.target = down ? 1 : 0;
+      if (!down && reduced) hand.amp = 0;
+      shades[0].setPush(hand); wake();
+    },
+    get hand() { return { ...hand }; }, dreamStrips: (y) => (shades[0]?.stripXs ? shades[0].stripXs(y) : []),
     setXray(on) { xray.target = on ? 1 : 0; emit(); wake(); }, setActive, setReducedMotion: (v) => { reduced = !!v; },
     get amounts() { return current.slice(); }, get shadeHeight() { return built?.shade.h || cfg.h; },
     dispose() {

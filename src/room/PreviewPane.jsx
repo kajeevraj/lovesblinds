@@ -46,9 +46,16 @@ export function webglAvailable() {
 }
 
 const KEY_STEP = 0.03;
+// what to do to open and close a Dream curtain, by control (under the preview)
+const STACK_WORD = { left: 'a left stack', right: 'a right stack', center: 'a center opening' };
+function dreamNote(movement, dream) {
+  const stack = STACK_WORD[dream?.stack || 'right'], side = dream?.stack === 'center' ? 'at both ends' : `on the ${dream?.stack === 'left' ? 'left' : 'right'}`;
+  const how = movement === 'pull-rod' ? 'Drag the pull rod to open and close.' : movement === 'motorized' ? `Use the remote to open and close. The motor sits ${side}, with the stack: lithium battery or wired (a wired motor plugs into a standard wall outlet).` : 'Drag the leading edge to open and close.';
+  return `Dream Curtains with ${stack}, every strip hanging on its own. ${how}`;
+}
 
 // `style`: the cellular type (standard, top-down-bottom-up, day-night) or the roman style; `lining`: the roman lining; `family`: the cellular family shown before a color is picked
-export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady, remoteType = 'ch1', shareNote = false, extras = {}, style = null, lining = null, family = null }) {
+export default function PreviewPane({ kind, picks, double, width, height, mount, mech, cover, fallback, phone, onReady, remoteType = 'ch1', shareNote = false, extras = {}, style = null, lining = null, family = null, dream = null }) {
   const hubPrice = useHubPrice();
   const [status, setStatus] = useState(() => (webglAvailable() ? 'loading' : 'nowebgl'));      // loading | ready | nowebgl
   // where each shade is (0 raised, 1 fully lowered): a single shade a little over halfway; a double-stack's front shade halfway down and its back shade raised
@@ -71,7 +78,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const canvasRef = useRef(null), ctrlRef = useRef(null), stageRef = useRef(null), dragRef = useRef(null), shadeRef = useRef(null), chainRef = useRef(null), partsRef = useRef(null);
 
   const w = Number(width) > 0 ? Number(width) : null, h = Number(height) > 0 ? Number(height) : null;
-  const drv = parseMech(kind, mech, { double });
+  const drv = parseMech(kind === 'dream' ? 'drapery' : kind, mech, { double });
+  if (kind === 'dream' && !['manual', 'motorized', 'pull-rod'].includes(drv.movement)) drv.movement = 'manual';        // (Dream Curtains: manual, motorized or pull rod)
   const layers = useMemo(() => {
     if (soft) {                                                                 // one shade; day & night wears two cloths (day above the middle rail, night below it)
       const fams = dayNight ? ['light-filtering', 'blackout'] : [null];
@@ -118,8 +126,8 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     const ctrl = ctrlRef.current; if (!ctrl || status !== 'ready') return;
     // new parts to move (a double-stack, another cellular type): they start where that kind starts; otherwise everything stays where the customer left it
     const start = startAmounts(kind, { double, style }), fresh = partsRef.current !== moverKey || amounts.length !== start.length; partsRef.current = moverKey;
-    ctrl.configure({ tight: !!phone || !(w && h), kind, style: soft ? (style || 'none') : 'none', width: w || 36, height: h || 60, mount, drive: drv, cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amounts: fresh ? start : amounts.slice(), extras: sceneExtras });
-  }, [status, kind, w, h, mount, mech, cover, key, phone, double, sceneExtras, style, moverKey]);   // eslint-disable-line react-hooks/exhaustive-deps
+    ctrl.configure({ tight: !!phone || !(w && h), kind, style: kind === 'dream' ? (style === 'B' ? 'B' : 'A') : soft ? (style || 'none') : 'none', dream: kind === 'dream' ? { stack: dream?.stack || 'right', install: dream?.install || 'ceiling', control: drv.movement } : null, width: w || (kind === 'dream' ? 72 : 36), height: h || (kind === 'dream' ? 84 : 60), mount, drive: drv, cover: cover || 'wrapped', layers: layers.map((l) => ({ fabric: l.fabric, optics: l.optics })), amounts: fresh ? start : amounts.slice(), extras: sceneExtras });
+  }, [status, kind, w, h, mount, mech, cover, key, phone, double, sceneExtras, style, moverKey, dream?.stack, dream?.install]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // `many`: a double-stack (two shades, front and back); `rails`: one shade with two rails that move
   const many = !soft && layers.length > 1, rails = soft && moverList.length > 1;
@@ -131,7 +139,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     else {
       const [who, what] = String(k).includes(':') ? String(k).split(':') : ['front', k];
       const i = who === 'back' ? 1 : 0;
-      if (what === 'up' || what === 'down' || what === 'stop') ctrl?.drive(what === 'up' ? -1 : what === 'down' ? 1 : 0, i);
+      if (what === 'up' || what === 'down' || what === 'stop') ctrl?.drive(kind === 'dream' ? (what === 'up' ? 1 : what === 'down' ? -1 : 0) : (what === 'up' ? -1 : what === 'down' ? 1 : 0), i);          // (a curtain: up = Open)
     }
     setLit(k); clearTimeout(litTimer.current); litTimer.current = setTimeout(() => setLit(null), 320);
   };
@@ -167,6 +175,27 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
     setAmountAt(d.i, ctrl.amountAt(d.i, (e.clientY - d.rect.top) / d.rect.height - d.grab));
   };
   const up = (e) => { dragRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
+  // ---- Dream Curtains: the leading edge (or the pull rod) opens and closes every strip together; a press anywhere else parts the strips there ----
+  const leadRef = useRef(null), pushRef = useRef(null), [pushing, setPushing] = useState(false);
+  const dreamDown = (i) => (e) => {
+    const d = layout?.dream; if (!d) return;
+    leadRef.current = { i, x0: e.clientX, a0: amounts[0] ?? 0, per: Math.max(40, d.pxPerM * d.travelM), sign: d.leads[i]?.opens ?? 1 };
+    e.currentTarget.setPointerCapture?.(e.pointerId); e.preventDefault();
+  };
+  const dreamMove = (e) => { const d = leadRef.current; if (!d) return; setAmountAt(0, Math.min(1, Math.max(0, d.a0 + (d.sign * (e.clientX - d.x0)) / d.per))); };
+  const dreamUp = (e) => { leadRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
+  const dreamKey = (i) => (e) => {
+    const cur = amounts[0] ?? 0, sign = layout?.dream?.leads[i]?.opens ?? 1, step = e.shiftKey ? KEY_STEP * 3 : KEY_STEP;
+    let a = null;
+    if (e.key === 'ArrowRight') a = cur + sign * step; else if (e.key === 'ArrowLeft') a = cur - sign * step;
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp') a = cur + 0.1; else if (e.key === 'ArrowDown' || e.key === 'PageDown') a = cur - 0.1;
+    else if (e.key === 'Home') a = 0; else if (e.key === 'End') a = 1;
+    if (a == null) return; e.preventDefault(); setAmountAt(0, Math.min(1, Math.max(0, a)));
+  };
+  const pushAt = (e, down) => { const r = e.currentTarget.getBoundingClientRect(); ctrlRef.current?.push((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, down); };
+  const pushDown = (e) => { touch(); setPushing(true); pushRef.current = e.pointerId; e.currentTarget.setPointerCapture?.(e.pointerId); pushAt(e, true); };
+  const pushMove = (e) => { if (pushRef.current === e.pointerId) pushAt(e, true); };
+  const pushUp = (e) => { if (pushRef.current !== e.pointerId) return; pushRef.current = null; setPushing(false); e.currentTarget.releasePointerCapture?.(e.pointerId); pushAt(e, false); };
   const key_ = (i) => (e) => {
     const cur = (i === 0 ? ctrlRef.current?.pendingAmount?.() : null) ?? amounts[i] ?? 0;          // (the shade waiting for the vanes to close: keep counting from where it is going)
     const step = e.shiftKey ? KEY_STEP * 3 : KEY_STEP;
@@ -188,7 +217,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
   const withRemote = drv.movement === 'motorized' || drv.movement === 'two-in-one';
   const tile = status === 'ready' && withRemote && (
             <div className="pv-incl pv-incl-under">
-              <SimpleRemote type={remoteType} lit={lit} onPress={press} shades={many ? ['Front shade', 'Back shade'] : null} upperLabel={rails ? moverList[1].label : null} />
+              <SimpleRemote type={remoteType} lit={lit} onPress={press} curtain={kind === 'dream'} shades={many ? ['Front shade', 'Back shade'] : null} upperLabel={rails ? moverList[1].label : null} />
               <span className="pv-incl-title">Included: remote</span>
               {drv.movement === 'motorized' && drv.control === 'app-remote' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><circle cx="12" cy="18.6" r="0.9" /></svg><span>{WORKS_NOTE['app-remote']}</span></div>}
               {drv.movement === 'motorized' && drv.control === 'zigbee' && <div className="pv-works-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2" /></svg><span>{zigbeeNote(hubPrice)}</span></div>}
@@ -218,7 +247,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
         <div className={`pv-stage${status === 'ready' ? ' ready' : ''}`} ref={stageRef}>
           <div className="pv-photo-under" aria-hidden={status === 'ready'}>{fallback}</div>
           <canvas className="pv-canvas" ref={canvasRef} aria-label={`3D preview of your ${kind} shade`} role="img" />
-          {status === 'ready' && layout && (
+          {status === 'ready' && layout && kind !== 'dream' && (
             <>
               {!many && <div className="pv-drag" ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0, pointerEvents: chained && layout.chain ? 'none' : undefined }} onPointerDown={down(0)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { dragRef.current = null; }} aria-hidden="true" />}
               {many && <div ref={shadeRef} style={{ position: 'absolute', left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0, pointerEvents: 'none' }} aria-hidden="true" />}
@@ -247,6 +276,22 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
               {w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
             </>
           )}
+          {status === 'ready' && layout && kind === 'dream' && layout.dream && (() => {
+            const d = layout.dream, rod = drv.movement === 'pull-rod', pct = Math.round((amounts[0] ?? 0) * 100), wd = 46;
+            const name = rod ? 'Pull rod. Drag it, or use the arrow keys, to open and close the curtain' : 'Leading edge of the curtain. Drag it, or use the arrow keys, to open and close';
+            const handle = (i, style, extra) => (
+              <div key={i} className={`pv-lead${rod ? ' pv-rod' : ''}`} role="slider" tabIndex={i === 0 ? 0 : -1} aria-orientation="horizontal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-valuetext={`${pct}% open`} aria-label={name}
+                data-opens={d.leads[i]?.opens} style={style} onPointerDown={dreamDown(i)} onPointerMove={dreamMove} onPointerUp={dreamUp} onPointerCancel={dreamUp} onKeyDown={dreamKey(i)} {...extra} />);
+            return (
+              <>
+                <div className="pv-push" data-pushing={pushing ? '1' : '0'} ref={shadeRef} style={{ left: layout.x0, top: layout.y0, width: layout.x1 - layout.x0, height: layout.y1 - layout.y0 }}
+                  onPointerDown={pushDown} onPointerMove={pushMove} onPointerUp={pushUp} onPointerCancel={pushUp} aria-hidden="true" />
+                {rod && d.rod ? handle(0, { left: d.rod.x - wd / 2, top: d.rod.y0 - 4, width: wd, height: Math.max(wd, d.rod.y1 - d.rod.y0 + 8) })
+                  : d.leads.map((l, i) => handle(i, { left: l.x - wd / 2, top: d.top - 6, width: wd, height: Math.max(60, d.bottom - d.top + 12) }))}
+                {w && h && <span className="pv-size" style={{ left: (layout.x0 + layout.x1) / 2, top: layout.labelY }}>{formatInches(w)} × {formatInches(h)} in</span>}
+              </>
+            );
+          })()}
           {status === 'loading' && <span className="rl-loading" role="status">Loading the 3D preview…</span>}
         </div>
       )}
@@ -265,7 +310,7 @@ export default function PreviewPane({ kind, picks, double, width, height, mount,
       )}
       {!room && tile}
       <p className="pv-note">
-        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{driveNote(drv, extras, many, rails, HEAD_WORD[kind])}.{chained ? (extras.cordType === 'cord-loop' ? ' Pull the cord to raise or lower.' : ' Pull the chain to raise or lower.') : ''}{kind === 'shangri-la' ? ' The vanes open by themselves when the shade reaches the bottom, and close before it rises.' : ''}{clamped ? ' Shown at the nearest size we can draw.' : ''}
+        {sample ? 'Showing a sample color. Pick yours to see it here. ' : ''}{!w || !h ? 'Showing a typical window. Enter your size to see yours to scale. ' : ''}{kind === 'dream' ? dreamNote(drv.movement, dream) : `${driveNote(drv, extras, many, rails, HEAD_WORD[kind])}.`}{chained ? (extras.cordType === 'cord-loop' ? ' Pull the cord to raise or lower.' : ' Pull the chain to raise or lower.') : ''}{kind === 'dream' ? ' Push between the strips to walk through.' : ''}{kind === 'shangri-la' ? ' The vanes open by themselves when the shade reaches the bottom, and close before it rises.' : ''}{clamped ? ' Shown at the nearest size we can draw.' : ''}
       </p>
     </div>
   );

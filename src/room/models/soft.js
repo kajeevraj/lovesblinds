@@ -16,7 +16,7 @@ import { CELL, ROMAN, SHANGRI, clamp, cellStyle, cellularLayout, cellularHandle,
 import { sheerHexOf } from '../../lib/patternTexture.js';
 import { isStochastic } from '../textureBrowser.js';
 
-const GAP = 0.003;          // clearance each side, like a real inside mount
+export const GAP = 0.003;          // clearance each side, like a real inside mount
 
 // ---- the cloth material ---------------------------------------------------------------------------------------------------------------------------------------
 // fabricMaterial plus: aShade (a per-vertex light-and-shade factor), aPleat (pleat number, running down the cloth: its fraction is where we are on a pleat)
@@ -37,7 +37,7 @@ const SHADE_GLSL = `
 `;
 // `window` (a light-filtering roman): daylight comes through the cloth only where the glass is behind it, so the glow falls off softly over the sash, the trim and
 // the wall (uGlass: half width, top and bottom of the glass in the shade's own coordinates, and how much glow is left away from it).
-function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1, window = 0, stochastic = false }, env) {
+export function clothMaterial({ map, glow = 0.7, grad = null, pleat = null, side = THREE.FrontSide, bump = 1.1, window = 0, stochastic = false }, env) {
   const m = fabricMaterial({ map, glow, bump, side, stochastic }, env), base = m.onBeforeCompile;
   m.userData.grad = grad ? { top: { value: new THREE.Vector3(grad[0], grad[0], grad[0]) }, bottom: { value: new THREE.Vector3(grad[1], grad[1], grad[1]) } } : null;
   m.userData.pleat = { value: new THREE.Vector2(pleat ? pleat[0] : 0, pleat ? pleat[1] : 0) };
@@ -89,7 +89,7 @@ class Strips {
 }
 
 // ---- what the three kinds share ---------------------------------------------------------------------------------------------------------------------------------
-class SoftShade {
+export class SoftShade {
   constructor(kind, env) {
     this.kind = kind; this.env = env; this.group = new THREE.Group();
     this.width = 0.8; this.height = 1.8; this.amounts = [0.55];

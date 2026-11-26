@@ -23,6 +23,7 @@ export const LIGHT = {
   roman: { a: [1.0992, 1.094, 1.0908], b: [13.61, 14.25, 14.84] },
   'roman-blackout': { a: [1.0015, 0.999, 0.9955], b: [11.48, 11.84, 12.47] },
   'shangri-la': { a: [1.0473, 1.0489, 1.0484], b: [8.84, 8.55, 8.48], veil: 0.1 },
+  dream: { a: [0.982, 0.981, 0.979], b: [5.2, 5.3, 5.6] },           // Dream Curtains (the closed curtain's middle, several strips), measured by scripts/calibrate-shade-light.mjs dream
 };
 const veilOf = (hex) => { const s = sheerHexOf(hex); return [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16)); };
 // (a cellular, roman or shangri-la cloth says which light it is shown under: look.lightType, set by the preview from the family or the lining)

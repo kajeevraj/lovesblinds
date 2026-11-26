@@ -14,6 +14,7 @@ import { isStochastic } from '../textureBrowser.js';
 import { zebraLayout, hiddenShare, solidnessAt } from '../zebraBands.js';
 import { screenOpacity } from '../optics.js';
 import { CellularShade, RomanShade, ShangriLaShade } from './soft.js';
+import { DreamShade } from './dream.js';
 
 const GAP = 0.003;          // clearance each side, like a real inside mount
 const CASS_H = 0.064, CASS_D = 0.054;
@@ -24,6 +25,7 @@ export function createShade(kind, env, opts = {}) {
   if (kind === 'cellular') return new CellularShade(env, opts.style);
   if (kind === 'roman') return new RomanShade(env, opts.style);
   if (kind === 'shangri-la') return new ShangriLaShade(env);
+  if (kind === 'dream') return new DreamShade(env, opts);
   return new Shade(kind, env);
 }
 // where the bottom rail's grab handle sits (as a fraction of the opening's height) for a shade `a` lowered, and the other way round

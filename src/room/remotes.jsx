@@ -174,7 +174,23 @@ const NAMES = {
 
 // `shades` (a roller double-stack): one small row of up, stop, down for each shade, named "Front shade" and "Back shade". A press is reported as "front:up", "back:stop" ...
 // `upperLabel` (a two-motor cellular): what the upper rail is called ("Top rail" on a top-down shade, "Middle rail" on day & night)
-export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '', shades = null, upperLabel = null }) {
+// `curtain` (Dream Curtains): the same three buttons, but they Open, Stop and Close the curtain (the arrows point sideways)
+const CURTAIN_NAMES = { up: 'Open the curtain', stop: 'Stop', down: 'Close the curtain' };
+const CURTAIN_GLYPH = { up: <path d="M14 6l-6 6 6 6M20 6l-6 6 6 6" />, down: <path d="M10 6l6 6-6 6M4 6l6 6-6 6" />, stop: <rect x="7" y="7" width="10" height="10" rx="1.5" /> };
+export function SimpleRemote({ type = 'ch1', lit = null, onPress, className = '', shades = null, upperLabel = null, curtain = false }) {
+  if (curtain) {
+    return (
+      <div className={`rm rm-simple ${className}`} role="group" aria-label="Remote control" data-remote={type}>
+        <div className="rm-row">
+          {['up', 'stop', 'down'].map((id) => (
+            <button key={id} type="button" className={`rm-key${lit === id ? ' lit' : ''}`} aria-label={CURTAIN_NAMES[id]} data-btn={id} onClick={() => onPress?.(id)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">{CURTAIN_GLYPH[id]}</svg>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (shades) {
     return (
       <div className={`rm rm-simple rm-two ${className}`} role="group" aria-label="Remote control" data-remote={type}>

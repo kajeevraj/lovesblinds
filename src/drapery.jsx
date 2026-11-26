@@ -211,6 +211,7 @@ export function DraperyPage({ line, navigate, edit = null }) {
       checks={curtains
         ? [{ label: 'Color', done: !!pick }, { label: 'Style', done: !!style }, { label: 'Fullness', done: !!fullness }, { label: 'Liner', done: !!lining }, { label: 'Panels', done: !!panels }]
         : [{ label: 'Color and style', done: !!dream }, { label: 'Install', done: !!(dreamOpts.install && dreamOpts.fit) }, { label: 'Stack', done: !!dreamOpts.stack }]}
+      preview={curtains ? null : { kind: 'dream', picks: dream ? [dream] : [], style: dream?.style || 'A', dream: { stack: dreamOpts.stack, install: dreamOpts.install } }}
       leadSteps={leadSteps} tailSteps={tailSteps} />
   );
 }
