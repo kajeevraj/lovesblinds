@@ -11,18 +11,19 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '/opt/node22/
 const URL_ = process.env.SUPABASE_URL, ANON = process.env.VITE_SUPABASE_ANON_KEY;
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `\n      ${detail}` : ''}`); };
-const MAX_DE = 4, MAX_DB = 2, MAX_WAVE = 6, MAX_WAVE_SCREEN = 8, MAX_WAVE_ZEBRA = 16;   // a zebra's bands now carry the photo's own sheer band (often white against a dark solid band): the stripes are real slow structure, so its limit is looser   // a screen view shows the window behind it (an even 6.1 on every white: the backdrop's own gradient, not beating)
+const MAX_DE = 4, MAX_DB = 2, MAX_WAVE = 6, MAX_WAVE_SCREEN = 8, MAX_WAVE_ZEBRA = 16, MAX_WAVE_DREAM = 10;   // a zebra's bands now carry the photo's own sheer band (often white against a dark solid band): the stripes are real slow structure, so its limit is looser   // a screen view shows the window behind it (an even 6.1 on every white: the backdrop's own gradient, not beating)
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); guard.wrapBrowser(browser);
 
 // ---- which colors: from the live catalog ----
 const catalog = async (scope) => (await (await fetch(`${URL_}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent(`{${scope}}`)}`, { headers: { apikey: ANON } })).json());
-const byType = { solar: [], 'screen-view': [], blackout: [], zebra: [], cellular: [], 'cellular-blackout': [], roman: [], 'roman-blackout': [], 'shangri-la': [] };
+const byType = { solar: [], 'screen-view': [], blackout: [], zebra: [], cellular: [], 'cellular-blackout': [], roman: [], 'roman-blackout': [], 'shangri-la': [], dream: [] };
 for (const g of await catalog('roller')) for (const s of g.swatches || []) (byType[g.family || s.family] || []).push(s);
 for (const g of await catalog('zebra')) for (const s of g.swatches || []) byType.zebra.push(s);
 for (const g of await catalog('cellular')) for (const s of g.swatches || []) byType[(s.family || g.family) === 'blackout' ? 'cellular-blackout' : 'cellular'].push(s);
 for (const g of await catalog('roman')) for (const s of g.swatches || []) if (s.roman_styles?.flat?.available) byType.roman.push(s);
 for (const g of await catalog('shangri-la')) for (const s of g.swatches || []) byType['shangri-la'].push(s);
-const SOFT = ['cellular', 'cellular-blackout', 'roman', 'roman-blackout', 'shangri-la'];
+for (const g of await catalog('dream-curtains')) for (const s of g.swatches || []) byType.dream.push(s);
+const SOFT = ['cellular', 'cellular-blackout', 'roman', 'roman-blackout', 'shangri-la', 'dream'];
 const NEUTRAL = ['White', 'Cream/Ivory', 'Gray'], EXTRA = { 'Charcoal/Black': 8, Brown: 6, Blue: 3, Green: 3, 'Pink/Red': 3, Purple: 3 };
 const pickColors = (list) => { const out = list.filter((s) => NEUTRAL.includes(s.color_family)); for (const [fam, n] of Object.entries(EXTRA)) out.push(...list.filter((s) => s.color_family === fam).slice(0, n)); return out; };
 const plan = Object.fromEntries(Object.entries(byType).map(([t, l]) => [t, pickColors(l)]));
@@ -41,7 +42,7 @@ const run = async (label, vp, filter) => {
       try {
         const r = await s.read(c.supplier_code); if (r.skipped) continue; n++;
         const wrongColor = !r.id || !r.id.replace(/[^A-Za-z0-9]/g, '').includes(c.supplier_code.replace(/[^A-Za-z0-9]/g, ''));
-        const dead = r.dE > MAX_DE || r.db > MAX_DB || r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : type === 'zebra' ? MAX_WAVE_ZEBRA : MAX_WAVE) || wrongColor;
+        const dead = r.dE > MAX_DE || r.db > MAX_DB || r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : type === 'zebra' ? MAX_WAVE_ZEBRA : type === 'dream' ? MAX_WAVE_DREAM : MAX_WAVE) || wrongColor;
         if (dead) bad.push(`${type} ${c.display_name} (${c.supplier_code}, ${c.color_family}): tile ${r.tile} face ${r.faceHex}, distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)}, wave ${r.sdWave.toFixed(1)}${wrongColor ? ` WRONG COLOR PICKED ${r.id}` : ''}`);
         const w = worst[type] || (worst[type] = { dE: 0, db: 0, wave: 0 }); w.dE = Math.max(w.dE, r.dE); w.db = Math.max(w.db, r.db); w.wave = Math.max(w.wave, r.sdWave);
       } catch (e) { bad.push(`${type} ${c.display_name} (${c.supplier_code}): ${e.message.split('\n')[0]}`); }
@@ -70,7 +71,7 @@ const weave = async (label, vp) => {
     if (kind === 'shapes' && r.sdHigh < 6) bad.push(`${name}: the pattern's shapes are too faint (fine contrast ${r.sdHigh.toFixed(1)}, needs 6 or more)`);
     if (kind === 'strong' && r.sdHigh < 3.5) bad.push(`${name}: the weave is hardly visible (fine contrast ${r.sdHigh.toFixed(1)}, needs 3.5 or more)`);
     if (kind === 'smooth' && r.sdHigh > 4.5) bad.push(`${name}: a smooth fabric shows texture (fine contrast ${r.sdHigh.toFixed(1)}, limit 4.5)`);
-    if (r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : type === 'zebra' ? MAX_WAVE_ZEBRA : MAX_WAVE)) bad.push(`${name}: wavy or beating (${r.sdWave.toFixed(1)})`);
+    if (r.sdWave > (type === 'screen-view' ? MAX_WAVE_SCREEN : type === 'zebra' ? MAX_WAVE_ZEBRA : type === 'dream' ? MAX_WAVE_DREAM : MAX_WAVE)) bad.push(`${name}: wavy or beating (${r.sdWave.toFixed(1)})`);
     if (r.dE > MAX_DE || r.db > MAX_DB) bad.push(`${name}: the weave moved the color (distance ${r.dE.toFixed(1)}, b* ${r.db.toFixed(1)})`);
   }
   for (const t of Object.values(sessions)) await (await t).close();

@@ -22,6 +22,24 @@ const TRIM = 0.075, DEPTH = 0.09, FOV = 26;
 const MIN_IN = 12, MAX_IN = 300;
 export const clampInches = (v) => Math.min(MAX_IN, Math.max(MIN_IN, v));
 
+// a light oak plank floor: planks 13 cm wide running away from the window, each in a slightly different tone with soft grain and its own joints. One tile is 1.6 m square.
+function floorTexture() {
+  const N = 1024, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d');
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const planks = 12, pw = N / planks;
+  for (let i = 0; i < planks; i++) {
+    const cuts = [0]; let y = rnd() * N * 0.3; while (y < N * 0.95) { cuts.push(Math.round(y)); y += N * (0.45 + 0.4 * rnd()); } cuts.push(N);
+    for (let j = 0; j < cuts.length - 1; j++) {
+      const y0 = cuts[j], y1 = cuts[j + 1], t = rnd(), r = 226 + t * 5, g = 201 + t * 5, b = 164 + t * 6;
+      x.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`; x.fillRect(i * pw, y0, pw, y1 - y0);
+      for (let k = 0; k < 10; k++) { x.strokeStyle = `rgba(${130 + rnd() * 30 | 0},${104 + rnd() * 25 | 0},${70 + rnd() * 20 | 0},${0.03 + rnd() * 0.05})`; x.lineWidth = 0.6 + rnd() * 1.6; const gx = i * pw + rnd() * pw; x.beginPath(); x.moveTo(gx, y0); x.lineTo(gx + (rnd() - 0.5) * 6, y1); x.stroke(); }
+      x.fillStyle = 'rgba(100,80,52,0.07)'; x.fillRect(i * pw, y0, pw, 1);
+    }
+    x.fillStyle = 'rgba(100,80,52,0.2)'; x.fillRect(i * pw, 0, 1.5, N);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+
 export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVanes } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping;
@@ -85,7 +103,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     g.add(plane(ow, DEPTH, jambTopMat, 0, top, -DEPTH / 2, Math.PI / 2));
     for (const sx of [-1, 1]) g.add(plane(DEPTH, oh, jambMat, sx * ow / 2, oy, -DEPTH / 2, 0, sx * -Math.PI / 2));
     // the floor, and the baseboard either side of the door
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0xe3d8c4, roughness: 0.85 }); floorMat.userData.own = true;
+    const floorMat = new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: 0.7 }); floorMat.userData.own = true;
+    floorMat.map.repeat.set(R * 2 / 1.6, 14 / 1.6);
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, 14), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(0, floorY, 7 - DEPTH); g.add(floor);
     const contact = shadowMesh(rampTexture([[0, 1], [1, 0]]), 0.25); contact.rotation.x = -Math.PI / 2; contact.scale.set(ow + 0.2, 0.18, 1); contact.position.set(0, floorY + 0.002, 0.09 - DEPTH * 0.0); g.add(contact);
     const sideW = Math.max(0.1, R - ow / 2 - TRIM * 0.8);

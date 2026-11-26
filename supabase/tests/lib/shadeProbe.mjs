@@ -82,13 +82,14 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       const buf = await page.locator('.pv-canvas').screenshot(), meta = await sharp(buf).metadata();
       const g = await page.locator('.pv-grip, .pv-bar, .pv-chain, .pv-lead').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;
       let gx = (g.x + g.width / 2 - c.x) * k, gy = (g.y + g.height / 2 - c.y) * k;
+      let dreamW = 0;
       if (type === 'dream') {                                                  // Dream Curtains, closed: read the middle of the curtain (several strips)
-        const d = await page.locator('.pv-push').boundingBox(); gx = (d.x + d.width / 2 - c.x) * k; gy = (d.y + d.height * 0.45 - c.y) * k + 0.2 * meta.height;
+        const d = await page.locator('.pv-push').boundingBox(); gx = (d.x + d.width / 2 - c.x) * k; gy = (d.y + d.height * 0.45 - c.y) * k + 0.2 * meta.height; dreamW = d.width * k * 0.6;
       } else if (await page.locator('.pv-chain').count()) {                         // a chain is at the edge of the shade: read the middle of the shade at the height the bottom is at
         const d = await page.locator('.pv-drag').boundingBox(), f = await page.evaluate(() => window.__lbPreview?.handleFraction(0) ?? 0);
         gx = (d.x + d.width / 2 - c.x) * k; gy = (d.y + f * d.height - c.y) * k;
       }
-      const box = { left: Math.max(0, Math.round(gx - 0.1 * meta.width)), top: Math.max(0, Math.round(gy - 0.3 * meta.height)), width: Math.round(0.2 * meta.width), height: Math.round(0.2 * meta.height) };
+      const bw = dreamW ? Math.min(0.2 * meta.width, dreamW) : 0.2 * meta.width, box = { left: Math.max(0, Math.round(gx - bw / 2)), top: Math.max(0, Math.round(gy - 0.3 * meta.height)), width: Math.round(bw), height: Math.round(0.2 * meta.height) };
       const { data, info } = await sharp(buf).extract(box).removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const n = info.width * info.height, mean = [0, 0, 0]; for (let i = 0; i < data.length; i += 3) for (let q = 0; q < 3; q++) mean[q] += data[i + q] / n;
       let face = mean, rowsUsed = info.height;

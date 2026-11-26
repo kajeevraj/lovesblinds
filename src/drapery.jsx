@@ -118,7 +118,7 @@ function DreamControl({ api, dreamOpts, setDreamOpts, opts }) {
   return (
     <>
       <Cards label="Control" min={200} value={mv} onChange={(id) => api.setMech(id)}
-        options={list.map((id) => ({ id, label: MOVEMENT_NAME[id] || (id === 'manual' ? 'Manual' : 'Pull rod'), desc: id === 'motorized' ? 'Open and close with a remote.' : CONTROL_COPY[id] || 'Slide the panels by hand along the track.', badge: [opts.best === id && 'Best value', opts.top === id && 'Top of the line'].filter(Boolean) }))}
+        options={list.map((id) => ({ id, label: MOVEMENT_NAME[id] || (id === 'manual' ? 'Manual' : 'Pull rod'), desc: id === 'motorized' ? 'Open and close with a remote. The motor runs on a lithium battery or wired; a wired motor plugs into a standard wall outlet. It sits on the same side as the stack.' : CONTROL_COPY[id] || 'Slide the panels by hand along the track.', badge: [opts.best === id && 'Best value', opts.top === id && 'Top of the line'].filter(Boolean) }))}
         disabledIds={pullRodOk(stack) ? [] : ['pull-rod']} />
       {!pullRodOk(stack) && <p className="s2-step-hint">A pull rod works with a left or right stack only.</p>}
     </>
@@ -183,7 +183,7 @@ export function DraperyPage({ line, navigate, edit = null }) {
       {
         title: 'Stack', hint: 'Where the panels gather when the curtain is open.',
         node: <Cards label="Stack" min={200} value={dreamOpts.stack} onChange={(id) => { setDreamOpts((d) => ({ ...d, stack: id })); if (!pullRodOk(id) && api.drive.movement === 'pull-rod') api.setMech('manual'); }}
-          options={DREAM_STACKS.filter((x) => opts.isOn('dream-stack', x.id))} />,
+          options={DREAM_STACKS.filter((x) => opts.isOn('dream-stack', x.id) && !(x.id === 'center' && api.drive.movement === 'pull-rod'))} />,
       },
       { title: 'How it opens and closes', node: <DreamControl api={api} dreamOpts={dreamOpts} setDreamOpts={setDreamOpts} opts={opts} /> },
     ]);
