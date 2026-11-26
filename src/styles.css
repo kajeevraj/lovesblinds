@@ -1679,3 +1679,9 @@ body:is(:has(.has-preview), :has(.rl)) .snackbar { right: 12px; bottom: 84px; ma
 .pv-chain-hit { position: absolute; top: 0; bottom: 0; min-width: 44px; cursor: grab; touch-action: none; }
 .pv-chain.grabbing .pv-chain-hit { cursor: grabbing; }
 .pv-chain:focus-visible { box-shadow: 0 0 0 2px var(--s2-brass, #b08d4f); border-radius: 10px; }
+
+/* Dream Curtains: the leading edge (or the pull rod) is a 46 px wide touch area that opens and closes every strip; a press anywhere else on the curtain parts the strips */
+.pv-lead { position: absolute; z-index: 4; cursor: grab; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+.pv-lead:active { cursor: grabbing; }
+.pv-lead:focus-visible { box-shadow: 0 0 0 2px var(--s2-brass, #b08d4f); border-radius: 10px; }
+.pv-push { position: absolute; z-index: 3; cursor: pointer; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }

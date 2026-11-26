@@ -56,7 +56,7 @@ try {
   await size(120, 96); await page.locator('#s2-qty').fill('2');
   await add();
   // window 3: Dream Curtains with a style
-  await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-sw').first().waitFor();
+  await page.getByRole('tab', { name: 'Dream Curtains', exact: true }).click(); await page.locator('.s2-sw').first().waitFor();
   check('Dream Curtains page: the walk-through explanation is at the top', /Every vane hangs on its own, so you can walk through anywhere, with no opening or closing needed\. Great for patio and balcony doors\./.test(await page.locator('.s2-line-intro').innerText()));
   await page.locator('.s2-color-tools input').fill('Angel White'); await page.locator('.s2-sw').first().click();
   const styleCards = await page.locator('.s2-color-style .s2-card').allInnerTexts();

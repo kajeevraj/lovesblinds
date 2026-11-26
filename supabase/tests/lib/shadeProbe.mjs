@@ -9,8 +9,8 @@
 // The face is the average of a patch of the lit cloth above the handle (a Zebra: the solid band, the darker half of the rows in the closed position, because
 // a sheer band is never darker than its solid band). The tile color is what the picker tile shows for the same color (canvas data-color).
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
-const LINE_OF = { zebra: 'zebra', cellular: 'cellular', 'cellular-blackout': 'cellular', roman: 'roman', 'roman-blackout': 'roman', 'shangri-la': 'shangri-la' };
-const AMOUNT_OF = { zebra: 55, roman: 85, 'roman-blackout': 85 };       // a roman nearly lowered: the patch is on the flat face, above its folds
+const LINE_OF = { zebra: 'zebra', cellular: 'cellular', 'cellular-blackout': 'cellular', roman: 'roman', 'roman-blackout': 'roman', 'shangri-la': 'shangri-la', dream: 'drapery' };
+const AMOUNT_OF = { dream: 0, zebra: 55, roman: 85, 'roman-blackout': 85 };       // a roman nearly lowered: the patch is on the flat face, above its folds
 const sharp = (await import('sharp')).default;
 
 export const toLab = (rgb) => {
@@ -42,11 +42,15 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
     await page.goto(`${base}/products/${l}`, { waitUntil: 'networkidle' }); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
     await page.locator('#s2-w').fill('40'); await page.locator('#s2-h').fill(l === 'zebra' ? '72' : '64');
     if (l === 'cellular') { await card('Chain').click(); await page.waitForTimeout(300); }                        // a plain bottom rail: no handle over the cloth
+    if (l === 'drapery') {                                                                                          // Dream Curtains: the Dream tab, 96 x 84 in, ceiling install inside, right stack, manual
+      await page.getByRole('tab', { name: /Dream/ }).click(); await page.waitForTimeout(400); await page.locator('#s2-w').fill('96'); await page.locator('#s2-h').fill('84');
+      for (const c of ['Ceiling install', 'Inside', 'Right stack', 'Manual']) { await card(c).click(); await page.waitForTimeout(250); }
+    }
   };
   const card = (name) => page.locator('.s2-card').filter({ has: page.locator('.s2-card-name', { hasText: new RegExp(`^${name}$`) }) }).first();
   const setAmount = async (amt) => {
     await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300);
-    const g = page.locator('.pv-grip, .pv-bar, .pv-chain').first(); await g.focus();
+    const g = page.locator('.pv-grip, .pv-bar, .pv-chain, .pv-lead').first(); await g.focus();
     for (let i = 0; i < 120; i++) { const v = Number(await g.getAttribute('aria-valuenow')); if (Math.abs(v - amt) <= 1) break; await page.keyboard.press(v < amt ? 'ArrowDown' : 'ArrowUp'); }
     await page.evaluate(() => document.activeElement?.blur());
   };
@@ -76,13 +80,16 @@ export async function probeSession(browser, { width = 1280, height = 900, dpr = 
       await setAmount(AMOUNT_OF[type] || 50); await page.waitForTimeout(1000);
       await page.locator('.pv-canvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       const buf = await page.locator('.pv-canvas').screenshot(), meta = await sharp(buf).metadata();
-      const g = await page.locator('.pv-grip, .pv-bar, .pv-chain').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;
+      const g = await page.locator('.pv-grip, .pv-bar, .pv-chain, .pv-lead').first().boundingBox(), c = await page.locator('.pv-canvas').boundingBox(), k = meta.width / c.width;
       let gx = (g.x + g.width / 2 - c.x) * k, gy = (g.y + g.height / 2 - c.y) * k;
-      if (await page.locator('.pv-chain').count()) {                         // a chain is at the edge of the shade: read the middle of the shade at the height the bottom is at
+      let dreamW = 0;
+      if (type === 'dream') {                                                  // Dream Curtains, closed: read the middle of the curtain (several strips)
+        const d = await page.locator('.pv-push').boundingBox(); gx = (d.x + d.width / 2 - c.x) * k; gy = (d.y + d.height * 0.45 - c.y) * k + 0.2 * meta.height; dreamW = d.width * k * 0.6;
+      } else if (await page.locator('.pv-chain').count()) {                         // a chain is at the edge of the shade: read the middle of the shade at the height the bottom is at
         const d = await page.locator('.pv-drag').boundingBox(), f = await page.evaluate(() => window.__lbPreview?.handleFraction(0) ?? 0);
         gx = (d.x + d.width / 2 - c.x) * k; gy = (d.y + f * d.height - c.y) * k;
       }
-      const box = { left: Math.max(0, Math.round(gx - 0.1 * meta.width)), top: Math.max(0, Math.round(gy - 0.3 * meta.height)), width: Math.round(0.2 * meta.width), height: Math.round(0.2 * meta.height) };
+      const bw = dreamW ? Math.min(0.2 * meta.width, dreamW) : 0.2 * meta.width, box = { left: Math.max(0, Math.round(gx - bw / 2)), top: Math.max(0, Math.round(gy - 0.3 * meta.height)), width: Math.round(bw), height: Math.round(0.2 * meta.height) };
       const { data, info } = await sharp(buf).extract(box).removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const n = info.width * info.height, mean = [0, 0, 0]; for (let i = 0; i < data.length; i += 3) for (let q = 0; q < 3; q++) mean[q] += data[i + q] / n;
       let face = mean, rowsUsed = info.height;

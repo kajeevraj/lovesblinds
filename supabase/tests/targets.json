@@ -19,7 +19,8 @@
   "backfill_tests",
   "color_fixes_tests",
   "soft_layout_tests",
-  "texture_gen_tests"
+  "texture_gen_tests",
+  "dream_layout_tests"
  ],
  "readOnly": [
   "api_catalog_tests",
@@ -45,7 +46,8 @@
   "e2e_shade_colors",
   "e2e_texture_types",
   "e2e_chain_drag",
-  "e2e_soft_preview"
+  "e2e_soft_preview",
+  "e2e_dream_preview"
  ],
  "writes": [
   "live_admin_tests",

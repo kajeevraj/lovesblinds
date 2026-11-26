@@ -4,7 +4,7 @@
 // Roller and Zebra keep their own entries in data.js (PRODUCTS). Cellular, Roman and Shangri-La are here.
 import { cellStyle } from './softLayout.js';
 
-export const SOFT_KINDS = ['cellular', 'roman', 'shangri-la'];
+export const SOFT_KINDS = ['cellular', 'roman', 'shangri-la', 'dream'];
 export const isSoft = (kind) => SOFT_KINDS.includes(kind);
 export const HAS_PREVIEW = ['roller', 'zebra', ...SOFT_KINDS];
 
@@ -16,6 +16,7 @@ export function lightTypeFor(kind, { family = null, lining = null } = {}) {
   if (kind === 'cellular') return family === 'blackout' ? 'cellular-blackout' : 'cellular';
   if (kind === 'roman') return lining === 'blackout' ? 'roman-blackout' : 'roman';
   if (kind === 'shangri-la') return 'shangri-la';
+  if (kind === 'dream') return 'dream';
   return null;
 }
 // glow: daylight through the cloth; grad: that glow at the top and at the bottom of the shade; pleat: [light and shade of the two faces of a pleat, depth of the
@@ -28,6 +29,8 @@ export const SOFT_OPTICS = {
   roman: { glow: 1.0, grad: [1.4, 0.6], window: 0.32, stack: 0.86, block: 0.6 },
   'roman-blackout': { glow: 0.45, grad: [1, 1], stack: 1, block: 1 },
   'shangri-la': { glow: 0.7, grad: [1.08, 0.8], sheerFront: 0.1, sheerBack: 0.2, block: 0.45 },
+  // Dream Curtains: one single sheer fabric, so daylight glows softly through it (the supplier gives no openness figure for these fabrics: one sheerness for all)
+  dream: { glow: 0.5, grad: [1.06, 0.88], block: 0 },
 };
 export const opticsFor = (lightType) => SOFT_OPTICS[lightType] || SOFT_OPTICS.cellular;
 
@@ -45,6 +48,7 @@ export function startAmounts(kind, { double = false, style = null } = {}) {
   if (kind === 'roller' && double) return [0.5, 0];
   if (kind === 'cellular' && cellStyle(style) === 'top-down-bottom-up') return [0.8, 0.22];
   if (kind === 'cellular' && cellStyle(style) === 'day-night') return [0.88, 0.42];
+  if (kind === 'dream') return [0.35];                       // a Dream curtain starts a little open (0 closed, 1 fully open)
   return [0.55];
 }
 // Day & Night: which cloth covers the window. Day: the middle rail is down at the bottom rail (the day cloth hangs open). Night: it is up at the headrail.
@@ -52,14 +56,14 @@ export const DAY_NIGHT = { day: [1, 1], night: [1, 0] };
 
 // ---- the stand-in cloth -------------------------------------------------------------------------------------------------------------------------------------
 // Before a color is picked the preview wears a plain sample: a generated weave in a soft neutral (no picture to download).
-const SAMPLE_HEX = { cellular: '#e9e4d8', 'cellular-blackout': '#8d8a85', roman: '#e6dfd0', 'roman-blackout': '#e6dfd0', 'shangri-la': '#e8e4da' };
+const SAMPLE_HEX = { cellular: '#e9e4d8', 'cellular-blackout': '#8d8a85', roman: '#e6dfd0', 'roman-blackout': '#e6dfd0', 'shangri-la': '#e8e4da', dream: '#ece8de' };
 export function sampleSpec(kind, lightType) {
   const hex = SAMPLE_HEX[lightType] || '#e6dfd0', id = `sample-${lightType}`;
   return {
     key: `sample:${lightType}`, name: 'Sample color', code: '', color: hex, kind: 'weave', tile: [0.075, 0.075], swatchId: id, sample: true,
-    look: { id, line: kind === 'roman' ? 'drapery' : kind, family: lightType === 'cellular-blackout' ? 'blackout' : kind === 'cellular' ? 'light-filtering' : undefined, colorFamily: 'Cream/Ivory', previewColor: hex, textureMode: 'pattern', lightType, lit3d: kind },
+    look: { id, line: kind === 'roman' ? 'drapery' : kind === 'dream' ? 'dream-curtains' : kind, family: lightType === 'cellular-blackout' ? 'blackout' : kind === 'cellular' ? 'light-filtering' : undefined, colorFamily: 'Cream/Ivory', previewColor: hex, textureMode: 'pattern', lightType, lit3d: kind },
   };
 }
 
 // what the rail under the cloth is called in the note under the picture
-export const HEAD_WORD = { roller: 'roller', zebra: 'roller', 'shangri-la': 'cassette', cellular: 'headrail', roman: 'headrail' };
+export const HEAD_WORD = { roller: 'roller', zebra: 'roller', 'shangri-la': 'cassette', cellular: 'headrail', roman: 'headrail', dream: 'track' };

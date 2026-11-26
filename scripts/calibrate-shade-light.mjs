@@ -17,7 +17,7 @@ const CODES = { solar: ['YS180006', 'YS180003', 'YS180002', 'YS180004', 'YS12000
   blackout: ['YB180006', 'YB180003', 'YB180002', 'YB120002', 'YB120004', 'YB120001', 'YB120007', 'YB190002', 'YB190005', 'YB190001', 'YB190007', 'YB050007', 'YB050011'],
   zebra: ['YZB202', 'YZB201', 'YZB208', 'YZB210', 'YZB802', 'YZB804', 'YZB801', 'YZB807', 'YZB902', 'YZB901', 'YZB904', 'YZB2003', 'YZB2005'] };
 // Cellular, Roman and Shangri-La: the first 13 colors of the live catalog stand in for the 13 test colors (their preview colors are overridden for the render)
-const SOFT = { cellular: ['cellular', 'light-filtering'], 'cellular-blackout': ['cellular', 'blackout'], roman: ['roman'], 'roman-blackout': ['roman'], 'shangri-la': ['shangri-la'] };
+const SOFT = { cellular: ['cellular', 'light-filtering'], 'cellular-blackout': ['cellular', 'blackout'], roman: ['roman'], 'roman-blackout': ['roman'], 'shangri-la': ['shangri-la'], dream: ['dream-curtains'] };
 for (const t of TYPES) if (SOFT[t]) {
   const rows = await (await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/public_catalog?p_scope=${encodeURIComponent(`{${SOFT[t][0]}}`)}`, { headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY } })).json();
   CODES[t] = rows.flatMap((g) => g.swatches || []).filter((s) => (!SOFT[t][1] || s.family === SOFT[t][1]) && (t !== 'roman-blackout' || s.roman_styles?.flat?.linings?.includes('blackout')) && (!s.roman_styles || s.roman_styles.flat?.available !== false || !t.startsWith('roman'))).map((s) => s.supplier_code).slice(0, COLORS.length);

@@ -118,7 +118,7 @@ try {
     check(T('Shangri-La: no Zero gravity, Chain selected, no Best value tag until the owner picks one, Motorized is Top of the line'), (await page.locator('.s2-card-name', { hasText: /^Zero gravity$/ }).count()) === 0 && await card('Chain').getAttribute('aria-pressed') === 'true' && (await badges('Chain')).length === 0 && JSON.stringify(await badges('Motorized')) === JSON.stringify(['Top of the line']));
 
     // ---- Dream Curtains
-    await open('drapery'); await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
+    await open('drapery'); await page.getByRole('tab', { name: 'Dream Curtains', exact: true }).click(); await page.locator('.s2-swgrid .s2-sw').first().waitFor();
     check(T('Dream Curtains: no Best value tag until the owner picks one; Motorized is Top of the line'), (await page.locator('.s2-badge').evaluateAll((els) => els.filter((e) => /best value/i.test(e.textContent)).length)) === 0 && JSON.stringify(await badges('Motorized')) === JSON.stringify(['Top of the line']));
     // ---- Curtains hardware
     await page.getByRole('tab', { name: 'Curtains', exact: true }).click(); await page.locator('.s2-swgrid .s2-sw').first().waitFor();

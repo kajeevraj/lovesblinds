@@ -168,7 +168,7 @@ try {
       check('curtains: a size we do not price (outside 40 to 236 wide, 42 to 236 high) has the card heading "Price by email"', (await page.locator('.s2-estimate-title').innerText()) === 'Price by email');
     } else console.log('SKIP  curtain "Price by email" heading (before migration 20 curtains have no price at all)');
     // Dream Curtains: Classic preselected, no empty picture boxes, no "Selected:" line, both codes only until a style is chosen
-    await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.locator('.s2-sw').first().waitFor();
+    await page.getByRole('tab', { name: 'Dream Curtains', exact: true }).click(); await page.locator('.s2-sw').first().waitFor();
     await page.locator('.s2-color-tools input').fill('Angel White'); await sleep(300);
     const codesBefore = await page.locator('.s2-sw-code').first().innerText();
     check('Dream Curtains: before a color is picked the tile shows both codes', /\/ /.test(codesBefore), codesBefore);
@@ -183,7 +183,7 @@ try {
     const body = await page.locator('main').innerText();
     check('plain lines under the jargon options (Motorized, Zero gravity, cassette)', /Raise and lower with a remote or your phone, no pulling\./.test(body) && /Grab the bottom rail and move it to any height\. Let go and it stays right there\./.test(body) && !/Cordless/.test(body) && /The cassette is the cover over the top of the shade\./.test(body));
     await page.goto(`${BASE}/products/drapery`); await page.locator('.s2-sw').first().waitFor();
-    await page.getByRole('tab', { name: 'Dream Curtains' }).click(); await page.waitForTimeout(500);
+    await page.getByRole('tab', { name: 'Dream Curtains', exact: true }).click(); await page.waitForTimeout(500);
     check('"Manual" has its plain line (Dream Curtains)', /Slide the curtain by hand along the track\./.test(await page.locator('main').innerText()));
     // Day and Night on two lines
     await page.goto(`${BASE}/products/cellular`); await page.locator('.s2-sw').first().waitFor(); await page.locator('.s2-card', { hasText: 'Day & night' }).click(); await page.locator('#c-day-search').waitFor();
