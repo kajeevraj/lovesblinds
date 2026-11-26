@@ -32,3 +32,12 @@ Dated entries, newest last: what changed, what is on staging vs live, what waits
 **Waits for approval**: migration 27 on live; `classify-textures --apply`; `apply-color-fixes --fixes part4 --apply`; merging PR 21.
 
 **Tests**: full `node scripts/run-tests.mjs`, start to finish: 61/61 suites passed. Earlier full runs each had one timing flake that was fixed before the final run (the shade probe's page load under load, two soft-preview checks that used fixed waits for motors and glides, the admin browser idle check that raced between two tabs). The container restarted three times during these runs; the last run completed without a restart.
+
+## 2026-11-26 — Phase 3 part 1: Dream Curtains 3D preview
+**What changed**
+- New strip model on a sliding glass door with a plank floor; strips A (41 cm) and B (33 cm) read as the brief asks (see `docs/project-handoff.md`, "Dream Curtains 3D preview"); mount, stack, install and color update it live; Manual drag, Pull rod drag, Motorized remote (Center splits), hover opens a joint, press parts the strips and they swing back.
+- Fixed a frame-loop double scheduling bug in `previewScene.js` (the page froze on a press).
+- Migration 28 (pull rod price row, $0, admin-editable) + paste copy `supabase/staging/part2/28.sql`. NOT applied anywhere: staging first, then the owner runs live.
+- Tests: new `dream_layout_tests`, `e2e_dream_preview`; Dream added to `e2e_shade_colors`; screenshots in `docs/dream-preview/`.
+**Differences from the brief**: the supplier brochure is not in the repo (A/B read from the handoff notes); the page has no battery / wired choice for Dream; the older option text said style B is a "lighter fabric" (the brief says one single sheer fabric): left as is, tell me if it should change.
+**Waits for approval**: migration 28 on staging and live; any pull rod price; merging.

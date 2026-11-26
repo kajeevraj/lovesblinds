@@ -19,7 +19,8 @@
   "backfill_tests",
   "color_fixes_tests",
   "soft_layout_tests",
-  "texture_gen_tests"
+  "texture_gen_tests",
+  "dream_layout_tests"
  ],
  "readOnly": [
   "api_catalog_tests",

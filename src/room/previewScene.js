@@ -126,10 +126,10 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     scene.add(g);
     built = { group: g, ow, oh, oy, top, bottom };
     built.shade = { w: inside ? ow : w, h: h - CLEAR, x: 0, top: h / 2, z: inside ? -0.032 : 0.05 };
-    const topExt = h / 2 + TRIM + 0.08, botExt = floorY - 0.3, bw = inside ? ow + 2 * TRIM * 0.8 + 0.08 : w;
-    const wide = cfg.tight ? 1.5 : 1.75, tall = cfg.tight ? 1.1 : 1.18;
+    const topExt = h / 2 + TRIM + 0.08, botExt = floorY - 0.2, bw = inside ? ow + 2 * TRIM * 0.8 + 0.08 : w;
+    const wide = cfg.tight ? 1.4 : 1.55, tall = cfg.tight ? 1.04 : 1.1;
     built.fit = { w: bw * wide, h: (topExt - botExt) * tall, cy: (topExt + botExt) / 2 }; built.fit0 = built.fit;
-    built.shadeBottom = floorY; built.labelY = floorY - 0.14;
+    built.shadeBottom = floorY; built.labelY = floorY - 0.14; built.floorEdge = floorY;
     fitCamera();
   }
 
@@ -185,7 +185,8 @@ export function createPreviewScene(canvas, { onLayout, onAmount, onDrive, onVane
     if (!built) return;
     const t = Math.tan((FOV * Math.PI) / 360), aspect = size.w / size.h;
     const d = Math.max(built.fit.h / (2 * t), built.fit.w / (2 * t * aspect), 0.9);
-    camera.aspect = aspect; camera.position.set(0, built.fit.cy, d); camera.lookAt(0, built.fit.cy, 0); camera.updateProjectionMatrix();
+    const cy = built.floorEdge != null ? Math.max(built.fit.cy, built.floorEdge + 0.7 * t * d) : built.fit.cy;      // a door: about an eighth of the picture is floor, the rest goes to the wall above
+    camera.aspect = aspect; camera.position.set(0, cy, d); camera.lookAt(0, cy, 0); camera.updateProjectionMatrix();
     env.pxPerMeter = size.h / (2 * d * t);                       // css pixels per metre at the shade (the weave is sized to read at this scale)
     shades.forEach((sh) => sh.applyScale?.());
   }
