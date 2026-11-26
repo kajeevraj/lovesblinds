@@ -1,0 +1,2187 @@
+{
+ "kind": "classify-textures",
+ "base": "https://njhlhjdbcesidgixycxj.supabase.co",
+ "at": "2026-11-23T17:52:09.553Z",
+ "rows": [
+  {
+   "id": "cellular:light-filtering:YHC38L002",
+   "name": "Light Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L003",
+   "name": "Avocado Green",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L005",
+   "name": "Blue",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L007",
+   "name": "Light Grey",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L009",
+   "name": "Pink",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L012",
+   "name": "Dark Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L014",
+   "name": "Dark Green",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L019",
+   "name": "Red",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L022",
+   "name": "Lake Blue",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38L11",
+   "name": "Goose Yellow",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB002",
+   "name": "Light Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB003",
+   "name": "Avocado Green",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB005",
+   "name": "Blue",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB007",
+   "name": "Light Grey",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB009",
+   "name": "Pink",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB012",
+   "name": "Dark Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB014",
+   "name": "Dark Green",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB019",
+   "name": "Red",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB022",
+   "name": "Lake Blue",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB11",
+   "name": "Goose Yellow",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB20",
+   "name": "Night Black",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHC38LB630",
+   "name": "Silver Mist",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38SL01",
+   "name": "Snow White",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38SL20",
+   "name": "Night Black",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHC38SL630",
+   "name": "Silver Mist",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHCK001",
+   "name": "Beige Linen",
+   "type": "linen"
+  },
+  {
+   "id": "cellular:light-filtering:YHCK002",
+   "name": "White Linen",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:light-filtering:YHCK003",
+   "name": "Latte Linen",
+   "type": "linen"
+  },
+  {
+   "id": "cellular:light-filtering:YHCK004",
+   "name": "Coffee Linen",
+   "type": "linen"
+  },
+  {
+   "id": "cellular:blackout:YHCKB001",
+   "name": "Beige Linen",
+   "type": "linen"
+  },
+  {
+   "id": "cellular:blackout:YHCKB002",
+   "name": "White Linen",
+   "type": "smooth"
+  },
+  {
+   "id": "cellular:blackout:YHCKB003",
+   "name": "Latte Linen",
+   "type": "linen"
+  },
+  {
+   "id": "cellular:blackout:YHCKB004",
+   "name": "Coffee Linen",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26001001",
+   "name": "Magnolia White",
+   "type": "slub"
+  },
+  {
+   "id": "drapery:SP26001004",
+   "name": "Seal Gray",
+   "type": "slub"
+  },
+  {
+   "id": "drapery:SP26002001",
+   "name": "Angel White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26002004",
+   "name": "Graphite Gray",
+   "type": "slub"
+  },
+  {
+   "id": "drapery:SP26002014",
+   "name": "Zinc Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26002018",
+   "name": "Soot Charcoal",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26003001",
+   "name": "Porcelain White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26003003",
+   "name": "Putty Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26003004",
+   "name": "Storm Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26003005",
+   "name": "Anchor Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26003009",
+   "name": "Cinder Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26004001",
+   "name": "Whisper White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26004002",
+   "name": "Pebble Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26005001",
+   "name": "Aspen White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26005002",
+   "name": "Heather Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26006001",
+   "name": "Concrete Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26006002",
+   "name": "Mushroom Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26006004",
+   "name": "Fossil Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26006010",
+   "name": "Walnut Brown",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26006011",
+   "name": "Granite Charcoal",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26010001",
+   "name": "Lotus White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26010002",
+   "name": "Milk White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26014001",
+   "name": "Glacier White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26014002",
+   "name": "Blizzard White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26014004",
+   "name": "Smoke Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26014005",
+   "name": "Shadow Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26014012",
+   "name": "Lead Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26015001",
+   "name": "Starlight White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26015002",
+   "name": "Buttermilk Cream",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26015008",
+   "name": "Granola Beige",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26015012",
+   "name": "Iron Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26015016",
+   "name": "Twilight Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26018041",
+   "name": "Oyster Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26018099",
+   "name": "Dove White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019000",
+   "name": "Iceberg White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019001",
+   "name": "Chalk White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019002",
+   "name": "Paper White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019010",
+   "name": "Teak Brown",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019015",
+   "name": "Chestnut Brown",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019016",
+   "name": "Panther Black",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019018",
+   "name": "Mineral Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26019037",
+   "name": "Eclipse Black",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26020013",
+   "name": "Dusk Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26020042",
+   "name": "Pitch Black",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26020099",
+   "name": "Mist White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26023042",
+   "name": "Steel Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26024001",
+   "name": "Flurry White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26025001",
+   "name": "Tundra White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26025002",
+   "name": "Sugar White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26025005",
+   "name": "Granite Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26026001",
+   "name": "Bright White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26026002",
+   "name": "Alpine White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26026004",
+   "name": "Pewter Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26026020",
+   "name": "Obsidian Black",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26027002",
+   "name": "Fresh White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26027004",
+   "name": "Gunmetal Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26027008",
+   "name": "Salt White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26029001",
+   "name": "Gossamer White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26029002",
+   "name": "Taupe Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26029003",
+   "name": "Mushroom Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26029006",
+   "name": "Nickel Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26029008",
+   "name": "Gunmetal Charcoal",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26030001",
+   "name": "Lily White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26030002",
+   "name": "Stucco White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26030009",
+   "name": "Cedar Brown",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26031001",
+   "name": "Talc White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26031002",
+   "name": "Drizzle Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26031004",
+   "name": "Elephant Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26032002",
+   "name": "Plaster White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26036003",
+   "name": "Ash Charcoal",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26040001",
+   "name": "Feather White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26040002",
+   "name": "Desert Beige",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26040004",
+   "name": "Pebble Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26041001",
+   "name": "Wisp White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26041004",
+   "name": "Hazelnut Beige",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26041007",
+   "name": "Pigeon Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26046001",
+   "name": "Daisy White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26046002",
+   "name": "Eggshell Cream",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26046007",
+   "name": "Cement Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26047001",
+   "name": "Gesso White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26047002",
+   "name": "Antique Cream",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26047005",
+   "name": "Toast Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26047007",
+   "name": "Flint Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26047013",
+   "name": "Crow Black",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26048001",
+   "name": "Cloud White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26048002",
+   "name": "Rain Gray",
+   "type": "slub"
+  },
+  {
+   "id": "drapery:SP26048008",
+   "name": "Praline Beige",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26048009",
+   "name": "Taupe Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26049004",
+   "name": "Ghost White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26049005",
+   "name": "Surf White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26049006",
+   "name": "Breeze White",
+   "type": "slub"
+  },
+  {
+   "id": "drapery:SP26049008",
+   "name": "Macaroon Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26050001",
+   "name": "Birch White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26050002",
+   "name": "Blossom White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26050004",
+   "name": "Asphalt Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26050005",
+   "name": "Slate Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26050008",
+   "name": "Foam White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26050009",
+   "name": "Ash Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26050010",
+   "name": "Champagne Beige",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26050011",
+   "name": "Powder White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26050012",
+   "name": "Airy White",
+   "type": "mesh"
+  },
+  {
+   "id": "drapery:SP26053001",
+   "name": "Pearl White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26053006",
+   "name": "Sterling Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26055002",
+   "name": "Bleached White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26056001",
+   "name": "Swan White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26056003",
+   "name": "Limewash White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26056004",
+   "name": "Clay Beige",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26056005",
+   "name": "Caramel Brown",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26056007",
+   "name": "Iron Charcoal",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26056008",
+   "name": "Edelweiss White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26056011",
+   "name": "Dune Beige",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26056014",
+   "name": "Black Lattice",
+   "type": "tweed"
+  },
+  {
+   "id": "drapery:SP26057001",
+   "name": "Winter White",
+   "type": "smooth"
+  },
+  {
+   "id": "drapery:SP26057002",
+   "name": "Thunder Gray",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26057003",
+   "name": "Vanilla White",
+   "type": "linen"
+  },
+  {
+   "id": "drapery:SP26060001",
+   "name": "Crisp White",
+   "type": "motif"
+  },
+  {
+   "id": "drapery:SP26060002",
+   "name": "Pristine White",
+   "type": "motif"
+  },
+  {
+   "id": "drapery:SP26060003",
+   "name": "Clean White",
+   "type": "motif"
+  },
+  {
+   "id": "drapery:SP26062001",
+   "name": "Haze Gray",
+   "type": "print"
+  },
+  {
+   "id": "drapery:SP26062004",
+   "name": "Hunter Green Damask",
+   "type": "print"
+  },
+  {
+   "id": "drapery:SP26062005",
+   "name": "Moonbeam White",
+   "type": "print"
+  },
+  {
+   "id": "drapery:SP26062006",
+   "name": "Navy Leaf",
+   "type": "print"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-1",
+   "name": "Daisy White",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-17",
+   "name": "Anchor Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-18",
+   "name": "Pewter Gray",
+   "type": "print"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-2",
+   "name": "Daffodil Yellow",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-27",
+   "name": "Edelweiss White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3001-42",
+   "name": "Wisteria Purple",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3002-1",
+   "name": "Angel White",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3002-17",
+   "name": "Thunder Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3002-18",
+   "name": "Granite Gray",
+   "type": "print"
+  },
+  {
+   "id": "dream-curtains:ZDS3002-2",
+   "name": "Canary Yellow",
+   "type": "print"
+  },
+  {
+   "id": "dream-curtains:ZDS3002-27",
+   "name": "Moonbeam White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3003-1",
+   "name": "Lotus White",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3003-17",
+   "name": "Asphalt Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3003-27",
+   "name": "Alpine White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3003-41",
+   "name": "Light Pink",
+   "type": "print"
+  },
+  {
+   "id": "dream-curtains:ZDS3003-42",
+   "name": "Lilac Purple",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3004-1",
+   "name": "Glacier White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3004-17",
+   "name": "Cement Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3004-18",
+   "name": "Smoke Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3004-2",
+   "name": "Sunbeam Yellow",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3004-27",
+   "name": "Bleached White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3005-1",
+   "name": "Dove White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3005-17",
+   "name": "Mineral Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3005-18",
+   "name": "Flint Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3005-27",
+   "name": "Sugar White",
+   "type": "smooth"
+  },
+  {
+   "id": "dream-curtains:ZDS3007-1",
+   "name": "Paper White",
+   "type": "twill"
+  },
+  {
+   "id": "dream-curtains:ZDS3007-17",
+   "name": "Seal Gray",
+   "type": "twill"
+  },
+  {
+   "id": "dream-curtains:ZDS3007-18",
+   "name": "Rain Gray",
+   "type": "twill"
+  },
+  {
+   "id": "dream-curtains:ZDS3007-2",
+   "name": "Lemon Yellow",
+   "type": "twill"
+  },
+  {
+   "id": "dream-curtains:ZDS3007-27",
+   "name": "Winter White",
+   "type": "twill"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-1",
+   "name": "Gossamer White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-10",
+   "name": "Charcoal Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-2",
+   "name": "Powder White",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-3",
+   "name": "Buttercup Yellow",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-4",
+   "name": "Light Beige",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-5",
+   "name": "Light Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-6",
+   "name": "Ash Blue",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-7",
+   "name": "Pigeon Gray",
+   "type": "linen"
+  },
+  {
+   "id": "dream-curtains:ZDS3008-9",
+   "name": "Rich Brown",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:DBG1001",
+   "name": "Limewash White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:DBG2001",
+   "name": "Ivory",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:DBG6001",
+   "name": "Cinder Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:DBG7001",
+   "name": "Raven Black",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:DBL2002",
+   "name": "Pure White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:DBL2602",
+   "name": "Lotus White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:DBL2802",
+   "name": "Champagne Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:DBL2902",
+   "name": "Light Brown",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:DBL3102",
+   "name": "Smoke Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:DBL3302",
+   "name": "Chocolate",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:WSS360101",
+   "name": "Edelweiss White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS360105",
+   "name": "Granite Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS360172",
+   "name": "Blossom White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS360839",
+   "name": "Coffee Brown",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS380192",
+   "name": "Tundra White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS385858",
+   "name": "Bronze",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS436408",
+   "name": "Mink Brown",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS438178",
+   "name": "Whale Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS481277",
+   "name": "White Slate",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:WSS660105",
+   "name": "Ash Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS660182",
+   "name": "White Sandstone",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:WSS660864",
+   "name": "Basalt Charcoal",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:XB1700-2",
+   "name": "Parchment Beige",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:XB2300-4",
+   "name": "Toast Beige",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:XB2300-5",
+   "name": "Sahara Khaki",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:XB2300-6",
+   "name": "Asphalt Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:XS140001",
+   "name": "Hybrid",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:solar:XS140003",
+   "name": "Cube",
+   "type": "stripe"
+  },
+  {
+   "id": "roller:solar:XS140004",
+   "name": "Pinstripe",
+   "type": "stripe"
+  },
+  {
+   "id": "roller:solar:XS140006",
+   "name": "Wide Stripe",
+   "type": "stripe"
+  },
+  {
+   "id": "roller:solar:XS160003",
+   "name": "Latte",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:solar:XS160004",
+   "name": "Roasted Coffee",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:solar:XS160005",
+   "name": "Midnight Black",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:solar:XS170001",
+   "name": "Breeze White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:XS170003",
+   "name": "Pale Cream",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:XS1805101",
+   "name": "Porcelain White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:solar:XS1805103",
+   "name": "Light Grey",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:XS1805104",
+   "name": "Concrete Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:XS230001",
+   "name": "Camel Beige",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:XS230002",
+   "name": "Safari Khaki",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:XS230003",
+   "name": "Anchor Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:XS230201",
+   "name": "Swan White",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:XS230210",
+   "name": "Elephant Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:XSS000101",
+   "name": "Surf White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:screen-view:XSS000105",
+   "name": "Platinum Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000107",
+   "name": "White Sand",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000404",
+   "name": "Noir Black",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000405",
+   "name": "Seagull Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000505",
+   "name": "Slate Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000539",
+   "name": "Cocoa Chocolate",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS000540",
+   "name": "Dark Grey",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS030101",
+   "name": "Daisy White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:screen-view:XSS030107",
+   "name": "Sand",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS050M01",
+   "name": "Starlight White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:XSS050M16",
+   "name": "Linen",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB010001",
+   "name": "Fresh White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB010016",
+   "name": "Light Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB050007",
+   "name": "Graphite Gray",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB050009",
+   "name": "Gunmetal Gray",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB050011",
+   "name": "Camel Khaki",
+   "type": "twill"
+  },
+  {
+   "id": "roller:blackout:YB050252",
+   "name": "Steel Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB053206320",
+   "name": "Pitch Black",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB055100",
+   "name": "Alpine White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB055220",
+   "name": "Wheat Khaki",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB120001",
+   "name": "Wisp White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB120002",
+   "name": "Ecru Beige",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB120004",
+   "name": "Latte",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB120007",
+   "name": "Nickel Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:YB180002",
+   "name": "Stucco White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB180003",
+   "name": "Nougat Beige",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB180006",
+   "name": "Onyx Black",
+   "type": "slub"
+  },
+  {
+   "id": "roller:blackout:YB190001",
+   "name": "Praline Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB190002",
+   "name": "Driftwood Khaki",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:YB190005",
+   "name": "Toffee Brown",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:YB190007",
+   "name": "Pewter Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:YB1901",
+   "name": "Feather White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB1905",
+   "name": "Lead Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB1906",
+   "name": "Coal Black",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:YB200804",
+   "name": "Thunder Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:blackout:YB202905",
+   "name": "Caramel Brown",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:YB203504",
+   "name": "Haze Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:YB203810",
+   "name": "Powder White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:blackout:YB203905",
+   "name": "Plaster White",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:blackout:YB204304",
+   "name": "White Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:blackout:YB208608",
+   "name": "Blue",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:YS050002",
+   "name": "Putty Beige",
+   "type": "twill"
+  },
+  {
+   "id": "roller:solar:YS050009",
+   "name": "Iron Gray",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:YS120001",
+   "name": "Talc White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:solar:YS120002",
+   "name": "Fawn Beige",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:YS120004",
+   "name": "Iced Coffee",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:YS120007",
+   "name": "Obsidian Black",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:YS180002",
+   "name": "Clean White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:solar:YS180003",
+   "name": "Cashew Beige",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:YS180004",
+   "name": "Flint Gray",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:YS180006",
+   "name": "Jet Black",
+   "type": "slub"
+  },
+  {
+   "id": "roller:solar:YS190001",
+   "name": "Pumice Beige",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:YS190002",
+   "name": "Clay Khaki",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:YS190005",
+   "name": "Brown",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:YS190007",
+   "name": "Rain Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:YS200804",
+   "name": "Mineral Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:solar:YS203905",
+   "name": "Biscotti Beige",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:solar:YS205908",
+   "name": "Soft Cream",
+   "type": "linen"
+  },
+  {
+   "id": "roller:solar:YS208608",
+   "name": "Blue",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-A12-102",
+   "name": "Straw Khaki",
+   "type": "twill"
+  },
+  {
+   "id": "roller:screen-view:YSS-A12-103",
+   "name": "Shadow Gray",
+   "type": "twill"
+  },
+  {
+   "id": "roller:screen-view:YSS-A12-106",
+   "name": "Cement Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-A12-110",
+   "name": "Ink Black",
+   "type": "twill"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-501",
+   "name": "Mushroom Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-502",
+   "name": "Seal Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-503",
+   "name": "Soot Gray",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-504",
+   "name": "Panther Black",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-506",
+   "name": "Cedar Brown",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:YSS-L1-507",
+   "name": "Coffee",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-501",
+   "name": "Rice White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-502",
+   "name": "Taupe Khaki",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-503",
+   "name": "Latte",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-505",
+   "name": "Sterling Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-L2-506",
+   "name": "Carbon Black",
+   "type": "mesh"
+  },
+  {
+   "id": "roller:screen-view:YSS-T10-301",
+   "name": "Glacier White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:screen-view:YSS-T10-302",
+   "name": "Biscuit Khaki",
+   "type": "print"
+  },
+  {
+   "id": "roller:screen-view:YSS-T10-303",
+   "name": "Frost Gray",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-T11-101",
+   "name": "Winter White",
+   "type": "smooth"
+  },
+  {
+   "id": "roller:screen-view:YSS-T11-102",
+   "name": "Silver Gray",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T11-103",
+   "name": "Dusk Gray",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-301",
+   "name": "Gossamer White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-302",
+   "name": "Dune Khaki",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-303",
+   "name": "Drizzle Gray",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-304",
+   "name": "Dolphin Gray",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T12-305",
+   "name": "Bark Brown",
+   "type": "motif"
+  },
+  {
+   "id": "roller:screen-view:YSS-T8-801",
+   "name": "Marble White",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-T8-802",
+   "name": "Desert Khaki",
+   "type": "linen"
+  },
+  {
+   "id": "roller:screen-view:YSS-T8-803",
+   "name": "Hazelnut Chocolate",
+   "type": "tweed"
+  },
+  {
+   "id": "roller:screen-view:YSS-T8-804",
+   "name": "Tuxedo Black",
+   "type": "tweed"
+  },
+  {
+   "id": "shangri-la:YSLH201",
+   "name": "Snow White",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLH203",
+   "name": "Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLH204",
+   "name": "Steel Gray",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLK904",
+   "name": "Linen Ash",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLL901",
+   "name": "Blossom White",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLM602",
+   "name": "Sunbeam Yellow",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLM604",
+   "name": "Silver Grey",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLM605",
+   "name": "Linen",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLP1001",
+   "name": "Clean White",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLP1002",
+   "name": "Canary Yellow",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLP1003",
+   "name": "Gunmetal Gray",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLP1004",
+   "name": "Chocolate",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLP102",
+   "name": "Cream",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLP103",
+   "name": "Dark Grey",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLP601",
+   "name": "Lily White",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLP603",
+   "name": "Glacier",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLP605",
+   "name": "Smoke Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "shangri-la:YSLP608",
+   "name": "Chai Latte",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLS901",
+   "name": "Fresh White",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLS903",
+   "name": "Honey Latte",
+   "type": "slub"
+  },
+  {
+   "id": "shangri-la:YSLS905",
+   "name": "Concrete Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:DZB3101",
+   "name": "Gesso White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:DZB3103",
+   "name": "Sand Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:DZB3104",
+   "name": "Dove Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB3105",
+   "name": "Jet Black",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB3501",
+   "name": "Nougat Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:DZB3502",
+   "name": "Sahara Khaki",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB3503",
+   "name": "Tin Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB3504",
+   "name": "Tobacco Brown",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB4301",
+   "name": "Buff Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:DZB4303",
+   "name": "Mocha Brown",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:DZB4304",
+   "name": "Cocoa Chocolate",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB1001",
+   "name": "Dove White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB1002",
+   "name": "Almond Beige",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB1003",
+   "name": "Clay Khaki",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB1005",
+   "name": "Wolf Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB1007",
+   "name": "Cinnamon Brown",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB1011",
+   "name": "Crimson",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB1012",
+   "name": "Onyx Black",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB1021",
+   "name": "Steel Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB2001",
+   "name": "Cashew Beige",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB2003",
+   "name": "Wheat Khaki",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB2005",
+   "name": "Soot Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB2007",
+   "name": "Teak Brown",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB2008",
+   "name": "Dark Chocolate",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB201",
+   "name": "Angel White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB202",
+   "name": "Cream",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB208",
+   "name": "Twilight Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB210",
+   "name": "Truffle Brown",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB3-101",
+   "name": "Parchment Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB3-102",
+   "name": "Ash Gray",
+   "type": "linen"
+  },
+  {
+   "id": "zebra:YZB3-103",
+   "name": "Anchor Gray",
+   "type": "linen"
+  },
+  {
+   "id": "zebra:YZB3-104",
+   "name": "Umber Brown",
+   "type": "motif"
+  },
+  {
+   "id": "zebra:YZB3001",
+   "name": "Taupe Gray",
+   "type": "linen"
+  },
+  {
+   "id": "zebra:YZB3003",
+   "name": "Safari Khaki",
+   "type": "linen"
+  },
+  {
+   "id": "zebra:YZB3004",
+   "name": "Vanilla Latte",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3006",
+   "name": "Roasted Coffee",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3007",
+   "name": "Bittersweet Chocolate",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3302",
+   "name": "Biscuit Khaki",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3303",
+   "name": "Oat Latte",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3304",
+   "name": "Granite Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3305",
+   "name": "Iced Coffee",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB3306",
+   "name": "Truffle Chocolate",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5-101",
+   "name": "Porcelain White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5-102",
+   "name": "Dune Khaki",
+   "type": "mesh"
+  },
+  {
+   "id": "zebra:YZB5-103",
+   "name": "Dusk Gray",
+   "type": "mesh"
+  },
+  {
+   "id": "zebra:YZB5-104",
+   "name": "Sable Brown",
+   "type": "mesh"
+  },
+  {
+   "id": "zebra:YZB50-101",
+   "name": "Gossamer White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB50-102",
+   "name": "Fawn Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB50-103",
+   "name": "Sandstone Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB50-104",
+   "name": "Cloud Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB50-105",
+   "name": "Slate Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB50-106",
+   "name": "Coal Black",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5001",
+   "name": "Birch White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5003",
+   "name": "Camel Khaki",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5004",
+   "name": "Platinum Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5005",
+   "name": "Cinnamon Latte",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5006",
+   "name": "Tuxedo Black",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB501",
+   "name": "Off-white",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB502",
+   "name": "Straw Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5101",
+   "name": "Blizzard White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5103",
+   "name": "Desert Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5104",
+   "name": "Graphite Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5105",
+   "name": "Almond Latte",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5109",
+   "name": "Soot Black",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5201",
+   "name": "Flurry White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5203",
+   "name": "Oatmeal Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5205",
+   "name": "Walnut Brown",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB5206",
+   "name": "Silver",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB5207",
+   "name": "Pewter Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB6-101",
+   "name": "Sugar White",
+   "type": "linen"
+  },
+  {
+   "id": "zebra:YZB6-102",
+   "name": "Biscotti Beige",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB6-104",
+   "name": "Frost Gray",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB6-106",
+   "name": "Caramel Brown",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZB6-108",
+   "name": "Eclipse Black",
+   "type": "mesh"
+  },
+  {
+   "id": "zebra:YZB801",
+   "name": "Silver Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB802",
+   "name": "Driftwood Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB804",
+   "name": "Sterling Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB807",
+   "name": "Mocha Chocolate",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB901",
+   "name": "Tundra White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB902",
+   "name": "Taupe Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZB904",
+   "name": "Mineral Gray",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZBK201",
+   "name": "Clean White",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZBK203",
+   "name": "Grey",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZBK206",
+   "name": "Terrain Khaki",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZBK207",
+   "name": "Raven Black",
+   "type": "smooth"
+  },
+  {
+   "id": "zebra:YZBK501",
+   "name": "Black White",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZBK503",
+   "name": "Black Grey",
+   "type": "slub"
+  },
+  {
+   "id": "zebra:YZBK504",
+   "name": "Black Brown",
+   "type": "slub"
+  }
+ ]
+}

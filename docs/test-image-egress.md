@@ -12,3 +12,17 @@ The live project's free plan has a limited cached egress (5 GB). Tests and scree
 
 ## Still on live on purpose
 The one-off maintenance scripts that operate ON live storage (`backfill-thumbs`, `backfill-textures`, `seed-catalog`, `cleanup-test-leftovers`) read and write live by design; they are not tests and are run by hand.
+
+## Requests of any kind to the live project (database, auth, storage)
+Supabase's free plan also limits log ingestion, and every request to the project is logged. So the guard counts **every request sent to the live project**, by kind, and `scripts/run-tests.mjs` prints the total at the end of a run (`requests sent to the LIVE project (any kind): ...`, with the busiest suites).
+- **The default full suite does not touch live.** `node scripts/run-tests.mjs` runs the offline tests and the writing tests on staging. The read-only checks of the LIVE project (catalog, prices, the browser tests of the site against live data) run only with `--live` (or when named with `--only`).
+- **Run the full suite once per PR**, with `--live`, before merging; not after every change. While working, run the suites you changed (`--only <names>`), or the default suite.
+- **One copy of each read-only answer per run.** Read-only RPCs of the live project (`public_catalog`, `public_options`, the price estimates ...) are kept for the length of one run (`LB_LIVE_CACHE_DIR`, a fresh empty folder every run; `--no-live-cache` turns it off), so 50 suites asking for the same catalog send one request to live. Only successful answers of the read-only RPCs on the guard's list are kept; refusals, writes and everything else always go to live. CORS preflights for them are answered locally.
+- **Sign-in:** the tests sign in once per suite and user (against staging). The live read-only checks never sign in (auth requests to live: 0).
+
+### Measured (a full `--live` suite, 62 suites)
+| | requests sent to live |
+|---|---|
+| before the run cache | 2,136 (database RPC 2,121, other tables 15, auth 0, storage 0), by 26 suites |
+| default full suite (no `--live`) | see the PR description |
+| full suite with `--live` and the run cache | see the PR description |
